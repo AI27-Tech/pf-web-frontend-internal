@@ -1,0 +1,21 @@
+# El postinstall de msw copia public/mockServiceWorker.js. Se permite para que una
+# instalacion limpia deje el worker en su sitio; `msw.workerDirectory` en package.json
+# es lo que le dice donde. El worker tambien esta versionado, asi que negarlo no rompe
+# nada — solo arriesga que quede desfasado al subir de version de msw.
+allowBuilds:
+  msw: true
+
+minimumReleaseAgeExclude:
+  - '@tanstack/react-router@1.170.33'
+  - '@typescript-eslint/eslint-plugin@8.70.0'
+  - '@typescript-eslint/parser@8.70.0'
+  - '@typescript-eslint/project-service@8.70.0'
+  - '@typescript-eslint/scope-manager@8.70.0'
+  - '@typescript-eslint/tsconfig-utils@8.70.0'
+  - '@typescript-eslint/type-utils@8.70.0'
+  - '@typescript-eslint/types@8.70.0'
+  - '@typescript-eslint/typescript-estree@8.70.0'
+  - '@typescript-eslint/visitor-keys@8.70.0'
+  - typescript-eslint@8.70.0
+  - msw@2.15.0
+  - lucide-react@1.43.0

@@ -1,0 +1,16 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+
+/* Tailwind 4 se configura por CSS. Por eso no hay tailwind.config.ts. */
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+}
