@@ -4,6 +4,25 @@ Todos los cambios relevantes del proyecto se documentan en este archivo.
 Las entradas se escriben en español, con fecha en formato `yyyy:mm:dd` y hora en formato `hora:minuto`.
 Las entradas más recientes se colocan al inicio.
 
+## 2026:09:09 12:34
+
+**Resumen:** Se integró el sistema de tokens de diseño (light/dark) con la pantalla de login, reemplazando los colores fijos (`neutral-*`, `white`, `red-*`) y las variantes manuales `dark:` por tokens semánticos que responden automáticamente al tema.
+
+**Cambios:**
+
+- `Input`: etiqueta e input migrados a `text-on-surface`, fondo `bg-surface-container-lowest`, placeholder `text-on-surface-variant`, borde `border-outline-variant`, foco `outline-primary` y estado de error con `border-error`/`text-error`/`outline-error`.
+- `Button`: variante `primary` a `bg-primary`/`text-on-primary` con hover `bg-primary-container`; variante `secondary` a `border-outline-variant`/`text-on-surface` con hover `bg-surface-container`; foco en `outline-primary`.
+- `LoginForm`: títulos, textos auxiliares, checkbox (con `accent-primary`), botón mostrar/ocultar contraseña, mensaje de error y nota de seguridad migrados a tokens `on-surface`, `on-surface-variant`, `outline-variant` y `error`.
+- `login` (ruta): panel de marca a `bg-primary`/`text-on-primary` con overlay `bg-primary-container`; tarjeta del formulario a `bg-surface-container-low`, borde `outline-variant` y fondo de sección `bg-surface`.
+- Se verificó con `pnpm typecheck` y `pnpm build` (ambos exitosos).
+
+**Archivos modificados:**
+
+- `src/components/ui/Input.tsx`
+- `src/components/ui/Button.tsx`
+- `src/features/sesion/LoginForm.tsx`
+- `src/routes/(auth)/login.tsx`
+
 ## 2026:09:09 12:18
 
 **Resumen:** Se fijó el tema claro (light) como predeterminado, eliminando la activación automática del tema oscuro por preferencia del sistema. Ahora el modo oscuro solo se activa de forma explícita con la clase `.dark`.

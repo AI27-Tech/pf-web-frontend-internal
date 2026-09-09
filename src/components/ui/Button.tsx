@@ -19,12 +19,10 @@ const base =
 
 const variants: Record<Variant, string> = {
   primary:
-    'bg-neutral-900 text-white hover:bg-neutral-800 focus-visible:outline-neutral-900 ' +
-    'dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200',
+    'bg-primary text-on-primary hover:bg-primary-container focus-visible:outline-primary',
   secondary:
-    'border border-neutral-300 bg-transparent text-neutral-900 hover:bg-neutral-100 ' +
-    'focus-visible:outline-neutral-500 dark:border-neutral-700 dark:text-neutral-100 ' +
-    'dark:hover:bg-neutral-900',
+    'border border-outline-variant bg-transparent text-on-surface ' +
+    'hover:bg-surface-container focus-visible:outline-primary',
 };
 
 export function Button({ variant = 'primary', className, type, ...props }: ButtonProps) {

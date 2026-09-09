@@ -37,13 +37,13 @@ export function Input({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={inputId} className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+      <label htmlFor={inputId} className="text-sm font-medium text-on-surface">
         {label}
       </label>
 
       <div className="relative flex items-center">
         {leadingSlot ? (
-          <span className="pointer-events-none absolute left-3 flex items-center text-neutral-400">
+          <span className="pointer-events-none absolute left-3 flex items-center text-on-surface-variant">
             {leadingSlot}
           </span>
         ) : null}
@@ -53,14 +53,14 @@ export function Input({
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
           className={cn(
-            'w-full rounded-md border bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm',
-            'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-neutral-500',
-            'dark:bg-neutral-900 dark:text-neutral-100',
+            'w-full rounded-md border bg-surface-container-lowest px-3 py-2 text-sm text-on-surface shadow-sm',
+            'placeholder:text-on-surface-variant',
+            'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary',
             leadingSlot ? 'pl-10' : undefined,
             trailingSlot ? 'pr-10' : undefined,
             error
-              ? 'border-red-500 focus-visible:outline-red-500'
-              : 'border-neutral-300 dark:border-neutral-700',
+              ? 'border-error focus-visible:outline-error'
+              : 'border-outline-variant',
             className,
           )}
           {...props}
@@ -72,7 +72,7 @@ export function Input({
       </div>
 
       {error ? (
-        <p id={errorId} role="alert" className="text-sm text-red-600 dark:text-red-400">
+        <p id={errorId} role="alert" className="text-sm text-error">
           {error}
         </p>
       ) : null}

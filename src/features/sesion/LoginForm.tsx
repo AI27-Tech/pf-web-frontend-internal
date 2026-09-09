@@ -42,10 +42,10 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
       <header className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+        <h1 className="text-xl font-semibold text-on-surface">
           Iniciar sesión
         </h1>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+        <p className="text-sm text-on-surface-variant">
           Ingresa a la consola interna de AI27.
         </p>
       </header>
@@ -81,7 +81,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
               onClick={() => setShowPassword((v) => !v)}
               aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               aria-pressed={showPassword}
-              className="flex items-center rounded p-1.5 text-neutral-400 hover:text-neutral-600 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-neutral-500 dark:hover:text-neutral-200"
+              className="flex items-center rounded p-1.5 text-on-surface-variant hover:text-on-surface focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
             >
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
@@ -90,21 +90,21 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       </div>
 
       <div className="flex items-center justify-between text-sm">
-        <label className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
+        <label className="flex items-center gap-2 text-on-surface-variant">
           <input
             type="checkbox"
             name="rememberMe"
             checked={rememberMe}
             onChange={(e) => setRememberMe(e.target.checked)}
             disabled={submitting}
-            className="size-4 rounded border-neutral-300 dark:border-neutral-700"
+            className="size-4 rounded border-outline-variant accent-primary"
           />
           Recordarme
         </label>
       </div>
 
       {error ? (
-        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+        <p role="alert" className="text-sm text-error">
           {error}
         </p>
       ) : null}
@@ -114,7 +114,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         {submitting ? null : <ArrowRight size={16} aria-hidden="true" />}
       </Button>
 
-      <p className="flex items-center justify-center gap-2 text-center text-xs text-neutral-500 dark:text-neutral-400">
+      <p className="flex items-center justify-center gap-2 text-center text-xs text-on-surface-variant">
         <ShieldCheck size={18} aria-hidden="true" />
         Tu conexión es segura y está protegida por los protocolos de AI27.
       </p>

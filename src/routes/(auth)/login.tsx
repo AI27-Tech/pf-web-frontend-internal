@@ -42,21 +42,21 @@ function LoginPage() {
     <main className="grid min-h-dvh lg:grid-cols-2">
       {/* Panel de marca. Solo desde lg: en pantallas chicas se oculta y queda
           únicamente el formulario, que es lo esencial. */}
-      <aside className="relative hidden flex-col justify-between overflow-hidden bg-neutral-900 p-10 text-white lg:flex">
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-primary p-10 text-on-primary lg:flex">
         {/* Hueco para la imagen de fondo. Hoy es un color plano; sustituir por
             <img>/background cuando exista el asset. */}
-        <div className="absolute inset-0 bg-neutral-800" aria-hidden="true" />
+        <div className="absolute inset-0 bg-primary-container" aria-hidden="true" />
 
         <div className="relative flex items-center gap-2">
-          <span className="flex size-9 items-center justify-center rounded-md bg-white/10 text-lg font-bold">
+          <span className="text-primary-fixed flex size-9 items-center justify-center rounded-md bg-on-primary/10 text-lg font-bold">
             A
           </span>
-          <span className="text-lg font-semibold">AI27</span>
+          <span className="text-lg font-semibold text-primary-fixed">AI27</span>
         </div>
 
         <div className="relative flex flex-col gap-2">
-          <h2 className="text-2xl font-semibold">Seguridad Logística Inteligente</h2>
-          <p className="max-w-sm text-sm text-white/70">
+          <h2 className="text-primary-fixed text-2xl font-semibold">Seguridad Logística Inteligente</h2>
+          <p className="text-primary-fixed max-w-sm text-sm font-light">
             Plataforma avanzada para la gestión, monitoreo y protección de tus operaciones en
             tiempo real.
           </p>
@@ -65,8 +65,8 @@ function LoginPage() {
 
       {/* Panel del formulario. Centrado vertical y horizontalmente, con un ancho
           máximo cómodo para lectura. */}
-      <section className="flex items-center justify-center p-6 sm:p-10">
-        <div className="w-full max-w-sm rounded-xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8 dark:border-neutral-800 dark:bg-neutral-950">
+      <section className="flex items-center justify-center bg-surface p-6 sm:p-10">
+        <div className="w-full max-w-sm rounded-xl border border-outline-variant bg-surface-container-low p-6 shadow-sm sm:p-8">
           <LoginForm onSuccess={handleSuccess} />
         </div>
       </section>
