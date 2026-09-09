@@ -1,16 +1,300 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/inter';
 
-/* Tailwind 4 se configura por CSS. Por eso no hay tailwind.config.ts. */
-@theme {
-  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
-}
+/*
+ * Sistema de diseño: AI27 Tactical Operations System
+ * ---------------------------------------------------
+ * Tailwind 4 se configura por CSS (no hay tailwind.config.ts).
+ *
+ * Estrategia de theming:
+ *   - Los tokens de COLOR viven en variables --ai27-* que cambian entre tema
+ *     claro y oscuro. La escala tipografica, los radios y el spacing son
+ *     unicos (compartidos por ambos temas).
+ *   - El tema por defecto es SIEMPRE claro (light), con independencia de la
+ *     preferencia del sistema operativo.
+ *   - El tema oscuro se activa unicamente de forma explicita mediante la
+ *     clase .dark en <html> (preparado para un futuro toggle; por ahora no
+ *     existe control de UI que la alterne).
+ *   - @theme inline mapea cada token a una utilidad de Tailwind
+ *     (bg-surface, text-on-surface, bg-primary, ...) referenciando las
+ *     variables --ai27-*. Al ser "inline", las utilidades apuntan a la
+ *     variable en tiempo de uso, por lo que responden al cambio de tema
+ *     sin duplicar clases.
+ */
 
+/* =========================================================================
+ * 1. Tokens de color — Tema claro (valores por defecto)
+ * ========================================================================= */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
+
+  --ai27-surface: #faf8ff;
+  --ai27-surface-dim: #d2d9f4;
+  --ai27-surface-bright: #faf8ff;
+  --ai27-surface-container-lowest: #ffffff;
+  --ai27-surface-container-low: #f2f3ff;
+  --ai27-surface-container: #eaedff;
+  --ai27-surface-container-high: #e2e7ff;
+  --ai27-surface-container-highest: #dae2fd;
+  --ai27-on-surface: #131b2e;
+  --ai27-on-surface-variant: #444652;
+  --ai27-inverse-surface: #283044;
+  --ai27-inverse-on-surface: #eef0ff;
+  --ai27-outline: #747684;
+  --ai27-outline-variant: #c4c6d4;
+  --ai27-surface-tint: #3558b8;
+
+  --ai27-primary: #002266;
+  --ai27-on-primary: #ffffff;
+  --ai27-primary-container: #003595;
+  --ai27-on-primary-container: #88a5ff;
+  --ai27-inverse-primary: #b4c5ff;
+
+  --ai27-secondary: #7a46a6;
+  --ai27-on-secondary: #ffffff;
+  --ai27-secondary-container: #cf96fd;
+  --ai27-on-secondary-container: #5b2686;
+
+  --ai27-tertiary: #530030;
+  --ai27-on-tertiary: #ffffff;
+  --ai27-tertiary-container: #7b0049;
+  --ai27-on-tertiary-container: #ff7cb6;
+
+  --ai27-error: #ba1a1a;
+  --ai27-on-error: #ffffff;
+  --ai27-error-container: #ffdad6;
+  --ai27-on-error-container: #93000a;
+
+  --ai27-primary-fixed: #dbe1ff;
+  --ai27-primary-fixed-dim: #b4c5ff;
+  --ai27-on-primary-fixed: #00174c;
+  --ai27-on-primary-fixed-variant: #153f9f;
+
+  --ai27-secondary-fixed: #f2daff;
+  --ai27-secondary-fixed-dim: #e0b6ff;
+  --ai27-on-secondary-fixed: #2e004e;
+  --ai27-on-secondary-fixed-variant: #612c8c;
+
+  --ai27-tertiary-fixed: #ffd9e5;
+  --ai27-tertiary-fixed-dim: #ffb0ce;
+  --ai27-on-tertiary-fixed: #3e0022;
+  --ai27-on-tertiary-fixed-variant: #8c0054;
+
+  --ai27-background: #faf8ff;
+  --ai27-on-background: #131b2e;
+  --ai27-surface-variant: #dae2fd;
 }
 
+/* =========================================================================
+ * 2. Tokens de color — Tema oscuro
+ *    Se aplican SOLO mediante la clase .dark en <html> (activacion explicita).
+ *    NO se usa prefers-color-scheme: el default siempre es el tema claro.
+ * ========================================================================= */
+.dark {
+  color-scheme: dark;
+
+  --ai27-surface: #0f131c;
+  --ai27-surface-dim: #0f131c;
+  --ai27-surface-bright: #353942;
+  --ai27-surface-container-lowest: #0a0e16;
+  --ai27-surface-container-low: #181c24;
+  --ai27-surface-container: #1c2028;
+  --ai27-surface-container-high: #262a33;
+  --ai27-surface-container-highest: #31353e;
+  --ai27-on-surface: #dfe2ee;
+  --ai27-on-surface-variant: #c3c6d5;
+  --ai27-inverse-surface: #dfe2ee;
+  --ai27-inverse-on-surface: #2c3039;
+  --ai27-outline: #8d909e;
+  --ai27-outline-variant: #434653;
+  --ai27-surface-tint: #b0c6ff;
+
+  --ai27-primary: #b0c6ff;
+  --ai27-on-primary: #002c6f;
+  --ai27-primary-container: #0f52ba;
+  --ai27-on-primary-container: #bcceff;
+  --ai27-inverse-primary: #1d59c1;
+
+  --ai27-secondary: #59de9b;
+  --ai27-on-secondary: #003921;
+  --ai27-secondary-container: #00a669;
+  --ai27-on-secondary-container: #00311c;
+
+  --ai27-tertiary: #ffb4ac;
+  --ai27-on-tertiary: #690007;
+  --ai27-tertiary-container: #b30014;
+  --ai27-on-tertiary-container: #ffbeb7;
+
+  --ai27-error: #ffb4ab;
+  --ai27-on-error: #690005;
+  --ai27-error-container: #93000a;
+  --ai27-on-error-container: #ffdad6;
+
+  --ai27-primary-fixed: #d9e2ff;
+  --ai27-primary-fixed-dim: #b0c6ff;
+  --ai27-on-primary-fixed: #001945;
+  --ai27-on-primary-fixed-variant: #00419c;
+
+  --ai27-secondary-fixed: #78fbb6;
+  --ai27-secondary-fixed-dim: #59de9b;
+  --ai27-on-secondary-fixed: #002111;
+  --ai27-on-secondary-fixed-variant: #005232;
+
+  --ai27-tertiary-fixed: #ffdad6;
+  --ai27-tertiary-fixed-dim: #ffb4ac;
+  --ai27-on-tertiary-fixed: #410003;
+  --ai27-on-tertiary-fixed-variant: #93000e;
+
+  --ai27-background: #0f131c;
+  --ai27-on-background: #dfe2ee;
+  --ai27-surface-variant: #31353e;
+}
+
+/* =========================================================================
+ * 3. Registro de tokens en Tailwind (@theme inline)
+ *    Genera utilidades: bg-*, text-*, border-*, rounded-*, text-<escala>, p-*
+ *    Los colores referencian las variables --ai27-* (con "inline" para que
+ *    la utilidad apunte a la variable en tiempo de uso y siga el tema).
+ * ========================================================================= */
+@theme inline {
+  /* --- Tipografia: unica fuente Inter para todo --- */
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --default-font-family: var(--font-sans);
+
+  /* --- Colores (referencian las variables --ai27-* con theming) --- */
+  --color-surface: var(--ai27-surface);
+  --color-surface-dim: var(--ai27-surface-dim);
+  --color-surface-bright: var(--ai27-surface-bright);
+  --color-surface-container-lowest: var(--ai27-surface-container-lowest);
+  --color-surface-container-low: var(--ai27-surface-container-low);
+  --color-surface-container: var(--ai27-surface-container);
+  --color-surface-container-high: var(--ai27-surface-container-high);
+  --color-surface-container-highest: var(--ai27-surface-container-highest);
+  --color-on-surface: var(--ai27-on-surface);
+  --color-on-surface-variant: var(--ai27-on-surface-variant);
+  --color-inverse-surface: var(--ai27-inverse-surface);
+  --color-inverse-on-surface: var(--ai27-inverse-on-surface);
+  --color-outline: var(--ai27-outline);
+  --color-outline-variant: var(--ai27-outline-variant);
+  --color-surface-tint: var(--ai27-surface-tint);
+
+  --color-primary: var(--ai27-primary);
+  --color-on-primary: var(--ai27-on-primary);
+  --color-primary-container: var(--ai27-primary-container);
+  --color-on-primary-container: var(--ai27-on-primary-container);
+  --color-inverse-primary: var(--ai27-inverse-primary);
+
+  --color-secondary: var(--ai27-secondary);
+  --color-on-secondary: var(--ai27-on-secondary);
+  --color-secondary-container: var(--ai27-secondary-container);
+  --color-on-secondary-container: var(--ai27-on-secondary-container);
+
+  --color-tertiary: var(--ai27-tertiary);
+  --color-on-tertiary: var(--ai27-on-tertiary);
+  --color-tertiary-container: var(--ai27-tertiary-container);
+  --color-on-tertiary-container: var(--ai27-on-tertiary-container);
+
+  --color-error: var(--ai27-error);
+  --color-on-error: var(--ai27-on-error);
+  --color-error-container: var(--ai27-error-container);
+  --color-on-error-container: var(--ai27-on-error-container);
+
+  --color-primary-fixed: var(--ai27-primary-fixed);
+  --color-primary-fixed-dim: var(--ai27-primary-fixed-dim);
+  --color-on-primary-fixed: var(--ai27-on-primary-fixed);
+  --color-on-primary-fixed-variant: var(--ai27-on-primary-fixed-variant);
+
+  --color-secondary-fixed: var(--ai27-secondary-fixed);
+  --color-secondary-fixed-dim: var(--ai27-secondary-fixed-dim);
+  --color-on-secondary-fixed: var(--ai27-on-secondary-fixed);
+  --color-on-secondary-fixed-variant: var(--ai27-on-secondary-fixed-variant);
+
+  --color-tertiary-fixed: var(--ai27-tertiary-fixed);
+  --color-tertiary-fixed-dim: var(--ai27-tertiary-fixed-dim);
+  --color-on-tertiary-fixed: var(--ai27-on-tertiary-fixed);
+  --color-on-tertiary-fixed-variant: var(--ai27-on-tertiary-fixed-variant);
+
+  --color-background: var(--ai27-background);
+  --color-on-background: var(--ai27-on-background);
+  --color-surface-variant: var(--ai27-surface-variant);
+
+  /* --- Radios (compartidos) --- */
+  --radius-sm: 0.125rem;
+  --radius: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 9999px;
+
+  /* --- Spacing semantico (compartido) --- */
+  --spacing-space-2xs: 0.125rem;
+  --spacing-space-xs: 0.25rem;
+  --spacing-space-sm: 0.5rem;
+  --spacing-space-md: 0.75rem;
+  --spacing-space-base: 1rem;
+  --spacing-space-lg: 1.25rem;
+  --spacing-space-xl: 1.5rem;
+  --spacing-space-2xl: 2rem;
+  --spacing-gutter-dense: 0.75rem;
+  --spacing-gutter-normal: 1rem;
+  --spacing-sidebar-width: 16rem;
+  --spacing-topbar-height: 3.25rem;
+
+  /* --- Escala tipografica unica (basada en el tema claro) ---
+   * Cada token genera una utilidad text-<nombre> con su tamano,
+   * altura de linea, peso y tracking asociados. */
+  --text-display-lg: 32px;
+  --text-display-lg--line-height: 40px;
+  --text-display-lg--font-weight: 700;
+  --text-display-lg--letter-spacing: -0.02em;
+
+  --text-headline-xl: 24px;
+  --text-headline-xl--line-height: 32px;
+  --text-headline-xl--font-weight: 600;
+  --text-headline-xl--letter-spacing: -0.015em;
+
+  --text-headline-lg: 20px;
+  --text-headline-lg--line-height: 28px;
+  --text-headline-lg--font-weight: 600;
+  --text-headline-lg--letter-spacing: -0.01em;
+
+  --text-title-md: 16px;
+  --text-title-md--line-height: 24px;
+  --text-title-md--font-weight: 600;
+  --text-title-md--letter-spacing: -0.005em;
+
+  --text-body-md: 14px;
+  --text-body-md--line-height: 20px;
+  --text-body-md--font-weight: 400;
+  --text-body-md--letter-spacing: 0em;
+
+  --text-body-sm: 13px;
+  --text-body-sm--line-height: 18px;
+  --text-body-sm--font-weight: 400;
+  --text-body-sm--letter-spacing: 0em;
+
+  --text-label-md: 12px;
+  --text-label-md--line-height: 16px;
+  --text-label-md--font-weight: 600;
+  --text-label-md--letter-spacing: 0.04em;
+
+  --text-label-sm: 11px;
+  --text-label-sm--line-height: 14px;
+  --text-label-sm--font-weight: 600;
+  --text-label-sm--letter-spacing: 0.06em;
+
+  --text-data-mono: 13px;
+  --text-data-mono--line-height: 18px;
+  --text-data-mono--font-weight: 500;
+  --text-data-mono--letter-spacing: -0.01em;
+}
+
+/* =========================================================================
+ * 4. Estilos base
+ * ========================================================================= */
 body {
   margin: 0;
   font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-on-background);
 }
