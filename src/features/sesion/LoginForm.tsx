@@ -54,7 +54,7 @@ function LoginForm({ onSuccess }: LoginFormProps) {
     <Card variant="elevated" padding="lg" className="w-full max-w-sm">
       <CardBody>
         {/* Encabezado */}
-        <header className="mb-5">
+        <header className="my-5">
           <h1 className="text-2xl text-on-surface">Iniciar sesión</h1>
           <p className="mt-1 text-sm text-on-surface-variant">Ingresa a tu Portal de Clientes</p>
         </header>
@@ -117,8 +117,8 @@ function LoginForm({ onSuccess }: LoginFormProps) {
         </Form>
 
         {/* Nota de seguridad */}
-        <div className="mt-5 flex items-start gap-2 border-t border-outline-variant pt-4 text-sm leading-snug text-on-surface-variant">
-          <ShieldIcon className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
+        <div className="mt-5 flex items-center gap-2 border-t border-outline-variant pt-4 text-sm leading-snug text-on-surface-variant">
+          <ShieldIcon className="mt-0.5 size-6 shrink-0 text-success" aria-hidden="true" />
           <span>
             Tu conexión es segura y está protegida por los protocolos de seguridad de AI27.
           </span>
