@@ -6,6 +6,7 @@
 import type { ReactNode } from 'react';
 
 import { SessionProvider } from '@/context/SessionContext';
+import "@ai27-tech/ui/styles.css";
 
 export function AppProviders({ children }: { readonly children: ReactNode }) {
   return <SessionProvider>{children}</SessionProvider>;

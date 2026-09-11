@@ -2,6 +2,13 @@
 @import '@fontsource-variable/inter';
 
 /*
+ * Excluir Markdown del escaneo de clases de Tailwind. El CHANGELOG.md documenta
+ * clases de ejemplo (p. ej. utilidades de valor arbitrario) que Tailwind, de
+ * otro modo, intentaria materializar y provocaria warnings de CSS invalido.
+ */
+@source not "../../**/*.md";
+
+/*
  * Sistema de diseño: AI27 Tactical Operations System
  * ---------------------------------------------------
  * Tailwind 4 se configura por CSS (no hay tailwind.config.ts).
@@ -28,126 +35,88 @@
 :root {
   color-scheme: light;
 
-  --ai27-surface: #faf8ff;
-  --ai27-surface-dim: #d2d9f4;
-  --ai27-surface-bright: #faf8ff;
-  --ai27-surface-container-lowest: #ffffff;
-  --ai27-surface-container-low: #f2f3ff;
-  --ai27-surface-container: #eaedff;
-  --ai27-surface-container-high: #e2e7ff;
-  --ai27-surface-container-highest: #dae2fd;
-  --ai27-on-surface: #131b2e;
-  --ai27-on-surface-variant: #444652;
-  --ai27-inverse-surface: #283044;
-  --ai27-inverse-on-surface: #eef0ff;
-  --ai27-outline: #747684;
-  --ai27-outline-variant: #c4c6d4;
-  --ai27-surface-tint: #3558b8;
+  /* Superficies → familia surface de la libreria */
+  --ai27-surface: var(--ui-color-surface);
+  --ai27-surface-dim: var(--ui-color-surface-muted);
+  --ai27-surface-bright: var(--ui-color-surface-raised);
+  --ai27-surface-container-lowest: var(--ui-color-surface-raised);
+  --ai27-surface-container-low: var(--ui-color-surface);
+  --ai27-surface-container: var(--ui-color-surface-muted);
+  --ai27-surface-container-high: var(--ui-color-surface-muted);
+  --ai27-surface-container-highest: var(--ui-color-surface-muted);
+  --ai27-on-surface: var(--ui-color-text);
+  --ai27-on-surface-variant: var(--ui-color-text-muted);
+  --ai27-inverse-surface: var(--ui-color-text);
+  --ai27-inverse-on-surface: var(--ui-color-surface);
+  --ai27-outline: var(--ui-color-border-strong);
+  --ai27-outline-variant: var(--ui-color-border);
+  --ai27-surface-tint: var(--ui-color-primary);
 
-  --ai27-primary: #002266;
-  --ai27-on-primary: #ffffff;
-  --ai27-primary-container: #003595;
-  --ai27-on-primary-container: #88a5ff;
-  --ai27-inverse-primary: #b4c5ff;
+  /* Primary → primary de la libreria (container = hover/active) */
+  --ai27-primary: var(--ui-color-primary);
+  --ai27-on-primary: var(--ui-color-on-primary);
+  --ai27-primary-container: var(--ui-color-primary-hover);
+  --ai27-on-primary-container: var(--ui-color-on-primary);
+  --ai27-inverse-primary: var(--ui-color-primary-hover);
 
-  --ai27-secondary: #7a46a6;
-  --ai27-on-secondary: #ffffff;
-  --ai27-secondary-container: #cf96fd;
-  --ai27-on-secondary-container: #5b2686;
+  /* Secondary → secondary de la libreria */
+  --ai27-secondary: var(--ui-color-secondary);
+  --ai27-on-secondary: var(--ui-color-on-secondary);
+  --ai27-secondary-container: var(--ui-color-secondary-hover);
+  --ai27-on-secondary-container: var(--ui-color-on-secondary);
 
-  --ai27-tertiary: #530030;
-  --ai27-on-tertiary: #ffffff;
-  --ai27-tertiary-container: #7b0049;
-  --ai27-on-tertiary-container: #ff7cb6;
+  /* Tertiary → la libreria no lo tiene: se usa info como acento terciario */
+  --ai27-tertiary: var(--ui-color-info);
+  --ai27-on-tertiary: var(--ui-color-on-primary);
+  --ai27-tertiary-container: var(--ui-color-info);
+  --ai27-on-tertiary-container: var(--ui-color-on-primary);
 
-  --ai27-error: #ba1a1a;
-  --ai27-on-error: #ffffff;
-  --ai27-error-container: #ffdad6;
-  --ai27-on-error-container: #93000a;
+  /* Error → danger de la libreria */
+  --ai27-error: var(--ui-color-danger);
+  --ai27-on-error: var(--ui-color-on-danger);
+  --ai27-error-container: var(--ui-color-danger-hover);
+  --ai27-on-error-container: var(--ui-color-on-danger);
 
-  --ai27-primary-fixed: #dbe1ff;
-  --ai27-primary-fixed-dim: #b4c5ff;
-  --ai27-on-primary-fixed: #00174c;
-  --ai27-on-primary-fixed-variant: #153f9f;
+  /* Fixed → la libreria no distingue fixed: se colapsan a primary/secondary */
+  --ai27-primary-fixed: var(--ui-color-primary);
+  --ai27-primary-fixed-dim: var(--ui-color-primary-hover);
+  --ai27-on-primary-fixed: var(--ui-color-on-primary);
+  --ai27-on-primary-fixed-variant: var(--ui-color-on-primary);
 
-  --ai27-secondary-fixed: #f2daff;
-  --ai27-secondary-fixed-dim: #e0b6ff;
-  --ai27-on-secondary-fixed: #2e004e;
-  --ai27-on-secondary-fixed-variant: #612c8c;
+  --ai27-secondary-fixed: var(--ui-color-secondary);
+  --ai27-secondary-fixed-dim: var(--ui-color-secondary-hover);
+  --ai27-on-secondary-fixed: var(--ui-color-on-secondary);
+  --ai27-on-secondary-fixed-variant: var(--ui-color-on-secondary);
 
-  --ai27-tertiary-fixed: #ffd9e5;
-  --ai27-tertiary-fixed-dim: #ffb0ce;
-  --ai27-on-tertiary-fixed: #3e0022;
-  --ai27-on-tertiary-fixed-variant: #8c0054;
+  --ai27-tertiary-fixed: var(--ui-color-info);
+  --ai27-tertiary-fixed-dim: var(--ui-color-info);
+  --ai27-on-tertiary-fixed: var(--ui-color-on-primary);
+  --ai27-on-tertiary-fixed-variant: var(--ui-color-on-primary);
 
-  --ai27-background: #faf8ff;
-  --ai27-on-background: #131b2e;
-  --ai27-surface-variant: #dae2fd;
+  --ai27-background: var(--ui-color-surface-muted);
+  --ai27-on-background: var(--ui-color-text);
+  --ai27-surface-variant: var(--ui-color-surface-muted);
+
+  /* Tokens de estado propios de la libreria, expuestos por si se necesitan */
+  --ai27-success: var(--ui-color-success);
+  --ai27-warning: var(--ui-color-warning);
+  --ai27-info: var(--ui-color-info);
 }
 
 /* =========================================================================
- * 2. Tokens de color — Tema oscuro
- *    Se aplican SOLO mediante la clase .dark en <html> (activacion explicita).
- *    NO se usa prefers-color-scheme: el default siempre es el tema claro.
+ * 2. Tema oscuro
+ *    La paleta la gobierna la libreria @ai27-tech/ui a traves de sus tokens
+ *    con prefijo --ui- (conmutan por el atributo data-theme en <html>). Como
+ *    todos los tokens --ai27- de arriba referencian los de la libreria, NO hace
+ *    falta redefinir valores aqui: al poner data-theme="dark" cambian los
+ *    tokens de la libreria y los --ai27- los siguen automaticamente.
+ *
+ *    Este selector solo mantiene coherente color-scheme cuando se usa la
+ *    clase .dark. Para activar el tema oscuro completo, alterna tanto la
+ *    clase .dark como data-theme="dark" en <html> (ver index.html).
  * ========================================================================= */
 .dark {
   color-scheme: dark;
-
-  --ai27-surface: #0f131c;
-  --ai27-surface-dim: #0f131c;
-  --ai27-surface-bright: #353942;
-  --ai27-surface-container-lowest: #0a0e16;
-  --ai27-surface-container-low: #181c24;
-  --ai27-surface-container: #1c2028;
-  --ai27-surface-container-high: #262a33;
-  --ai27-surface-container-highest: #31353e;
-  --ai27-on-surface: #dfe2ee;
-  --ai27-on-surface-variant: #c3c6d5;
-  --ai27-inverse-surface: #dfe2ee;
-  --ai27-inverse-on-surface: #2c3039;
-  --ai27-outline: #8d909e;
-  --ai27-outline-variant: #434653;
-  --ai27-surface-tint: #b0c6ff;
-
-  --ai27-primary: #b0c6ff;
-  --ai27-on-primary: #002c6f;
-  --ai27-primary-container: #0f52ba;
-  --ai27-on-primary-container: #bcceff;
-  --ai27-inverse-primary: #1d59c1;
-
-  --ai27-secondary: #59de9b;
-  --ai27-on-secondary: #003921;
-  --ai27-secondary-container: #00a669;
-  --ai27-on-secondary-container: #00311c;
-
-  --ai27-tertiary: #ffb4ac;
-  --ai27-on-tertiary: #690007;
-  --ai27-tertiary-container: #b30014;
-  --ai27-on-tertiary-container: #ffbeb7;
-
-  --ai27-error: #ffb4ab;
-  --ai27-on-error: #690005;
-  --ai27-error-container: #93000a;
-  --ai27-on-error-container: #ffdad6;
-
-  --ai27-primary-fixed: #d9e2ff;
-  --ai27-primary-fixed-dim: #b0c6ff;
-  --ai27-on-primary-fixed: #001945;
-  --ai27-on-primary-fixed-variant: #00419c;
-
-  --ai27-secondary-fixed: #78fbb6;
-  --ai27-secondary-fixed-dim: #59de9b;
-  --ai27-on-secondary-fixed: #002111;
-  --ai27-on-secondary-fixed-variant: #005232;
-
-  --ai27-tertiary-fixed: #ffdad6;
-  --ai27-tertiary-fixed-dim: #ffb4ac;
-  --ai27-on-tertiary-fixed: #410003;
-  --ai27-on-tertiary-fixed-variant: #93000e;
-
-  --ai27-background: #0f131c;
-  --ai27-on-background: #dfe2ee;
-  --ai27-surface-variant: #31353e;
 }
 
 /* =========================================================================
@@ -198,6 +167,11 @@
   --color-on-error: var(--ai27-on-error);
   --color-error-container: var(--ai27-error-container);
   --color-on-error-container: var(--ai27-on-error-container);
+
+  /* Estados propios de la libreria (success/warning/info) */
+  --color-success: var(--ai27-success);
+  --color-warning: var(--ai27-warning);
+  --color-info: var(--ai27-info);
 
   --color-primary-fixed: var(--ai27-primary-fixed);
   --color-primary-fixed-dim: var(--ai27-primary-fixed-dim);
