@@ -51,7 +51,7 @@ function LoginForm({ onSuccess }: LoginFormProps) {
   }
 
   return (
-    <Card variant="elevated" padding="lg" className="w-full max-w-sm">
+    <Card variant="outlined" padding="lg" className="w-full max-w-sm">
       <CardBody>
         {/* Encabezado */}
         <header className="my-5">
