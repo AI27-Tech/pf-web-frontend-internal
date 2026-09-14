@@ -4,6 +4,19 @@ Todos los cambios relevantes del proyecto se documentan en este archivo.
 Las entradas se escriben en español, con fecha en formato `yyyy:mm:dd` y hora en formato `hora:minuto`.
 Las entradas más recientes se colocan al inicio.
 
+## 2026:09:14 15:10
+
+**Resumen:** Se dio más espacio al bloque de usuario del Topbar y se manejó el desbordamiento cuando el nombre o el rol son largos.
+
+**Cambios:**
+
+- `Topbar`: el bloque de usuario ahora tiene `min-w-40` (ancho base más largo) y `max-w-64` (tope). El nombre y el rol usan `truncate` (puntos suspensivos al exceder) y `title` con el texto completo para verlo al pasar el cursor. Así nombres/roles largos no rompen la barra.
+- Se verificó con `pnpm typecheck` y `pnpm eslint` (ambos en verde).
+
+**Archivos modificados:**
+
+- `src/app/shell/Topbar.tsx`
+
 ## 2026:09:14 14:50
 
 **Resumen:** Se agregaron dos badges de estado a la izquierda de la barra de búsqueda en el Topbar: uno verde pulsante y uno neutral.

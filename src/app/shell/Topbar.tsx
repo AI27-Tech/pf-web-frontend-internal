@@ -38,7 +38,7 @@ export function Topbar() {
             C4 CDMX / RED NACIONAL
           </Badge>
           <Badge variant="secure" pulse>
-            CONDICION: VERDE - NOMINAL
+            CONDICIÓN: VERDE - NOMINAL
           </Badge>
 
           <Input
@@ -79,10 +79,14 @@ export function Topbar() {
             >
               {iniciales(displayName)}
             </span>
-            <span className="hidden flex-col leading-tight sm:flex">
-              <span className="text-on-surface text-sm font-medium">{displayName}</span>
+            <span className="hidden min-w-40 max-w-64 flex-col leading-tight sm:flex">
+              <span className="text-on-surface truncate text-sm font-medium" title={displayName}>
+                {displayName}
+              </span>
               {usuario?.rol ? (
-                <span className="text-on-surface-variant text-xs">{usuario.rol}</span>
+                <span className="text-on-surface-variant truncate text-xs uppercase" title={usuario.rol}>
+                  {usuario.rol}
+                </span>
               ) : null}
             </span>
           </div>

@@ -86,7 +86,7 @@ export function AppShell({ children }: { readonly children: ReactNode }) {
 
   return (
     <div className="flex h-dvh">
-      <Sidebar header={<span className="font-semibold">AI27</span>}>
+      <Sidebar header={<span className="font-bold text-lg">AI27 TACTICAL</span>}>
         {NAV_GROUPS.map((group) => (
           <SidebarGroup key={group.label} label={group.label}>
             {group.items.map((item) => (
