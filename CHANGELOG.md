@@ -4,6 +4,113 @@ Todos los cambios relevantes del proyecto se documentan en este archivo.
 Las entradas se escriben en español, con fecha en formato `yyyy:mm:dd` y hora en formato `hora:minuto`.
 Las entradas más recientes se colocan al inicio.
 
+## 2026:09:11 13:50
+
+**Resumen:** Se eliminó un overlay de color redundante en el panel de marca del login. Con la paleta unificada de la librería, el overlay pintaba un azul casi idéntico al fondo y tapaba el `bg-primary` base sin aportar profundidad.
+
+**Cambios:**
+
+- `login` (panel de marca): el `div` overlay usaba `bg-primary-container`, que con la integración mapea a `primary-hover` (`#1a63d6`), casi indistinguible del `bg-primary` (`#0f52ba`) del `aside`. Al ser opaco y a pantalla completa, tapaba el fondo base sin efecto visual. Se le quitó el color; el fondo lo aporta ahora solo `bg-primary` del `aside`. El `div` se conserva como hueco para la futura imagen de fondo.
+- Se revisó el resto del panel: fondos (`bg-primary`, `bg-surface`), la cápsula del logo (`bg-on-primary/10`) y los textos (`text-on-primary`) siguen la paleta de la librería correctamente y no se tocaron.
+- Se verificó con `pnpm typecheck`, `pnpm lint` y `pnpm build` (los tres en verde, sin warnings).
+
+**Archivos modificados:**
+
+- `src/routes/(auth)/login.tsx`
+- `CHANGELOG.md`
+
+## 2026:09:11 13:35
+
+**Resumen:** Se corrigió el color del título del header del formulario de login, que estaba en `primary` (azul) y competía con el enlace y el botón, saturando el bloque de azul. Ahora usa el color de texto normal según la paleta de la librería.
+
+**Cambios:**
+
+- `LoginForm` (header): el título "Iniciar sesión" pasó de `text-primary` a `text-on-surface`. En la paleta de `@ai27-tech/ui`, `primary` (`#0f52ba`) es un color de acento para elementos interactivos (enlaces, botones), mientras que los títulos usan el color de texto normal (`--ui-color-text`, casi negro). El título ahora destaca por tamaño y peso (`text-headline-lg`), no por color, y el azul queda reservado para el enlace y el botón de envío.
+- Se verificó con `pnpm typecheck` y `pnpm lint` (ambos en verde).
+
+**Archivos modificados:**
+
+- `src/features/sesion/LoginForm.tsx`
+- `CHANGELOG.md`
+
+## 2026:09:11 13:20
+
+**Resumen:** Se corrigió el color de los textos del panel de marca del login, que quedaban fuera de paleta (azul sobre azul) tras unificar la paleta con la librería. Ahora usan el token de contraste correcto sobre el fondo primary.
+
+**Cambios:**
+
+- `login` (panel de marca): el logo, el nombre "AI27", el titular y el párrafo usaban `text-primary-fixed`. Como la librería no tiene el concepto `fixed`, ese token se había colapsado a `primary` (azul), quedando texto azul sobre fondo azul (`bg-primary`). Se cambiaron a `text-on-primary` (el color de contraste de la librería sobre primary, blanco); el párrafo secundario usa `text-on-primary/80` para conservar jerarquía.
+- Se revisó el resto del login: los textos del formulario (`text-primary` para título y enlace, `text-on-surface-variant` para textos auxiliares, `text-success` para el icono de seguridad) ya seguían la paleta correctamente y no se tocaron.
+- Se verificó con `pnpm typecheck`, `pnpm lint` y `pnpm build` (los tres en verde, sin warnings).
+
+**Archivos modificados:**
+
+- `src/routes/(auth)/login.tsx`
+- `CHANGELOG.md`
+
+## 2026:09:11 13:00
+
+**Resumen:** Se integró la paleta de color con la librería `@ai27-tech/ui` haciendo que sus tokens sean la fuente de verdad: los tokens propios `--ai27-` ahora referencian los de la librería, de modo que app y componentes comparten exactamente los mismos colores y siguen el tema de la librería.
+
+**Cambios:**
+
+- `globals.css` (sección 1): se reemplazaron los valores hex de todos los tokens `--ai27-` del tema claro por referencias a los tokens de color de la librería (superficies → `surface`/`surface-muted`/`surface-raised`; texto → `text`/`text-muted`; bordes → `border`/`border-strong`; `primary`/`on-primary`/`container` → `primary`/`primary-hover`; `error` → `danger`; `secondary` → `secondary`). Los conceptos sin equivalente directo (tertiary, variantes fixed) se colapsaron al token más cercano (`info`, `primary`, `secondary`).
+- `globals.css` (sección 2): se eliminaron los valores hex fijos del bloque `.dark`, que ahora solo declara `color-scheme: dark`. El tema oscuro lo gobierna la librería vía `data-theme`; como los `--ai27-` referencian los tokens de la librería, siguen el cambio automáticamente.
+- `globals.css` (sección 3): se registraron en `@theme inline` los estados propios de la librería (`--color-success`, `--color-warning`, `--color-info`) como utilidades Tailwind.
+- `LoginForm`: se sustituyeron las utilidades de valor arbitrario que apuntaban a los tokens de la librería por utilidades Tailwind del proyecto (`text-primary`, `text-on-surface-variant`, `border-outline-variant`, `text-success`, `text-headline-lg`), que ahora resuelven a los mismos colores.
+- Se añadió `@source not "../../**/*.md"` en `globals.css` para excluir Markdown del escaneo de clases de Tailwind, evitando que ejemplos de clases documentados en el CHANGELOG generen CSS inválido (warnings de build).
+- Se verificó con `pnpm typecheck`, `pnpm lint` y `pnpm build` (los tres en verde, build sin warnings).
+
+**Archivos modificados:**
+
+- `src/styles/globals.css`
+- `src/features/sesion/LoginForm.tsx`
+- `CHANGELOG.md`
+
+## 2026:09:11 12:30
+
+**Resumen:** Se corrigió que los componentes de `@ai27-tech/ui` se mostraran en tema oscuro cuando el sistema operativo está en modo oscuro, forzando el tema claro para alinearlos con la decisión del proyecto (panel siempre en claro).
+
+**Cambios:**
+
+- Se añadió el atributo `data-theme="light"` al elemento `<html>` en `index.html`. El CSS de la librería activa el tema oscuro con `@media (prefers-color-scheme: dark)` sobre `:root:not([data-theme])`; al declarar `data-theme` explícito, la media query deja de aplicar y la librería usa la paleta clara (`[data-theme="light"]`), independientemente de la preferencia del sistema operativo.
+- La clase `light`/`dark` existente sigue rigiendo los tokens propios `--ai27-*` (Tailwind); `data-theme` rige los tokens `--ui-*` de la librería. Ambos quedan en claro por defecto.
+
+**Archivos modificados:**
+
+- `index.html`
+- `CHANGELOG.md`
+
+## 2026:09:11 12:00
+
+**Resumen:** Se arregló la estructura del `LoginForm` para usar correctamente los componentes de la librería compartida `@ai27-tech/ui`, y se recableó a la lógica de sesión (`useLogin` + `onSuccess`), que se había perdido.
+
+**Cambios:**
+
+- Se corrigió el formulario para consumir los componentes de `@ai27-tech/ui` (`Card`, `CardBody`, `Form`, `FormField`, `Input`, `Checkbox`, `Button`) con sus props reales: el `FormField` aporta la etiqueta y el estado de error, el `Input` usa `startAdornment`/`endAdornment`, y el `Button` usa `loading`/`fullWidth`/`endIcon`.
+- Se recableó el componente a la lógica de dominio: ahora recibe `onSuccess` (interfaz `LoginFormProps` que estaba declarada pero sin usar), llama a `useLogin` para el comando de login y muestra su estado (`submitting`) y su mensaje de error, en lugar del estado ficticio anterior.
+- Se migraron los estilos inline (`style={{ ... }}`) del encabezado, el enlace, el botón de mostrar/ocultar contraseña y la nota de seguridad a clases utilitarias, referenciando los tokens con prefijo `--ui-` de la propia librería mediante utilidades de valor arbitrario de Tailwind.
+- Se pasó `onSuccess={handleSuccess}` desde la ruta de login a `LoginForm` (antes el handler existía pero no se pasaba).
+- Se verificó con `pnpm typecheck` y `pnpm lint` (ambos en verde).
+
+**Archivos modificados:**
+
+- `src/features/sesion/LoginForm.tsx`
+- `src/routes/(auth)/login.tsx`
+- `CHANGELOG.md`
+
+## 2026:09:11 00:00
+
+**Resumen:** Se corrigió un error de importación en la ruta de login que impedía la compilación.
+
+**Cambios:**
+
+- Se cambió la importación de `LoginForm` de importación con nombre (`import { LoginForm }`) a importación por defecto (`import LoginForm`), ya que el componente se exporta como `export default`.
+
+**Archivos modificados:**
+
+- `src/routes/(auth)/login.tsx`
+
 ## 2026:09:09 12:34
 
 **Resumen:** Se integró el sistema de tokens de diseño (light/dark) con la pantalla de login, reemplazando los colores fijos (`neutral-*`, `white`, `red-*`) y las variantes manuales `dark:` por tokens semánticos que responden automáticamente al tema.

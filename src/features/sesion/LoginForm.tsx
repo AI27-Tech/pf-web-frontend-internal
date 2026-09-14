@@ -5,6 +5,10 @@
  * ocultar contraseña), como manda el README: no en una *Section contenedora.
  * Delega el comando en useLogin y, al tener éxito, invoca onSuccess.
  *
+ * UI con la librería de componentes compartida @ai27-tech/ui (Card, Form,
+ * FormField, Input, Checkbox, Button). El estilo lo aporta la propia librería
+ * a través de sus tokens (prefijo `--ui-`); su CSS se importa en app/providers.tsx.
+ *
  * Estructura del formulario (de arriba abajo):
  *   - Encabezado: título + subtítulo.
  *   - Campo correo (con icono).
@@ -15,109 +19,113 @@
  */
 
 import { useState, type FormEvent } from 'react';
-import { ArrowRight, Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react';
+import {
+  Button,
+  Card,
+  CardBody,
+  Checkbox,
+  Form,
+  FormField,
+  Input,
+} from '@ai27-tech/ui';
+import { ArrowRight, EyeIcon, EyeOffIcon, LockIcon, MailIcon, ShieldIcon } from 'lucide-react';
 
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { useLogin } from './useLogin';
+import { useLogin } from '@/features/sesion/useLogin';
 
 interface LoginFormProps {
   /** Se llama tras un login correcto. La ruta decide la navegación. */
   onSuccess: () => void;
 }
 
-export function LoginForm({ onSuccess }: LoginFormProps) {
-  const { login, submitting, error } = useLogin();
+function LoginForm({ onSuccess }: LoginFormProps) {
+  const { submitting, error, login } = useLogin();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(false);
 
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const ok = await login({ email, password });
     if (ok) onSuccess();
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
-      <header className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold text-on-surface">
-          Iniciar sesión
-        </h1>
-        <p className="text-sm text-on-surface-variant">
-          Ingresa a la consola interna de AI27.
-        </p>
-      </header>
+    <Card variant="outlined" padding="lg" className="w-full max-w-sm">
+      <CardBody>
+        {/* Encabezado */}
+        <header className="my-5">
+          <h1 className="text-2xl text-on-surface">Iniciar sesión</h1>
+          <p className="mt-1 text-sm text-on-surface-variant">Ingresa a tu Portal de Clientes</p>
+        </header>
 
-      <div className="flex flex-col gap-4">
-        <Input
-          label="Correo electrónico"
-          type="email"
-          name="email"
-          autoComplete="username"
-          placeholder="nombre@empresa.com"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={submitting}
-          leadingSlot={<Mail size={16} aria-hidden="true" />}
-        />
+        <Form onSubmit={handleSubmit} noValidate>
+          <FormField label="Correo electrónico empresarial" required>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="nombre@empresa.com"
+              autoComplete="email"
+              startAdornment={<MailIcon className="size-4" aria-hidden="true" />}
+            />
+          </FormField>
 
-        <Input
-          label="Contraseña"
-          type={showPassword ? 'text' : 'password'}
-          name="password"
-          autoComplete="current-password"
-          placeholder="••••••••"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          disabled={submitting}
-          leadingSlot={<Lock size={16} aria-hidden="true" />}
-          trailingSlot={
-            <button
-              type="button"
-              onClick={() => setShowPassword((v) => !v)}
-              aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-              aria-pressed={showPassword}
-              className="flex items-center rounded p-1.5 text-on-surface-variant hover:text-on-surface focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+          <FormField label="Contraseña" required error={error ?? undefined}>
+            <Input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="current-password"
+              startAdornment={<LockIcon className="size-4" aria-hidden="true" />}
+              endAdornment={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  className="inline-flex cursor-pointer items-center border-0 bg-transparent p-0 text-inherit"
+                >
+                  {showPassword ? (
+                    <EyeOffIcon className="size-4" aria-hidden="true" />
+                  ) : (
+                    <EyeIcon className="size-4" aria-hidden="true" />
+                  )}
+                </button>
+              }
+            />
+          </FormField>
+
+          {/* Recordarme + Olvidaste tu contraseña */}
+          <div className="flex items-center justify-between gap-2">
+            <Checkbox
+              label="Recordarme"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+            />
+            <a
+              href="#"
+              className="text-sm text-primary no-underline hover:underline"
             >
-              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-          }
-        />
-      </div>
+              ¿Olvidaste tu contraseña?
+            </a>
+          </div>
 
-      <div className="flex items-center justify-between text-sm">
-        <label className="flex items-center gap-2 text-on-surface-variant">
-          <input
-            type="checkbox"
-            name="rememberMe"
-            checked={rememberMe}
-            onChange={(e) => setRememberMe(e.target.checked)}
-            disabled={submitting}
-            className="size-4 rounded border-outline-variant accent-primary"
-          />
-          Recordarme
-        </label>
-      </div>
+          <Button type="submit" loading={submitting} fullWidth endIcon={<ArrowRight className="size-4" />}>
+            Iniciar sesión
+          </Button>
+        </Form>
 
-      {error ? (
-        <p role="alert" className="text-sm text-error">
-          {error}
-        </p>
-      ) : null}
-
-      <Button type="submit" disabled={submitting} className="w-full">
-        {submitting ? 'Entrando…' : 'Iniciar sesión'}
-        {submitting ? null : <ArrowRight size={16} aria-hidden="true" />}
-      </Button>
-
-      <p className="flex items-center justify-center gap-2 text-center text-xs text-on-surface-variant">
-        <ShieldCheck size={18} aria-hidden="true" />
-        Tu conexión es segura y está protegida por los protocolos de AI27.
-      </p>
-    </form>
+        {/* Nota de seguridad */}
+        <div className="mt-5 flex items-center gap-2 border-t border-outline-variant pt-4 text-sm leading-snug text-on-surface-variant">
+          <ShieldIcon className="mt-0.5 size-6 shrink-0 text-success" aria-hidden="true" />
+          <span>
+            Tu conexión es segura y está protegida por los protocolos de seguridad de AI27.
+          </span>
+        </div>
+      </CardBody>
+    </Card>
   );
 }
+
+export default LoginForm;
