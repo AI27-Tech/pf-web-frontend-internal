@@ -4,6 +4,157 @@ Todos los cambios relevantes del proyecto se documentan en este archivo.
 Las entradas se escriben en español, con fecha en formato `yyyy:mm:dd` y hora en formato `hora:minuto`.
 Las entradas más recientes se colocan al inicio.
 
+## 2026:09:14 14:50
+
+**Resumen:** Se agregaron dos badges de estado a la izquierda de la barra de búsqueda en el Topbar: uno verde pulsante y uno neutral.
+
+**Cambios:**
+
+- `Topbar`: se añadieron dos `Badge` de la librería AI27 antes del input de búsqueda. El verde usa `variant="secure"` con `pulse` (punto animado); el neutral usa `variant="neutral"`. Ambos con `pill`. Los textos son placeholder ("En línea" / "Sin novedades").
+- Se verificó con `pnpm typecheck` y `pnpm eslint` (ambos en verde).
+
+**Archivos modificados:**
+
+- `src/app/shell/Topbar.tsx`
+
+## 2026:09:14 14:35
+
+**Resumen:** Se quitó el efecto de pulso del botón de emergencia; queda un botón simple.
+
+**Cambios:**
+
+- `Topbar`: se eliminó el halo animado (`span` con `animate-ping`) y su contenedor. El botón de emergencia queda como `Button variant="danger"` con ícono `TriangleAlert`, sin animación.
+- Se verificó con `pnpm typecheck` y `pnpm eslint` (ambos en verde).
+
+**Archivos modificados:**
+
+- `src/app/shell/Topbar.tsx`
+
+## 2026:09:14 14:25
+
+**Resumen:** Se agregó un botón de emergencia en el Topbar, a la derecha de la búsqueda. Resalta con el estilo de peligro de la librería y late con un halo animado tipo alerta.
+
+**Cambios:**
+
+- `Topbar`: nuevo botón con `Button variant="danger"` de la librería AI27 e ícono `TriangleAlert` (lucide). Detrás lleva un `span` con `animate-ping` y color `bg-error` del tema para el efecto de pulso/emergencia; el halo se desactiva con `motion-reduce:hidden` para accesibilidad (respeta prefers-reduced-motion). El handler es un placeholder listo para cablear.
+- Se verificó con `pnpm typecheck` y `pnpm eslint` (ambos en verde).
+
+**Archivos modificados:**
+
+- `src/app/shell/Topbar.tsx`
+
+## 2026:09:14 14:05
+
+**Resumen:** Se corrigió que el separador entre las acciones y el usuario del Topbar no se viera. Usaba `bg-outline-variant` (mapea a `--ui-color-border`, muy tenue) y podía colapsar dentro del flex.
+
+**Cambios:**
+
+- `Topbar`: el separador ahora usa `bg-outline` (borde fuerte, con contraste real) y se le agregó `shrink-0 self-center` para que el ancho de 1px no se comprima en el contenedor flex y quede centrado verticalmente.
+- Se verificó con `pnpm typecheck` y `pnpm eslint` (ambos en verde).
+
+**Archivos modificados:**
+
+- `src/app/shell/Topbar.tsx`
+
+## 2026:09:14 13:50
+
+**Resumen:** Se ajustó el shell para usar el tema AI27. Las clases crudas de Tailwind (neutral-*, white) que se habían colado en el bloque de usuario del Topbar se reemplazaron por las utilidades semánticas del tema (surface / on-surface / outline), que ya están cableadas a los tokens de la librería vía `@theme inline` en globals.css.
+
+**Cambios:**
+
+- `Topbar`: el avatar, el separador y los textos del usuario ahora usan `bg-surface-container-highest`, `text-on-surface`, `text-on-surface-variant` y `bg-outline-variant` en vez de `bg-neutral-*` / `text-neutral-*`. Así siguen la paleta AI27 y responden al cambio de tema (claro/oscuro).
+- `AppShell`: la columna de contenido usa `bg-surface text-on-surface` para que el área principal tome la superficie del tema y no dependa del fondo base del root.
+- Nota: los componentes de la librería (`Navbar`, `Sidebar`, `Button`, `Input`, `Badge`) ya usaban el tema por dentro; el ajuste fue solo en las clases propias del shell.
+- Se verificó con `pnpm typecheck` y `pnpm eslint` (ambos en verde).
+
+**Archivos modificados:**
+
+- `src/app/shell/Topbar.tsx`
+- `src/app/shell/AppShell.tsx`
+
+## 2026:09:14 13:25
+
+**Resumen:** Se agregó el usuario en el extremo derecho de la barra superior, después de búsqueda y notificaciones, tomando la identidad de la sesión activa.
+
+**Cambios:**
+
+- En `Topbar` se consumió `useSession` para mostrar el usuario: avatar con iniciales (helper `iniciales`), nombre (o email como respaldo) y rol. Se añadió un separador vertical entre las acciones y el bloque de usuario. El nombre y rol se ocultan en pantallas pequeñas (solo el avatar), para no saturar.
+- Se verificó con `pnpm typecheck` y `pnpm eslint` (ambos en verde).
+
+**Archivos modificados:**
+
+- `src/app/shell/Topbar.tsx`
+
+## 2026:09:14 13:05
+
+**Resumen:** Se agregó la barra superior de la consola usando la `Navbar` de la librería, con búsqueda y notificaciones. Queda integrada en el shell, sobre el contenido de cada ruta.
+
+**Cambios:**
+
+- Se creó `Topbar`, que usa `Navbar` (sticky) con el slot `actions`: un `Input` de búsqueda con ícono de lupa (`startAdornment`) y un botón de notificaciones (`Button` ghost con ícono `Bell`) con un `Badge` de contador que solo aparece cuando hay no leídas. La marca no se repite porque ya vive en la sidebar. Los datos/handlers son placeholders listos para cablear.
+- Se integró `Topbar` en `AppShell`: la columna derecha ahora apila la barra superior sobre el `main`.
+- Se verificó con `pnpm typecheck` y `pnpm eslint` (ambos en verde).
+
+**Archivos modificados:**
+
+- `src/app/shell/Topbar.tsx`
+- `src/app/shell/AppShell.tsx`
+
+## 2026:09:14 12:45
+
+**Resumen:** Se corrigió que todas las pestañas de la sidebar aparecieran activas. La causa era que todas apuntaban a `to: '/'` con `exact: true`, así que el resaltado de activo coincidía en todas a la vez. Se crearon las rutas reales y se cablearon los destinos.
+
+**Cambios:**
+
+- Se crearon stubs de ruta (placeholder) para cada sección bajo `_private`: solicitudes, asignación, monitoreo, bitácora, incidentes, comms, catálogos, reportes y acceso. Esto registra las rutas en el árbol generado por TanStack Router.
+- En `AppShell`, se actualizó `NAV_GROUPS` para que cada pestaña use su `to` real. "Centro de Mando" queda en `/` con `exact`; el resto usa coincidencia por sub-ruta (`startsWith`). Esto también elimina las keys duplicadas que existían al repetir `to: '/'`.
+- Se verificó con `pnpm typecheck` y `pnpm eslint` (ambos en verde); se confirmó que las rutas quedaron registradas en `routeTree.gen.ts`.
+
+**Archivos modificados:**
+
+- `src/app/shell/AppShell.tsx`
+- `src/routes/_private/solicitudes/index.tsx`
+- `src/routes/_private/asignacion/index.tsx`
+- `src/routes/_private/monitoreo/index.tsx`
+- `src/routes/_private/bitacora/index.tsx`
+- `src/routes/_private/incidentes/index.tsx`
+- `src/routes/_private/comms/index.tsx`
+- `src/routes/_private/catalogos/index.tsx`
+- `src/routes/_private/reportes/index.tsx`
+- `src/routes/_private/acceso/index.tsx`
+- `src/routeTree.gen.ts` (regenerado automáticamente)
+
+## 2026:09:14 12:20
+
+**Resumen:** Se refactorizó la navegación de la sidebar en `AppShell` para que se defina en un arreglo iterable en lugar de items escritos a mano, dejándolo listo para agregar pestañas editando solo los datos.
+
+**Cambios:**
+
+- Se introdujo el arreglo `NAV_GROUPS` (con tipos `NavGroup` y `NavItem`) que describe grupos y pestañas; el JSX ahora itera ese arreglo y ya no lista los items manualmente.
+- El estado `active` se calcula con un helper `isActive`, con soporte para coincidencia exacta (`exact`) o por sub-ruta (`startsWith`).
+- Limpieza: se quitó el import `useState` sin usar y un `NavItem` vacío que había quedado en el segundo grupo.
+- Se verificó con `pnpm typecheck` y `pnpm eslint` (ambos en verde).
+
+**Archivos modificados:**
+
+- `src/app/shell/AppShell.tsx`
+
+## 2026:09:14 12:00
+
+**Resumen:** Se agregó el layout base con una sidebar para la consola interna, dejando la navegación preparada como esqueleto para llenar con las opciones reales.
+
+**Cambios:**
+
+- Se creó `AppLayout`, un layout con `Sidebar` de `@ai27-tech/ui` a la izquierda y el contenido de la ruta a la derecha. Incluye un `SidebarGroup` y un `SidebarItem` de ejemplo, más comentarios que indican dónde agregar grupos e items.
+- Se añadió el componente auxiliar `NavItem`, que pinta un `SidebarItem` como `Link` de TanStack Router para navegación nativa con tipos de ruta; el estado `active` se deriva de la ruta actual.
+- Se conectó el layout privado (`_private.tsx`) para envolver todas las rutas internas con `AppLayout`.
+- Se verificó con `pnpm typecheck` y `pnpm eslint` (ambos en verde).
+
+**Archivos modificados:**
+
+- `src/app/shell/AppLayout.tsx`
+- `src/routes/_private.tsx`
+
 ## 2026:09:11 13:50
 
 **Resumen:** Se eliminó un overlay de color redundante en el panel de marca del login. Con la paleta unificada de la librería, el overlay pintaba un azul casi idéntico al fondo y tapaba el `bg-primary` base sin aportar profundidad.

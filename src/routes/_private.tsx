@@ -11,6 +11,7 @@
 
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router';
 
+import { AppShell } from '@/app/shell/AppShell';
 import { tokenStore } from '@/lib/api/tokenStore';
 
 export const Route = createFileRoute('/_private')({
@@ -27,5 +28,9 @@ export const Route = createFileRoute('/_private')({
 });
 
 function PrivateLayout() {
-  return <Outlet />;
+  return (
+    <AppShell>
+      <Outlet />
+    </AppShell>
+  );
 }
