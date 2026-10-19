@@ -4,6 +4,31 @@ Todos los cambios relevantes del proyecto se documentan en este archivo.
 Las entradas se escriben en español, con fecha en formato `yyyy:mm:dd` y hora en formato `hora:minuto`.
 Las entradas más recientes se colocan al inicio.
 
+## 2026:10:19 17:10
+
+**Resumen:** Se implementó **E8-T1** (CI y línea base de calidad) en el panel interno: workflow de CI que corre lint, typecheck, pruebas unitarias y e2e en cada PR y en cada push a las tres ramas del flujo (`pf-wfi-m/d/q`), más los dos workflows de promoción `d → q` y `q → m` del patrón de la plataforma (merge manual). Era el repo con más deuda de los tres: no tenía ninguna prueba real (solo `tests/setup.ts`), el `test:e2e` estaba declarado pero fallaba por falta de configuración, y el `.husky/pre-commit` no estaba versionado. Se cubrió todo eso. `lint`, `typecheck`, `test` (6 pruebas en 2 archivos) y `test:e2e` (1 spec) en verde.
+
+**Cambios:**
+
+- `.github/workflows/ci.yml` (nuevo): disparo en `push` a `pf-wfi-m/d/q` y en `pull_request`. Job `calidad` (install → generar rutas con `vite build --mode mock` → lint → typecheck → test) y job `e2e` (install → `playwright install --with-deps chromium` → `test:e2e`). Autenticación a GitHub Packages (scope privado `@ai27-tech`) vía `NODE_AUTH_TOKEN` con el secreto `GH_PAT`.
+- `.github/workflows/promotion-pr-dq.yml` y `.github/workflows/promotion-pr-qm.yml` (nuevos): mantienen al día un PR `*-d → *-q` y otro `*-q → *-m`; derivan la rama destino del sufijo; no fusionan.
+- `tests/utils.test.ts` (nuevo): pruebas de `cn()` (unir clases, descartar falsy, cadena vacía).
+- `tests/Button.test.tsx` (nuevo): render del `Button` interno, `type="button"` por defecto y `onClick`.
+- `playwright.config.ts` (nuevo): webServer con `vite build --mode mock` + `preview`, puerto 4174, retries en CI.
+- `e2e/login.spec.ts` (nuevo): verifica que la pantalla de login renderiza contra el bundle mock.
+- `.husky/pre-commit` (versionado): `lint-staged` + `tsc --build --force`, alineado con el portal cliente.
+- `.kiro/specs/e8-t1-ci-calidad/*`: spec del repo con requisitos, diseño y tareas.
+
+**Archivos modificados:**
+
+- `.github/workflows/ci.yml` · `.github/workflows/promotion-pr-dq.yml` · `.github/workflows/promotion-pr-qm.yml`
+- `tests/utils.test.ts` · `tests/Button.test.tsx`
+- `playwright.config.ts` · `e2e/login.spec.ts`
+- `.husky/pre-commit`
+- `.kiro/specs/e8-t1-ci-calidad/requirements.md` · `design.md` · `tasks.md`
+
+**Señalado (no se tocó):** la prueba e2e es mínima (solo login), porque el panel más allá del login es placeholder en V1 (AppShell y navegación llegan en E8-T4 y siguientes); no se prueban pantallas que aún no existen. El CI necesita el secreto de repo `GH_PAT` (PAT con `read:packages`) para instalar `@ai27-tech/ui`; sin él, el `install` falla con 403. La activación de branch protection queda pendiente.
+
 ## 2026:09:11 13:50
 
 **Resumen:** Se eliminó un overlay de color redundante en el panel de marca del login. Con la paleta unificada de la librería, el overlay pintaba un azul casi idéntico al fondo y tapaba el `bg-primary` base sin aportar profundidad.

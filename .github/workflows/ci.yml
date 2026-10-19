@@ -1,0 +1,93 @@
+# CI del panel interno (E8-T1).
+#
+# Verifica lint, typecheck, pruebas unitarias y e2e en cada PR y en cada push a las
+# tres ramas del flujo (m/d/q), al estilo de los backends de la plataforma.
+#
+# Nota sobre las rutas: el plugin de TanStack Router genera src/routeTree.gen.ts
+# dentro de `vite` (build/dev), y ese archivo esta en .gitignore. `tsc --build` no lo
+# genera, asi que typecheck y las pruebas unitarias (que importan el router) fallan en
+# un checkout limpio hasta que se generen las rutas. Por eso el job `calidad` corre un
+# `vite build --mode mock` antes de typecheck/test. El job `e2e` no lo necesita aparte:
+# su `playwright.config.ts` ya construye el bundle mock, que regenera las rutas.
+#
+# Nota sobre @ai27-tech/ui: es un paquete PRIVADO en GitHub Packages (vive en
+# pf-library-frontend-components). pnpm install necesita autenticarse contra el
+# registry del scope @ai27-tech o falla con 401/403. En local resuelve por el ~/.npmrc
+# del usuario; en CI se configura el registry via setup-node y se inyecta el token en
+# NODE_AUTH_TOKEN. El GITHUB_TOKEN del workflow no basta para leer un paquete de otro
+# repo de la org: se usa el secreto de repo GH_PAT (un PAT con read:packages). Ver el
+# mismo patron en pf-web-frontend-client.
+name: ci
+
+on:
+  push:
+    branches: [pf-wfi-m, pf-wfi-d, pf-wfi-q]
+  pull_request:
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  # Token para leer @ai27-tech/* de GitHub Packages. Usa GH_PAT (PAT con read:packages)
+  # si existe y cae al GITHUB_TOKEN del propio workflow en caso contrario.
+  NODE_AUTH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+
+jobs:
+  calidad:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.3.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: '@ai27-tech'
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Generar rutas (routeTree.gen) via build mock
+        run: pnpm exec vite build --mode mock
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Pruebas unitarias
+        run: pnpm test
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.3.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: '@ai27-tech'
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Instalar navegador de Playwright
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Pruebas e2e (bundle mock)
+        # El webServer del playwright.config.ts corre `vite build --mode mock` +
+        # `preview`, que regenera las rutas y sirve MSW.
+        run: pnpm test:e2e
