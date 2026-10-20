@@ -4,6 +4,32 @@ Todos los cambios relevantes del proyecto se documentan en este archivo.
 Las entradas se escriben en español, con fecha en formato `yyyy:mm:dd` y hora en formato `hora:minuto`.
 Las entradas más recientes se colocan al inicio.
 
+## 2026:10:20 12:30
+
+**Resumen:** Se implementó **E8-T3** (consumo del contrato generado) en el panel interno: la sesión y los roles pasan a los tipos generados de `@ai27-tech/contracts` (`v0.1.0-tracer.11`), retirando los tipos de wire escritos a mano. El login envía `{usuario, contrasena}` y la respuesta se tipa desde `Sesion` del contrato; `rol` y `audiencia` dejan de leerse del cuerpo (que ya no los trae) y se derivan de los claims del `access_token`; se conserva `sesion_id` para el corte de revocación (E0-T4/ADR 26). El enum de roles pasa a los 8 identificadores de DEC-053 (se retira `RolInterno` hardcodeado). Se retira el mecanismo de generación local (`gen:contracts`, `openapi-typescript`, `CONTRACTS_DIR`), porque el paquete ya publica los tipos (ADR 25). `typecheck`, `lint` y `test` (3 archivos, 13 pruebas) en verde; `test:e2e` (1 spec) y `build:mock` en verde.
+
+**Cambios:**
+
+- `package.json`: se agrega `@ai27-tech/contracts@0.1.0-tracer.11` (versión exacta, ADR 25); se retiran el script `gen:contracts` y la devDependency `openapi-typescript`.
+- `.env.example`: se retira la variable `CONTRACTS_DIR` (generación local, ya sin uso).
+- `src/lib/contracts/jwt.ts` (nuevo): decodificación de los claims del JWT (`ClaimsAi27`, `decodificarClaims`, `rolValido`, `audienciaDeRol`), validando el rol con `esRol` del contrato. Brecha marcada con `TODO(contracts)`: los nombres de claim son los documentados en prosa, por confirmar contra un token real del IdP (ADR 32 §4).
+- `src/lib/contracts/sesion.ts`: tipa `SesionWire`/`CredencialesEntrada`/`RefrescoEntrada` desde el contrato; `parseSesion` deriva `usuario`/`rol`/`audiencia` de los claims y conserva `sesionId`; lanza `SesionInvalidaError` si el token no trae un rol válido.
+- `src/lib/contracts/index.ts`: el barrel reexporta `Rol`/`esRol`/`esInterno` del contrato y lo nuevo de sesión/jwt; salen los tipos a mano (`RolInterno`, `CredentialsWire`, `UsuarioWire`).
+- `src/lib/api/sesion.ts`, `src/features/sesion/{LoginForm,useLogin}.tsx`, `src/context/SessionContext.tsx`: login con `{usuario, contrasena}`; refresh tipado con `RefrescoEntrada`; manejo de `refresh_token` opcional.
+- `src/routes/_private/index.tsx`: el placeholder muestra el `id` del sujeto (el contrato no trae `name`/`email`).
+- `src/mocks/{data,handlers}.ts`: `createSessionWire` devuelve la forma de `Sesion` del contrato con un `access_token` cuyos claims son decodificables; el handler de login valida `{usuario, contrasena}`.
+- `tests/contracts/sesion.test.ts` (nuevo): contract test que ata el mock de sesión al tipo del tracer (rompe el typecheck si el contrato cambia; rompe el test si el mock se desvía).
+
+**Archivos modificados:**
+
+- `package.json` · `.env.example` · `pnpm-workspace.yaml` · `pnpm-lock.yaml`
+- `src/lib/contracts/{index,sesion}.ts` · `src/lib/contracts/jwt.ts` (nuevo) · `src/lib/api/sesion.ts`
+- `src/features/sesion/{LoginForm,useLogin}.tsx` · `src/context/SessionContext.tsx` · `src/routes/_private/index.tsx`
+- `src/mocks/{data,handlers}.ts` · `tests/contracts/sesion.test.ts` (nuevo)
+- `.kiro/specs/e8-t3-contrato-generado/tasks.md`
+
+**Señalado (no se tocó):** los nombres de los claims del JWT son una suposición documentada en prosa, no un esquema del contrato; queda `TODO(contracts)` aislado en `jwt.ts`. El contrato no devuelve `name`/`email` del operador en ningún lado; una pantalla futura que los necesite requerirá una superficie que hoy no existe. No se corrió `pnpm format:check` ni la verificación manual en `dev:mock` en esta sesión.
+
 ## 2026:10:19 17:10
 
 **Resumen:** Se implementó **E8-T1** (CI y línea base de calidad) en el panel interno: workflow de CI que corre lint, typecheck, pruebas unitarias y e2e en cada PR y en cada push a las tres ramas del flujo (`pf-wfi-m/d/q`), más los dos workflows de promoción `d → q` y `q → m` del patrón de la plataforma (merge manual). Era el repo con más deuda de los tres: no tenía ninguna prueba real (solo `tests/setup.ts`), el `test:e2e` estaba declarado pero fallaba por falta de configuración, y el `.husky/pre-commit` no estaba versionado. Se cubrió todo eso. `lint`, `typecheck`, `test` (6 pruebas en 2 archivos) y `test:e2e` (1 spec) en verde.

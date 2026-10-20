@@ -10,7 +10,7 @@ import { useCallback, useState } from 'react';
 
 import { useSession } from '@/context/SessionContext';
 import { ApiError } from '@/lib/api/errors';
-import type { CredentialsWire } from '@/lib/contracts';
+import type { CredencialesEntrada } from '@/lib/contracts';
 
 interface UseLoginResult {
   /** true mientras el comando de login está en vuelo. */
@@ -18,7 +18,7 @@ interface UseLoginResult {
   /** Mensaje de error legible, o null si no hay error pendiente. */
   error: string | null;
   /** Ejecuta el login. Devuelve true si tuvo éxito. */
-  login: (credentials: CredentialsWire) => Promise<boolean>;
+  login: (credenciales: CredencialesEntrada) => Promise<boolean>;
 }
 
 export function useLogin(): UseLoginResult {
@@ -27,11 +27,11 @@ export function useLogin(): UseLoginResult {
   const [error, setError] = useState<string | null>(null);
 
   const login = useCallback(
-    async (credentials: CredentialsWire): Promise<boolean> => {
+    async (credenciales: CredencialesEntrada): Promise<boolean> => {
       setSubmitting(true);
       setError(null);
       try {
-        await loginSession(credentials);
+        await loginSession(credenciales);
         return true;
       } catch (e) {
         setError(errorMessage(e));
