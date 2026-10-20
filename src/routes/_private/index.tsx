@@ -1,41 +1,42 @@
 /*
- * Home privado: tablero de flota. Por ahora es un placeholder detrás de la
- * guarda de sesión; su contenido real llega cuando exista el dominio de viajes.
+ * Ruta inicial de /_private.
+ *
+ * Redirige automáticamente a la página de inicio del rol del usuario.
+ * Si el usuario accede directamente a /, no queda en blanco,
+ * sino que va a su dashboard correspondiente.
+ *
+ * Nota: No usamos beforeLoad para redirect porque eso genera un 404 visual.
+ * Usamos useEffect en el componente para redirigir después del render.
  */
 
+import { useEffect } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-
-import { Button } from '@/components/ui/Button';
 import { useSession } from '@/context/SessionContext';
+import { getInitialRouteForRole } from '@/lib/hooks/useInitialRoute';
 
 export const Route = createFileRoute('/_private/')({
-  component: Home,
+  component: PrivateIndexPage,
 });
 
-function Home() {
-  const { usuario, logout } = useSession();
+function PrivateIndexPage() {
+  const { usuario } = useSession();
   const navigate = useNavigate();
 
-  async function handleLogout() {
-    await logout();
-    await navigate({ to: '/login' });
-  }
+  useEffect(() => {
+    if (usuario) {
+      // Redirigir a la ruta inicial según el rol
+      const initialRoute = getInitialRouteForRole(usuario.rol);
+      void navigate({ to: initialRoute });
+    }
+  }, [usuario, navigate]);
 
+  // Mientras se procesa la redirección, mostrar un esqueleto
   return (
-    <main className="mx-auto flex min-h-dvh max-w-2xl flex-col justify-center gap-4 p-8">
-      <p className="text-sm font-medium tracking-wide text-neutral-500 uppercase">
-        AI27 · Audiencia Interno
-      </p>
-      <h1 className="text-3xl font-semibold">panel-admin</h1>
-      <p className="text-neutral-600 dark:text-neutral-400">
-        Sesión iniciada como <strong>{usuario?.id}</strong>
-        {usuario ? ` · rol: ${usuario.rol}` : null}. Tablero de flota pendiente de implementar.
-      </p>
-      <div>
-        <Button variant="secondary" onClick={handleLogout}>
-          Cerrar sesión
-        </Button>
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="text-center">
+        <div className="border-primary inline-block h-8 w-8 animate-spin rounded-full border-b-2" />
+        <p className="mt-4 text-gray-500">Cargando...</p>
       </div>
-    </main>
+    </div>
   );
 }

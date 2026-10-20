@@ -4,6 +4,36 @@ Todos los cambios relevantes del proyecto se documentan en este archivo.
 Las entradas se escriben en español, con fecha en formato `yyyy:mm:dd` y hora en formato `hora:minuto`.
 Las entradas más recientes se colocan al inicio.
 
+## 2026:10:20 13:21
+
+**Resumen:** Se implementó **E8-T4** (shell del panel) en el panel interno: se reemplazó el `_private.tsx` que era un `<Outlet />` desnudo por un `AppShell` con sidebar de navegación persistente y topbar con la identidad de sesión, compuesto desde el rol del token (DEC-053). La navegación lista las seis áreas de la tarea (Viajes · Conversaciones · Emergencias · Catálogos · Reportes · Administración) y, como afordancia de UI, oculta Reportes y Catálogos solo al rol `reaccion` (DEC-022 #9); la negación real de acceso sigue siendo del `bff`. El inicio por rol aterriza a cada usuario en su pantalla (jefe_operativo/administrador → panel; monitorista/supervisor/coordinador → dashboard de monitoreo; ejecutivo → conversaciones; reaccion → emergencias). El cierre de sesión se movió al pie del sidebar, arriba del botón de contraer de la librería. Todos los estilos usan `@ai27-tech/ui` (componentes `Sidebar`, `SidebarItem`, `Card`, `Button`) y sus variables CSS; el colapso del sidebar es el nativo de la librería. Se agregaron pantallas stub para las seis áreas, de modo que ninguna pestaña cae en Not Found. `typecheck` y `test` (6 archivos, 23 pruebas: 13 previas + 10 nuevas de E8-T4) en verde; `build:mock` en verde.
+
+**Cambios:**
+
+- `src/routes/_private.tsx`: el layout privado envuelve el `<Outlet />` con `AppShell`. Se extrajo la decisión de la guarda a `resolverGuardaPrivada(haySesion, destino)` (pura y probable); `beforeLoad` la consume y redirige a `/login` conservando el destino en `?redirect=`.
+- `src/components/layout/AppShell.tsx` (nuevo): estructura sidebar + topbar + área de contenido; mantiene el estado de colapso y ejecuta el cierre de sesión (`logout()` del contexto + navegación a `/login`).
+- `src/components/layout/NavigationSidebar.tsx` (nuevo): sidebar compuesto por rol con `Sidebar`/`SidebarGroup`/`SidebarItem` de la librería; marca en el header que se adapta al colapso; `SidebarItem` navega con `Link` de TanStack Router y marca la ruta activa; item de cierre de sesión empujado al pie.
+- `src/components/layout/navigationConfig.ts` (nuevo): tipos, catálogo `NAV_ITEMS` (las seis áreas con el modelo `ocultarPara`) y `entradasVisiblesPara(rol)`. Separado del componente para no romper el fast refresh y para poder probarlo aislado.
+- `src/components/layout/SessionTopbar.tsx` (nuevo): topbar adelgazada (alto `3.5rem`, alineada al header del sidebar) que muestra el `id` del sujeto y el rol legible.
+- `src/components/layout/StubPage.tsx` (nuevo): página stub reutilizable para áreas aún no implementadas, con estilos de la librería.
+- `src/components/layout/index.ts` (nuevo): barrel de la capa de layout.
+- `src/lib/hooks/useInitialRoute.ts` (nuevo): `getInitialRouteForRole(rol)` con el mapeo rol → ruta inicial.
+- `src/routes/_private/index.tsx`: la ruta índice redirige al inicio del rol según `getInitialRouteForRole`.
+- `src/routes/_private/{viajes,conversaciones,emergencias,catalogos,reportes,administracion}.tsx` y `jefe-operativo/panel.tsx`, `monitoreo/dashboard.tsx` (nuevos): pantallas stub de las áreas, con sus layouts `jefe-operativo.tsx` y `monitoreo.tsx`.
+- `tests/layout/navigation-visibility.test.ts`, `initial-route.test.ts`, `private-guard.test.ts` (nuevos): las tres pruebas de la definición de terminado (Reacción no ve Reportes/Catálogos; inicio por rol; la guarda redirige conservando `?redirect=`).
+
+**Archivos modificados:**
+
+- `src/routes/_private.tsx`
+- `src/components/layout/{AppShell,NavigationSidebar,SessionTopbar,StubPage,index}.tsx` · `src/components/layout/navigationConfig.ts` (nuevos)
+- `src/lib/hooks/useInitialRoute.ts` (nuevo)
+- `src/routes/_private/index.tsx`
+- `src/routes/_private/{viajes,conversaciones,emergencias,catalogos,reportes,administracion,jefe-operativo,monitoreo}.tsx` (nuevos)
+- `src/routes/_private/jefe-operativo/panel.tsx` · `src/routes/_private/monitoreo/dashboard.tsx` (nuevos)
+- `tests/layout/{navigation-visibility,initial-route,private-guard}.test.ts` (nuevos)
+
+**Señalado (no se tocó):** la tarea pide mostrar el **alcance efectivo** ("cuántos clientes") en la identidad de sesión; no se muestra porque ese dato NO viaja en el token (DEC-053: el alcance lo resuelve el servidor) y no hay superficie del `bff` que lo exponga hoy: queda como brecha, no se inventa. El estado "sesión hidratando" no se maneja de forma explícita porque la hidratación desde el TokenStore es síncrona. No se corrió `pnpm lint`, `pnpm format:check`, `pnpm test:e2e` ni la verificación manual en `dev:mock` en esta sesión.
+
 ## 2026:10:20 12:30
 
 **Resumen:** Se implementó **E8-T3** (consumo del contrato generado) en el panel interno: la sesión y los roles pasan a los tipos generados de `@ai27-tech/contracts` (`v0.1.0-tracer.11`), retirando los tipos de wire escritos a mano. El login envía `{usuario, contrasena}` y la respuesta se tipa desde `Sesion` del contrato; `rol` y `audiencia` dejan de leerse del cuerpo (que ya no los trae) y se derivan de los claims del `access_token`; se conserva `sesion_id` para el corte de revocación (E0-T4/ADR 26). El enum de roles pasa a los 8 identificadores de DEC-053 (se retira `RolInterno` hardcodeado). Se retira el mecanismo de generación local (`gen:contracts`, `openapi-typescript`, `CONTRACTS_DIR`), porque el paquete ya publica los tipos (ADR 25). `typecheck`, `lint` y `test` (3 archivos, 13 pruebas) en verde; `test:e2e` (1 spec) y `build:mock` en verde.
