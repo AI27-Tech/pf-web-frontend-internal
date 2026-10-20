@@ -33,8 +33,14 @@ export const columnasViaje: Column<ViajeVista>[] = [
   {
     key: 'estado',
     header: 'Estado',
-    // El estado se muestra literal, tal cual lo entrega el bff (Requirement 1.5).
-    cell: (v) => <span data-testid="estado">{v.estado}</span>,
+    // El estado se muestra en un Badge de la librería, pero con el TOKEN LITERAL
+    // del bff como contenido, sin derivar ni reformatear (Requirement 1.5). La
+    // variante `neutral` lo distingue de las condiciones (alert/warning), P15.
+    cell: (v) => (
+      <Badge data-testid="estado" variant="neutral">
+        {v.estado}
+      </Badge>
+    ),
   },
   { key: 'origen', header: 'Origen', accessor: 'origen' },
   {
