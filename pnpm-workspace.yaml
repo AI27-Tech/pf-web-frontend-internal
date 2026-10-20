@@ -20,3 +20,4 @@ minimumReleaseAgeExclude:
   - msw@2.15.0
   - lucide-react@1.43.0
   - '@ai27-tech/ui@0.1.0-beta.1 || 0.2.0-beta.1'
+  - '@ai27-tech/contracts@0.1.0-tracer.11'

@@ -19,15 +19,7 @@
  */
 
 import { useState, type FormEvent } from 'react';
-import {
-  Button,
-  Card,
-  CardBody,
-  Checkbox,
-  Form,
-  FormField,
-  Input,
-} from '@ai27-tech/ui';
+import { Button, Card, CardBody, Checkbox, Form, FormField, Input } from '@ai27-tech/ui';
 import { ArrowRight, EyeIcon, EyeOffIcon, LockIcon, MailIcon, ShieldIcon } from 'lucide-react';
 
 import { useLogin } from '@/features/sesion/useLogin';
@@ -46,7 +38,8 @@ function LoginForm({ onSuccess }: LoginFormProps) {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    const ok = await login({ email, password });
+    // La UI captura un correo; el contrato lo recibe como `usuario`/`contrasena`.
+    const ok = await login({ usuario: email, contrasena: password });
     if (ok) onSuccess();
   }
 
@@ -55,8 +48,8 @@ function LoginForm({ onSuccess }: LoginFormProps) {
       <CardBody>
         {/* Encabezado */}
         <header className="my-5">
-          <h1 className="text-2xl text-on-surface">Iniciar sesión</h1>
-          <p className="mt-1 text-sm text-on-surface-variant">Ingresa a tu Portal de Clientes</p>
+          <h1 className="text-on-surface text-2xl">Iniciar sesión</h1>
+          <p className="text-on-surface-variant mt-1 text-sm">Ingresa a tu Portal de Clientes</p>
         </header>
 
         <Form onSubmit={handleSubmit} noValidate>
@@ -103,22 +96,24 @@ function LoginForm({ onSuccess }: LoginFormProps) {
               checked={remember}
               onChange={(e) => setRemember(e.target.checked)}
             />
-            <a
-              href="#"
-              className="text-sm text-primary no-underline hover:underline"
-            >
+            <a href="#" className="text-primary text-sm no-underline hover:underline">
               ¿Olvidaste tu contraseña?
             </a>
           </div>
 
-          <Button type="submit" loading={submitting} fullWidth endIcon={<ArrowRight className="size-4" />}>
+          <Button
+            type="submit"
+            loading={submitting}
+            fullWidth
+            endIcon={<ArrowRight className="size-4" />}
+          >
             Iniciar sesión
           </Button>
         </Form>
 
         {/* Nota de seguridad */}
-        <div className="mt-5 flex items-center gap-2 border-t border-outline-variant pt-4 text-sm leading-snug text-on-surface-variant">
-          <ShieldIcon className="mt-0.5 size-6 shrink-0 text-success" aria-hidden="true" />
+        <div className="border-outline-variant text-on-surface-variant mt-5 flex items-center gap-2 border-t pt-4 text-sm leading-snug">
+          <ShieldIcon className="text-success mt-0.5 size-6 shrink-0" aria-hidden="true" />
           <span>
             Tu conexión es segura y está protegida por los protocolos de seguridad de AI27.
           </span>

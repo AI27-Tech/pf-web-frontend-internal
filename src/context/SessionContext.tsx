@@ -24,7 +24,7 @@ import {
 import { cerrarSesion, iniciarSesion, refrescarSesion } from '@/lib/api/sesion';
 import { tokenStore } from '@/lib/api/tokenStore';
 import { SESSION_REFRESH_MARGIN_MS } from '@/lib/constants';
-import type { CredentialsWire, Sesion, Usuario } from '@/lib/contracts';
+import type { CredencialesEntrada, Sesion, Usuario } from '@/lib/contracts';
 
 interface SessionValue {
   /** Sesión activa, o null si no hay nadie autenticado. */
@@ -34,7 +34,7 @@ interface SessionValue {
   /** true mientras el comando de login está en vuelo. */
   authenticating: boolean;
   /** Inicia sesión. Lanza ApiError('credencialesInvalidas') si fallan. */
-  login: (credentials: CredentialsWire) => Promise<void>;
+  login: (credenciales: CredencialesEntrada) => Promise<void>;
   /** Cierra sesión: avisa a bff (best-effort) y limpia el estado local. */
   logout: () => Promise<void>;
 }
@@ -56,10 +56,10 @@ export function SessionProvider({ children }: { readonly children: ReactNode }) 
   }, []);
 
   const login = useCallback(
-    async (credentials: CredentialsWire) => {
+    async (credenciales: CredencialesEntrada) => {
       setAuthenticating(true);
       try {
-        applySession(await iniciarSesion(credentials));
+        applySession(await iniciarSesion(credenciales));
       } finally {
         setAuthenticating(false);
       }
@@ -84,7 +84,10 @@ export function SessionProvider({ children }: { readonly children: ReactNode }) 
   useEffect(() => {
     if (!sesion) return;
 
+    // El contrato marca refresh_token como opcional; sin él no hay refresco posible.
     const refreshToken = sesion.refreshToken;
+    if (!refreshToken) return;
+
     const delay = Math.max(0, sesion.expiraEn - Date.now() - SESSION_REFRESH_MARGIN_MS);
     const timer = setTimeout(() => {
       void (async () => {

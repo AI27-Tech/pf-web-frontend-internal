@@ -9,7 +9,7 @@
 import { http, HttpResponse } from 'msw';
 
 import { API_PREFIX } from '@/lib/constants';
-import type { CredentialsWire } from '@/lib/contracts';
+import type { CredencialesEntrada } from '@/lib/contracts';
 import { DEMO_CREDENTIALS, createSessionWire } from './data';
 
 const path = (segment: string) => `${API_PREFIX}${segment}`;
@@ -17,9 +17,9 @@ const path = (segment: string) => `${API_PREFIX}${segment}`;
 export const handlers = [
   // POST /sesion — login. Solo el operador demo entra.
   http.post(path('/sesion'), async ({ request }) => {
-    const body = (await request.json()) as Partial<CredentialsWire>;
+    const body = (await request.json()) as Partial<CredencialesEntrada>;
     const ok =
-      body.email === DEMO_CREDENTIALS.email && body.password === DEMO_CREDENTIALS.password;
+      body.usuario === DEMO_CREDENTIALS.usuario && body.contrasena === DEMO_CREDENTIALS.contrasena;
 
     if (!ok) {
       return HttpResponse.json({ mensaje: 'Credenciales inválidas' }, { status: 401 });

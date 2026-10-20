@@ -1,76 +1,81 @@
 /*
- * Contrato de sesión — PROVISIONAL.
+ * Contrato de sesión — consumido desde `@ai27-tech/contracts`.
  *
- * TODO(contracts): estos tipos están escritos a mano desde docs/arquitectura/.
- * Los nombres del wire (snake_case) son suposiciones hasta que exista
- * contracts/openapi/bff.yaml. Ver "Decisiones abiertas #1" en el README.
+ * La forma del wire (`Sesion`, `CredencialesEntrada`, `RefrescoEntrada`) viene
+ * del paquete generado, no escrita a mano. El login va contra bff
+ * (POST /api/v1/sesion), nunca contra Cognito directamente.
  *
- * El login va contra bff (POST /api/v1/sesion), nunca contra Cognito directamente.
+ * El cuerpo de `Sesion` NO trae `rol` ni `usuario`: eso vive en los claims del
+ * access_token (ver jwt.ts). `parseSesion` deriva el usuario de ahí. Si el token
+ * no trae un rol válido, la sesión se considera inválida y `parseSesion` lanza:
+ * no se construye una sesión con un rol a medias.
  */
 
-/** Audiencia del token. Este panel opera enteramente bajo `Interno` (P10). */
-export type Audiencia = 'Interno' | 'Cliente';
+import type { components } from '@ai27-tech/contracts/openapi/bff';
+import type { Rol } from '@ai27-tech/contracts/roles';
 
-/** Rol interno del operador. Gobierna qué comandos y exportaciones se autorizan. */
-export type RolInterno = 'operador' | 'ejecutivo' | 'supervisor' | 'auditor';
+import { decodificarClaims, rolValido, audienciaDeRol, type Audiencia } from './jwt';
 
-/** Credenciales de login. Forma del wire (snake_case) hacia bff. */
-export interface CredentialsWire {
-  email: string;
-  password: string;
-}
+/** Forma del wire generada por el contrato. */
+export type SesionWire = components['schemas']['Sesion'];
+export type CredencialesEntrada = components['schemas']['CredencialesEntrada'];
+export type RefrescoEntrada = components['schemas']['RefrescoEntrada'];
 
-/** Respuesta de bff al iniciar o refrescar sesión. Forma del wire (snake_case). */
-export interface SesionWire {
-  access_token: string;
-  refresh_token: string;
-  /** Segundos de vida del access_token desde la emisión. */
-  expires_in: number;
-  usuario: UsuarioWire;
-}
-
-/** Identidad del operador tal como llega del wire (snake_case). */
-export interface UsuarioWire {
+/** Identidad del operador en el modelo de la app, derivada de los claims del JWT. */
+export interface Usuario {
+  /** Sujeto del token (claim `sub`). */
   id: string;
-  email: string;
-  name: string;
-  rol: RolInterno;
+  rol: Rol;
   audiencia: Audiencia;
 }
 
 /** Modelo de sesión que consume la app (ya parseado). */
 export interface Sesion {
+  /** Id de sesión del cuerpo (`sesion_id`); lo necesita E8-T6/ADR 26 para revocación. */
+  sesionId: string;
   accessToken: string;
-  refreshToken: string;
+  /** Opcional en el contrato: puede no venir en cada respuesta. */
+  refreshToken?: string;
   /** Marca de tiempo absoluta (epoch ms) en la que expira el access_token. */
   expiraEn: number;
   usuario: Usuario;
 }
 
-/** Identidad del operador en el modelo de la app. */
-export interface Usuario {
-  id: string;
-  email: string;
-  name: string;
-  rol: RolInterno;
-  audiencia: Audiencia;
+/** Se lanza cuando el access_token no permite construir una sesión válida. */
+export class SesionInvalidaError extends Error {
+  constructor(motivo: string) {
+    super(`Sesión inválida: ${motivo}`);
+    this.name = 'SesionInvalidaError';
+  }
 }
 
 /**
- * Convierte la respuesta del wire al modelo de la app. Es el único punto donde
- * el snake_case del contrato se traduce; el resto de la app habla `Sesion`.
+ * Convierte la respuesta del wire al modelo de la app. Único punto donde se
+ * traduce el contrato y donde se derivan rol/audiencia de los claims del token.
+ *
+ * `expira_en` es una marca de tiempo RFC 3339 (MarcaTiempo), no segundos de vida.
  */
-export function parseSesion(wire: SesionWire, ahora: number = Date.now()): Sesion {
+export function parseSesion(wire: SesionWire): Sesion {
+  const claims = decodificarClaims(wire.access_token);
+  if (claims === null) {
+    throw new SesionInvalidaError('el access_token no pudo decodificarse');
+  }
+
+  const rol = rolValido(claims);
+  if (rol === null) {
+    throw new SesionInvalidaError(`rol no reconocido: ${claims.rol}`);
+  }
+
   return {
+    sesionId: wire.sesion_id,
     accessToken: wire.access_token,
-    refreshToken: wire.refresh_token,
-    expiraEn: ahora + wire.expires_in * 1000,
+    // `exactOptionalPropertyTypes`: solo incluir refreshToken si el wire lo trae.
+    ...(wire.refresh_token !== undefined ? { refreshToken: wire.refresh_token } : {}),
+    expiraEn: new Date(wire.expira_en).getTime(),
     usuario: {
-      id: wire.usuario.id,
-      email: wire.usuario.email,
-      name: wire.usuario.name,
-      rol: wire.usuario.rol,
-      audiencia: wire.usuario.audiencia,
+      id: claims.sub,
+      rol,
+      audiencia: audienciaDeRol(rol),
     },
   };
 }

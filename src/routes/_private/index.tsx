@@ -28,7 +28,7 @@ function Home() {
       </p>
       <h1 className="text-3xl font-semibold">panel-admin</h1>
       <p className="text-neutral-600 dark:text-neutral-400">
-        Sesión iniciada como <strong>{usuario?.name ?? usuario?.email}</strong>
+        Sesión iniciada como <strong>{usuario?.id}</strong>
         {usuario ? ` · rol: ${usuario.rol}` : null}. Tablero de flota pendiente de implementar.
       </p>
       <div>

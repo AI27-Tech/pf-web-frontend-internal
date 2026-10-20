@@ -5,18 +5,25 @@
  *   POST   /sesion/refresh  → refrescar; es donde los claims se reevalúan
  *   DELETE /sesion          → cerrar sesión
  *
- * Traduce la forma del wire (snake_case) al modelo de la app con `parseSesion`.
- * features/ y routes/ llaman aquí, nunca a client.ts.
+ * Traduce la forma del wire (snake_case, tipada desde el contrato generado) al
+ * modelo de la app con `parseSesion`. features/ y routes/ llaman aquí, nunca a
+ * client.ts.
  */
 
-import { parseSesion, type CredentialsWire, type Sesion, type SesionWire } from '../contracts';
+import {
+  parseSesion,
+  type CredencialesEntrada,
+  type RefrescoEntrada,
+  type Sesion,
+  type SesionWire,
+} from '../contracts';
 import { request } from './client';
 import { ApiError } from './errors';
 
 /** Inicia sesión contra bff. Un 401 se presenta como credenciales inválidas. */
-export async function iniciarSesion(credentials: CredentialsWire): Promise<Sesion> {
+export async function iniciarSesion(credenciales: CredencialesEntrada): Promise<Sesion> {
   try {
-    const wire = await request<SesionWire>('/sesion', { method: 'POST', body: credentials });
+    const wire = await request<SesionWire>('/sesion', { method: 'POST', body: credenciales });
     return parseSesion(wire);
   } catch (error) {
     if (error instanceof ApiError && error.kind === 'noAutorizado') {
@@ -28,9 +35,10 @@ export async function iniciarSesion(credentials: CredentialsWire): Promise<Sesio
 
 /** Refresca la sesión. El refresco reevalúa claims (ver README, "Sobre la sesión"). */
 export async function refrescarSesion(refreshToken: string): Promise<Sesion> {
+  const body: RefrescoEntrada = { refresh_token: refreshToken };
   const wire = await request<SesionWire>('/sesion/refresh', {
     method: 'POST',
-    body: { refresh_token: refreshToken },
+    body,
   });
   return parseSesion(wire);
 }
