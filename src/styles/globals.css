@@ -6,7 +6,7 @@
  * clases de ejemplo (p. ej. utilidades de valor arbitrario) que Tailwind, de
  * otro modo, intentaria materializar y provocaria warnings de CSS invalido.
  */
-@source not "../../**/*.md";
+@source not '../../**/*.md';
 
 /*
  * Sistema de diseño: AI27 Tactical Operations System
@@ -111,10 +111,13 @@
  *    falta redefinir valores aqui: al poner data-theme="dark" cambian los
  *    tokens de la libreria y los --ai27- los siguen automaticamente.
  *
- *    Este selector solo mantiene coherente color-scheme cuando se usa la
- *    clase .dark. Para activar el tema oscuro completo, alterna tanto la
- *    clase .dark como data-theme="dark" en <html> (ver index.html).
+ *    Este selector mantiene coherente color-scheme con el interruptor de tema.
+ *    La app activa el tema con data-theme="dark" en <html> (ver index.html), asi
+ *    que color-scheme debe seguir ese mismo atributo: con el, los popups nativos
+ *    (el desplegable de <select>, date pickers, scrollbars) se pintan en oscuro.
+ *    Se conserva .dark por compatibilidad con cualquier uso previo.
  * ========================================================================= */
+[data-theme='dark'],
 .dark {
   color-scheme: dark;
 }

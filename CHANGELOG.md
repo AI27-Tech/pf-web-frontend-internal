@@ -4,6 +4,38 @@ Todos los cambios relevantes del proyecto se documentan en este archivo.
 Las entradas se escriben en español, con fecha en formato `yyyy:mm:dd` y hora en formato `hora:minuto`.
 Las entradas más recientes se colocan al inicio.
 
+## 2026:10:20 17:20
+
+**Resumen:** Se implementó **E8-T7** (bandeja operativa de viajes) en el panel interno: la ruta `/_private/viajes` deja de ser un stub y pasa a listar los viajes del alcance del usuario pidiéndolos al `bff` (operación `listarViajes`, `GET /api/v1/viajes`), mostrando exactamente lo que el `bff` autoriza y entrega (P10) y separando el estado de progreso de las condiciones ortogonales (P15). El listado se consume contra el contrato generado `@ai27-tech/contracts` (`ViajeResumen = { id, estado, origen }`; `PaginaViajesResumen = { items, cursor_siguiente }`) y toda la interfaz usa componentes de `@ai27-tech/ui`: `FilterBar` (filtro por estado con chips y limpiar), `Table` (filas con estado literal y columna de condiciones), `Pagination`, `Badge` y `Card`. Para disponer de `FilterBar` se subió la librería de `0.2.0-beta.1` a `0.2.0-beta.6` (cambio aditivo de exports; nada de lo que el repo ya usaba cambió). Se montó TanStack Query en `providers.tsx` (`retry: false`). `typecheck`, `lint` y `test` (12 archivos, 50 pruebas: 35 previas + 15 de E8-T7, incluidas 5 Correctness Properties con `fast-check` a 100+ iteraciones) en verde; `build` en verde.
+
+**Cambios:**
+
+- `src/lib/contracts/viajes.ts` (nuevo): reexporta del contrato los tipos de wire (`ViajeResumen`, `PaginaViajesResumen`) y los enums de dominio (`EstadoViaje`, `CondicionViaje`, `ESTADOS_VIAJE`). No se escribe ninguna forma de wire a mano.
+- `src/lib/api/viajes.ts` (nuevo): wrapper de dominio `listarViajes(params, accessToken)` + `construirQueryString` pura; delega en `client.ts` (features/routes nunca llaman al cliente directo).
+- `src/features/viajes/viajeVista.ts` (nuevo): modelo de vista y `adaptarItem`/`adaptarPagina`; preserva el estado literal del `bff` y aísla la brecha de condiciones (`condiciones_activas?`).
+- `src/features/viajes/bandejaReducer.ts` (nuevo): reducer puro del estado de vista. Modela la paginación por cursor sobre un control numérico con `{ pagina, cursores }` (pila de cursores por página) y las acciones `cambiarFiltro` (reinicia a página 1) e `irAPagina` (avanza apilando el `cursor_siguiente`, retrocede recortando la pila).
+- `src/features/viajes/filaViaje.tsx` (nuevo): `columnasViaje` con `Table`/`Column` de la librería; estado literal con `data-testid="estado"` y condiciones en columna separada con `Badge` por condición (`VARIANTE_CONDICION` cubre el enum). Columnas no sortables (el orden lo fija el `bff`).
+- `src/features/viajes/useBandejaViajes.ts` (nuevo): conecta el reducer con `useQuery` (`queryKey: ['viajes', params]`, `retry: false`); expone `filas`, `cursorSiguiente`, `pagina`, estados de UI, `reintentar`, `cambiarFiltro` e `irAPagina`; detecta 401 vía `ApiError.kind === 'noAutorizado'`.
+- `src/features/viajes/BandejaViajes.tsx` (nuevo): presentación. `FilterBar` + `Table` + `Pagination` de la librería, los cuatro estados de UI (carga, vacío con filtro visible, error con reintento, 401 delegado al flujo de sesión del AppShell) y el error compuesto con `Card`/`CardBody`/`CardFooter`.
+- `src/routes/_private/viajes.tsx`: se reemplaza el stub por `createFileRoute('/_private/viajes')({ component: BandejaViajes })`.
+- `src/app/providers.tsx`: se monta `QueryClientProvider` (sin reintentos, sin refetch en focus) envolviendo `SessionProvider`.
+- `src/styles/globals.css`: `color-scheme: dark` se engancha a `[data-theme='dark']` (antes solo a `.dark`, que no se ponía), para que los popups nativos sigan el tema oscuro.
+- `src/mocks/{data,handlers}.ts`: catálogo de viajes demo + handler `GET /viajes` del backend simulado (filtra por `estado`, pagina por `cursor`), para que la bandeja tenga datos en modo mock.
+- `package.json`: `@ai27-tech/ui` sube a `0.2.0-beta.6`; se agrega `fast-check` como devDependency (PBT, exigido por el diseño del spec).
+- `tests/viajes/*` (nuevos): property tests (Properties 1–5) y pruebas de ejemplo de UI con MSW (cuatro estados, filtro y paginación).
+
+**Archivos modificados:**
+
+- `src/lib/contracts/viajes.ts` · `src/lib/api/viajes.ts` (nuevos)
+- `src/features/viajes/{viajeVista,bandejaReducer,useBandejaViajes}.ts` · `src/features/viajes/{filaViaje,BandejaViajes}.tsx` (nuevos)
+- `src/routes/_private/viajes.tsx` · `src/app/providers.tsx` · `src/styles/globals.css`
+- `src/mocks/data.ts` · `src/mocks/handlers.ts`
+- `package.json` · `pnpm-lock.yaml`
+- `tests/viajes/{viajeVista.property,bandejaReducer.property,filaViaje.property,useBandejaViajes.property}.test.{ts,tsx}` · `tests/viajes/{viajesApi,BandejaViajes}.test.{ts,tsx}` · `tests/viajes/mswServer.ts` (nuevos)
+- `.kiro/specs/e8-t7-bandeja-viajes/{requirements,design,tasks}.md`
+
+**Señalado (no se tocó):** dos brechas de contrato quedan abiertas y documentadas, no se inventan en el frontend. (1) `ViajeResumen` del `bff` no entrega condiciones activas por ítem, así que la columna "Condiciones" va vacía hasta que el contrato las publique (punto de integración aislado en `viajeVista.ts`). (2) El `bff` no expone su tamaño de página; el `Pagination` numérico de la librería usa un espejo `TAMANO_PAGINA` solo para posicionar el control, mientras que la verdad de "hay más" la da `cursor_siguiente`. El filtro por cliente queda fuera de V1 (el contrato solo admite `estado`). La librería no ofrece paginación por cursor pura: se mapea `Pagination` numérico con una pila de cursores. No se corrió `pnpm format:check`, `pnpm test:e2e` ni la verificación manual en `dev:mock` en esta sesión; nada está commiteado todavía.
+
 ## 2026:10:20 13:21
 
 **Resumen:** Se implementó **E8-T4** (shell del panel) en el panel interno: se reemplazó el `_private.tsx` que era un `<Outlet />` desnudo por un `AppShell` con sidebar de navegación persistente y topbar con la identidad de sesión, compuesto desde el rol del token (DEC-053). La navegación lista las seis áreas de la tarea (Viajes · Conversaciones · Emergencias · Catálogos · Reportes · Administración) y, como afordancia de UI, oculta Reportes y Catálogos solo al rol `reaccion` (DEC-022 #9); la negación real de acceso sigue siendo del `bff`. El inicio por rol aterriza a cada usuario en su pantalla (jefe_operativo/administrador → panel; monitorista/supervisor/coordinador → dashboard de monitoreo; ejecutivo → conversaciones; reaccion → emergencias). El cierre de sesión se movió al pie del sidebar, arriba del botón de contraer de la librería. Todos los estilos usan `@ai27-tech/ui` (componentes `Sidebar`, `SidebarItem`, `Card`, `Button`) y sus variables CSS; el colapso del sidebar es el nativo de la librería. Se agregaron pantallas stub para las seis áreas, de modo que ninguna pestaña cae en Not Found. `typecheck` y `test` (6 archivos, 23 pruebas: 13 previas + 10 nuevas de E8-T4) en verde; `build:mock` en verde.
