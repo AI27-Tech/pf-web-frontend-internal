@@ -59,3 +59,50 @@ export function createSessionWire(): SesionWire {
     expira_en: new Date(Date.now() + 3600_000).toISOString(),
   };
 }
+
+/*
+ * Viajes demo para la bandeja operativa (E8-T7).
+ *
+ * Forma de contrato del bff: `ViajeResumen = { id, estado, origen }`. El bff NO
+ * entrega condiciones activas por ítem (brecha de contrato V1), así que el mock
+ * tampoco las inventa. Los tokens de estado salen del enum real (ADR 19).
+ */
+
+import { EstadoViaje } from '@/lib/contracts/viajes';
+import type { ViajeResumen, PaginaViajesResumen } from '@/lib/contracts/viajes';
+
+/** Catálogo de viajes demo del alcance del operador. */
+const VIAJES_DEMO: readonly ViajeResumen[] = [
+  { id: 'VJ-1001', estado: EstadoViaje.EnTransito, origen: 'CDMX' },
+  { id: 'VJ-1002', estado: EstadoViaje.Solicitado, origen: 'Monterrey' },
+  { id: 'VJ-1003', estado: EstadoViaje.Asignado, origen: 'Guadalajara' },
+  { id: 'VJ-1004', estado: EstadoViaje.EnDestino, origen: 'Querétaro' },
+  { id: 'VJ-1005', estado: EstadoViaje.Aprobado, origen: 'Puebla' },
+  { id: 'VJ-1006', estado: EstadoViaje.EnTransito, origen: 'Toluca' },
+  { id: 'VJ-1007', estado: EstadoViaje.Cerrado, origen: 'León' },
+  { id: 'VJ-1008', estado: EstadoViaje.EnDescarga, origen: 'Veracruz' },
+];
+
+/** Tamaño de página del listado simulado. */
+const TAMANO_PAGINA = 5;
+
+/**
+ * Arma una `PaginaViajesResumen` aplicando el filtro por estado y la paginación
+ * por cursor opaco. El filtrado lo hace el "bff" simulado (no el navegador, P10):
+ * el cliente solo manda `estado`/`cursor` y muestra lo que regresa.
+ *
+ * El cursor es el índice de inicio de la siguiente página, codificado como texto.
+ */
+export function listarViajesMock(
+  estado: string | null,
+  cursor: string | null,
+): PaginaViajesResumen {
+  const filtrados = estado ? VIAJES_DEMO.filter((v) => v.estado === estado) : VIAJES_DEMO;
+
+  const inicio = cursor ? Number.parseInt(cursor, 10) || 0 : 0;
+  const items = filtrados.slice(inicio, inicio + TAMANO_PAGINA);
+  const fin = inicio + items.length;
+  const cursor_siguiente = fin < filtrados.length ? String(fin) : null;
+
+  return { items, cursor_siguiente };
+}

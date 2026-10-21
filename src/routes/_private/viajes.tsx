@@ -1,22 +1,15 @@
 /*
  * Bandeja operativa de viajes — E8-T7
- * Stub temporal: la pestaña debe aterrizar en una pantalla real, no en Not Found.
+ *
+ * Ruta del panel interno que lista los viajes del alcance del usuario. Vive en el
+ * outlet del AppShell (ruta padre `_private`). Su único trabajo es componer
+ * `BandejaViajes`; la lógica (query, filtro, paginación) vive en el feature.
  */
 
 import { createFileRoute } from '@tanstack/react-router';
 
-import { StubPage } from '@/components/layout/StubPage';
+import { BandejaViajes } from '@/features/viajes/BandejaViajes';
 
 export const Route = createFileRoute('/_private/viajes')({
-  component: ViajesPage,
+  component: BandejaViajes,
 });
-
-function ViajesPage() {
-  return (
-    <StubPage
-      titulo="Viajes"
-      historia="E8-T7"
-      descripcion="Aquí irá la bandeja de viajes del alcance del usuario: estado de progreso, condiciones activas (incidencia, sin_senal), filtros y paginación."
-    />
-  );
-}

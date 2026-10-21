@@ -10,11 +10,19 @@ import { http, HttpResponse } from 'msw';
 
 import { API_PREFIX } from '@/lib/constants';
 import type { CredencialesEntrada } from '@/lib/contracts';
-import { DEMO_CREDENTIALS, createSessionWire } from './data';
+import { DEMO_CREDENTIALS, createSessionWire, listarViajesMock } from './data';
 
 const path = (segment: string) => `${API_PREFIX}${segment}`;
 
 export const handlers = [
+  // GET /viajes — listado de la bandeja (E8-T7). Filtra por `estado` y pagina por
+  // `cursor` del lado del "bff" simulado; el cliente solo muestra lo que regresa.
+  http.get(path('/viajes'), ({ request }) => {
+    const url = new URL(request.url);
+    const pagina = listarViajesMock(url.searchParams.get('estado'), url.searchParams.get('cursor'));
+    return HttpResponse.json(pagina, { status: 200 });
+  }),
+
   // POST /sesion — login. Solo el operador demo entra.
   http.post(path('/sesion'), async ({ request }) => {
     const body = (await request.json()) as Partial<CredencialesEntrada>;
