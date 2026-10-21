@@ -4,6 +4,41 @@ Todos los cambios relevantes del proyecto se documentan en este archivo.
 Las entradas se escriben en español, con fecha en formato `yyyy:mm:dd` y hora en formato `hora:minuto`.
 Las entradas más recientes se colocan al inicio.
 
+## 2026:10:21 13:05
+
+**Resumen:** Se implementó **E8-T8** (detalle del viaje: avance y ETA manual) en el panel interno: nueva pantalla `/_private/viajes/$id` que lee el detalle con estado canónico, deriva las acciones de transición de la máquina de estados generada (`@ai27-tech/contracts/estados`), permite registrar transiciones (con captura de causa obligatoria en rechazos/cancelación, DEC-020 #2) y fijar el ETA a mano marcado "estimado, no en vivo" (ADR 20 / DEC-007). Se migró la capa de contrato a `@ai27-tech/contracts@0.1.0-tracer.13`, que ya publica los endpoints internos del viaje (`obtenerViajeInterno`, `transicionarViaje`, `fijarEta`): los tipos del detalle pasan a derivarse del OpenAPI generado (`@ai27-tech/contracts/openapi/bff`), retirando la réplica manual. El 409 se clasifica por el `codigo` real del cuerpo (`transicion_no_permitida` / `viaje_en_estado_terminal`), no por el endpoint. La fila de la bandeja (E8-T7) se hizo clickeable para navegar al detalle, y la ruta `viajes.tsx` pasó a `viajes/index.tsx` para alojar la ruta hija `$id`. `typecheck`, `lint` y `test` (17 archivos, 85 pruebas) en verde; `build` en verde.
+
+**Cambios:**
+
+- `src/lib/contracts/viajeDetalle.ts`: los tipos `ViajeDetalle`, `ViajeInterno`, `CondicionAbierta`, `TransicionEntrada`, `EtaEntrada` pasan a ser alias de `components['schemas']` del OpenAPI generado (tracer.13); se eliminó la réplica manual. Reexporta `EstadoViaje`/`TRANSICIONES_VIAJE`/`puedeTransicionar`/`esTerminal` del contrato de estados.
+- `src/lib/api/viajeDetalle.ts` (nuevo): wrapper `obtenerDetalle`/`transicionar`/`fijarEta`; clasifica el 409 por el `codigo` real del cuerpo mediante `clasificarConflicto`, con valor de respaldo solo si el cuerpo no trae código interpretable. Expone `ErrorTransicion`.
+- `src/lib/api/client.ts`: el cliente lee el cuerpo de las respuestas de error y extrae el `codigo` (`leerCodigoError`), tolerando las formas `{codigo}` y `{error:{codigo}}`.
+- `src/lib/api/errors.ts`: `ApiError` transporta ahora un `codigo` opcional de negocio.
+- `src/features/viajes/detalle/accionesTransicion.ts` (nuevo): `accionesDesde(estado)` filtra `TRANSICIONES_VIAJE` por origen, excluye `PATRULLA_EN_CAMINO` y devuelve vacío en terminales.
+- `src/features/viajes/detalle/causaTransicion.ts` (nuevo): `requiereCausa(destino)` marca rechazos y cancelación como destinos que exigen causa (el contrato no publica ese metadato por arista).
+- `src/features/viajes/detalle/useDetalleViaje.ts` (nuevo): `useQuery` de lectura + `useMutation` de transición/ETA con invalidación; expone contrato plano a la presentación y detecta 401.
+- `src/features/viajes/detalle/DetalleViaje.tsx` (nuevo): presentación con cabecera (estado + condiciones separadas, P15), paradas con fase del bucle derivada del estado canónico (Req 5.1), ETA marcado "no en vivo" y ofrecido solo si el viaje no es terminal (Req 4.1), acciones, modales de ETA y de causa, toasts para carrera/éxito/error, delegación de 401 al AppShell y estados de carga/error con reintento.
+- `src/features/viajes/detalle/etaForm.tsx` y `causaForm.tsx` (nuevos): formularios de captura de ETA (datetime) y de causa obligatoria, compuestos solo con `@ai27-tech/ui`.
+- `src/routes/_private/viajes/$id.tsx` (nuevo): ruta de detalle `createFileRoute('/_private/viajes/$id')`.
+- `src/routes/_private/viajes.tsx` → `src/routes/_private/viajes/index.tsx`: la bandeja pasa a ruta índice para alojar la ruta hija `$id`.
+- `src/features/viajes/filaViaje.tsx`: `columnasViaje` pasa a `obtenerColumnasViaje(navigate)`; la celda del id es un botón que navega al detalle. `BandejaViajes.tsx` consume la factory con `useNavigate`.
+- `src/mocks/{data,handlers}.ts`: catálogo de detalles por id + handlers de detalle, transición (409 `transicion_no_permitida`) y ETA (409 `viaje_en_estado_terminal`), cumpliendo la forma generada.
+- `package.json` / `pnpm-workspace.yaml` / `pnpm-lock.yaml`: `@ai27-tech/contracts` de `0.1.0-tracer.11` a `0.1.0-tracer.13`.
+- `tests/viajes/{viajeDetalleApi,causaTransicion,accionesTransicion.property,DetalleViaje}.test.{ts,tsx}`: wrapper de API ejercido contra un servidor MSW (clasificación de 409 por código real, incluido el caso cruzado), causa requerida, property tests de acciones y smoke de UI.
+
+**Archivos modificados:**
+
+- `src/lib/contracts/viajeDetalle.ts` · `src/lib/api/viajeDetalle.ts` (nuevo) · `src/lib/api/client.ts` · `src/lib/api/errors.ts`
+- `src/features/viajes/detalle/{accionesTransicion,causaTransicion,useDetalleViaje}.ts` (nuevos) · `src/features/viajes/detalle/{DetalleViaje,etaForm,causaForm}.tsx` (nuevos)
+- `src/routes/_private/viajes/$id.tsx` (nuevo) · `src/routes/_private/viajes/index.tsx` (renombrado desde `viajes.tsx`)
+- `src/features/viajes/filaViaje.tsx` · `src/features/viajes/BandejaViajes.tsx` · `src/features/viajes/viajeVista.ts`
+- `src/mocks/data.ts` · `src/mocks/handlers.ts`
+- `package.json` · `pnpm-workspace.yaml` · `pnpm-lock.yaml`
+- `tests/viajes/{viajeDetalleApi,causaTransicion,accionesTransicion.property,DetalleViaje}.test.{ts,tsx}`
+- `.kiro/specs/e8-t8-detalle-viaje-avance-eta/{requirements,design,tasks}.md`
+
+**Señalado (no se tocó):** el contrato no entrega estado por parada (`ViajeInterno.destinos` es `{nombre, numero_envio?}[]`), así que el bucle multi-parada (Req 5) muestra la fase global derivada del estado canónico, no un marcador arribado/descargado por destino; queda como brecha documentada hasta que el `bff` publique estado por parada. `numero_envio` es opcional en el contrato generado: la UI oculta la línea "Envío:" y usa un `key` de respaldo cuando falta. No se corrió `pnpm format:check`, `pnpm test:e2e` ni la verificación manual en `dev:mock` en esta sesión.
+
 ## 2026:10:20 17:20
 
 **Resumen:** Se implementó **E8-T7** (bandeja operativa de viajes) en el panel interno: la ruta `/_private/viajes` deja de ser un stub y pasa a listar los viajes del alcance del usuario pidiéndolos al `bff` (operación `listarViajes`, `GET /api/v1/viajes`), mostrando exactamente lo que el `bff` autoriza y entrega (P10) y separando el estado de progreso de las condiciones ortogonales (P15). El listado se consume contra el contrato generado `@ai27-tech/contracts` (`ViajeResumen = { id, estado, origen }`; `PaginaViajesResumen = { items, cursor_siguiente }`) y toda la interfaz usa componentes de `@ai27-tech/ui`: `FilterBar` (filtro por estado con chips y limpiar), `Table` (filas con estado literal y columna de condiciones), `Pagination`, `Badge` y `Card`. Para disponer de `FilterBar` se subió la librería de `0.2.0-beta.1` a `0.2.0-beta.6` (cambio aditivo de exports; nada de lo que el repo ya usaba cambió). Se montó TanStack Query en `providers.tsx` (`retry: false`). `typecheck`, `lint` y `test` (12 archivos, 50 pruebas: 35 previas + 15 de E8-T7, incluidas 5 Correctness Properties con `fast-check` a 100+ iteraciones) en verde; `build` en verde.
