@@ -1,10 +1,10 @@
 /*
  * Modelo de vista del viaje. Adaptación de ViajeResumen del wire a la forma
- * que consume la presentación, aislando la brecha de condiciones activas.
+ * que consume la presentación.
  *
- * La brecha de V1: ViajeResumen del bff es { id, estado, origen }, sin condiciones.
- * El modelo de vista incluye un punto de integración `condiciones_activas?`
- * comentado; cuando el contrato entregue condiciones, se descomenta ahí.
+ * Nota V1: ViajeResumen (listado de la bandeja) es { id, estado, origen },
+ * sin condiciones activas. En cambio, ViajeDetalle (detalle individual, E8-T8)
+ * incluye condiciones_activas en el contrato generado (tracer.13).
  *
  * El estado se preserva como token literal (string) tal cual lo devuelve bff,
  * sin derivar ni normalizar. La tipificación estricta (EstadoViaje enum) vive
@@ -13,7 +13,7 @@
 
 import type { ViajeResumen, PaginaViajesResumen, CondicionViaje } from '@/lib/contracts/viajes';
 
-/** Modelo de vista: resumen de viaje con estado y condiciones (brecha aislada). */
+/** Modelo de vista: resumen de viaje con estado y condiciones. */
 export interface ViajeVista {
   /** Id único del viaje (procedencia: wire). */
   readonly id: string;
@@ -27,11 +27,10 @@ export interface ViajeVista {
   /**
    * Condiciones activas del viaje (p. ej. INCIDENCIA, SIN_SENAL).
    *
-   * BRECHA DE CONTRATO V1: el `ViajeResumen` del bff NO las trae hoy, así que
-   * `adaptarItem` lo deja ausente. El campo se modela como opcional para que,
-   * cuando el contrato las publique, el único cambio sea leerlas en `adaptarItem`
-   * (punto de integración marcado ahí). La presentación (filaViaje) ya lo consume.
-   * No se deriva ni se inventa en el frontend (P15, Requirement 2.5).
+   * Nota V1: En el listado (ViajeResumen), el bff no las entrega.
+   * En el detalle individual (ViajeDetalle, E8-T8), están incluidas en el contrato generado.
+   * El campo se modela como opcional; se descomenta en `adaptarItem` cuando
+   * el listado las publique. La presentación (filaViaje) ya lo consume (P15, Req 2.5).
    */
   readonly condiciones_activas?: readonly CondicionViaje[];
 }

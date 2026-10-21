@@ -10,6 +10,27 @@
 import { API_BASE_URL, API_PREFIX } from '../constants';
 import { ApiError, kindFromStatus } from './errors';
 
+/**
+ * Extrae el `codigo` de negocio del cuerpo de una respuesta de error, tolerando
+ * las dos formas que el contrato y los mocks producen: `{ codigo }` plano (forma
+ * de `_comunes.yaml#/Error`) y `{ error: { codigo } }` anidada. Nunca lanza: si
+ * el cuerpo falta o no es JSON, devuelve `undefined`.
+ */
+async function leerCodigoError(response: Response): Promise<string | undefined> {
+  try {
+    const cuerpo: unknown = await response.clone().json();
+    if (cuerpo && typeof cuerpo === 'object') {
+      const plano = (cuerpo as { codigo?: unknown }).codigo;
+      if (typeof plano === 'string') return plano;
+      const anidado = (cuerpo as { error?: { codigo?: unknown } }).error?.codigo;
+      if (typeof anidado === 'string') return anidado;
+    }
+  } catch {
+    // Cuerpo ausente o no interpretable: sin código.
+  }
+  return undefined;
+}
+
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   body?: unknown;
@@ -39,7 +60,17 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   }
 
   if (!response.ok) {
-    throw new ApiError(kindFromStatus(response.status), `${method} ${path} → ${response.status}`, response.status);
+    // El `bff` serializa un código de negocio en el cuerpo (p. ej.
+    // `transicion_no_permitida`). Lo leemos para que el wrapper de dominio
+    // clasifique el 409 por `codigo` y no por el endpoint. Si el cuerpo no es
+    // interpretable, `codigo` queda indefinido y la UI cae al caso genérico.
+    const codigo = await leerCodigoError(response);
+    throw new ApiError(
+      kindFromStatus(response.status),
+      `${method} ${path} → ${response.status}`,
+      response.status,
+      codigo,
+    );
   }
 
   // 204 No Content (p. ej. DELETE /sesion) no trae cuerpo.

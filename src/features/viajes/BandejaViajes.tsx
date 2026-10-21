@@ -1,14 +1,14 @@
-/*
- * Presentación de la bandeja operativa de viajes (E8-T7).
+﻿/*
+ * PresentaciÃ³n de la bandeja operativa de viajes (E8-T7).
  *
  * Compone `FilterTable` (con las columnas de `filaViaje`, el filtro de estado y
- * los estados de carga/vacío) y `Pagination` (mapeada al cursor del bff). Resuelve
- * los cuatro estados de UI y delega el 401 al flujo de sesión del AppShell.
+ * los estados de carga/vacÃ­o) y `Pagination` (mapeada al cursor del bff). Resuelve
+ * los cuatro estados de UI y delega el 401 al flujo de sesiÃ³n del AppShell.
  *
- * Toda la lógica (query, estado de vista, acciones) vive en `useBandejaViajes`;
- * aquí solo se mapea ese contrato a los componentes de @ai27-tech/ui. No se crean
- * componentes de interfaz nuevos: los mensajes de vacío/error/delegación son
- * composición local de `Card`/`Button`/texto de la librería.
+ * Toda la lÃ³gica (query, estado de vista, acciones) vive en `useBandejaViajes`;
+ * aquÃ­ solo se mapea ese contrato a los componentes de @ai27-tech/ui. No se crean
+ * componentes de interfaz nuevos: los mensajes de vacÃ­o/error/delegaciÃ³n son
+ * composiciÃ³n local de `Card`/`Button`/texto de la librerÃ­a.
  */
 
 import { useEffect } from 'react';
@@ -20,12 +20,12 @@ import { useNavigate } from '@tanstack/react-router';
 import { useSession } from '@/context/SessionContext';
 import { ESTADOS_VIAJE } from '@/lib/contracts/viajes';
 
-import { columnasViaje } from './filaViaje';
+import { obtenerColumnasViaje } from './filaViaje';
 import { useBandejaViajes } from './useBandejaViajes';
 import type { ViajeVista } from './viajeVista';
 
 /**
- * Definición del Filtro_Estado para el `FilterBar` de la librería (Requirement 3.1).
+ * DefiniciÃ³n del Filtro_Estado para el `FilterBar` de la librerÃ­a (Requirement 3.1).
  *
  * Las opciones salen del enum `EstadoViaje` (`ESTADOS_VIAJE`). El "sin filtro" lo
  * da el `placeholder`; limpiar el filtro (Requirement 3.3) usa la afordancia
@@ -39,22 +39,24 @@ const filtroEstado: FilterDefinition = {
 };
 
 /**
- * Tamaño de página asumido para el control `Pagination` numérico de la librería.
+ * TamaÃ±o de pÃ¡gina asumido para el control `Pagination` numÃ©rico de la librerÃ­a.
  *
- * BRECHA DE CONTRATO: el bff pagina por cursor opaco y NO expone su tamaño de
- * página en la respuesta (`PaginaViajesResumen` = { items, cursor_siguiente }).
- * El `Pagination` de la librería necesita un `pageSize` para derivar el número de
- * páginas; aquí se usa un espejo del tamaño del bff. Sirve solo para posicionar el
- * control (page/total): la verdad de "hay más" la da `cursor_siguiente`, no este
- * número. Si el bff publica su tamaño de página, leerlo de ahí.
+ * BRECHA DE CONTRATO: el bff pagina por cursor opaco y NO expone su tamaÃ±o de
+ * pÃ¡gina en la respuesta (`PaginaViajesResumen` = { items, cursor_siguiente }).
+ * El `Pagination` de la librerÃ­a necesita un `pageSize` para derivar el nÃºmero de
+ * pÃ¡ginas; aquÃ­ se usa un espejo del tamaÃ±o del bff. Sirve solo para posicionar el
+ * control (page/total): la verdad de "hay mÃ¡s" la da `cursor_siguiente`, no este
+ * nÃºmero. Si el bff publica su tamaÃ±o de pÃ¡gina, leerlo de ahÃ­.
  */
 const TAMANO_PAGINA = 20;
 
 export function BandejaViajes() {
   const b = useBandejaViajes();
+  const navigate = useNavigate();
+  const columnasViaje = obtenerColumnasViaje(navigate);
 
-  // Requirement 7.3: un 401/403 no pinta el error genérico del listado; se delega
-  // al flujo de sesión del AppShell (logout limpia el TokenStore y la guarda
+  // Requirement 7.3: un 401/403 no pinta el error genÃ©rico del listado; se delega
+  // al flujo de sesiÃ³n del AppShell (logout limpia el TokenStore y la guarda
   // _private redirige a /login conservando ?redirect=).
   if (b.esNoAutorizado) {
     return <DelegacionSesion />;
@@ -72,12 +74,12 @@ export function BandejaViajes() {
       </h1>
 
       {/*
-        Barra de filtros de la librería (FilterBar). Siempre montada (Req 3.5/6.2).
+        Barra de filtros de la librerÃ­a (FilterBar). Siempre montada (Req 3.5/6.2).
         - `filters`: el filtro de estado (Req 3.1).
-        - cambiar el valor reejecuta con `estado` y reinicia la paginación (Req 3.2/4.5).
+        - cambiar el valor reejecuta con `estado` y reinicia la paginaciÃ³n (Req 3.2/4.5).
         - `onClear`/`showClear`: limpia el filtro (Req 3.3) con la afordancia propia.
-        - `showActiveFilterChips`: muestra el estado activo como chip de la librería.
-        No se usa búsqueda de texto ni toggle de vista: el contrato del bff solo
+        - `showActiveFilterChips`: muestra el estado activo como chip de la librerÃ­a.
+        No se usa bÃºsqueda de texto ni toggle de vista: el contrato del bff solo
         admite `estado` (el filtro por cliente es brecha de contrato, fuera de V1).
       */}
       <FilterBar
@@ -98,16 +100,16 @@ export function BandejaViajes() {
       />
 
       {/*
-        Requirement 4: el `Pagination` de la librería es por número de página;
+        Requirement 4: el `Pagination` de la librerÃ­a es por nÃºmero de pÃ¡gina;
         el bff pagina por cursor opaco. Se mapea manteniendo un `page` real
-        (b.pagina) y un `total` que solo codifica "¿hay una página más?":
-          - con `cursorSiguiente`: hay al menos una página adicional → total que
-            fuerza al control a mostrar el botón "siguiente" (Req 4.1).
-          - sin `cursorSiguiente`: la página actual es la última → total exacto
-            hasta aquí, sin botón siguiente (Req 4.3).
-        `onPageChange(n)` navega a la página adyacente: avanzar usa el
+        (b.pagina) y un `total` que solo codifica "Â¿hay una pÃ¡gina mÃ¡s?":
+          - con `cursorSiguiente`: hay al menos una pÃ¡gina adicional â†’ total que
+            fuerza al control a mostrar el botÃ³n "siguiente" (Req 4.1).
+          - sin `cursorSiguiente`: la pÃ¡gina actual es la Ãºltima â†’ total exacto
+            hasta aquÃ­, sin botÃ³n siguiente (Req 4.3).
+        `onPageChange(n)` navega a la pÃ¡gina adyacente: avanzar usa el
         `cursor_siguiente` recibido (Req 4.2), retroceder reusa el cursor visitado.
-        Brecha registrada (tasks.md #4): la librería no ofrece paginación por
+        Brecha registrada (tasks.md #4): la librerÃ­a no ofrece paginaciÃ³n por
         cursor; no se construye un control propio.
       */}
       {(b.pagina > 1 || b.cursorSiguiente) && (
@@ -127,7 +129,7 @@ export function BandejaViajes() {
   );
 }
 
-/** Estado vacío: no hay viajes en el alcance. El filtro sigue visible (Req 6.2). */
+/** Estado vacÃ­o: no hay viajes en el alcance. El filtro sigue visible (Req 6.2). */
 function MensajeVacio() {
   return (
     <div style={{ padding: 'var(--ui-space-4)', textAlign: 'center' }}>
@@ -139,10 +141,10 @@ function MensajeVacio() {
 }
 
 /**
- * Estado de error con acción de reintento (Req 7.1/7.2). Compuesto con los
- * primitivos de `Card` de la librería (`CardBody` para el mensaje, `CardFooter`
- * para la acción). La librería no ofrece un componente de alerta/estado de error
- * dedicado; `Card` + `Button` es la composición de primitivos existentes.
+ * Estado de error con acciÃ³n de reintento (Req 7.1/7.2). Compuesto con los
+ * primitivos de `Card` de la librerÃ­a (`CardBody` para el mensaje, `CardFooter`
+ * para la acciÃ³n). La librerÃ­a no ofrece un componente de alerta/estado de error
+ * dedicado; `Card` + `Button` es la composiciÃ³n de primitivos existentes.
  */
 function EstadoError({ onReintentar }: { readonly onReintentar: () => void }) {
   return (
@@ -162,7 +164,7 @@ function EstadoError({ onReintentar }: { readonly onReintentar: () => void }) {
 }
 
 /**
- * Delegación de sesión en 401 (Req 7.3). No pinta error: cierra la sesión local
+ * DelegaciÃ³n de sesiÃ³n en 401 (Req 7.3). No pinta error: cierra la sesiÃ³n local
  * y deja que la guarda `_private` redirija a /login conservando el destino.
  */
 function DelegacionSesion() {

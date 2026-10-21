@@ -9,6 +9,9 @@
 
 import type { SesionWire } from '@/lib/contracts';
 import { Rol } from '@/lib/contracts';
+import { EstadoViaje, TRANSICIONES_VIAJE } from '@/lib/contracts/viajeDetalle';
+import type { ViajeResumen, PaginaViajesResumen } from '@/lib/contracts/viajes';
+import type { ViajeDetalle } from '@/lib/contracts/viajeDetalle';
 
 /** Credenciales del operador demo. Documentadas en el README. */
 export const DEMO_CREDENTIALS = {
@@ -63,13 +66,9 @@ export function createSessionWire(): SesionWire {
 /*
  * Viajes demo para la bandeja operativa (E8-T7).
  *
- * Forma de contrato del bff: `ViajeResumen = { id, estado, origen }`. El bff NO
- * entrega condiciones activas por ítem (brecha de contrato V1), así que el mock
- * tampoco las inventa. Los tokens de estado salen del enum real (ADR 19).
+ * Forma de contrato del bff: `ViajeResumen = { id, estado, origen }`.
+ * Los tokens de estado salen del enum real (ADR 19).
  */
-
-import { EstadoViaje } from '@/lib/contracts/viajes';
-import type { ViajeResumen, PaginaViajesResumen } from '@/lib/contracts/viajes';
 
 /** Catálogo de viajes demo del alcance del operador. */
 const VIAJES_DEMO: readonly ViajeResumen[] = [
@@ -105,4 +104,174 @@ export function listarViajesMock(
   const cursor_siguiente = fin < filtrados.length ? String(fin) : null;
 
   return { items, cursor_siguiente };
+}
+
+/*
+ * Detalle del viaje (E8-T8). Sirve el contrato generado del BFF (tracer.13):
+ * los mocks cumplen la forma de `ViajeDetalle` de `@ai27-tech/contracts`.
+ *
+ * Base de datos simulada: detalles por ID. Cada viaje expone:
+ * - estado canónico (EstadoViaje)
+ * - origen (dirección como texto)
+ * - destinos (array de paradas con nombre y número de envío)
+ * - fecha_hora_servicio (opcional, ISO 8601)
+ * - eta_estimado (opcional, ISO 8601, si fue fijado)
+ * - condiciones_activas (lista de INCIDENCIA, SIN_SENAL, etc.)
+ */
+
+interface ViajeDetalleStore {
+  [id: string]: ViajeDetalle;
+}
+
+/** Catálogo de detalles por ID (estados canónicos, destinos, eta_estimado). */
+const DETALLES_VIAJES: ViajeDetalleStore = {
+  'VJ-1001': {
+    viaje: {
+      id: 'VJ-1001',
+      estado: EstadoViaje.EnTransito,
+      origen: 'Av. Paseo de la Reforma 505, México CDMX',
+      destinos: [
+        { nombre: 'Centro de Distribución A', numero_envio: 'ENV-1001-A' },
+        { nombre: 'Oficina Regional B', numero_envio: 'ENV-1001-B' },
+      ],
+      fecha_hora_servicio: new Date(Date.now() + 3600_000).toISOString(),
+      creado_en: new Date(Date.now() - 86400_000).toISOString(),
+    },
+    condiciones_activas: [],
+  },
+  'VJ-1002': {
+    viaje: {
+      id: 'VJ-1002',
+      estado: EstadoViaje.Solicitado,
+      origen: 'Barrio Antiguo, Monterrey',
+      destinos: [{ nombre: 'Almacén Central Monterrey', numero_envio: 'ENV-1002-A' }],
+      fecha_hora_servicio: new Date(Date.now() + 7200_000).toISOString(),
+      creado_en: new Date(Date.now() - 3600_000).toISOString(),
+    },
+    condiciones_activas: [],
+  },
+  'VJ-1003': {
+    viaje: {
+      id: 'VJ-1003',
+      estado: EstadoViaje.Asignado,
+      origen: 'Centro Histórico, Guadalajara',
+      destinos: [{ nombre: 'Sucursal Guadalajara', numero_envio: 'ENV-1003-A' }],
+      fecha_hora_servicio: new Date(Date.now() + 5400_000).toISOString(),
+      creado_en: new Date(Date.now() - 7200_000).toISOString(),
+    },
+    condiciones_activas: [],
+  },
+  'VJ-1004': {
+    viaje: {
+      id: 'VJ-1004',
+      estado: EstadoViaje.EnDestino,
+      origen: 'Centro de Querétaro',
+      destinos: [
+        { nombre: 'Punto de Entrega 1', numero_envio: 'ENV-1004-A' },
+        { nombre: 'Punto de Entrega 2', numero_envio: 'ENV-1004-B' },
+      ],
+      fecha_hora_servicio: new Date(Date.now() + 1800_000).toISOString(),
+      eta_estimado: new Date(Date.now() + 1800_000).toISOString(),
+      creado_en: new Date(Date.now() - 10800_000).toISOString(),
+    },
+    condiciones_activas: [],
+  },
+  'VJ-1005': {
+    viaje: {
+      id: 'VJ-1005',
+      estado: EstadoViaje.Aprobado,
+      origen: 'Zócalo de Puebla',
+      destinos: [{ nombre: 'Centro de Operaciones Puebla', numero_envio: 'ENV-1005-A' }],
+      fecha_hora_servicio: new Date(Date.now() + 10800_000).toISOString(),
+      creado_en: new Date(Date.now() - 1800_000).toISOString(),
+    },
+    condiciones_activas: [],
+  },
+  'VJ-1006': {
+    viaje: {
+      id: 'VJ-1006',
+      estado: EstadoViaje.EnTransito,
+      origen: 'Centro Toluca',
+      destinos: [{ nombre: 'Depósito Toluca', numero_envio: 'ENV-1006-A' }],
+      fecha_hora_servicio: new Date(Date.now() + 2700_000).toISOString(),
+      creado_en: new Date(Date.now() - 5400_000).toISOString(),
+    },
+    condiciones_activas: [],
+  },
+  'VJ-1007': {
+    viaje: {
+      id: 'VJ-1007',
+      estado: EstadoViaje.Cerrado,
+      origen: 'Centro de León',
+      destinos: [{ nombre: 'Estación Final León', numero_envio: 'ENV-1007-A' }],
+      fecha_hora_servicio: new Date(Date.now() - 3600_000).toISOString(),
+      eta_estimado: new Date(Date.now() - 1800_000).toISOString(),
+      creado_en: new Date(Date.now() - 172800_000).toISOString(),
+    },
+    condiciones_activas: [],
+  },
+  'VJ-1008': {
+    viaje: {
+      id: 'VJ-1008',
+      estado: EstadoViaje.EnDescarga,
+      origen: 'Puerto de Veracruz',
+      destinos: [{ nombre: 'Zona de Descarga Veracruz', numero_envio: 'ENV-1008-A' }],
+      fecha_hora_servicio: new Date(Date.now() - 1800_000).toISOString(),
+      eta_estimado: new Date(Date.now()).toISOString(),
+      creado_en: new Date(Date.now() - 259200_000).toISOString(),
+    },
+    condiciones_activas: [],
+  },
+};
+
+/**
+ * Recupera el detalle completo de un viaje por ID.
+ *
+ * Devuelve `null` si el viaje no existe en la base de datos simulada.
+ */
+export function obtenerDetalleViajeMock(id: string): ViajeDetalle | null {
+  return DETALLES_VIAJES[id] ?? null;
+}
+
+/**
+ * Almacena una mutación de estado del viaje (transición).
+ *
+ * Valida que la transición sea permitida; si no, devuelve `false`.
+ * Si es válida, actualiza el estado y devuelve `true`.
+ */
+export function transicionarViajeMock(id: string, a_estado: string): boolean {
+  const detalle = DETALLES_VIAJES[id];
+  if (!detalle) return false;
+
+  // Validación directa contra la tabla de transiciones (sin confiar en el tipo)
+  const valido = TRANSICIONES_VIAJE.some(
+    ([desde, hacia]) => desde === detalle.viaje.estado && hacia === a_estado,
+  );
+
+  if (!valido) {
+    return false;
+  }
+
+  detalle.viaje.estado = a_estado;
+  return true;
+}
+
+/**
+ * Fija el ETA estimado del viaje.
+ *
+ * Si el viaje está en un estado terminal, devuelve `false`.
+ * Si es válido, actualiza el `eta_estimado` y devuelve `true`.
+ */
+export function fijarEtaMock(id: string, eta_estimado: string): boolean {
+  const detalle = DETALLES_VIAJES[id];
+  if (!detalle) return false;
+
+  // Validación directa contra los estados terminales (sin confiar en el tipo)
+  const estadosTerminales = ['RECHAZADO_POR_AI27', 'RECHAZADO_POR_CLIENTE', 'CERRADO', 'CANCELADO'];
+  if (estadosTerminales.includes(detalle.viaje.estado)) {
+    return false;
+  }
+
+  detalle.viaje.eta_estimado = eta_estimado;
+  return true;
 }
