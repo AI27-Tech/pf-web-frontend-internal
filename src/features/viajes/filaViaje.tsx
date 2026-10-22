@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Columnas y celdas de la tabla de viajes (E8-T7).
  *
  * Define las columnas `id`, `estado`, `origen` y `condiciones` para la `Table`
@@ -9,10 +9,13 @@
  * normalizar, Requirement 1.5); cada condición activa se muestra como un `Badge`
  * en su propia columna (Requirement 2.1–2.4). Las celdas llevan `data-testid`
  * distinguibles para verificar que una condición nunca ocupa el slot de estado.
+ *
+ * E8-T8: Las filas son clickeables y navegan al detalle del viaje.
  */
 
 import { Badge } from '@ai27-tech/ui';
 import type { BadgeVariant, Column } from '@ai27-tech/ui';
+import { useNavigate } from '@tanstack/react-router';
 
 import { CondicionViaje } from '@/lib/contracts/viajes';
 import type { ViajeVista } from './viajeVista';
@@ -27,36 +30,68 @@ export const VARIANTE_CONDICION: Record<CondicionViaje, BadgeVariant> = {
   [CondicionViaje.SinSenal]: 'warning',
 };
 
-/** Columnas de la tabla de viajes. No sortables: el orden lo fija el bff (P10). */
-export const columnasViaje: Column<ViajeVista>[] = [
-  { key: 'id', header: 'Viaje', accessor: 'id' },
-  {
-    key: 'estado',
-    header: 'Estado',
-    // El estado se muestra en un Badge de la librería, pero con el TOKEN LITERAL
-    // del bff como contenido, sin derivar ni reformatear (Requirement 1.5). La
-    // variante `neutral` lo distingue de las condiciones (alert/warning), P15.
-    cell: (v) => (
-      <Badge data-testid="estado" variant="neutral">
-        {v.estado}
-      </Badge>
-    ),
-  },
-  { key: 'origen', header: 'Origen', accessor: 'origen' },
-  {
-    key: 'condiciones',
-    header: 'Condiciones',
-    // Columna separada del estado (P15). Un Badge por condición activa; vacío si
-    // no hay. Brecha V1: `condiciones_activas` no viene del bff hoy, así que esta
-    // celda renderiza vacío hasta que el contrato las publique (ver viajeVista.ts).
-    cell: (v) => (
-      <span data-testid="condiciones" style={{ display: 'inline-flex', gap: 'var(--ui-space-1)' }}>
-        {(v.condiciones_activas ?? []).map((c) => (
-          <Badge key={c} variant={VARIANTE_CONDICION[c]} dot>
-            {c}
-          </Badge>
-        ))}
-      </span>
-    ),
-  },
-];
+/**
+ * Factory que retorna las columnas de la tabla de viajes con navegación integrada.
+ *
+ * Las columnas dependen del contexto de navegación (useNavigate), así que se
+ * generan dentro de un hook en el componente padre (BandejaViajes).
+ */
+export function obtenerColumnasViaje(
+  navigate: ReturnType<typeof useNavigate>,
+): Column<ViajeVista>[] {
+  return [
+    {
+      key: 'id',
+      header: 'Viaje',
+      accessor: 'id',
+      cell: (v) => (
+        <button
+          onClick={() => {
+            void navigate({
+              to: '/viajes/$id',
+              params: { id: v.id },
+            });
+          }}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--ui-color-primary)',
+            cursor: 'pointer',
+            textDecoration: 'underline',
+            padding: 0,
+            font: 'inherit',
+          }}
+          title="Ver detalle del viaje"
+        >
+          {v.id}
+        </button>
+      ),
+    },
+    {
+      key: 'estado',
+      header: 'Estado',
+      cell: (v) => (
+        <Badge data-testid="estado" variant="neutral">
+          {v.estado}
+        </Badge>
+      ),
+    },
+    { key: 'origen', header: 'Origen', accessor: 'origen' },
+    {
+      key: 'condiciones',
+      header: 'Condiciones',
+      cell: (v) => (
+        <span
+          data-testid="condiciones"
+          style={{ display: 'inline-flex', gap: 'var(--ui-space-1)' }}
+        >
+          {(v.condiciones_activas ?? []).map((c) => (
+            <Badge key={c} variant={VARIANTE_CONDICION[c]} dot>
+              {c}
+            </Badge>
+          ))}
+        </span>
+      ),
+    },
+  ];
+}

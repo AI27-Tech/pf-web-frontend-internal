@@ -24,12 +24,20 @@ export type ApiErrorKind =
 export class ApiError extends Error {
   readonly kind: ApiErrorKind;
   readonly status: number | undefined;
+  /**
+   * Código de negocio que el `bff` serializa en el cuerpo del error (p. ej.
+   * `transicion_no_permitida`, `viaje_en_estado_terminal`). La UI distingue la
+   * causa a partir de él, no del `mensaje` (bff.yaml). `undefined` si el cuerpo
+   * no traía código o no era interpretable.
+   */
+  readonly codigo: string | undefined;
 
-  constructor(kind: ApiErrorKind, message: string, status?: number) {
+  constructor(kind: ApiErrorKind, message: string, status?: number, codigo?: string) {
     super(message);
     this.name = 'ApiError';
     this.kind = kind;
     this.status = status;
+    this.codigo = codigo;
   }
 }
 

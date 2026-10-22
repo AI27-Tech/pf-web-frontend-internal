@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Feature: e8-t7-bandeja-viajes, Property 3: Estado y condiciones separados (P15)
  *
  * Property 3 (Validates: Requirements 2.1, 2.2, 2.3, 2.4):
@@ -9,26 +9,30 @@
  *
  * También incluye la prueba de ejemplo de variantes de condición (tarea 5.3).
  *
- * Se renderizan las celdas de `columnasViaje` ('estado' y 'condiciones') de forma
+ * Se renderizan las celdas de `obtenerColumnasViaje` ('estado' y 'condiciones') de forma
  * aislada: cada `cell(row, index)` produce el JSX de su columna. Se verifica la
  * separación de slots por su `data-testid` distinto.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import fc from 'fast-check';
 
 import { CondicionViaje } from '@/lib/contracts/viajes';
 import type { CondicionViaje as CondicionViajeTipo } from '@/lib/contracts/viajes';
-import { columnasViaje, VARIANTE_CONDICION } from '@/features/viajes/filaViaje';
+import { obtenerColumnasViaje, VARIANTE_CONDICION } from '@/features/viajes/filaViaje';
 import type { ViajeVista } from '@/features/viajes/viajeVista';
 
 /** Valores posibles del enum, tomados del contrato (no definidos aquí). */
 const CONDICIONES = Object.values(CondicionViaje) as CondicionViajeTipo[];
 
+/** Mock de useNavigate para el test */
+const mockNavigate = vi.fn();
+
 /** Celda de una columna por su key. Las columnas 'estado'/'condiciones' usan `cell`. */
 function celda(key: string, fila: ViajeVista) {
-  const col = columnasViaje.find((c) => c.key === key);
+  const columnas = obtenerColumnasViaje(mockNavigate);
+  const col = columnas.find((c) => c.key === key);
   if (!col?.cell) throw new Error(`columna ${key} sin cell`);
   return col.cell(fila, 0);
 }

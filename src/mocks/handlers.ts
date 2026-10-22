@@ -10,7 +10,15 @@ import { http, HttpResponse } from 'msw';
 
 import { API_PREFIX } from '@/lib/constants';
 import type { CredencialesEntrada } from '@/lib/contracts';
-import { DEMO_CREDENTIALS, createSessionWire, listarViajesMock } from './data';
+import {
+  DEMO_CREDENTIALS,
+  createSessionWire,
+  listarViajesMock,
+  obtenerDetalleViajeMock,
+  transicionarViajeMock,
+  fijarEtaMock,
+} from './data';
+import type { TransicionEntrada, EtaEntrada } from '@/lib/contracts/viajeDetalle';
 
 const path = (segment: string) => `${API_PREFIX}${segment}`;
 
@@ -21,6 +29,58 @@ export const handlers = [
     const url = new URL(request.url);
     const pagina = listarViajesMock(url.searchParams.get('estado'), url.searchParams.get('cursor'));
     return HttpResponse.json(pagina, { status: 200 });
+  }),
+
+  // GET /viajes/{id}/detalle — detalle del viaje con estado canónico, destinos y eta_estimado.
+  // Punto de entrada: GET /viajes/{id}/detalle (E8-T8, contrato generado tracer.13).
+  http.get(path('/viajes/:id/detalle'), ({ params }) => {
+    const { id } = params as { id: string };
+    const detalle = obtenerDetalleViajeMock(id);
+
+    if (!detalle) {
+      return HttpResponse.json({ mensaje: 'Viaje no encontrado' }, { status: 404 });
+    }
+
+    return HttpResponse.json(detalle, { status: 200 });
+  }),
+
+  // POST /viajes/{id}/transiciones — transiciona el estado del viaje.
+  // Valida contra puedeTransicionar; si no es permitida, responde 409 con código
+  // 'transicion_no_permitida'.
+  // Punto de entrada: POST /viajes/{id}/transiciones (E8-T8).
+  http.post(path('/viajes/:id/transiciones'), async ({ params, request }) => {
+    const { id } = params as { id: string };
+    const body = (await request.json()) as Partial<TransicionEntrada>;
+    const a_estado = body.a_estado ?? '';
+
+    const exito = transicionarViajeMock(id, a_estado);
+
+    if (!exito) {
+      return HttpResponse.json({ error: { codigo: 'transicion_no_permitida' } }, { status: 409 });
+    }
+
+    // Devolver el detalle completo actualizado
+    const detalle = obtenerDetalleViajeMock(id);
+    return HttpResponse.json(detalle, { status: 200 });
+  }),
+
+  // PATCH /viajes/{id}/eta — fija el ETA manual del viaje.
+  // Si el viaje está en estado terminal, responde 409 con código 'viaje_en_estado_terminal'.
+  // Punto de entrada: PATCH /viajes/{id}/eta (E8-T8).
+  http.patch(path('/viajes/:id/eta'), async ({ params, request }) => {
+    const { id } = params as { id: string };
+    const body = (await request.json()) as Partial<EtaEntrada>;
+    const eta_estimado = body.eta_estimado ?? '';
+
+    const exito = fijarEtaMock(id, eta_estimado);
+
+    if (!exito) {
+      return HttpResponse.json({ error: { codigo: 'viaje_en_estado_terminal' } }, { status: 409 });
+    }
+
+    // Devolver el detalle completo actualizado
+    const detalle = obtenerDetalleViajeMock(id);
+    return HttpResponse.json(detalle, { status: 200 });
   }),
 
   // POST /sesion — login. Solo el operador demo entra.
