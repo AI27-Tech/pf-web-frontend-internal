@@ -4,6 +4,41 @@ Todos los cambios relevantes del proyecto se documentan en este archivo.
 Las entradas se escriben en español, con fecha en formato `yyyy:mm:dd` y hora en formato `hora:minuto`.
 Las entradas más recientes se colocan al inicio.
 
+## 2026:10:22 13:31
+
+**Resumen:** Se implementó **E8-T9** (revisar, aprobar o rechazar la `solicitud`) sobre el detalle del `viaje` del panel interno, satisfaciendo `E1-HU-003`: Aprobar queda deshabilitado mientras falte la `fecha_hora_servicio` y el `Jefe Operativo` la completa antes (guarda de la aprobación, DEC-010 #2); Rechazar exige motivo (reutiliza el modal de causa de E8-T8); las acciones se derivan de la máquina de estados generada, no de una lista escrita a mano. Se agregó una **barra de progreso de navegación entre rutas** (chrome de layout) con precarga del chunk al pasar el cursor sobre los `Link` del sidebar, para dar señal inmediata al cambiar de vista y evitar el doble clic. Se **cerró la brecha de contrato** de completar `fecha_hora_servicio` adoptando `@ai27-tech/contracts@0.1.0-tracer.15`, que publica la operación real `completarFechaHora` (`PATCH /api/v1/viajes/{id}/fecha-hora`, esquema `FechaHoraEntrada`, respuesta `ViajeDetalle`): el tipo local esperado pasa a alias generado, el wrapper clasifica el 409 real del contrato (`viaje_en_estado_terminal`) y el mock simula el contrato publicado. `typecheck`, `lint` y `test` (19 archivos, 96 pruebas) en verde; `build` en verde.
+
+**Cambios:**
+
+- `src/features/viajes/detalle/decisionSolicitud.ts` (nuevo): guard puro `puedeAprobar(viaje)` = `SOLICITADO` con `fecha_hora_servicio` presente; helper `tieneFechaHora`. Único punto de la regla, sin dependencia de UI.
+- `src/features/viajes/detalle/fechaHoraForm.tsx` (nuevo): captura de `fecha_hora_servicio` con `Input type="datetime-local"` dentro de `Form`/`FormField` (solo `@ai27-tech/ui`); confirmar deshabilitado con el campo vacío; propaga el error de la mutación. Simétrico a `etaForm.tsx`, ningún componente nuevo.
+- `src/features/viajes/detalle/DetalleViaje.tsx`: la acción `APROBADO` aplica `puedeAprobar` (botón deshabilitado con "(falta fecha/hora)"); aviso "Falta la fecha y hora del servicio" con acción "Completar fecha y hora" que abre `FechaHoraForm` en `Modal`; al confirmar refleja el dato y habilita Aprobar sin recarga; `RECHAZADO_POR_AI27` reutiliza el modal de causa obligatoria; defensa en profundidad en `handleAccion`.
+- `src/features/viajes/detalle/useDetalleViaje.ts`: `useMutation` de `completarFechaHora` que invalida `['viaje', id]` al confirmar; expone `completarFechaHora(fecha_hora_servicio)` en el contrato plano del hook.
+- `src/components/layout/RouteProgressBar.tsx` (nuevo) y `src/styles/globals.css`: barra de progreso superior fija durante la navegación, con solo tokens de `@ai27-tech/ui` (`--ui-color-primary`) y respeto a `prefers-reduced-motion`.
+- `src/main.tsx`: `createRouter` con `defaultPendingComponent` (la barra), `defaultPendingMs: 100`, `defaultPendingMinMs: 300` y `defaultPreload: 'intent'` (precarga del chunk al hacer hover/foco sobre los `Link`).
+- `src/lib/contracts/viajeDetalle.ts`: `FechaHoraEntrada` deja de ser interfaz local y pasa a alias del tipo generado (`Schemas['FechaHoraEntrada']`); se actualizó la cabecera para reflejar la brecha cerrada en tracer.15.
+- `src/lib/api/viajeDetalle.ts`: `completarFechaHora` clasifica el 409 real del contrato (`viaje_en_estado_terminal`, no `transicion_no_permitida`, que es solo de `transicionarViaje`).
+- `src/mocks/handlers.ts` / `src/mocks/data.ts`: el handler y el helper de `fecha-hora` pasan a simular el contrato publicado (ya no una forma "esperada"); comentarios de versión actualizados a tracer.15.
+- `src/features/viajes/viajeVista.ts`: comentario de versión actualizado a tracer.15.
+- `package.json` / `pnpm-workspace.yaml` / `pnpm-lock.yaml`: `@ai27-tech/contracts` de `0.1.0-tracer.13` a `0.1.0-tracer.15`.
+- `tests/viajes/DecisionSolicitud.test.tsx` (nuevo): Aprobar deshabilitado sin fecha/hora y habilitado tras completarla; Rechazar exige motivo; e2e de las dos ramas (aprobar → `APROBADO`, rechazar → `RECHAZADO_POR_AI27`).
+- `tests/viajes/decisionSolicitud.property.test.ts` (nuevo): property tests del guard (verdadero sii `SOLICITADO` con fecha/hora; bloqueo en otros estados; determinismo).
+- `tests/viajes/completarFechaHora.test.ts` (nuevo): petición correcta y retorno de `ViajeDetalle`; clasificación del 409 real; propagación de 404 como `ApiError`.
+- `tests/viajes/DetalleViaje.test.tsx`: se retiró el placeholder de E8-T8, reemplazado por las pruebas reales de decisión.
+- `.kiro/specs/e8-t9-aprobar-rechazar-solicitud/`: spec (requirements, design, tasks) y documento de brecha de contrato, marcado como cerrado.
+
+**Archivos modificados:**
+
+- `src/features/viajes/detalle/decisionSolicitud.ts` (nuevo) · `src/features/viajes/detalle/fechaHoraForm.tsx` (nuevo) · `src/features/viajes/detalle/DetalleViaje.tsx` · `src/features/viajes/detalle/useDetalleViaje.ts`
+- `src/components/layout/RouteProgressBar.tsx` (nuevo) · `src/main.tsx` · `src/styles/globals.css`
+- `src/lib/contracts/viajeDetalle.ts` · `src/lib/api/viajeDetalle.ts`
+- `src/mocks/data.ts` · `src/mocks/handlers.ts` · `src/features/viajes/viajeVista.ts`
+- `package.json` · `pnpm-workspace.yaml` · `pnpm-lock.yaml`
+- `tests/viajes/DecisionSolicitud.test.tsx` (nuevo) · `tests/viajes/decisionSolicitud.property.test.ts` (nuevo) · `tests/viajes/completarFechaHora.test.ts` (nuevo) · `tests/viajes/DetalleViaje.test.tsx` (eliminado placeholder)
+- `.kiro/specs/e8-t9-aprobar-rechazar-solicitud/{requirements,design,tasks}.md` · `.kiro/specs/e8-t9-aprobar-rechazar-solicitud/brecha-contrato-completar-fecha-hora.md`
+
+**Señalado (no se tocó):** el mock MSW de `PATCH /viajes/{id}/fecha-hora` se conserva (es el backend simulado de desarrollo/test; ahora simula el contrato publicado, no una forma inventada). Queda abierta la brecha de librería: `@ai27-tech/ui` no publica un `Spinner`/`ProgressBar` reutilizable, por lo que `RouteProgressBar` es chrome de layout local hasta que la librería lo publique (TODO documentado en el archivo). No se corrió `pnpm format:check`, `pnpm test:e2e` ni la verificación manual en `dev:mock` en esta sesión; la integración contra el `bff` real no se probó (lo verificado es contra el contrato generado y el mock).
+
 ## 2026:10:21 13:05
 
 **Resumen:** Se implementó **E8-T8** (detalle del viaje: avance y ETA manual) en el panel interno: nueva pantalla `/_private/viajes/$id` que lee el detalle con estado canónico, deriva las acciones de transición de la máquina de estados generada (`@ai27-tech/contracts/estados`), permite registrar transiciones (con captura de causa obligatoria en rechazos/cancelación, DEC-020 #2) y fijar el ETA a mano marcado "estimado, no en vivo" (ADR 20 / DEC-007). Se migró la capa de contrato a `@ai27-tech/contracts@0.1.0-tracer.13`, que ya publica los endpoints internos del viaje (`obtenerViajeInterno`, `transicionarViaje`, `fijarEta`): los tipos del detalle pasan a derivarse del OpenAPI generado (`@ai27-tech/contracts/openapi/bff`), retirando la réplica manual. El 409 se clasifica por el `codigo` real del cuerpo (`transicion_no_permitida` / `viaje_en_estado_terminal`), no por el endpoint. La fila de la bandeja (E8-T7) se hizo clickeable para navegar al detalle, y la ruta `viajes.tsx` pasó a `viajes/index.tsx` para alojar la ruta hija `$id`. `typecheck`, `lint` y `test` (17 archivos, 85 pruebas) en verde; `build` en verde.
