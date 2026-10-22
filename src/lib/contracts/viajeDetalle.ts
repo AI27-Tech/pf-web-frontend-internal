@@ -1,16 +1,19 @@
 /*
- * Contrato de detalle del viaje — tipos GENERADOS del BFF (tracer.13).
+ * Contrato de detalle del viaje — capa única de acoplamiento con el contrato.
  *
- * Los endpoints internos del viaje están publicados en
- * `@ai27-tech/contracts@0.1.0-tracer.13` y sus tipos se derivan directamente del
- * OpenAPI generado (`@ai27-tech/contracts/openapi/bff`). Ya NO se replican a
- * mano: la brecha de contrato está cerrada.
+ * Este archivo es el único punto donde el resto del código toca el contrato: los
+ * demás módulos importan estos alias, no el paquete generado directamente. Todos
+ * los endpoints internos del viaje están publicados en
+ * `@ai27-tech/contracts@0.1.0-tracer.15` y sus tipos se derivan del OpenAPI
+ * generado (`@ai27-tech/contracts/openapi/bff`); no se replican a mano:
  *   GET   /api/v1/viajes/{id}/detalle      → ViajeDetalle (operationId: obtenerViajeInterno)
  *   POST  /api/v1/viajes/{id}/transiciones → ViajeDetalle (entrada: TransicionEntrada)
  *   PATCH /api/v1/viajes/{id}/eta          → ViajeDetalle (entrada: EtaEntrada)
+ *   PATCH /api/v1/viajes/{id}/fecha-hora   → ViajeDetalle (entrada: FechaHoraEntrada)
  *
- * Este archivo sigue siendo el único punto de acoplamiento con el contrato: el
- * resto del código importa estos alias, no el paquete generado directamente.
+ * La brecha de escritura de `fecha_hora_servicio` (E8-T9) quedó CERRADA en
+ * tracer.15: `FechaHoraEntrada` ya es un tipo generado y `completarFechaHora` es
+ * una operación real del `bff`.
  */
 
 import type { components } from '@ai27-tech/contracts/openapi/bff';
@@ -18,7 +21,7 @@ import type { components } from '@ai27-tech/contracts/openapi/bff';
 type Schemas = components['schemas'];
 
 /**
- * Detalle interno del viaje con estado canónico (generado, tracer.13).
+ * Detalle interno del viaje con estado canónico (generado, tracer.15).
  *
  * Contiene:
  * - `viaje`: objeto con id, estado, origen (string), destinos[], eta_estimado?
@@ -47,6 +50,17 @@ export type TransicionEntrada = Schemas['TransicionEntrada'];
  * Punto de entrada: PATCH /api/v1/viajes/{id}/eta
  */
 export type EtaEntrada = Schemas['EtaEntrada'];
+
+/**
+ * Entrada para completar/editar la fecha y hora del servicio (E8-T9, generado).
+ *
+ * `{ fecha_hora_servicio: MarcaTiempo }`. Escribe la fecha/hora sobre un viaje
+ * existente (guarda de aprobación, E1-HU-003 / DEC-010 #2). Publicado en
+ * tracer.15; antes era un tipo local que cubría la brecha de contrato.
+ *
+ * Punto de entrada: PATCH /api/v1/viajes/{id}/fecha-hora (operationId: completarFechaHora)
+ */
+export type FechaHoraEntrada = Schemas['FechaHoraEntrada'];
 
 /**
  * Enum de estados del viaje (procedencia: `@ai27-tech/contracts/estados`).

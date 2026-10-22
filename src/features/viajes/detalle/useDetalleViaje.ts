@@ -20,7 +20,7 @@ import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useSession } from '@/context/SessionContext';
-import { fijarEta, obtenerDetalle, transicionar } from '@/lib/api/viajeDetalle';
+import { completarFechaHora, fijarEta, obtenerDetalle, transicionar } from '@/lib/api/viajeDetalle';
 import { ApiError } from '@/lib/api/errors';
 import type { EstadoViaje, ViajeDetalle, ViajeInterno } from '@/lib/contracts/viajeDetalle';
 
@@ -46,6 +46,8 @@ export interface DetalleViajeHook {
   readonly transicionar: (a_estado: EstadoViaje, causa?: string) => Promise<void>;
   /** Fija el ETA estimado manual. Invalida la lectura. */
   readonly fijarEta: (eta_estimado: string) => Promise<void>;
+  /** Completa/edita la fecha/hora del servicio (E8-T9). Invalida la lectura. */
+  readonly completarFechaHora: (fecha_hora_servicio: string) => Promise<void>;
 }
 
 export function useDetalleViaje(id: string): DetalleViajeHook {
@@ -89,6 +91,15 @@ export function useDetalleViaje(id: string): DetalleViajeHook {
     },
   });
 
+  // Mutación de completar fecha/hora del servicio (E8-T9).
+  const mutacionFechaHora = useMutation({
+    mutationFn: async ({ fecha_hora_servicio }: { fecha_hora_servicio: string }) =>
+      completarFechaHora(id, { fecha_hora_servicio }, accessToken),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['viaje', id] });
+    },
+  });
+
   // Wrappers públicos para las mutaciones
   const transicionarHandler = useCallback(
     async (a_estado: EstadoViaje, causa?: string) => {
@@ -104,6 +115,13 @@ export function useDetalleViaje(id: string): DetalleViajeHook {
     [mutacionEta],
   );
 
+  const completarFechaHoraHandler = useCallback(
+    async (fecha_hora_servicio: string) => {
+      await mutacionFechaHora.mutateAsync({ fecha_hora_servicio });
+    },
+    [mutacionFechaHora],
+  );
+
   return {
     viaje: viajeInterno,
     condicionesActivas,
@@ -114,5 +132,6 @@ export function useDetalleViaje(id: string): DetalleViajeHook {
     reintentar: () => void query.refetch(),
     transicionar: transicionarHandler,
     fijarEta: fijarEtaHandler,
+    completarFechaHora: completarFechaHoraHandler,
   };
 }

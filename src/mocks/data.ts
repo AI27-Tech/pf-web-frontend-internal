@@ -80,6 +80,8 @@ const VIAJES_DEMO: readonly ViajeResumen[] = [
   { id: 'VJ-1006', estado: EstadoViaje.EnTransito, origen: 'Toluca' },
   { id: 'VJ-1007', estado: EstadoViaje.Cerrado, origen: 'León' },
   { id: 'VJ-1008', estado: EstadoViaje.EnDescarga, origen: 'Veracruz' },
+  // E8-T9: solicitud SIN fecha/hora (Aprobar bloqueado hasta completarla).
+  { id: 'VJ-1009', estado: EstadoViaje.Solicitado, origen: 'Tijuana' },
 ];
 
 /** Tamaño de página del listado simulado. */
@@ -107,7 +109,7 @@ export function listarViajesMock(
 }
 
 /*
- * Detalle del viaje (E8-T8). Sirve el contrato generado del BFF (tracer.13):
+ * Detalle del viaje (E8-T8). Sirve el contrato generado del BFF (tracer.15):
  * los mocks cumplen la forma de `ViajeDetalle` de `@ai27-tech/contracts`.
  *
  * Base de datos simulada: detalles por ID. Cada viaje expone:
@@ -222,6 +224,19 @@ const DETALLES_VIAJES: ViajeDetalleStore = {
     },
     condiciones_activas: [],
   },
+  // E8-T9: solicitud SIN fecha/hora. Aprobar permanece deshabilitado hasta que el
+  // Jefe Operativo complete `fecha_hora_servicio` vía `completarFechaHoraMock`.
+  'VJ-1009': {
+    viaje: {
+      id: 'VJ-1009',
+      estado: EstadoViaje.Solicitado,
+      origen: 'Zona Centro, Tijuana',
+      destinos: [{ nombre: 'Bodega Frontera Tijuana', numero_envio: 'ENV-1009-A' }],
+      // fecha_hora_servicio ausente a propósito (guard de aprobación, E8-T9).
+      creado_en: new Date(Date.now() - 1200_000).toISOString(),
+    },
+    condiciones_activas: [],
+  },
 };
 
 /**
@@ -273,5 +288,26 @@ export function fijarEtaMock(id: string, eta_estimado: string): boolean {
   }
 
   detalle.viaje.eta_estimado = eta_estimado;
+  return true;
+}
+
+/**
+ * Completa/edita la fecha/hora del servicio del viaje (E8-T9).
+ *
+ * Simula la operación real `completarFechaHora` del `bff` (contrato tracer.15).
+ * Valida que la fecha/hora venga no vacía; si es válida, la actualiza y devuelve
+ * `true`.
+ *
+ * Devuelve `false` si el viaje no existe o si la fecha/hora es inválida.
+ */
+export function completarFechaHoraMock(id: string, fecha_hora_servicio: string): boolean {
+  const detalle = DETALLES_VIAJES[id];
+  if (!detalle) return false;
+
+  if (typeof fecha_hora_servicio !== 'string' || fecha_hora_servicio.trim().length === 0) {
+    return false;
+  }
+
+  detalle.viaje.fecha_hora_servicio = fecha_hora_servicio;
   return true;
 }

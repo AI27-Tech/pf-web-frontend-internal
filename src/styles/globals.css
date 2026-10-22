@@ -275,3 +275,57 @@ body {
   background-color: var(--color-background);
   color: var(--color-on-background);
 }
+
+/* =========================================================================
+ * 5. Barra de progreso de navegación entre rutas
+ *    La monta el router como `defaultPendingComponent` (ver RouteProgressBar.tsx
+ *    y main.tsx) mientras resuelve la ruta destino. Barra delgada fija en el
+ *    borde superior; no desplaza el contenido. Usa solo tokens de la librería.
+ * ========================================================================= */
+.ui-route-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 9999;
+  overflow: hidden;
+  pointer-events: none;
+  background-color: transparent;
+}
+
+.ui-route-progress__bar {
+  height: 100%;
+  width: 100%;
+  transform-origin: left;
+  background-color: var(--ui-color-primary);
+  animation: ui-route-progress-advance 1.2s ease-out forwards;
+}
+
+/*
+ * Avance asintótico: sube rápido al principio y se frena cerca del final, sin
+ * llegar al 100% (el router desmonta la barra al terminar la navegación). Da la
+ * sensación de "avanzando" sin fingir una duración exacta que no conocemos.
+ */
+@keyframes ui-route-progress-advance {
+  0% {
+    transform: scaleX(0);
+  }
+  40% {
+    transform: scaleX(0.6);
+  }
+  80% {
+    transform: scaleX(0.85);
+  }
+  100% {
+    transform: scaleX(0.95);
+  }
+}
+
+/* Respeta la preferencia de movimiento reducido: barra estática al 85%. */
+@media (prefers-reduced-motion: reduce) {
+  .ui-route-progress__bar {
+    animation: none;
+    transform: scaleX(0.85);
+  }
+}

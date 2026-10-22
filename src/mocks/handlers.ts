@@ -17,8 +17,9 @@ import {
   obtenerDetalleViajeMock,
   transicionarViajeMock,
   fijarEtaMock,
+  completarFechaHoraMock,
 } from './data';
-import type { TransicionEntrada, EtaEntrada } from '@/lib/contracts/viajeDetalle';
+import type { TransicionEntrada, EtaEntrada, FechaHoraEntrada } from '@/lib/contracts/viajeDetalle';
 
 const path = (segment: string) => `${API_PREFIX}${segment}`;
 
@@ -32,7 +33,7 @@ export const handlers = [
   }),
 
   // GET /viajes/{id}/detalle — detalle del viaje con estado canónico, destinos y eta_estimado.
-  // Punto de entrada: GET /viajes/{id}/detalle (E8-T8, contrato generado tracer.13).
+  // Punto de entrada: GET /viajes/{id}/detalle (E8-T8, contrato generado tracer.15).
   http.get(path('/viajes/:id/detalle'), ({ params }) => {
     const { id } = params as { id: string };
     const detalle = obtenerDetalleViajeMock(id);
@@ -76,6 +77,31 @@ export const handlers = [
 
     if (!exito) {
       return HttpResponse.json({ error: { codigo: 'viaje_en_estado_terminal' } }, { status: 409 });
+    }
+
+    // Devolver el detalle completo actualizado
+    const detalle = obtenerDetalleViajeMock(id);
+    return HttpResponse.json(detalle, { status: 200 });
+  }),
+
+  // PATCH /viajes/{id}/fecha-hora — completa/edita la fecha/hora del servicio (E8-T9).
+  // Operación real del contrato desde tracer.15 (`completarFechaHora`). El mock
+  // simula el contrato publicado: 404 si el viaje no existe; 400 si falta la
+  // fecha/hora. El contrato declara además 409 `viaje_en_estado_terminal` cuando
+  // el viaje es terminal (no ejercido por los datos demo, todos no terminales).
+  http.patch(path('/viajes/:id/fecha-hora'), async ({ params, request }) => {
+    const { id } = params as { id: string };
+    const body = (await request.json()) as Partial<FechaHoraEntrada>;
+    const fecha_hora_servicio = body.fecha_hora_servicio ?? '';
+
+    if (!obtenerDetalleViajeMock(id)) {
+      return HttpResponse.json({ mensaje: 'Viaje no encontrado' }, { status: 404 });
+    }
+
+    const exito = completarFechaHoraMock(id, fecha_hora_servicio);
+
+    if (!exito) {
+      return HttpResponse.json({ error: { codigo: 'fecha_hora_invalida' } }, { status: 400 });
     }
 
     // Devolver el detalle completo actualizado
