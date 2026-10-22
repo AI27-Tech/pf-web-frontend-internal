@@ -33,7 +33,7 @@ export const handlers = [
   }),
 
   // GET /viajes/{id}/detalle — detalle del viaje con estado canónico, destinos y eta_estimado.
-  // Punto de entrada: GET /viajes/{id}/detalle (E8-T8, contrato generado tracer.13).
+  // Punto de entrada: GET /viajes/{id}/detalle (E8-T8, contrato generado tracer.15).
   http.get(path('/viajes/:id/detalle'), ({ params }) => {
     const { id } = params as { id: string };
     const detalle = obtenerDetalleViajeMock(id);
@@ -85,9 +85,10 @@ export const handlers = [
   }),
 
   // PATCH /viajes/{id}/fecha-hora — completa/edita la fecha/hora del servicio (E8-T9).
-  // BRECHA DE CONTRATO ABIERTA (Opción A): el `bff` (tracer.13) no publica aún
-  // esta operación de escritura; el mock simula la forma ESPERADA del contrato.
-  // Devuelve 404 si el viaje no existe; 400 si falta la fecha/hora.
+  // Operación real del contrato desde tracer.15 (`completarFechaHora`). El mock
+  // simula el contrato publicado: 404 si el viaje no existe; 400 si falta la
+  // fecha/hora. El contrato declara además 409 `viaje_en_estado_terminal` cuando
+  // el viaje es terminal (no ejercido por los datos demo, todos no terminales).
   http.patch(path('/viajes/:id/fecha-hora'), async ({ params, request }) => {
     const { id } = params as { id: string };
     const body = (await request.json()) as Partial<FechaHoraEntrada>;

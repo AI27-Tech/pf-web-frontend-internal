@@ -109,7 +109,7 @@ export function listarViajesMock(
 }
 
 /*
- * Detalle del viaje (E8-T8). Sirve el contrato generado del BFF (tracer.13):
+ * Detalle del viaje (E8-T8). Sirve el contrato generado del BFF (tracer.15):
  * los mocks cumplen la forma de `ViajeDetalle` de `@ai27-tech/contracts`.
  *
  * Base de datos simulada: detalles por ID. Cada viaje expone:
@@ -294,9 +294,9 @@ export function fijarEtaMock(id: string, eta_estimado: string): boolean {
 /**
  * Completa/edita la fecha/hora del servicio del viaje (E8-T9).
  *
- * Brecha de contrato abierta (Opción A): simula la operación ESPERADA de
- * escritura de `fecha_hora_servicio` que el `bff` aún no publica. Valida que la
- * fecha/hora venga no vacía; si es válida, la actualiza y devuelve `true`.
+ * Simula la operación real `completarFechaHora` del `bff` (contrato tracer.15).
+ * Valida que la fecha/hora venga no vacía; si es válida, la actualiza y devuelve
+ * `true`.
  *
  * Devuelve `false` si el viaje no existe o si la fecha/hora es inválida.
  */

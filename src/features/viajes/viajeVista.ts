@@ -4,7 +4,7 @@
  *
  * Nota V1: ViajeResumen (listado de la bandeja) es { id, estado, origen },
  * sin condiciones activas. En cambio, ViajeDetalle (detalle individual, E8-T8)
- * incluye condiciones_activas en el contrato generado (tracer.13).
+ * incluye condiciones_activas en el contrato generado (tracer.15).
  *
  * El estado se preserva como token literal (string) tal cual lo devuelve bff,
  * sin derivar ni normalizar. La tipificación estricta (EstadoViaje enum) vive

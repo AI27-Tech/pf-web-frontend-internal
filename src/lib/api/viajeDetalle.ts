@@ -1,10 +1,11 @@
 /*
  * Wrapper de dominio para detalle del viaje.
  *
- * Endpoints del BFF (contrato generado, tracer.13):
- *   GET /api/v1/viajes/{id}/detalle     → obtener detalle del viaje
+ * Endpoints del BFF (contrato generado, tracer.15):
+ *   GET /api/v1/viajes/{id}/detalle      → obtener detalle del viaje
  *   POST /api/v1/viajes/{id}/transiciones → cambiar estado del viaje
- *   PATCH /api/v1/viajes/{id}/eta       → fijar ETA estimado manual
+ *   PATCH /api/v1/viajes/{id}/eta        → fijar ETA estimado manual
+ *   PATCH /api/v1/viajes/{id}/fecha-hora → completar/editar la fecha/hora del servicio
  *
  * Clasifica los códigos de conflicto (409) en errores específicos,
  * emite peticiones contra el BFF y devuelve el resultado.
@@ -149,18 +150,19 @@ export async function fijarEta(
 /**
  * Completa/edita la fecha y hora del servicio de un viaje (E8-T9).
  *
- * BRECHA DE CONTRATO ABIERTA (Opción A): el `bff` (tracer.13) no publica aún una
- * operación de escritura de `fecha_hora_servicio`. Esta función habla contra la
- * ruta ESPERADA, servida por mock (MSW). Es el único punto (con la capa de
- * contrato) que cambia cuando el `bff` publique el endpoint: ruta/verbo/forma.
+ * Operación real del `bff` desde tracer.15 (`completarFechaHora`,
+ * `PATCH /viajes/{id}/fecha-hora`): escribe `fecha_hora_servicio` sobre un viaje
+ * existente, guarda de la aprobación (E1-HU-003). No es un cambio de estado;
+ * solo exige que el viaje no esté en un estado terminal.
  *
- * Reutiliza la clasificación de 409 existente; no introduce códigos nuevos.
+ * El único 409 que declara el contrato es `viaje_en_estado_terminal` (igual que
+ * `fijarEta`), por lo que se usa ese como respaldo de clasificación.
  *
  * @param id Identificador del viaje
  * @param entrada Objeto con `fecha_hora_servicio` (ISO 8601)
  * @param accessToken Token de autenticación (Bearer)
  * @returns Detalle del viaje actualizado con la `fecha_hora_servicio` fijada
- * @throws ErrorTransicion si el servidor rechaza con 409
+ * @throws ErrorTransicion si el viaje es terminal (409)
  * @throws ApiError con kind 'noAutorizado' si el token es inválido
  * @throws ApiError con kind 'prohibido' si el usuario no tiene alcance
  * @throws ApiError con kind 'noEncontrado' si el viaje no existe
@@ -179,7 +181,7 @@ export async function completarFechaHora(
     });
   } catch (err) {
     // Clasifica el 409 por el `codigo` REAL del cuerpo. El respaldo solo aplica
-    // si el `bff` no serializó código interpretable.
-    clasificarConflicto(err, 'transicion_no_permitida');
+    // si el `bff` no serializó código interpretable (contrato: viaje_en_estado_terminal).
+    clasificarConflicto(err, 'viaje_en_estado_terminal');
   }
 }

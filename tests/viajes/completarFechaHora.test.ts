@@ -1,9 +1,9 @@
 /*
  * Pruebas del wrapper `completarFechaHora` de viajeDetalle.ts (E8-T9, 2.2).
  *
- * BRECHA DE CONTRATO ABIERTA (Opción A): la operación de escritura de
- * `fecha_hora_servicio` no existe aún en el `bff` (tracer.13). Estas pruebas
- * ejercen el contrato ESPERADO (ruta/verbo/forma) contra un servidor MSW local.
+ * La operación de escritura de `fecha_hora_servicio` es real desde tracer.15
+ * (`completarFechaHora`, PATCH /viajes/{id}/fecha-hora). Estas pruebas ejercen
+ * ese contrato (ruta/verbo/forma) contra un servidor MSW local.
  *
  * Cubre:
  * - Petición correcta (ruta PATCH /viajes/{id}/fecha-hora) y retorno de ViajeDetalle
@@ -60,16 +60,16 @@ describe('completarFechaHora', () => {
     expect(detalle.viaje.fecha_hora_servicio).toBe('2026-10-21T10:00:00.000Z');
   });
 
-  it('clasifica el 409 por el codigo real del cuerpo', async () => {
+  it('clasifica el 409 por el codigo real del cuerpo (viaje_en_estado_terminal)', async () => {
     server.use(
       http.patch(path('/viajes/:id/fecha-hora'), () =>
-        HttpResponse.json({ error: { codigo: 'transicion_no_permitida' } }, { status: 409 }),
+        HttpResponse.json({ error: { codigo: 'viaje_en_estado_terminal' } }, { status: 409 }),
       ),
     );
 
     await expect(
       completarFechaHora('VJ-1', { fecha_hora_servicio: '2026-10-21T10:00:00.000Z' }, 'token'),
-    ).rejects.toMatchObject({ codigo: 'transicion_no_permitida' });
+    ).rejects.toMatchObject({ codigo: 'viaje_en_estado_terminal' });
   });
 
   it('propaga 404 como ApiError, no como ErrorTransicion', async () => {

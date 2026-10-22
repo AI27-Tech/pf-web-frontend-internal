@@ -1,9 +1,18 @@
 # Solicitud de contrato — Completar la fecha/hora del servicio de un viaje
 
+> **✅ CERRADA (2026-10-22).** Publicado en `@ai27-tech/contracts@0.1.0-tracer.15`:
+> `PATCH /api/v1/viajes/{id}/fecha-hora` (`completarFechaHora`), esquema
+> `FechaHoraEntrada`, respuesta `ViajeDetalle`. Decisiones del PO: escritura en
+> cualquier estado **no terminal**; 409 = `viaje_en_estado_terminal` (no
+> `transicion_no_permitida`). El frontend adoptó tracer.15: `FechaHoraEntrada`
+> ahora es tipo generado, el wrapper clasifica el 409 real, y el mock simula el
+> contrato publicado. Verificado: typecheck/lint/build OK, 96/96 tests. El resto
+> del documento se conserva como registro de la solicitud original.
+
 **Para:** Encargado de `pf-pkg-contracts`
 **De:** Equipo `pf-web-frontend-internal` (panel-admin)
 **Origen:** E8-T9 — Revisar, aprobar o rechazar la solicitud (satisface `E1-HU-003`)
-**Contrato verificado:** `@ai27-tech/contracts@0.1.0-tracer.13`
+**Contrato verificado:** `@ai27-tech/contracts@0.1.0-tracer.13` (al momento de la solicitud)
 **Fecha:** 2026-10-22
 **Prioridad:** Media — el flujo opera hoy con `mock`; se vuelve bloqueante al integrar contra el `bff` real.
 
