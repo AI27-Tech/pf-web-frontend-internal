@@ -12,6 +12,8 @@ import { Rol } from '@/lib/contracts';
 import { EstadoViaje, TRANSICIONES_VIAJE } from '@/lib/contracts/viajeDetalle';
 import type { ViajeResumen, PaginaViajesResumen } from '@/lib/contracts/viajes';
 import type { ViajeDetalle } from '@/lib/contracts/viajeDetalle';
+import type { Asignacion, AptitudRecurso } from '@/lib/contracts/viajeDetalle';
+import type { Unidad } from '@/lib/contracts/unidades';
 
 /** Credenciales del operador demo. Documentadas en el README. */
 export const DEMO_CREDENTIALS = {
@@ -310,4 +312,60 @@ export function completarFechaHoraMock(id: string, fecha_hora_servicio: string):
 
   detalle.viaje.fecha_hora_servicio = fecha_hora_servicio;
   return true;
+}
+
+/** Roster demo: incluye unidades activas e inactivas; ambas se pueden seleccionar. */
+export const UNIDADES_DEMO: readonly Unidad[] = [
+  {
+    id: 'UN-1001',
+    vehiculo_id: 'VEH-2001',
+    custodios_ids: ['CUS-3001', 'CUS-3002'],
+    tipo: 'patrulla',
+    activa: true,
+  },
+  {
+    id: 'UN-1002',
+    vehiculo_id: 'VEH-2002',
+    custodios_ids: ['CUS-3003'],
+    tipo: 'moto',
+    activa: false,
+  },
+];
+
+/** Escenario explícito del roster sin unidades disponibles para pruebas de UI. */
+export const UNIDADES_SIN_DISPONIBLES_DEMO: readonly Unidad[] = [];
+
+/** Devuelve una página del roster con la forma esperada por el BFF. */
+export function listarUnidadesMock(unidades: readonly Unidad[] = UNIDADES_DEMO) {
+  return { items: [...unidades], cursor_siguiente: null };
+}
+
+function aptitudDemo(recurso: AptitudRecurso['recurso'], recurso_id: string): AptitudRecurso {
+  return { recurso, recurso_id, estado: 'apto' };
+}
+
+/**
+ * Aplica la asignación atómica al detalle demo y devuelve su resultado.
+ * La aptitud aparece solo aquí, después de reservar, y nunca en el roster.
+ */
+export function asignarEscoltaMock(id: string, unidades_ids: string[]): Asignacion | null {
+  const detalle = DETALLES_VIAJES[id];
+  if (!detalle) return null;
+
+  detalle.viaje.estado = EstadoViaje.Asignado;
+  return {
+    viaje_id: id,
+    unidades: unidades_ids.map((unidad_id) => {
+      const unidad = UNIDADES_DEMO.find((item) => item.id === unidad_id);
+      return {
+        unidad_id,
+        aptitud: unidad
+          ? [
+              aptitudDemo('vehiculo', unidad.vehiculo_id),
+              ...unidad.custodios_ids.map((custodio_id) => aptitudDemo('custodio', custodio_id)),
+            ]
+          : [],
+      };
+    }),
+  };
 }

@@ -1,18 +1,10 @@
 /*
- * Hook de datos del detalle del viaje (E8-T8).
+ * Hook de datos del detalle del viaje (E8-T8, E8-T10).
  *
- * Conecta la lectura de detalle y mutaciones de transición/ETA con TanStack Query,
+ * Conecta la lectura del detalle, el roster y las mutaciones con TanStack Query,
  * exponiendo un contrato plano que la presentación consume sin depender de Query.
- *
- * Operaciones:
- * - `useQuery` para lectura (`['viaje', id]`, `retry: false`)
- * - `useMutation` para transición (invalida la lectura al confirmar)
- * - `useMutation` para ETA (invalida la lectura al confirmar)
- *
- * 401 (`noAutorizado`) se expone como `esNoAutorizado` para que la presentación
- * lo delegue al flujo de sesión del AppShell (Req 7.3), sin pintar error genérico.
- *
- * Las acciones se derivan en tiempo real del estado actual mediante `accionesDesde`.
+ * La consulta del roster se habilita solo cuando el modal de asignación está
+ * abierto, para no pedir datos que la pantalla todavía no necesita.
  */
 
 import { useCallback } from 'react';
@@ -20,11 +12,24 @@ import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useSession } from '@/context/SessionContext';
-import { completarFechaHora, fijarEta, obtenerDetalle, transicionar } from '@/lib/api/viajeDetalle';
+import { listarUnidades } from '@/lib/api/unidades';
 import { ApiError } from '@/lib/api/errors';
+import {
+  asignarEscolta,
+  completarFechaHora,
+  fijarEta,
+  obtenerDetalle,
+  transicionar,
+} from '@/lib/api/viajeDetalle';
+import type { Unidad } from '@/lib/contracts/unidades';
 import type { EstadoViaje, ViajeDetalle, ViajeInterno } from '@/lib/contracts/viajeDetalle';
 
 import { accionesDesde } from './accionesTransicion';
+
+export interface UseDetalleViajeOptions {
+  /** Habilita la lectura del roster cuando el formulario de asignación está abierto. */
+  readonly habilitarRoster?: boolean;
+}
 
 /** Contrato plano que la presentación consume. */
 export interface DetalleViajeHook {
@@ -38,40 +43,62 @@ export interface DetalleViajeHook {
   readonly cargando: boolean;
   /** Error de la petición de lectura, o null si no hubo. */
   readonly error: Error | null;
-  /** true si el fallo fue 401/403: la presentación delega a sesión. */
+  /** true si cualquier operación activa requiere delegar la sesión. */
   readonly esNoAutorizado: boolean;
-  /** Reintenta la lectura (mismo queryKey). */
+  /** Reintenta la lectura del detalle. */
   readonly reintentar: () => void;
   /** Transiciona el viaje a un nuevo estado. Invalida la lectura. */
   readonly transicionar: (a_estado: EstadoViaje, causa?: string) => Promise<void>;
   /** Fija el ETA estimado manual. Invalida la lectura. */
   readonly fijarEta: (eta_estimado: string) => Promise<void>;
-  /** Completa/edita la fecha/hora del servicio (E8-T9). Invalida la lectura. */
+  /** Completa/edita la fecha/hora del servicio (E8-T9). */
   readonly completarFechaHora: (fecha_hora_servicio: string) => Promise<void>;
+  /** Unidades disponibles en el roster cuando el formulario está habilitado. */
+  readonly unidades: Unidad[];
+  /** true mientras carga el roster. */
+  readonly cargandoUnidades: boolean;
+  /** Error al cargar el roster, o null si no hubo. */
+  readonly errorUnidades: Error | null;
+  /** Reintenta la lectura del roster. */
+  readonly reintentarUnidades: () => void;
+  /** true mientras la asignación atómica está en curso. */
+  readonly asignandoEscolta: boolean;
+  /** Error de la última asignación, o null si no hubo. */
+  readonly errorAsignacion: Error | null;
+  /** Reserva las unidades seleccionadas e invalida detalle y roster. */
+  readonly asignarEscolta: (unidades_ids: string[]) => Promise<void>;
 }
 
-export function useDetalleViaje(id: string): DetalleViajeHook {
+export function useDetalleViaje(
+  id: string,
+  options: UseDetalleViajeOptions = {},
+): DetalleViajeHook {
+  const { habilitarRoster = false } = options;
   const { sesion } = useSession();
   const accessToken = sesion?.accessToken ?? '';
   const queryClient = useQueryClient();
 
-  // Lectura de detalle (devuelve ViajeDetalle completo con condiciones_activas)
   const query = useQuery({
     queryKey: ['viaje', id],
     queryFn: () => obtenerDetalle(id, accessToken),
     retry: false,
   });
 
+  const rosterQuery = useQuery({
+    queryKey: ['unidades'],
+    queryFn: () => listarUnidades(accessToken),
+    enabled: habilitarRoster,
+    retry: false,
+  });
+
   const viajeInterno = query.data?.viaje ?? null;
   const condicionesActivas = query.data?.condiciones_activas ?? [];
   const error = query.isError ? (query.error as Error) : null;
-  const esNoAutorizado = query.error instanceof ApiError && query.error.kind === 'noAutorizado';
+  const errorUnidades = rosterQuery.isError ? (rosterQuery.error as Error) : null;
 
-  // Derivar acciones del estado actual
   const acciones =
     viajeInterno && viajeInterno.estado ? accionesDesde(viajeInterno.estado as EstadoViaje) : [];
 
-  // Mutación de transición
   const mutacionTransicion = useMutation({
     mutationFn: async ({ a_estado, causa }: { a_estado: EstadoViaje; causa?: string }) => {
       const entrada = causa ? { a_estado, causa } : { a_estado };
@@ -82,7 +109,6 @@ export function useDetalleViaje(id: string): DetalleViajeHook {
     },
   });
 
-  // Mutación de ETA
   const mutacionEta = useMutation({
     mutationFn: async ({ eta_estimado }: { eta_estimado: string }) =>
       fijarEta(id, { eta_estimado }, accessToken),
@@ -91,7 +117,6 @@ export function useDetalleViaje(id: string): DetalleViajeHook {
     },
   });
 
-  // Mutación de completar fecha/hora del servicio (E8-T9).
   const mutacionFechaHora = useMutation({
     mutationFn: async ({ fecha_hora_servicio }: { fecha_hora_servicio: string }) =>
       completarFechaHora(id, { fecha_hora_servicio }, accessToken),
@@ -100,7 +125,26 @@ export function useDetalleViaje(id: string): DetalleViajeHook {
     },
   });
 
-  // Wrappers públicos para las mutaciones
+  const mutacionAsignacion = useMutation({
+    mutationFn: async ({ unidades_ids }: { unidades_ids: string[] }) => {
+      if (unidades_ids.length === 0) {
+        throw new Error('Selecciona al menos una unidad para asignar.');
+      }
+      return asignarEscolta(id, { unidades_ids }, accessToken);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['viaje', id] });
+      void queryClient.invalidateQueries({ queryKey: ['unidades'] });
+    },
+    onError: (mutationError) => {
+      // Una carrera exige que ambos datos vuelvan a reflejar el servidor.
+      if (mutationError instanceof ApiError && mutationError.kind === 'conflicto') {
+        void queryClient.invalidateQueries({ queryKey: ['viaje', id] });
+        void queryClient.invalidateQueries({ queryKey: ['unidades'] });
+      }
+    },
+  });
+
   const transicionarHandler = useCallback(
     async (a_estado: EstadoViaje, causa?: string) => {
       await mutacionTransicion.mutateAsync({ a_estado, ...(causa && { causa }) });
@@ -122,6 +166,19 @@ export function useDetalleViaje(id: string): DetalleViajeHook {
     [mutacionFechaHora],
   );
 
+  const asignarEscoltaHandler = useCallback(
+    async (unidades_ids: string[]) => {
+      await mutacionAsignacion.mutateAsync({ unidades_ids });
+    },
+    [mutacionAsignacion],
+  );
+
+  const esNoAutorizado =
+    (query.error instanceof ApiError && query.error.kind === 'noAutorizado') ||
+    (rosterQuery.error instanceof ApiError && rosterQuery.error.kind === 'noAutorizado') ||
+    (mutacionAsignacion.error instanceof ApiError &&
+      mutacionAsignacion.error.kind === 'noAutorizado');
+
   return {
     viaje: viajeInterno,
     condicionesActivas,
@@ -133,5 +190,12 @@ export function useDetalleViaje(id: string): DetalleViajeHook {
     transicionar: transicionarHandler,
     fijarEta: fijarEtaHandler,
     completarFechaHora: completarFechaHoraHandler,
+    unidades: rosterQuery.data ?? [],
+    cargandoUnidades: habilitarRoster && rosterQuery.isPending,
+    errorUnidades,
+    reintentarUnidades: () => void rosterQuery.refetch(),
+    asignandoEscolta: mutacionAsignacion.isPending,
+    errorAsignacion: mutacionAsignacion.error as Error | null,
+    asignarEscolta: asignarEscoltaHandler,
   };
 }

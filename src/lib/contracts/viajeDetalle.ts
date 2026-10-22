@@ -63,6 +63,33 @@ export type EtaEntrada = Schemas['EtaEntrada'];
 export type FechaHoraEntrada = Schemas['FechaHoraEntrada'];
 
 /**
+ * Entrada y respuesta de asignación esperadas por el BFF (E8-T10).
+ *
+ * La superficie publicada actualmente vive en `operacion`; el BFF aún no la
+ * expone para el frontend. Estos tipos mantienen un único punto de reemplazo.
+ */
+export interface AsignacionEntrada {
+  readonly unidades_ids: string[];
+}
+
+export interface AptitudRecurso {
+  readonly recurso: 'vehiculo' | 'custodio';
+  readonly recurso_id: string;
+  readonly estado: 'apto' | 'no_apto' | 'desconocido';
+  readonly motivos?: string[];
+}
+
+export interface UnidadAsignada {
+  readonly unidad_id: string;
+  readonly aptitud: AptitudRecurso[];
+}
+
+export interface Asignacion {
+  readonly viaje_id: string;
+  readonly unidades: UnidadAsignada[];
+}
+
+/**
  * Enum de estados del viaje (procedencia: `@ai27-tech/contracts/estados`).
  *
  * Objeto const-as-data: a la vez VALOR y TIPO. Se reexporta del contrato
