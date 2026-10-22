@@ -29,12 +29,14 @@ import { useNavigate } from '@tanstack/react-router';
 
 import { useSession } from '@/context/SessionContext';
 import { ErrorTransicion } from '@/lib/api/viajeDetalle';
-import type { CondicionAbierta, EstadoViaje, ViajeInterno } from '@/lib/contracts/viajeDetalle';
-import { esTerminal } from '@/lib/contracts/viajeDetalle';
+import type { CondicionAbierta, ViajeInterno } from '@/lib/contracts/viajeDetalle';
+import { EstadoViaje, esTerminal } from '@/lib/contracts/viajeDetalle';
 
 import { CausaForm } from './causaForm';
 import { requiereCausa } from './causaTransicion';
+import { puedeAprobar } from './decisionSolicitud';
 import { EtaForm } from './etaForm';
+import { FechaHoraForm } from './fechaHoraForm';
 import { useDetalleViaje } from './useDetalleViaje';
 
 export interface DetalleViajeProps {
@@ -89,6 +91,8 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
   const d = useDetalleViaje(id);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [modalEtaAbierto, setModalEtaAbierto] = useState(false);
+  /** true si el modal de completar fecha/hora del servicio está abierto (E8-T9). */
+  const [modalFechaHoraAbierto, setModalFechaHoraAbierto] = useState(false);
   /** Destino pendiente de confirmar con causa; null si no hay modal de causa abierto. */
   const [causaPendiente, setCausaPendiente] = useState<EstadoViaje | null>(null);
   const toastIdRef = useRef(0);
@@ -155,9 +159,15 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
     }
   };
 
-  // Clic en una acción: si el destino requiere causa (Req 2.5), abre el modal
-  // de causa; si no, envía la transición directo.
+  // Clic en una acción: si el destino requiere causa (Req 2.5 / 4.1), abre el
+  // modal de causa; si no, envía la transición directo.
   const handleAccion = async (a_estado: EstadoViaje) => {
+    // Guard de aprobación (E8-T9, Req 2.1): no enviar APROBADO sin fecha/hora,
+    // aunque el botón ya esté deshabilitado (defensa en profundidad).
+    if (a_estado === EstadoViaje.Aprobado && !puedeAprobar(viajeInterno)) {
+      setModalFechaHoraAbierto(true);
+      return;
+    }
     if (requiereCausa(a_estado)) {
       setCausaPendiente(a_estado);
       return;
@@ -191,6 +201,32 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
       }
     }
   };
+
+  // Confirmación desde el modal de completar fecha/hora (E8-T9, Req 3.3-3.4).
+  // Al confirmar, la lectura se invalida y `fecha_hora_servicio` queda reflejada,
+  // habilitando Aprobar sin recargar la pantalla a mano.
+  const handleFechaHoraConfirm = async (fecha_hora_servicio: string) => {
+    try {
+      await d.completarFechaHora(fecha_hora_servicio);
+      setModalFechaHoraAbierto(false);
+      addToast('Fecha y hora del servicio registrada', 'success');
+    } catch (err) {
+      if (err instanceof ErrorTransicion) {
+        addToast('No se pudo registrar la fecha y hora.', 'error');
+      } else {
+        addToast('Error al guardar la fecha y hora.', 'error');
+      }
+      // Repropaga para que el formulario muestre el error en su campo.
+      throw err;
+    }
+  };
+
+  // Guard de aprobación (E8-T9, Req 2): Aprobar solo se habilita cuando el viaje
+  // es una solicitud con `fecha_hora_servicio` presente.
+  const aprobarHabilitado = puedeAprobar(viajeInterno);
+  // La solicitud en SOLICITADO sin fecha/hora necesita completarla antes de aprobar.
+  const faltaFechaHora =
+    viajeInterno.estado === EstadoViaje.Solicitado && !viajeInterno.fecha_hora_servicio;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
@@ -339,7 +375,27 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
         </CardBody>
       </Card>
 
-      {/* Acciones: lista de botones derivados del hook (Req 1.2, 3.1, 3.2) */}
+      {/* Aviso de fecha/hora faltante en una solicitud (E8-T9, Req 2.2, 3.1).
+          Aprobar queda bloqueado hasta completarla. */}
+      {faltaFechaHora && (
+        <Card variant="outlined">
+          <CardBody>
+            <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
+              Falta la fecha y hora del servicio. No se puede aprobar la solicitud hasta
+              completarla.
+            </p>
+          </CardBody>
+          <CardFooter>
+            <Button variant="secondary" onClick={() => setModalFechaHoraAbierto(true)}>
+              Completar fecha y hora
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+
+      {/* Acciones: lista de botones derivados del hook (Req 1.1, 1.2, 2.x, 4.x).
+          La acción APROBADO aplica el guard `puedeAprobar`: deshabilitada si falta
+          la fecha/hora. Las acciones que requieren causa abren el modal de causa. */}
       {d.acciones.length > 0 && (
         <Card>
           <CardHeader>
@@ -349,17 +405,23 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
           </CardHeader>
           <CardBody>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
-              {d.acciones.map((accion) => (
-                <Button
-                  key={accion}
-                  variant="primary"
-                  onClick={() => void handleAccion(accion)}
-                  style={{ width: '100%' }}
-                >
-                  Transicionar a: {accion}
-                  {requiereCausa(accion) ? ' (requiere causa)' : ''}
-                </Button>
-              ))}
+              {d.acciones.map((accion) => {
+                const esAprobar = accion === EstadoViaje.Aprobado;
+                const deshabilitado = esAprobar && !aprobarHabilitado;
+                return (
+                  <Button
+                    key={accion}
+                    variant="primary"
+                    onClick={() => void handleAccion(accion)}
+                    disabled={deshabilitado}
+                    style={{ width: '100%' }}
+                  >
+                    Transicionar a: {accion}
+                    {requiereCausa(accion) ? ' (requiere causa)' : ''}
+                    {deshabilitado ? ' (falta fecha/hora)' : ''}
+                  </Button>
+                );
+              })}
             </div>
           </CardBody>
         </Card>
@@ -399,6 +461,19 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
           etaActual={viajeInterno.eta_estimado ?? undefined}
           onConfirm={handleEtaConfirm}
           onCancel={() => setModalEtaAbierto(false)}
+        />
+      </Modal>
+
+      {/* Modal de completar fecha/hora del servicio (E8-T9, Req 3.1) */}
+      <Modal
+        open={modalFechaHoraAbierto}
+        onClose={() => setModalFechaHoraAbierto(false)}
+        title="Completar fecha y hora del servicio"
+      >
+        <FechaHoraForm
+          fechaHoraActual={viajeInterno.fecha_hora_servicio ?? undefined}
+          onConfirm={handleFechaHoraConfirm}
+          onCancel={() => setModalFechaHoraAbierto(false)}
         />
       </Modal>
 

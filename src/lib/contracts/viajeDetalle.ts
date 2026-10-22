@@ -1,16 +1,22 @@
 /*
- * Contrato de detalle del viaje — tipos GENERADOS del BFF (tracer.13).
+ * Contrato de detalle del viaje — capa única de acoplamiento con el contrato.
  *
- * Los endpoints internos del viaje están publicados en
- * `@ai27-tech/contracts@0.1.0-tracer.13` y sus tipos se derivan directamente del
- * OpenAPI generado (`@ai27-tech/contracts/openapi/bff`). Ya NO se replican a
- * mano: la brecha de contrato está cerrada.
- *   GET   /api/v1/viajes/{id}/detalle      → ViajeDetalle (operationId: obtenerViajeInterno)
- *   POST  /api/v1/viajes/{id}/transiciones → ViajeDetalle (entrada: TransicionEntrada)
- *   PATCH /api/v1/viajes/{id}/eta          → ViajeDetalle (entrada: EtaEntrada)
+ * Este archivo es el único punto donde el resto del código toca el contrato: los
+ * demás módulos importan estos alias, no el paquete generado directamente. Aquí
+ * conviven dos situaciones distintas que NO hay que confundir:
  *
- * Este archivo sigue siendo el único punto de acoplamiento con el contrato: el
- * resto del código importa estos alias, no el paquete generado directamente.
+ * 1. LECTURA Y TRANSICIÓN — brecha CERRADA. Estos endpoints ya están publicados
+ *    en `@ai27-tech/contracts@0.1.0-tracer.13` y sus tipos se derivan del OpenAPI
+ *    generado (`@ai27-tech/contracts/openapi/bff`); no se replican a mano:
+ *      GET   /api/v1/viajes/{id}/detalle      → ViajeDetalle (operationId: obtenerViajeInterno)
+ *      POST  /api/v1/viajes/{id}/transiciones → ViajeDetalle (entrada: TransicionEntrada)
+ *      PATCH /api/v1/viajes/{id}/eta          → ViajeDetalle (entrada: EtaEntrada)
+ *
+ * 2. COMPLETAR FECHA/HORA (E8-T9) — brecha ABIERTA (Opción A). El contrato
+ *    (tracer.13) expone `fecha_hora_servicio` SOLO de lectura; NO existe aún un
+ *    endpoint de escritura. Mientras el `bff` no lo publique, la forma esperada
+ *    vive aquí como `FechaHoraEntrada` y se sirve con mock (MSW). Ver el detalle
+ *    y la nota de reemplazo mecánico en el bloque de `FechaHoraEntrada` abajo.
  */
 
 import type { components } from '@ai27-tech/contracts/openapi/bff';
@@ -47,6 +53,28 @@ export type TransicionEntrada = Schemas['TransicionEntrada'];
  * Punto de entrada: PATCH /api/v1/viajes/{id}/eta
  */
 export type EtaEntrada = Schemas['EtaEntrada'];
+
+/**
+ * Entrada para completar/editar la fecha y hora del servicio (E8-T9).
+ *
+ * BRECHA DE CONTRATO ABIERTA (Opción A, BLOQUEANTE PARCIAL):
+ * el contrato instalado (tracer.13) expone `fecha_hora_servicio` SOLO de lectura
+ * en `ViajeInterno`. NO existe hoy un endpoint de escritura para completarla
+ * sobre un viaje existente: `TransicionEntrada` no la lleva y en `operacion` el
+ * campo solo entra en la creación (`ViajeEntrada`), no en edición.
+ *
+ * Mientras el `bff` no publique la operación, este tipo declara la FORMA
+ * ESPERADA del cuerpo (`{ fecha_hora_servicio }`, ISO 8601 / `MarcaTiempo`),
+ * servida por mock (MSW). Cuando el esquema se publique, se reemplaza por su
+ * alias generado (`Schemas['FechaHoraEntrada']` o el nombre que defina el `bff`)
+ * en este mismo punto, sin tocar el resto del código.
+ *
+ * Punto de entrada ESPERADO: PATCH /api/v1/viajes/{id}/fecha-hora
+ */
+export interface FechaHoraEntrada {
+  /** Fecha y hora pactada del servicio (ISO 8601, `MarcaTiempo`). */
+  readonly fecha_hora_servicio: string;
+}
 
 /**
  * Enum de estados del viaje (procedencia: `@ai27-tech/contracts/estados`).

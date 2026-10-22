@@ -11,7 +11,12 @@
  * Features/ y routes/ llaman aquí, nunca a client.ts.
  */
 
-import type { EtaEntrada, TransicionEntrada, ViajeDetalle } from '../contracts/viajeDetalle';
+import type {
+  EtaEntrada,
+  FechaHoraEntrada,
+  TransicionEntrada,
+  ViajeDetalle,
+} from '../contracts/viajeDetalle';
 import { ApiError } from './errors';
 import { request } from './client';
 
@@ -138,5 +143,43 @@ export async function fijarEta(
     // Clasifica el 409 por el `codigo` REAL del cuerpo. El respaldo solo aplica
     // si el `bff` no serializó código interpretable.
     clasificarConflicto(err, 'viaje_en_estado_terminal');
+  }
+}
+
+/**
+ * Completa/edita la fecha y hora del servicio de un viaje (E8-T9).
+ *
+ * BRECHA DE CONTRATO ABIERTA (Opción A): el `bff` (tracer.13) no publica aún una
+ * operación de escritura de `fecha_hora_servicio`. Esta función habla contra la
+ * ruta ESPERADA, servida por mock (MSW). Es el único punto (con la capa de
+ * contrato) que cambia cuando el `bff` publique el endpoint: ruta/verbo/forma.
+ *
+ * Reutiliza la clasificación de 409 existente; no introduce códigos nuevos.
+ *
+ * @param id Identificador del viaje
+ * @param entrada Objeto con `fecha_hora_servicio` (ISO 8601)
+ * @param accessToken Token de autenticación (Bearer)
+ * @returns Detalle del viaje actualizado con la `fecha_hora_servicio` fijada
+ * @throws ErrorTransicion si el servidor rechaza con 409
+ * @throws ApiError con kind 'noAutorizado' si el token es inválido
+ * @throws ApiError con kind 'prohibido' si el usuario no tiene alcance
+ * @throws ApiError con kind 'noEncontrado' si el viaje no existe
+ * @throws ApiError con kind 'red' si hay fallo de red
+ */
+export async function completarFechaHora(
+  id: string,
+  entrada: FechaHoraEntrada,
+  accessToken: string,
+): Promise<ViajeDetalle> {
+  try {
+    return await request<ViajeDetalle>(`/viajes/${id}/fecha-hora`, {
+      method: 'PATCH',
+      body: entrada,
+      accessToken,
+    });
+  } catch (err) {
+    // Clasifica el 409 por el `codigo` REAL del cuerpo. El respaldo solo aplica
+    // si el `bff` no serializó código interpretable.
+    clasificarConflicto(err, 'transicion_no_permitida');
   }
 }
