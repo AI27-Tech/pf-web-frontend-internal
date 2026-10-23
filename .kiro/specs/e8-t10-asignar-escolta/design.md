@@ -27,7 +27,12 @@ GET   /api/v1/unidades                 (listarUnidades)     → PaginaUnidades {
 
 **Forma de `Unidad` en V1 (verificado en `operacion.gen.ts`):** `{ id, vehiculo_id, custodios_ids, tipo (solo lectura: patrulla/moto), activa }`. La **lista del roster NO expone aptitud** (apto/no apto/desconocido). La aptitud informativa por átomo solo aparece en el **resultado** de la asignación, en `Asignacion.unidades[] → UnidadAsignada.aptitud[] (AptitudRecurso)`. Consecuencia de diseño: en la lista de selección se muestra `activa`; la aptitud, si acaso, en el resultado tras reservar. No se inventa aptitud en la lista.
 
-**Brecha verificada (BLOQUEANTE PARCIAL):** el `bff` —la única puerta del frontend— **NO** expone `asignarEscolta` ni `listarUnidades` en tracer.15 ni en el último publicado tracer.16. El `bff` solo expone sesión, `crearViaje`, `listarViajes`, `seguirViaje`, `descargarViaje`, `obtenerViajeInterno`, `transicionarViaje`, `fijarEta`, `completarFechaHora`; su superficie no cambió entre tracer.15 y tracer.16. **Opción A** (igual que E8-T9): las dos operaciones esperadas se aíslan en la capa de contrato del frontend y se sirven con mock (MSW) contra el contrato esperado del `bff`; cuando el `bff` las publique, se reemplazan tipos y rutas en un único punto. Se reporta la brecha al dueño de `pf-pkg-contracts`.
+**Brecha CERRADA (`v0.1.0-tracer.18`):** el `bff` ya proyecta `asignarRecursos` y `listarUnidades` con nombres y esquemas **espejo de `operacion`**. El frontend subió a tracer.18 y reemplazó los tipos esperados locales por los generados (`@ai27-tech/contracts/openapi/bff`); los wrappers apuntan a la superficie real. Los mocks (MSW) se conservan porque emulan fielmente el contrato del `bff` para las pruebas.
+
+**Decisiones de contrato acordadas el 2026-10-22 (dueño de `pf-pkg-contracts`), aplicadas en tracer.18:**
+
+- **409 con un único código `recurso_no_disponible`.** `asignarRecursos` no distingue carrera de falta de recursos; no existe `recurso_no_apto`. El frontend muestra un solo mensaje de rechazo y NO inventa la distinción (escalada a Operación como propuesta aparte, no bloquea).
+- **Respuesta `Asignacion`, no `ViajeDetalle`.** La asignación devuelve `Asignacion { viaje_id, unidades: UnidadAsignada[] }` con aptitud informativa por átomo. El refresco a `ASIGNADO` se logra invalidando la query del detalle (segundo GET), no recomponiendo `ViajeDetalle` en el `bff`.
 
 Consecuencia de diseño: NO se escribe tabla de transiciones ni lista de "acciones de aprobado"; Asignar sale de `accionesDesde('APROBADO')`. El único añadido de lógica es la **selección del roster** y las **operaciones esperadas** aisladas.
 
@@ -69,12 +74,12 @@ Mientras el `bff` no publique las operaciones, los tipos viven como **contrato e
 ### Wrappers de dominio
 
 - `listarUnidades(accessToken)`: `GET` del roster esperado; devuelve `Unidad[]` (desempaqueta `PaginaUnidades`). Propaga `ApiError`; reutiliza el `client` y el manejo de 401.
-- `asignarEscolta(id, { unidades_ids }, accessToken)`: `POST /viajes/{id}/asignacion` (ruta esperada); devuelve `ViajeDetalle`/`Asignacion`. Reutiliza `clasificarConflicto` de E8-T8 para el 409 de carrera (conflicto de exclusión); sin códigos nuevos sin confirmar.
+- `asignarEscolta(id, { unidades_ids }, accessToken)` (wrapper; mapea a `asignarRecursos` del contrato): `POST /viajes/{id}/asignacion`; devuelve **`Asignacion`**. Tras resolver, el hook invalida `['viaje', id]` para traer el viaje en `ASIGNADO`. Reutiliza `clasificarConflicto` de E8-T8 para el 409 `recurso_no_disponible` (código único; sin distinguir carrera).
 
 ### Presentación
 
 - `AsignacionForm` (nuevo archivo de feature, **no** componente de librería): compone `Table`/`FilterTable` + `Checkbox` para selección múltiple, `Badge` para la **disponibilidad** (`activa`, único dato de estado del roster en V1), y `Button` para confirmar. **No** pinta aptitud en la lista (el contrato no la da ahí). Confirmar deshabilitado sin selección (Req 2.5) y durante el envío (Req 5.2). Estados: cargando roster (Req 5.1), sin disponibles (Req 4.1), carrera (Req 4.2/4.3).
-- `DetalleViaje` (ampliado): la acción `ASIGNADO` abre `AsignacionForm` en `Modal`. Al confirmar con éxito, invalida `['viaje', id]` y refleja `ASIGNADO` (Req 3.2). Defensa en profundidad: no envía asignación vacía. Carrera 409, 401 al AppShell, éxito/error con `Toast` reutilizados de E8-T8.
+- `DetalleViaje` (ampliado): la acción `ASIGNADO` abre `AsignacionForm` en `Modal`. Al confirmar con éxito, invalida `['viaje', id]` y refleja `ASIGNADO` (Req 3.2). Defensa en profundidad: no envía asignación vacía. **Un solo mensaje** para el 409 `recurso_no_disponible` (Req 4.2, recarga roster y estado); 401 al AppShell; éxito/error con `Toast` reutilizados de E8-T8. El estado **"sin disponibles"** se detecta antes de enviar con la lista (Req 4.1), distinto del 409.
 
 ### Componentes de `@ai27-tech/ui` (verificado, sin crear nada nuevo)
 
@@ -82,15 +87,15 @@ Mientras el `bff` no publique las operaciones, los tipos viven como **contrato e
 
 ## Testing Strategy
 
-- **Wrappers** (`tests/viajes/asignarEscolta.test.ts`, `tests/viajes/listarUnidades.test.ts`): ruta/verbo/cuerpo correctos; retorno; clasificación de 409 de carrera; propagación de 404/otros como `ApiError`.
+- **Wrappers** (`tests/viajes/asignarEscolta.test.ts`, `tests/viajes/listarUnidades.test.ts`): ruta/verbo/cuerpo correctos; `asignarEscolta` devuelve `Asignacion`; clasificación del 409 `recurso_no_disponible`; propagación de 404/otros como `ApiError`.
 - **Selección** (`tests/viajes/AsignacionForm.test.tsx`): confirmar deshabilitado sin selección y durante envío; se muestra `activa` y **no** se muestra aptitud en la lista (no está en el contrato); `activa` no bloquea la selección; selección múltiple.
-- **UI de decisión** (`tests/viajes/Asignacion.test.tsx`): Asignar visible solo en `APROBADO`; e2e feliz (`APROBADO → ASIGNADO`); **dos mensajes distintos** para sin-disponibles y carrera (409); no se puede enviar asignación parcial/vacía; la disponibilidad no bloquea.
-- **Mocks (MSW)**: handler del roster (`listarUnidades`) con un caso "sin disponibles" (todas `activa: false` o lista vacía) y otro con unidades (mezcla de `activa`); handler de `asignarEscolta` que valida cuerpo (400 si vacío), 404 si no existe, 409 de carrera forzable, y devuelve el viaje en `ASIGNADO` (con `Asignacion.unidades[].aptitud` informativa en el resultado).
+- **UI de decisión** (`tests/viajes/Asignacion.test.tsx`): Asignar visible solo en `APROBADO`; e2e feliz (`APROBADO → ASIGNADO`); **un solo mensaje** para el 409 `recurso_no_disponible`; estado **"sin disponibles" previo al envío** (roster vacío, distinto del 409); no se puede enviar asignación parcial/vacía; la disponibilidad no bloquea.
+- **Mocks (MSW)**: handler del roster (`listarUnidades`) con un caso "sin disponibles" (lista vacía o todas `activa: false`) y otro con unidades (mezcla de `activa`); handler de `asignarEscolta` que valida cuerpo (400 si vacío), 404 si no existe, **409 `recurso_no_disponible` forzable**, y devuelve **`Asignacion`** (con `unidades[].aptitud` informativa).
 
 Pruebas con Vitest + Testing Library + MSW bajo `tests/`, reflejando `src/`.
 
 ## Definición de terminado (de la historia técnica)
 
-- Prueba de que los **dos motivos de rechazo** (sin disponibles vs carrera) producen **mensajes distintos**.
+- Prueba del **rechazo de la reserva**: el 409 `recurso_no_disponible` muestra un mensaje de rechazo, y el estado **"sin disponibles" previo al envío** (roster vacío) se ve distinto porque lo detecta el frontend antes de enviar. Nota: la historia pedía "dos mensajes distintos para los dos motivos del 409", pero el contrato colapsa carrera y falta-de-recursos en un solo código (decisión 2026-10-22); la distinción fina queda escalada a Operación.
 - Prueba de que **no se puede enviar una asignación parcial/vacía**.
 - Prueba de que la asignación **no se bloquea por aptitud**. Nota: en V1 el roster no expone aptitud en la lista (solo `activa`), así que esta prueba se cubre verificando que ni `activa` ni la aptitud del resultado impiden seleccionar/enviar.

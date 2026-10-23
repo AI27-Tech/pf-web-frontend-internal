@@ -84,7 +84,8 @@ export class ErrorAsignacion extends ApiError {
 
 /**
  * Clasifica el conflicto contractual de asignación sin inventar códigos: la
- * operación `operacion.asignarRecursos` declara `recurso_no_disponible`.
+ * operación `asignarRecursos` del `bff` (tracer.18) declara un único código de
+ * 409, `recurso_no_disponible`, que incluye la carrera contra otro operador.
  */
 function clasificarConflictoAsignacion(err: unknown): never {
   if (err instanceof ApiError && err.kind === 'conflicto' && err.status === 409) {
@@ -216,8 +217,9 @@ export async function completarFechaHora(
 /**
  * Reserva una o más unidades completas como escolta del viaje.
  *
- * La ruta y la forma de wire son la superficie esperada del BFF; cuando el BFF
- * publique el contrato, este wrapper es el único punto que debe cambiar.
+ * `POST /viajes/{id}/asignacion` (`asignarRecursos`) es superficie real del
+ * `bff` desde tracer.18. Devuelve `Asignacion`; el detalle del viaje se refresca
+ * invalidando su query (segundo GET), no en esta respuesta.
  */
 export async function asignarEscolta(
   id: string,

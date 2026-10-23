@@ -10,10 +10,11 @@
  *   POST  /api/v1/viajes/{id}/transiciones → ViajeDetalle (entrada: TransicionEntrada)
  *   PATCH /api/v1/viajes/{id}/eta          → ViajeDetalle (entrada: EtaEntrada)
  *   PATCH /api/v1/viajes/{id}/fecha-hora   → ViajeDetalle (entrada: FechaHoraEntrada)
+ *   POST  /api/v1/viajes/{id}/asignacion   → Asignacion   (entrada: AsignacionEntrada)
  *
- * La brecha de escritura de `fecha_hora_servicio` (E8-T9) quedó CERRADA en
- * tracer.15: `FechaHoraEntrada` ya es un tipo generado y `completarFechaHora` es
- * una operación real del `bff`.
+ * Las brechas de escritura de `fecha_hora_servicio` (E8-T9, tracer.15) y de
+ * asignación de escolta (E8-T10, tracer.18) quedaron CERRADAS: todos estos
+ * tipos son generados y sus operaciones son reales del `bff`.
  */
 
 import type { components } from '@ai27-tech/contracts/openapi/bff';
@@ -63,31 +64,25 @@ export type EtaEntrada = Schemas['EtaEntrada'];
 export type FechaHoraEntrada = Schemas['FechaHoraEntrada'];
 
 /**
- * Entrada y respuesta de asignación esperadas por el BFF (E8-T10).
+ * Entrada y respuesta de asignación de la escolta (E8-T10, generado).
  *
- * La superficie publicada actualmente vive en `operacion`; el BFF aún no la
- * expone para el frontend. Estos tipos mantienen un único punto de reemplazo.
+ * La brecha quedó CERRADA en tracer.18: el `bff` proyecta `asignarRecursos`
+ * (`POST /api/v1/viajes/{id}/asignacion`) como espejo de `operacion`. Estos
+ * tipos dejan de ser locales y se derivan del OpenAPI generado.
+ *
+ *   POST /api/v1/viajes/{id}/asignacion → Asignacion (entrada: AsignacionEntrada)
+ *   409 con `codigo` `recurso_no_disponible` (único; incluye la carrera, DEC-043).
  */
-export interface AsignacionEntrada {
-  readonly unidades_ids: string[];
-}
+export type AsignacionEntrada = Schemas['AsignacionEntrada'];
 
-export interface AptitudRecurso {
-  readonly recurso: 'vehiculo' | 'custodio';
-  readonly recurso_id: string;
-  readonly estado: 'apto' | 'no_apto' | 'desconocido';
-  readonly motivos?: string[];
-}
+/** Aptitud informativa por átomo, presente solo en el resultado de asignar (generado). */
+export type AptitudRecurso = Schemas['AptitudRecurso'];
 
-export interface UnidadAsignada {
-  readonly unidad_id: string;
-  readonly aptitud: AptitudRecurso[];
-}
+/** Unidad reservada con su aptitud informativa por átomo (generado). */
+export type UnidadAsignada = Schemas['UnidadAsignada'];
 
-export interface Asignacion {
-  readonly viaje_id: string;
-  readonly unidades: UnidadAsignada[];
-}
+/** Resultado de la asignación atómica de la escolta (generado). */
+export type Asignacion = Schemas['Asignacion'];
 
 /**
  * Enum de estados del viaje (procedencia: `@ai27-tech/contracts/estados`).

@@ -1,8 +1,8 @@
 /*
  * Wrapper de dominio para el roster de unidades (E8-T10).
  *
- * La ruta es la superficie esperada del BFF mientras se cierra la brecha
- * contractual. La presentación solo consume la lista desempaquetada.
+ * `GET /unidades` (`listarUnidades`) es superficie real del `bff` desde
+ * tracer.18. La presentación solo consume la lista desempaquetada.
  */
 
 import type { Unidad, PaginaUnidades } from '../contracts/unidades';
