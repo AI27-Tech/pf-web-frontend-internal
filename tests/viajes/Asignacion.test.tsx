@@ -43,7 +43,7 @@ function detalle(estado = 'APROBADO') {
 
 function roster(
   items = [
-    { id: 'UN-1', vehiculo_id: 'VEH-1', custodios_ids: ['CUS-1'], tipo: 'moto', activa: false },
+    { id: 'UN-1', vehiculo_id: 'VEH-1', custodios_ids: ['CUS-1'], tipo: 'moto', activa: true },
   ],
 ) {
   return { items, cursor_siguiente: null };
@@ -85,7 +85,7 @@ describe('Asignación de escolta', () => {
     );
   });
 
-  it('asigna una unidad inactiva sin bloquearla y refleja ASIGNADO', async () => {
+  it('asigna una unidad activa y refleja ASIGNADO', async () => {
     let estado = 'APROBADO';
     server.use(
       http.get(path('/viajes/:id/detalle'), () => HttpResponse.json(detalle(estado))),
@@ -108,6 +108,32 @@ describe('Asignación de escolta', () => {
 
     await waitFor(() => expect(screen.getByText('ASIGNADO')).toBeInTheDocument());
     expect(screen.getByText('Escolta asignada correctamente')).toBeInTheDocument();
+  });
+
+  it('no ofrece unidades inactivas: un roster solo-inactivas se ve como sin disponibles', async () => {
+    server.use(
+      http.get(path('/viajes/:id/detalle'), () => HttpResponse.json(detalle())),
+      http.get(path('/unidades'), () =>
+        HttpResponse.json(
+          roster([
+            {
+              id: 'UN-9',
+              vehiculo_id: 'VEH-9',
+              custodios_ids: ['CUS-9'],
+              tipo: 'moto',
+              activa: false,
+            },
+          ]),
+        ),
+      ),
+    );
+    renderDetalle();
+    await userEvent.click(await screen.findByRole('button', { name: 'Asignar escolta' }));
+
+    // La unidad inactiva no se muestra; el roster se lee como vacío.
+    expect(await screen.findByText('Sin unidades disponibles para asignar.')).toBeInTheDocument();
+    expect(screen.queryByText('VEH-9')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Confirmar asignación/i })).toBeDisabled();
   });
 
   it('distingue roster vacío de una carrera 409', async () => {

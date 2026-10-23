@@ -4,6 +4,31 @@ Todos los cambios relevantes del proyecto se documentan en este archivo.
 Las entradas se escriben en español, con fecha en formato `yyyy:mm:dd` y hora en formato `hora:minuto`.
 Las entradas más recientes se colocan al inicio.
 
+## 2026:10:23 16:13
+
+**Resumen:** Se cerró el lado frontend de **E8-T10** (asignar la escolta —una o más `unidades` del roster— a un `viaje` `APROBADO`), satisfaciendo `E1-HU-004`: el `Jefe Operativo` selecciona una o más unidades completas (paquete vehículo + custodios, ADR 31), la reserva es atómica y el viaje pasa a `ASIGNADO` (DEC-026); la aptitud es informativa y no gatea (DEC-055). La feature ya existía implementada contra mock (Opción A); esta entrada registra el **cierre de la brecha de contrato**: se adoptó `@ai27-tech/contracts@0.1.0-tracer.18`, que proyecta al `bff` las operaciones reales `asignarRecursos` (`POST /api/v1/viajes/{id}/asignacion`, respuesta `Asignacion`, 409 con código único `recurso_no_disponible`) y `listarUnidades` (`GET /api/v1/unidades`, `PaginaUnidades`). Los tipos locales esperados pasan a alias generados y los wrappers apuntan a la superficie real; los mocks se conservan como emulación fiel del `bff`. Además, el roster de asignación **solo ofrece unidades `activa`**: las inactivas no se muestran (el contrato describe `activa` como "disponible para asignarse", así que una inactiva no es asignable), y un roster solo-de-inactivas se lee como "sin unidades disponibles". `typecheck`, `lint` y `test` (23 archivos, 110 pruebas) en verde; `build` en verde.
+
+**Cambios:**
+
+- `src/lib/contracts/viajeDetalle.ts`: `AsignacionEntrada`, `Asignacion`, `UnidadAsignada`, `AptitudRecurso` dejan de ser interfaces locales y pasan a alias de `components['schemas']` del OpenAPI generado (tracer.18); cabecera actualizada para reflejar la brecha cerrada.
+- `src/lib/contracts/unidades.ts`: `Unidad` y `PaginaUnidades` pasan a alias generados (antes interfaces locales); la lista del roster no expone aptitud, solo `activa`.
+- `src/lib/api/unidades.ts` / `src/lib/api/viajeDetalle.ts`: `listarUnidades` y `asignarEscolta` quedan como superficie real del `bff` (comentarios de "ruta esperada" retirados); `ErrorAsignacion` clasifica el 409 `recurso_no_disponible` (código único, incluye la carrera).
+- `src/features/viajes/detalle/asignacionForm.tsx`: el roster filtra a solo unidades `activa` antes de pintar la tabla; se retiraron la columna "Disponibilidad", el `Badge` de activa/inactiva y el import de `Badge`. Las inactivas ya no se muestran como asignables; si no queda ninguna activa, cae en el estado "Sin unidades disponibles".
+- `package.json` / `pnpm-workspace.yaml` / `pnpm-lock.yaml`: `@ai27-tech/contracts` de `0.1.0-tracer.15` a `0.1.0-tracer.18` (cambio aditivo y compatible según el CHANGELOG de contratos).
+- `tests/viajes/AsignacionForm.test.tsx` / `tests/viajes/Asignacion.test.tsx`: se ajustaron a la nueva regla (la unidad inactiva no se muestra; un roster solo-de-inactivas se ve vacío) y se agregó la cobertura correspondiente.
+- `.kiro/specs/e8-t10-asignar-escolta/{requirements,design,tasks}.md`: notas de contrato marcadas como brecha CERRADA en tracer.18; checkpoint final de verificación completado.
+
+**Archivos modificados:**
+
+- `src/lib/contracts/viajeDetalle.ts` · `src/lib/contracts/unidades.ts`
+- `src/lib/api/unidades.ts` · `src/lib/api/viajeDetalle.ts`
+- `src/features/viajes/detalle/asignacionForm.tsx`
+- `package.json` · `pnpm-workspace.yaml` · `pnpm-lock.yaml`
+- `tests/viajes/AsignacionForm.test.tsx` · `tests/viajes/Asignacion.test.tsx`
+- `.kiro/specs/e8-t10-asignar-escolta/{requirements,design,tasks}.md`
+
+**Señalado (no se tocó):** los mocks MSW de `GET /unidades` y `POST /viajes/{id}/asignacion` se conservan como backend simulado de desarrollo/test (ahora emulan el contrato publicado). Quedan abiertas, fuera del alcance de E8-T10, dos consultas a Operación: (1) distinguir "carrera" de "sin recursos" en el 409 (el dominio los colapsa en `recurso_no_disponible`, decisión de contrato 2026-10-22); (2) confirmar el tratamiento de las unidades **inactivas** en el roster de asignación —hoy el frontend las oculta por prudencia, pero falta definir si deben filtrarse en el `bff`, ocultarse en el portal o rechazarse al asignar—. No se corrió `pnpm format:check`, `pnpm test:e2e` ni la verificación manual en `dev:mock` en esta sesión; la integración contra el `bff` real no se probó (lo verificado es contra el contrato generado y el mock).
+
 ## 2026:10:22 13:31
 
 **Resumen:** Se implementó **E8-T9** (revisar, aprobar o rechazar la `solicitud`) sobre el detalle del `viaje` del panel interno, satisfaciendo `E1-HU-003`: Aprobar queda deshabilitado mientras falte la `fecha_hora_servicio` y el `Jefe Operativo` la completa antes (guarda de la aprobación, DEC-010 #2); Rechazar exige motivo (reutiliza el modal de causa de E8-T8); las acciones se derivan de la máquina de estados generada, no de una lista escrita a mano. Se agregó una **barra de progreso de navegación entre rutas** (chrome de layout) con precarga del chunk al pasar el cursor sobre los `Link` del sidebar, para dar señal inmediata al cambiar de vista y evitar el doble clic. Se **cerró la brecha de contrato** de completar `fecha_hora_servicio` adoptando `@ai27-tech/contracts@0.1.0-tracer.15`, que publica la operación real `completarFechaHora` (`PATCH /api/v1/viajes/{id}/fecha-hora`, esquema `FechaHoraEntrada`, respuesta `ViajeDetalle`): el tipo local esperado pasa a alias generado, el wrapper clasifica el 409 real del contrato (`viaje_en_estado_terminal`) y el mock simula el contrato publicado. `typecheck`, `lint` y `test` (19 archivos, 96 pruebas) en verde; `build` en verde.

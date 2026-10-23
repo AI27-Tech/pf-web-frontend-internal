@@ -2,14 +2,18 @@
  * Formulario de selección de la escolta (E8-T10).
  *
  * La unidad se elige completa: vehículo y custodios ya vienen empaquetados en
- * el roster. La lista muestra `activa` como información, pero no la usa como
- * guarda; la aptitud detallada no forma parte del contrato del roster.
- * Solo compone componentes publicados por @ai27-tech/ui.
+ * el roster. La lista muestra SOLO las unidades `activa` (el contrato describe
+ * `activa` como "disponible para asignarse", así que una inactiva no es
+ * asignable y no se ofrece). La aptitud detallada no forma parte del contrato
+ * del roster y no gatea (DEC-055). Comportamiento conservador a falta de una
+ * regla de negocio publicada sobre el listado de inactivas (pendiente de
+ * confirmar con Operación: si debe ocultarlas aquí, filtrarlas en el `bff`, o
+ * rechazarlas al asignar). Solo compone componentes publicados por @ai27-tech/ui.
  */
 
 import { useState } from 'react';
 
-import { Badge, Button, Card, CardBody, CardFooter, Form, Table } from '@ai27-tech/ui';
+import { Button, Card, CardBody, CardFooter, Form, Table } from '@ai27-tech/ui';
 import type { Column } from '@ai27-tech/ui';
 
 import type { Unidad } from '@/lib/contracts/unidades';
@@ -40,15 +44,6 @@ const columnas: Column<Unidad>[] = [
     header: 'Tipo',
     accessor: 'tipo',
   },
-  {
-    key: 'activa',
-    header: 'Disponibilidad',
-    cell: (unidad) => (
-      <Badge variant={unidad.activa ? 'secure' : 'neutral'}>
-        {unidad.activa ? 'Activa' : 'Inactiva'}
-      </Badge>
-    ),
-  },
 ];
 
 /** Selecciona una o más unidades y confirma la asignación atómica. */
@@ -63,6 +58,11 @@ export function AsignacionForm({
 }: AsignacionFormProps) {
   const [seleccionadas, setSeleccionadas] = useState<Set<string>>(new Set());
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
+
+  // El roster de asignación solo ofrece unidades `activa` (disponibles para
+  // asignarse). Las inactivas no se muestran. Si no queda ninguna activa, se
+  // cae al estado "sin unidades disponibles".
+  const unidadesAsignables = unidades.filter((unidad) => unidad.activa);
 
   const handleConfirm = async () => {
     if (seleccionadas.size === 0) {
@@ -111,7 +111,7 @@ export function AsignacionForm({
     );
   }
 
-  const sinUnidades = unidades.length === 0;
+  const sinUnidades = unidadesAsignables.length === 0;
   const bloqueado = enviando || sinUnidades || seleccionadas.size === 0;
 
   return (
@@ -129,7 +129,7 @@ export function AsignacionForm({
       ) : (
         <Table<Unidad>
           columns={columnas}
-          data={unidades}
+          data={unidadesAsignables}
           rowKey={(unidad) => unidad.id}
           selectedKeys={seleccionadas}
           onSelectionChange={(keys) => setSeleccionadas(new Set([...keys].map(String)))}
