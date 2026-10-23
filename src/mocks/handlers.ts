@@ -18,6 +18,10 @@ import {
   transicionarViajeMock,
   fijarEtaMock,
   completarFechaHoraMock,
+  listarUnidadesMock,
+  asignarEscoltaMock,
+  UNIDADES_DEMO,
+  UNIDADES_SIN_DISPONIBLES_DEMO,
 } from './data';
 import type { TransicionEntrada, EtaEntrada, FechaHoraEntrada } from '@/lib/contracts/viajeDetalle';
 
@@ -107,6 +111,55 @@ export const handlers = [
     // Devolver el detalle completo actualizado
     const detalle = obtenerDetalleViajeMock(id);
     return HttpResponse.json(detalle, { status: 200 });
+  }),
+
+  // GET /unidades — roster esperado por E8-T10. La aptitud no se expone aquí.
+  http.get(path('/unidades'), ({ request }) => {
+    const url = new URL(request.url);
+    const unidades =
+      url.searchParams.get('sin_disponibles') === '1'
+        ? UNIDADES_SIN_DISPONIBLES_DEMO
+        : UNIDADES_DEMO;
+    return HttpResponse.json(listarUnidadesMock(unidades), { status: 200 });
+  }),
+
+  // POST /viajes/{id}/asignacion — reserva atómica de la escolta.
+  // `x-mock-asignacion-conflicto` permite forzar el 409 de carrera en pruebas.
+  http.post(path('/viajes/:id/asignacion'), async ({ params, request }) => {
+    const { id } = params as { id: string };
+    let body: { unidades_ids?: unknown } = {};
+    try {
+      body = (await request.json()) as { unidades_ids?: unknown };
+    } catch {
+      // Cuerpo ausente o no JSON: se responde como solicitud inválida.
+    }
+    const unidades_ids = body.unidades_ids;
+
+    if (
+      !Array.isArray(unidades_ids) ||
+      unidades_ids.length === 0 ||
+      unidades_ids.some((unidad_id) => typeof unidad_id !== 'string' || unidad_id.length === 0)
+    ) {
+      return HttpResponse.json({ mensaje: 'Se requiere al menos una unidad.' }, { status: 400 });
+    }
+
+    if (!obtenerDetalleViajeMock(id)) {
+      return HttpResponse.json({ mensaje: 'Viaje no encontrado' }, { status: 404 });
+    }
+
+    const url = new URL(request.url);
+    const conflictoForzado =
+      request.headers.get('x-mock-asignacion-conflicto') === 'true' ||
+      url.searchParams.get('conflicto') === '1';
+    const unidadNoDisponible = unidades_ids.some(
+      (unidad_id) => !UNIDADES_DEMO.some((unidad) => unidad.id === unidad_id),
+    );
+    if (conflictoForzado || unidadNoDisponible) {
+      return HttpResponse.json({ error: { codigo: 'recurso_no_disponible' } }, { status: 409 });
+    }
+
+    const asignacion = asignarEscoltaMock(id, unidades_ids);
+    return HttpResponse.json(asignacion, { status: 200 });
   }),
 
   // POST /sesion — login. Solo el operador demo entra.

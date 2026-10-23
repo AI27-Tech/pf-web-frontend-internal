@@ -13,6 +13,8 @@
  */
 
 import type {
+  Asignacion,
+  AsignacionEntrada,
   EtaEntrada,
   FechaHoraEntrada,
   TransicionEntrada,
@@ -62,6 +64,32 @@ function clasificarConflicto(err: unknown, respaldo: ConflictoCodigoTransicion):
         ? err.codigo
         : respaldo;
     throw new ErrorTransicion(codigo, MENSAJE_CONFLICTO[codigo]);
+  }
+  throw err;
+}
+
+/** Código contractual del 409 por exclusión de una unidad del roster. */
+export type ConflictoCodigoAsignacion = 'recurso_no_disponible';
+
+/** Error de carrera al reservar una unidad ya tomada por otro operador. */
+export class ErrorAsignacion extends ApiError {
+  override readonly codigo: ConflictoCodigoAsignacion;
+
+  constructor(message = 'Una unidad ya no está disponible para este viaje.') {
+    super('conflicto', message, 409, 'recurso_no_disponible');
+    this.name = 'ErrorAsignacion';
+    this.codigo = 'recurso_no_disponible';
+  }
+}
+
+/**
+ * Clasifica el conflicto contractual de asignación sin inventar códigos: la
+ * operación `asignarRecursos` del `bff` (tracer.18) declara un único código de
+ * 409, `recurso_no_disponible`, que incluye la carrera contra otro operador.
+ */
+function clasificarConflictoAsignacion(err: unknown): never {
+  if (err instanceof ApiError && err.kind === 'conflicto' && err.status === 409) {
+    throw new ErrorAsignacion();
   }
   throw err;
 }
@@ -183,5 +211,29 @@ export async function completarFechaHora(
     // Clasifica el 409 por el `codigo` REAL del cuerpo. El respaldo solo aplica
     // si el `bff` no serializó código interpretable (contrato: viaje_en_estado_terminal).
     clasificarConflicto(err, 'viaje_en_estado_terminal');
+  }
+}
+
+/**
+ * Reserva una o más unidades completas como escolta del viaje.
+ *
+ * `POST /viajes/{id}/asignacion` (`asignarRecursos`) es superficie real del
+ * `bff` desde tracer.18. Devuelve `Asignacion`; el detalle del viaje se refresca
+ * invalidando su query (segundo GET), no en esta respuesta.
+ */
+export async function asignarEscolta(
+  id: string,
+  entrada: AsignacionEntrada,
+  accessToken: string,
+): Promise<Asignacion> {
+  try {
+    return await request<Asignacion>(`/viajes/${id}/asignacion`, {
+      method: 'POST',
+      body: entrada,
+      accessToken,
+    });
+  } catch (err) {
+    // El 409 contractual representa la carrera de exclusión del roster.
+    clasificarConflictoAsignacion(err);
   }
 }

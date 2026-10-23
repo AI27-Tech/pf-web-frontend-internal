@@ -28,13 +28,15 @@ import {
 import { useNavigate } from '@tanstack/react-router';
 
 import { useSession } from '@/context/SessionContext';
-import { ErrorTransicion } from '@/lib/api/viajeDetalle';
+import { ApiError } from '@/lib/api/errors';
+import { ErrorAsignacion, ErrorTransicion } from '@/lib/api/viajeDetalle';
 import type { CondicionAbierta, ViajeInterno } from '@/lib/contracts/viajeDetalle';
 import { EstadoViaje, esTerminal } from '@/lib/contracts/viajeDetalle';
 
 import { CausaForm } from './causaForm';
 import { requiereCausa } from './causaTransicion';
 import { puedeAprobar } from './decisionSolicitud';
+import { AsignacionForm } from './asignacionForm';
 import { EtaForm } from './etaForm';
 import { FechaHoraForm } from './fechaHoraForm';
 import { useDetalleViaje } from './useDetalleViaje';
@@ -88,7 +90,9 @@ interface ToastItem {
  * 4. Si datos: renderiza cabecera, acciones, modal, ETA, avisos
  */
 export function DetalleViaje({ id }: DetalleViajeProps) {
-  const d = useDetalleViaje(id);
+  /** true cuando el modal de selección de unidades está abierto (E8-T10). */
+  const [modalAsignacionAbierto, setModalAsignacionAbierto] = useState(false);
+  const d = useDetalleViaje(id, { habilitarRoster: modalAsignacionAbierto });
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [modalEtaAbierto, setModalEtaAbierto] = useState(false);
   /** true si el modal de completar fecha/hora del servicio está abierto (E8-T9). */
@@ -162,6 +166,13 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
   // Clic en una acción: si el destino requiere causa (Req 2.5 / 4.1), abre el
   // modal de causa; si no, envía la transición directo.
   const handleAccion = async (a_estado: EstadoViaje) => {
+    // ASIGNADO es la acción de reservar la escolta; la transición se confirma
+    // atómicamente junto con las unidades seleccionadas por el formulario.
+    if (a_estado === EstadoViaje.Asignado) {
+      setModalAsignacionAbierto(true);
+      return;
+    }
+
     // Guard de aprobación (E8-T9, Req 2.1): no enviar APROBADO sin fecha/hora,
     // aunque el botón ya esté deshabilitado (defensa en profundidad).
     if (a_estado === EstadoViaje.Aprobado && !puedeAprobar(viajeInterno)) {
@@ -184,6 +195,28 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
     if (!causaPendiente) return;
     await enviarTransicion(causaPendiente, causa);
     setCausaPendiente(null);
+  };
+
+  // Confirmación de la asignación atómica de la escolta (E8-T10).
+  const handleAsignacionConfirm = async (unidades_ids: string[]) => {
+    if (unidades_ids.length === 0) {
+      throw new Error('Selecciona al menos una unidad para asignar.');
+    }
+
+    try {
+      await d.asignarEscolta(unidades_ids);
+      setModalAsignacionAbierto(false);
+      addToast('Escolta asignada correctamente', 'success');
+    } catch (err) {
+      if (err instanceof ErrorAsignacion) {
+        // Mensaje de carrera: es distinto del estado de roster vacío.
+        addToast('La asignación no pudo completarse: otro operador reservó una unidad.', 'error');
+      } else if (!(err instanceof ApiError && err.kind === 'noAutorizado')) {
+        addToast('No se pudo asignar la escolta.', 'error');
+      }
+      // El formulario conserva la selección y muestra el error contextual.
+      throw err;
+    }
   };
 
   const handleEtaConfirm = async (eta_estimado: string) => {
@@ -407,6 +440,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
               {d.acciones.map((accion) => {
                 const esAprobar = accion === EstadoViaje.Aprobado;
+                const esAsignar = accion === EstadoViaje.Asignado;
                 const deshabilitado = esAprobar && !aprobarHabilitado;
                 return (
                   <Button
@@ -416,8 +450,8 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
                     disabled={deshabilitado}
                     style={{ width: '100%' }}
                   >
-                    Transicionar a: {accion}
-                    {requiereCausa(accion) ? ' (requiere causa)' : ''}
+                    {esAsignar ? 'Asignar escolta' : `Transicionar a: ${accion}`}
+                    {!esAsignar && requiereCausa(accion) ? ' (requiere causa)' : ''}
                     {deshabilitado ? ' (falta fecha/hora)' : ''}
                   </Button>
                 );
@@ -450,6 +484,23 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
           </CardFooter>
         </Card>
       )}
+
+      {/* Modal de selección y asignación de la escolta (E8-T10). */}
+      <Modal
+        open={modalAsignacionAbierto}
+        onClose={() => setModalAsignacionAbierto(false)}
+        title="Asignar escolta"
+      >
+        <AsignacionForm
+          unidades={d.unidades}
+          cargando={d.cargandoUnidades}
+          error={d.errorUnidades}
+          enviando={d.asignandoEscolta}
+          onConfirm={handleAsignacionConfirm}
+          onCancel={() => setModalAsignacionAbierto(false)}
+          onReintentar={d.reintentarUnidades}
+        />
+      </Modal>
 
       {/* Modal para ETA */}
       <Modal

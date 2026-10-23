@@ -10,10 +10,11 @@
  *   POST  /api/v1/viajes/{id}/transiciones → ViajeDetalle (entrada: TransicionEntrada)
  *   PATCH /api/v1/viajes/{id}/eta          → ViajeDetalle (entrada: EtaEntrada)
  *   PATCH /api/v1/viajes/{id}/fecha-hora   → ViajeDetalle (entrada: FechaHoraEntrada)
+ *   POST  /api/v1/viajes/{id}/asignacion   → Asignacion   (entrada: AsignacionEntrada)
  *
- * La brecha de escritura de `fecha_hora_servicio` (E8-T9) quedó CERRADA en
- * tracer.15: `FechaHoraEntrada` ya es un tipo generado y `completarFechaHora` es
- * una operación real del `bff`.
+ * Las brechas de escritura de `fecha_hora_servicio` (E8-T9, tracer.15) y de
+ * asignación de escolta (E8-T10, tracer.18) quedaron CERRADAS: todos estos
+ * tipos son generados y sus operaciones son reales del `bff`.
  */
 
 import type { components } from '@ai27-tech/contracts/openapi/bff';
@@ -61,6 +62,27 @@ export type EtaEntrada = Schemas['EtaEntrada'];
  * Punto de entrada: PATCH /api/v1/viajes/{id}/fecha-hora (operationId: completarFechaHora)
  */
 export type FechaHoraEntrada = Schemas['FechaHoraEntrada'];
+
+/**
+ * Entrada y respuesta de asignación de la escolta (E8-T10, generado).
+ *
+ * La brecha quedó CERRADA en tracer.18: el `bff` proyecta `asignarRecursos`
+ * (`POST /api/v1/viajes/{id}/asignacion`) como espejo de `operacion`. Estos
+ * tipos dejan de ser locales y se derivan del OpenAPI generado.
+ *
+ *   POST /api/v1/viajes/{id}/asignacion → Asignacion (entrada: AsignacionEntrada)
+ *   409 con `codigo` `recurso_no_disponible` (único; incluye la carrera, DEC-043).
+ */
+export type AsignacionEntrada = Schemas['AsignacionEntrada'];
+
+/** Aptitud informativa por átomo, presente solo en el resultado de asignar (generado). */
+export type AptitudRecurso = Schemas['AptitudRecurso'];
+
+/** Unidad reservada con su aptitud informativa por átomo (generado). */
+export type UnidadAsignada = Schemas['UnidadAsignada'];
+
+/** Resultado de la asignación atómica de la escolta (generado). */
+export type Asignacion = Schemas['Asignacion'];
 
 /**
  * Enum de estados del viaje (procedencia: `@ai27-tech/contracts/estados`).
