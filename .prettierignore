@@ -1,0 +1,12 @@
+dist
+coverage
+node_modules
+playwright-report
+test-results
+pnpm-lock.yaml
+src/routeTree.gen.ts
+src/lib/api/generated
+
+# Worker de MSW: es un archivo vendido por la libreria. Reformatearlo solo genera
+# ruido en cada subida de version.
+public/mockServiceWorker.js
