@@ -45,6 +45,23 @@ describe('LoginForm', () => {
     expect(screen.getByText('La contraseña es obligatoria.')).toBeInTheDocument();
   });
 
+  it('envía el segundo factor solo cuando se captura', async () => {
+    const user = userEvent.setup();
+    loginMock.mockResolvedValue(true);
+    render(<LoginForm onSuccess={vi.fn()} />);
+
+    await user.type(screen.getByPlaceholderText('nombre@empresa.com'), 'operador@demo.ai27');
+    await user.type(screen.getByPlaceholderText('••••••••'), 'demo1234');
+    await user.type(screen.getByPlaceholderText('Código de 6 dígitos'), '123456');
+    await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
+
+    expect(loginMock).toHaveBeenCalledWith({
+      usuario: 'operador@demo.ai27',
+      contrasena: 'demo1234',
+      segundo_factor: '123456',
+    });
+  });
+
   it('envía las credenciales cuando ambos campos tienen contenido', async () => {
     const user = userEvent.setup();
     loginMock.mockResolvedValue(true);

@@ -52,6 +52,16 @@ describe('contrato de sesion (tracer)', () => {
     expect(Object.keys(credenciales).sort()).toEqual(['contrasena', 'usuario']);
   });
 
+  it('las credenciales con segundo factor casan con el contrato tracer.20', () => {
+    const credenciales = {
+      usuario: DEMO_CREDENTIALS.usuario,
+      contrasena: DEMO_CREDENTIALS.contrasena,
+      segundo_factor: '123456',
+    } satisfies CredencialesEntrada;
+
+    expect(credenciales.segundo_factor).toBe('123456');
+  });
+
   it('el refresco se tipa contra RefrescoEntrada del contrato', () => {
     const body: RefrescoEntrada = { refresh_token: 'rt-mock' };
     expect(body.refresh_token).toBe('rt-mock');

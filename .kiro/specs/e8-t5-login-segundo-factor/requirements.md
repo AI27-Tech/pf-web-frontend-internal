@@ -8,28 +8,30 @@ El alcance de esta tarea está acotado. El portal **no** implementa la política
 
 El segundo factor en V1 es **TOTP nativo de Keycloak** (DEC-031 enmendada por DEC-071): el IdP genera, despacha y valida el código TOTP. El portal **no** construye un tramo propio de OTP ni un endpoint de verificación. El canal del segundo factor está decidido, pero su transporte desde el portal depende de que el contrato del bff exponga el campo correspondiente (ver "Brecha de contrato").
 
-No hay desfase de contrato: el frontend consume `@ai27-tech/contracts 0.1.0-tracer.18`, que coincide con el último tag publicado de `pf-pkg-contracts`.
+No hay desfase de contrato: el frontend consume `@ai27-tech/contracts 0.1.0-tracer.20`, que contiene `CredencialesEntrada.segundo_factor` y coincide con el tracer adoptado por el frontend.
 
 ### Contrato de referencia
 
-El Portal_Interno consume la superficie **pública** del **bff**, importando los tipos desde `@ai27-tech/contracts/openapi/bff`. Las operaciones de sesión del bff están en **singular**. Operaciones consumidas del contrato `bff.yaml` @ `v0.1.0-tracer.18`:
+El Portal_Interno consume la superficie **pública** del **bff**, importando los tipos desde `@ai27-tech/contracts/openapi/bff`. Las operaciones de sesión del bff están en **singular**. Operaciones consumidas del contrato `bff.yaml` @ `v0.1.0-tracer.20`:
 
-- **Inicio de sesión:** `POST /api/v1/sesion`. Cuerpo `CredencialesEntrada` = { `usuario` (string, requerido), `contrasena` (string password, requerido) }. Éxito `201` con `Sesion` = { `sesion_id`, `access_token`, `refresh_token` (cuando aplica), `expira_en` }. Credenciales inválidas `401`. Solicitud inválida `400`.
+- **Inicio de sesión:** `POST /api/v1/sesion`. Cuerpo `CredencialesEntrada` = { `usuario` (string, requerido), `contrasena` (string password, requerido), `segundo_factor` (string nullable, opcional) }. Éxito `201` con `Sesion` = { `sesion_id`, `access_token`, `refresh_token` (cuando aplica), `expira_en` }. Credenciales inválidas `401`. Solicitud inválida `400`.
 - **Refresco:** `POST /api/v1/sesion/refresh` con `{ refresh_token }`; reevalúa claims desde el modelo de autorización vigente (ADR 16 / DEC-031 #2).
 - **Revocación / cierre de sesión:** `DELETE /api/v1/sesion`.
 
 La superficie interna **plural** de `identidad` (`/api/v1/sesiones`) es otra cosa: una colección administrable de sesiones que el Portal_Interno **no** consume. El frontend interno únicamente consume la superficie pública singular del bff.
 
-### Brecha de contrato
+### Brecha externa
 
-El campo `segundo_factor` existe en el contrato del servicio `identidad`, pero el bff **aún no lo expone** en su `CredencialesEntrada`: en `bff.yaml` @ `v0.1.0-tracer.18` el schema `components.schemas.CredencialesEntrada` tiene **solo** `usuario` y `contrasena`. Por tanto, el envío del Segundo_Factor desde el portal está **bloqueado por una brecha de contrato del bff**: falta `bff.yaml → components.schemas.CredencialesEntrada.segundo_factor`. Mientras ese campo no se publique, el portal **no** implementa el envío del segundo factor ni escribe el campo a mano.
+El contrato público del bff ya expone `CredencialesEntrada.segundo_factor` desde `v0.1.0-tracer.20`. El frontend puede capturarlo y enviarlo de forma opcional en el mismo login.
+
+Permanece una brecha externa para el mensaje específico de TOTP inválido: Keycloak e Identidad actualmente colapsan el rechazo de OTP y el rechazo de credenciales en el mismo `invalid_grant`/`401`. Hasta que Identidad publique una distinción estable, el portal conserva el Mensaje_Generico_Credenciales y no inventa un `Error.codigo`.
 
 ## Glossary
 
 - **Portal_Interno**: Aplicación web `pf-web-frontend-internal` que usan los usuarios internos de operación de AI27.
 - **Usuario_Interno**: Persona con rol interno (p. ej. jefe operativo, monitorista, supervisor, coordinador, ejecutivo, reacción, administrador) que inicia sesión en el Portal_Interno.
 - **Proveedor_De_Identidad**: Servicio de identidad externo (Keycloak), también referido como **IdP**, responsable de validar credenciales y segundo factor, y de la política de autenticación.
-- **Segundo_Factor**: Código TOTP generado, despachado y validado por el Proveedor_De_Identidad (DEC-031 / DEC-071). Su transporte desde el Portal_Interno depende de que el contrato del bff publique el campo `segundo_factor` en `CredencialesEntrada`; mientras ese campo no exista en el bff, el portal no lo envía.
+- **Segundo_Factor**: Código TOTP generado, despachado y validado por el Proveedor_De_Identidad (DEC-031 / DEC-071). El contrato público del bff ya permite transportarlo en `CredencialesEntrada`; la distinción de un código inválido frente a credenciales inválidas permanece pendiente de Identidad.
 - **Sesion**: Resultado de un inicio de sesión exitoso devuelto por el bff, correspondiente al schema `Sesion` de `bff.yaml`, compuesto por `sesion_id`, `access_token`, `refresh_token` (cuando aplica) y `expira_en`.
 - **Mensaje_Generico_Credenciales**: Mensaje único e indistinto mostrado ante un fallo de credenciales, idéntico para un usuario existente y uno inexistente, que no revela la existencia de la cuenta.
 - **Libreria_UI**: Paquete `@ai27-tech/ui` (instalado en `0.2.0-beta.6`), fuente única de componentes de interfaz (Button, Input, Checkbox, FormField, Form, Card, Toast, entre otros).
@@ -49,20 +51,20 @@ El campo `segundo_factor` existe en el contrato del servicio `identidad`, pero e
 5. THE Portal_Interno SHALL mostrar el Mensaje_Generico_Credenciales de forma idéntica para un usuario existente y para un usuario inexistente.
 6. WHEN el inicio de sesión es exitoso, THE Portal_Interno SHALL redirigir al destino indicado en el parámetro `redirect` de la URL, o a la página principal cuando el parámetro `redirect` está ausente.
 
-### Requirement 2: Segundo factor de autenticación (TOTP vía IdP) — condicionado por brecha de contrato
+### Requirement 2: Segundo factor de autenticación (TOTP vía IdP) — mensaje específico condicionado por brecha externa
 
 **User Story:** Como Usuario_Interno cuya cuenta exige segundo factor, quiero proporcionar mi código de Segundo_Factor durante el inicio de sesión, para completar la autenticación cuando el Proveedor_De_Identidad lo requiere.
 
-El transporte del Segundo_Factor desde el Portal_Interno está **bloqueado por la brecha de contrato del bff** descrita en la Introduction: el schema `CredencialesEntrada` de `bff.yaml` aún no expone `segundo_factor`. Los criterios de captura y envío quedan **condicionados** a la publicación de ese campo. La política del segundo factor (exigirlo, validarlo, reintentos, bloqueo) es del Proveedor_De_Identidad y no depende de la brecha.
+El contrato público del bff ya expone `segundo_factor` en `CredencialesEntrada`. El Portal_Interno puede capturar y transportar el código en el mismo login. La distinción de un Segundo_Factor inválido frente a credenciales inválidas queda condicionada a una capacidad externa de Identidad, porque hoy ambos casos llegan como el mismo `401`.
 
 #### Acceptance Criteria
 
-1. WHILE el contrato del bff no expone el campo `segundo_factor` en `CredencialesEntrada`, THE Portal_Interno SHALL abstenerse de implementar el envío del Segundo_Factor y de escribir el campo a mano.
+1. WHILE Identidad no expone un código estable que distinga un Segundo_Factor inválido, THE Portal_Interno SHALL conservar el Mensaje_Generico_Credenciales ante cualquier `401` y no inventar una causa específica.
 2. WHERE el contrato del bff expone el campo `segundo_factor` en `CredencialesEntrada`, THE Portal_Interno SHALL permitir al Usuario_Interno capturar el código de Segundo_Factor mediante un componente de la Libreria_UI y transportarlo en el campo `segundo_factor` de la petición `POST /api/v1/sesion`.
 3. WHERE el contrato del bff expone el campo `segundo_factor` en `CredencialesEntrada`, THE Portal_Interno SHALL tratar el campo `segundo_factor` como opcional, enviándolo solo cuando el Usuario_Interno proporciona un código.
 4. THE Portal_Interno SHALL delegar en el Proveedor_De_Identidad la generación, el despacho y la validación del código de Segundo_Factor.
 5. THE Portal_Interno SHALL delegar en el Proveedor_De_Identidad la política de reintentos del Segundo_Factor.
-6. WHERE el contrato del bff expone el campo `segundo_factor` en `CredencialesEntrada`, IF el Proveedor_De_Identidad rechaza el inicio de sesión por un Segundo_Factor inválido con respuesta `401`, THEN THE Portal_Interno SHALL mostrar un mensaje que indique que el código de Segundo_Factor es inválido.
+6. WHERE Identidad y el contrato del bff publiquen un código estable para el Segundo_Factor inválido, IF el Proveedor_De_Identidad rechaza el inicio de sesión por ese motivo con respuesta `401`, THEN THE Portal_Interno SHALL mostrar un mensaje que indique que el código de Segundo_Factor es inválido.
 7. WHERE el contrato del bff expone el campo `segundo_factor` en `CredencialesEntrada`, IF el Proveedor_De_Identidad no está disponible durante un inicio de sesión que requiere Segundo_Factor, THEN THE Portal_Interno SHALL aplicar el comportamiento de indisponibilidad del Proveedor_De_Identidad definido en el Requirement 4.
 
 ### Requirement 3: Concesión de sesión y persistencia del token

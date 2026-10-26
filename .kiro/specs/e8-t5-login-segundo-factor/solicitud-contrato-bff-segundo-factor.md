@@ -1,102 +1,75 @@
-﻿# Solicitud de contrato — proyectar `segundo_factor` al login del `bff`
+﻿# Registro de brecha — código de error del Segundo_Factor
 
-**Para:** encargado de `pf-pkg-contracts`
-**De:** frontend interno (`pf-web-frontend-internal`)
-**Tarea que lo necesita:** E8-T5 "Login y segundo factor (interno)" (`E4-HU-017`)
+**Para:** `pf-pkg-contracts`
+**De:** `pf-web-frontend-internal`
+**Tarea:** E8-T5 — Login y segundo factor (`E4-HU-017`)
 **Fecha:** 2026-10-26
-**Tipo:** solicitud de cambio de contrato (no es cambio de código de servidor)
+**Estado:** brecha externa pendiente de Identidad/Seguridad
 
 ---
 
-## 1. Qué pido, en una línea
+## 1. Resultado de la revisión contractual
 
-Agregar el campo **`segundo_factor`** al esquema `CredencialesEntrada` del contrato del **`bff`**, proyectándolo tal como ya existe en el contrato de **`identidad`**, para que el portal pueda transportar el código TOTP en el login.
+El campo ya está resuelto en `@ai27-tech/contracts@0.1.0-tracer.20`:
 
-## 2. Dónde se cierra (archivo exacto)
-
-Todo el cambio es **un solo archivo**, en el repo de contratos:
-
-```
-pf-pkg-contracts/contracts/openapi/bff.yaml
+```text
+bff.CredencialesEntrada.segundo_factor?: string | null
 ```
 
-La forma a copiar ya está escrita y validada en el mismo repo, en:
+El campo es opcional y se transporta en el mismo `POST /api/v1/sesion`. No se requiere otro cambio para la forma de entrada.
 
-```
-pf-pkg-contracts/contracts/openapi/identidad.yaml   →  components.schemas.CredencialesEntrada.segundo_factor
-```
+Contratos no debe publicar todavía un código como `segundo_factor_invalido`, porque el servidor no puede emitirlo de forma fiable.
 
-Es una **proyección**: mismo campo, mismo tipo, misma semántica que `identidad`, expuesto ahora por la puerta del `bff`. No pido inventar nada nuevo.
+## 2. Brecha real
 
-## 3. Por qué (contexto en dos frases)
+Según la verificación de `pf-svc-identidad` comunicada por el dueño del BFF:
 
-El frontend consume **solo** el contrato del `bff` (regla de puerta única); no puede llamar a `identidad` directamente. El canal del segundo factor ya está decidido (TOTP nativo de Keycloak, DEC-031 enmendada por DEC-071) y el campo ya existe en `identidad`, pero no está proyectado al `bff`, así que el portal no tiene por dónde enviar el código.
+- Keycloak responde `invalid_grant` tanto para credenciales inválidas como para OTP inválido cuando se usa el grant directo ROPC.
+- Identidad clasifica todos esos casos como `ErrCredencialInvalida`.
+- No existe actualmente un error centinela que distinga el rechazo del Segundo_Factor.
+- El código de Identidad ya deja anotado este pendiente como A-14/A-3.
 
-## 4. Estado verificado (para que no haya duda)
+Por lo tanto, fijar ahora un valor contractual para TOTP inválido prometería un código que el runtime no produce.
 
-Contrastado el 2026-10-26 contra el tag publicado `v0.1.0-tracer.18` (el que instala el frontend: `@ai27-tech/contracts@0.1.0-tracer.18`):
+## 3. Decisión temporal para E8-T5
 
-- **En `identidad.yaml`: SÍ existe** → `CredencialesEntrada.segundo_factor` (`type: string`, `nullable: true`, descrito como TOTP opcional en V1 / requerido en V2+, validado por Keycloak).
-- **En `bff.yaml`: NO existe** → `CredencialesEntrada` tiene `additionalProperties: false` y solo `usuario` (requerido) y `contrasena` (requerido). El `additionalProperties: false` impide, además, colar el campo por tolerancia del esquema: sin cambio de contrato el campo ni siquiera se puede enviar.
+Mientras Identidad no pueda distinguir el motivo del `invalid_grant`:
 
-Comando con que lo comprobé:
+- el frontend conserva el mensaje genérico de credenciales para cualquier `401` de login;
+- no se inventa ni se simula un `Error.codigo` de TOTP inválido;
+- el requisito de un mensaje específico para Segundo_Factor queda documentado como diferido;
+- el campo `segundo_factor` sí se captura y se envía cuando el usuario proporciona un código.
 
-```
-git show v0.1.0-tracer.18:contracts/openapi/bff.yaml | Select-String "segundo_factor|CredencialesEntrada"
-```
+## 4. Desbloqueo futuro
 
-## 5. Campo a agregar en `bff.yaml`
+La brecha se cierra cuando Identidad/Seguridad:
 
-En `components.schemas.CredencialesEntrada`, agregar la propiedad (espejo de `identidad`):
+1. distingue el rechazo de OTP del rechazo de credenciales;
+2. emite un código estable para el rechazo de OTP;
+3. publica ese comportamiento en el contrato del login del `bff`.
 
-```yaml
-CredencialesEntrada:
-  type: object
-  additionalProperties: false
-  required: [usuario, contrasena]
-  properties:
-    usuario: { type: string }
-    contrasena:
-      type: string
-      format: password
-    segundo_factor: # <-- lo que falta
-      type: string
-      nullable: true
-      description: >-
-        Codigo del segundo factor (TOTP). Opcional en V1; requerido en V2+.
-        El IdP (Keycloak) lo valida; el bff/identidad solo lo transporta.
-        Ver DEC-031 (ADR 13) y DEC-071.
-```
+En ese momento, contratos deberá documentar el código real en `Error.codigo` y publicar un nuevo tracer. El frontend podrá entonces conservarlo al clasificar el `401` y mostrar un mensaje específico.
 
-Semántica a respetar (ya definida en `identidad` / DEC-031 / DEC-071):
+## 5. Fuera de alcance de este documento
 
-- El campo es **opcional en V1**: el portal lo envía solo cuando el usuario captura un codigo.
-- El IdP genera, despacha y valida el TOTP; el `bff` **solo lo transporta**. No se pide logica nueva de servidor, solo exponer el campo en la superficie publica.
+- No se solicita crear un endpoint adicional.
+- No se solicita modificar la política de TOTP, reintentos o bloqueo.
+- No se solicita implementar código en `pf-svc-bff`.
+- La propagación de `SegundoFactor` desde el BFF hacia Identidad es una responsabilidad separada del repositorio `pf-svc-bff`.
 
-## 6. Una cosa más que necesito que el contrato fije (para el Requisito 2.5)
+## 6. Estado del frontend
 
-Hoy el login devuelve `401` tanto para credenciales inválidas como para un segundo factor inválido, y el portal colapsa todo `401` al mismo mensaje genérico de credenciales. Para poder mostrar un mensaje **distinto** de "código de segundo factor inválido" (Req 2.5 de E8-T5), necesito un valor estable en `Error.codigo` que diferencie el fallo de TOTP del fallo de credenciales.
+El frontend implementa lo que el contrato actual permite:
 
-Díganme el `codigo` que usarán (p. ej. algo como `segundo_factor_invalido`), para clasificarlo en el frontend. **Esto es secundario**: con solo el campo del punto 5 ya puedo capturar y enviar el TOTP; el `codigo` diferenciado solo desbloquea el mensaje específico de error.
+- captura opcional de Segundo_Factor con `@ai27-tech/ui`;
+- omisión del campo cuando está vacío;
+- envío en el mismo `POST /sesion` cuando tiene valor;
+- pruebas unitarias y e2e de captura y transporte;
+- mensaje genérico ante `401`, sin inventar una causa específica.
 
-## 7. Fuera de alcance de esta solicitud
+## 7. Trazabilidad
 
-- Cualquier endpoint de verificación de segundo factor en dos pasos: **no** se pide. El contrato de `identidad` ya resuelve el segundo factor como un campo del mismo login (una sola llamada), y así lo quiero en el `bff`.
-- Cambios en `refresh` o `logout`: no se tocan.
-
-## 8. Cómo compruebo que quedó cerrada
-
-Cuando publiquen el tracer con el cambio, lo valido así:
-
-```
-git show <nuevo-tag>:contracts/openapi/bff.yaml | Select-String "segundo_factor"
-```
-
-Debe aparecer `segundo_factor` dentro de `CredencialesEntrada` del `bff`. Entonces subo la versión de `@ai27-tech/contracts` en el frontend, el tipo `CredencialesEntrada` se regenera con el campo, y desbloqueo las tareas B1-B4 del spec (captura, envío y mensaje de error del segundo factor). Es un reemplazo mecánico.
-
-## 9. Trazabilidad
-
-- Spec: `pf-web-frontend-internal/.kiro/specs/e8-t5-login-segundo-factor/` (ver seccion "Brechas de contrato y trabajo bloqueado" del `design.md` y tareas B1-B4 del `tasks.md`).
-- Historia técnica: `E8-T5` en `docs/historias-tecnicas/E8-panel-admin.md`. HU: `E4-HU-017`.
-- Decisiones: DEC-031 (cierre de ADR 13, entrega de OTP delegada al IdP), DEC-071 (segundo factor por TOTP nativo de Keycloak en V1).
-- Contrato de referencia ya correcto: `identidad.yaml` en `v0.1.0-tracer.18`.
+- Spec: `pf-web-frontend-internal/.kiro/specs/e8-t5-login-segundo-factor/`
+- Contrato del campo: `bff.yaml` en `v0.1.0-tracer.20`
+- Brecha pendiente: A-14/A-3 en Identidad/Seguridad
+- Decisiones: DEC-031 y DEC-071

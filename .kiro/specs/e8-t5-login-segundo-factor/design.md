@@ -2,7 +2,7 @@
 
 ## Overview
 
-E8-T5 implementa el inicio de sesión del Portal Interno (`pf-web-frontend-internal`) y deja diseñado —pero bloqueado por contrato— el transporte del segundo factor. Satisface la HU E4-HU-017 y los Requirements 1–6 del `requirements.md` de esta carpeta.
+E8-T5 implementa el inicio de sesión del Portal Interno (`pf-web-frontend-internal`) y el transporte opcional del segundo factor. Satisface la HU E4-HU-017 y los Requirements 1–6 del `requirements.md` de esta carpeta.
 
 El Portal Interno **no** implementa política de autenticación: la emisión de credenciales, la validación del segundo factor (TOTP nativo de Keycloak, DEC-031 enmendada por DEC-071), y las políticas de reintento y bloqueo residen en el Proveedor de Identidad. El portal captura credenciales, transporta lo que el IdP exige, concede la sesión que el backend emite, deriva rol y organización de los claims del token, y comunica los estados de error sin filtrar información sensible (Requirement 6).
 
@@ -11,9 +11,9 @@ La mayor parte del comportamiento ya existe en la capa de sesión del repo y est
 1. **Distinguir la indisponibilidad del IdP del fallo de credenciales** en el mensaje de error (Requirement 4.1, 4.2).
 2. **Preservar la sesión vigente cuando un refresco falla por indisponibilidad** —no por sesión inválida— (Requirement 4.4). Esto **contradice** el comportamiento actual del `useEffect` de refresco en `SessionContext.tsx`, que hoy cierra la sesión ante **cualquier** fallo de refresco.
 
-Y una **brecha de contrato** central: la captura y envío del segundo factor queda diseñada a nivel de intención pero **no implementable** hasta que el bff publique el campo `segundo_factor` en su `CredencialesEntrada` (ver "Brechas de contrato y trabajo bloqueado").
+La captura y el envío del segundo factor quedaron desbloqueados por `@ai27-tech/contracts@0.1.0-tracer.20`. Permanece una brecha externa de Identidad: el runtime todavía no distingue un OTP inválido de credenciales inválidas, por lo que el frontend conserva el mensaje genérico ante cualquier `401`.
 
-> Nota sobre la fuente de la brecha: el `requirements.md` afirma que el frontend consume `identidad.yaml` (`POST /api/v1/sesiones`, plural, con `segundo_factor`). La verificación del código muestra que el frontend consume la superficie **pública** del bff (`POST /sesion`, singular, vía `@ai27-tech/contracts/openapi/bff`), cuyo `CredencialesEntrada` **no** tiene `segundo_factor`. Esta contradicción entre el requirement y el contrato realmente importado es precisamente la brecha que este diseño documenta.
+> Nota sobre la dependencia externa: el frontend consume la superficie **pública** del bff (`POST /sesion`, vía `@ai27-tech/contracts/openapi/bff`). El campo `segundo_factor` ya existe en tracer.20. La distinción del error TOTP queda pendiente de Identidad porque Keycloak/Identidad colapsan actualmente ese caso con el rechazo de credenciales.
 
 ## Architecture
 
@@ -125,13 +125,13 @@ El cambio es mínimo: solo la rama `catch` del callback del timer. El resto del 
 
 Se reutilizan los tipos existentes; no se inventan campos.
 
-- **`CredencialesEntrada`** (`src/lib/contracts/sesion.ts`, derivado de `@ai27-tech/contracts/openapi/bff`): hoy = { `usuario`, `contrasena` }. **No** incluye `segundo_factor` en la superficie del bff (ver brecha).
+- **`CredencialesEntrada`** (`src/lib/contracts/sesion.ts`, derivado de `@ai27-tech/contracts/openapi/bff`): { `usuario`, `contrasena`, `segundo_factor?: string | null` }. El campo se envía solo cuando el usuario captura un código.
 - **`RefrescoEntrada`**: { `refresh_token` }.
 - **`SesionWire`**: forma del wire; { `sesion_id`, `access_token`, `refresh_token?`, `expira_en` (RFC 3339) }.
 - **`Sesion`** (modelo de app): { `sesionId`, `accessToken`, `refreshToken?`, `expiraEn` (epoch ms), `usuario` }.
 - **`Usuario`**: { `id`, `rol`, `audiencia` } derivado de los claims del JWT.
 
-El rol y la audiencia **no** viajan en el cuerpo de la sesión: se derivan de los claims en `parseSesion`. El segundo factor, cuando exista en el contrato, sería un campo `segundo_factor?: string` opcional de `CredencialesEntrada`, enviado solo cuando el usuario captura un código (Requirement 2.2) — pero ese campo **no existe hoy** en el tipo importado.
+El rol y la audiencia **no** viajan en el cuerpo de la sesión: se derivan de los claims en `parseSesion`. El segundo factor viaja opcionalmente en el cuerpo del mismo login; no existe una operación separada de verificación.
 
 ## Correctness Properties
 
@@ -196,7 +196,7 @@ Tres caminos de error se tratan distinto a propósito: **credenciales** (culpa r
 
 ## Testing Strategy
 
-Enfoque dual: pruebas unitarias/ejemplo para caminos concretos y de borde, y pruebas basadas en propiedades para las propiedades universales anteriores. El segundo factor no se prueba de extremo a extremo porque está bloqueado por contrato (ver siguiente sección).
+Enfoque dual: pruebas unitarias/ejemplo para caminos concretos y de borde, y pruebas basadas en propiedades para las propiedades universales anteriores. El transporte del segundo factor se verifica con pruebas unitarias y e2e. El mensaje específico de TOTP permanece diferido por la brecha externa de Identidad.
 
 **Librería de PBT:** usar `fast-check` junto al runner del repo (Vitest), sin implementar PBT a mano. Cada prueba de propiedad corre mínimo 100 iteraciones y se etiqueta con un comentario de la forma **Feature: e8-t5-login-segundo-factor, Property {n}: {texto}**.
 
@@ -221,30 +221,28 @@ Pruebas unitarias/ejemplo:
 Pruebas e2e:
 
 - **login → panel**: credenciales válidas conceden sesión y navegan al destino.
-- **Segundo factor: bloqueado.** El e2e de captura/envío del segundo factor queda pendiente hasta que el bff publique `segundo_factor` en su `CredencialesEntrada` (ver brecha). No se escribe un e2e que dependa de un campo de wire inexistente.
+- **Segundo factor:** el e2e verifica captura y envío del código en el mismo request. El e2e del mensaje específico queda pendiente de la brecha externa de Identidad.
 
 Composición de UI (Req 5): verificación por inspección de que `LoginForm` solo usa componentes de `@ai27-tech/ui` (`Card`, `CardBody`, `Form`, `FormField`, `Input`, `Checkbox`, `Button`) y no define ninguno propio.
 
-## Brechas de contrato y trabajo bloqueado
+## Brechas de contrato y trabajo diferido
 
-### Brecha: `segundo_factor` ausente en la superficie pública del bff
+### Brecha externa: Identidad no distingue el rechazo de TOTP
 
-El Portal Interno consume la superficie **pública** del bff vía `@ai27-tech/contracts/openapi/bff`: `POST /api/v1/sesion`, `POST /api/v1/sesion/refresh`, `DELETE /api/v1/sesion` (singular). No consume la superficie interna de `identidad` (`/api/v1/sesiones`, plural).
+El Portal Interno consume la superficie pública del bff vía `@ai27-tech/contracts/openapi/bff`: `POST /api/v1/sesion`, `POST /api/v1/sesion/refresh` y `DELETE /api/v1/sesion`. El contrato `v0.1.0-tracer.20` ya contiene `CredencialesEntrada.segundo_factor?: string | null`.
 
-En `bff.yaml` @ `v0.1.0-tracer.18` (lo que el frontend importa), el esquema `CredencialesEntrada` tiene **solo** `usuario` (requerido) y `contrasena` (requerido). El campo `segundo_factor` **no existe** ahí.
+El transporte del Segundo_Factor está implementado en el frontend: el campo se captura de forma opcional y se envía en el mismo `POST /sesion` solo cuando tiene valor.
 
-- **Esquema/operación exactos que faltan:** `bff.yaml` → `components.schemas.CredencialesEntrada.segundo_factor`.
-- **Dónde sí existe:** el campo `segundo_factor` (string, nullable, opcional en V1 / requerido en V2+, TOTP vía Keycloak por **DEC-031** enmendada por **DEC-071**) vive únicamente en el `CredencialesEntrada` del servicio `identidad.yaml`, que el bff aún **no propaga** a su superficie pública.
+La brecha restante es externa al frontend. Con el grant directo ROPC, Keycloak devuelve `invalid_grant` tanto para credenciales inválidas como para OTP inválido. Identidad clasifica ambos casos como `ErrCredencialInvalida`. No existe todavía un `codigo` estable para que el frontend muestre un mensaje específico de Segundo_Factor inválido.
 
-**Consecuencia de diseño:** el portal hoy no tiene campo de wire por donde enviar el TOTP. La captura y el envío del segundo factor quedan **bloqueados por esta brecha de contrato del bff**. Por la regla del repo (no se escribe a mano un tipo de wire que debe venir del contrato; si falta, es brecha que se reporta), el segundo factor se deja **diseñado a nivel de intención** pero **no implementable**:
+Mientras Identidad no publique esa distinción:
 
-1. **Dónde iría el campo:** `segundo_factor?: string` en `CredencialesEntrada`, transportado por `iniciarSesion` en el cuerpo del mismo `POST /sesion`.
-2. **Cómo lo capturaría la UI:** un `Input` opcional dentro de un `FormField` de `@ai27-tech/ui` en el propio `LoginForm` (no un componente nuevo). Enviado solo cuando el usuario captura un código (Req 2.2).
-3. **Por qué probablemente no hay pantalla posterior:** el wire es de **una sola llamada** (el TOTP viaja junto a usuario y contraseña en el mismo login); el contrato no define una operación separada de verificación. Por eso lo más natural es un campo opcional del `LoginForm`, y la ruta `/two-factor` se mantiene como placeholder sin lógica hasta que se decida.
-4. **Mensaje de segundo factor inválido (Req 2.5):** también bloqueado, porque hoy `iniciarSesion` colapsa todo `401` a `invalidCredentials` y el bff no expone un `codigo` que distinga el fallo de TOTP del fallo de credenciales. Para cumplir el Req 2.5 se necesita que el contrato del bff diferencie ese caso.
+1. el frontend conserva el mensaje genérico para todo `401` de login;
+2. no se inventa un `Error.codigo` ni se simula en los mocks;
+3. el e2e cubre captura y transporte, pero no el mensaje específico.
 
-**Desbloqueo:** cuando el bff publique `segundo_factor` en `components.schemas.CredencialesEntrada` (y, para el Req 2.5, un `codigo` diferenciado del fallo de segundo factor), el tipo se regenera en `@ai27-tech/contracts`, el `Input` opcional se habilita en `LoginForm`, y se añade el e2e de segundo factor. Hasta entonces, esta parte del alcance permanece bloqueada y documentada, no rellenada a mano.
+**Desbloqueo futuro:** Identidad/Seguridad debe distinguir el rechazo de OTP, emitir un código estable y publicarlo mediante el contrato del bff. Entonces el frontend conservará ese código en `iniciarSesion`, lo mapeará en `useLogin` y agregará la prueba del mensaje específico.
 
 ### Contradicción requirement ↔ contrato
 
-El `requirements.md` describe el consumo de `identidad.yaml` (`/api/v1/sesiones` plural, con `segundo_factor`). El código importa la superficie del bff (`/sesion` singular, sin `segundo_factor`). Se señala la contradicción en lugar de elegir una interpretación: el comportamiento implementable de este diseño se ancla en el contrato realmente importado por el frontend (bff), y la diferencia es exactamente la brecha anterior.
+La documentación histórica describía una brecha del campo `segundo_factor` contra tracer.18. Esa brecha quedó resuelta en tracer.20. La dependencia vigente es la distinción runtime del error de TOTP, registrada en `solicitud-contrato-bff-segundo-factor.md` como brecha externa de Identidad.

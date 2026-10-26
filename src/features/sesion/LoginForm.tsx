@@ -13,6 +13,7 @@
  *   - Encabezado: título + subtítulo.
  *   - Campo correo (con icono).
  *   - Campo contraseña (con icono y botón mostrar/ocultar).
+ *   - Campo opcional de Segundo_Factor.
  *   - Fila auxiliar: recordar sesión + enlace de contraseña olvidada.
  *   - Botón de envío a ancho completo.
  *   - Nota de seguridad al pie.
@@ -33,6 +34,7 @@ function LoginForm({ onSuccess }: LoginFormProps) {
   const { submitting, error, login } = useLogin();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [secondFactor, setSecondFactor] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -48,8 +50,14 @@ function LoginForm({ onSuccess }: LoginFormProps) {
 
     if (emailIsEmpty || passwordIsEmpty) return;
 
-    // La UI captura un correo; el contrato lo recibe como `usuario`/`contrasena`.
-    const ok = await login({ usuario: email, contrasena: password });
+    // La UI captura credenciales y un Segundo_Factor opcional; el contrato los recibe como
+    // `usuario`, `contrasena` y `segundo_factor`.
+    const credenciales = {
+      usuario: email,
+      contrasena: password,
+      ...(secondFactor.trim() !== '' ? { segundo_factor: secondFactor.trim() } : {}),
+    };
+    const ok = await login(credenciales);
     if (ok) onSuccess();
   }
 
@@ -106,6 +114,17 @@ function LoginForm({ onSuccess }: LoginFormProps) {
                   )}
                 </button>
               }
+            />
+          </FormField>
+
+          <FormField label="Código de segundo factor (opcional)">
+            <Input
+              type="text"
+              value={secondFactor}
+              onChange={(e) => setSecondFactor(e.target.value)}
+              placeholder="Código de 6 dígitos"
+              autoComplete="one-time-code"
+              inputMode="numeric"
             />
           </FormField>
 

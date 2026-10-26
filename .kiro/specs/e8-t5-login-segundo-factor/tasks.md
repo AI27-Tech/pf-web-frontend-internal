@@ -6,7 +6,7 @@ El plan convierte el diseño de E8-T5 en pasos de código incrementales sobre la
 
 Toda la interfaz se compone con `@ai27-tech/ui`; no se crean componentes nuevos. Las pruebas de propiedad usan `fast-check` sobre Vitest, con mínimo 100 iteraciones por propiedad.
 
-El transporte del segundo factor está **bloqueado por una brecha de contrato del bff** (`CredencialesEntrada` no expone `segundo_factor` en `bff.yaml @ v0.1.0-tracer.18`). Las tareas correspondientes están aisladas en la sección final y **no son ejecutables** hasta el desbloqueo.
+El transporte del segundo factor está **desbloqueado por contrato** desde `v0.1.0-tracer.20`: `CredencialesEntrada` expone `segundo_factor?: string | null`. B1 y B2 se implementan en el frontend. La distinción de un TOTP inválido permanece como **brecha externa de Identidad** porque el runtime actual colapsa ese caso con credenciales inválidas.
 
 ## Tasks
 
@@ -97,28 +97,28 @@ El transporte del segundo factor está **bloqueado por una brecha de contrato de
 - [x] 8. Checkpoint final — Asegurar que las pruebas pasan
   - Ensure all tests pass, ask the user if questions arise.
 
-## Tareas BLOQUEADAS por la brecha de contrato del bff (`segundo_factor`)
+## Tareas del Segundo_Factor
 
-> Estas tareas **NO son ejecutables**. Dependen de que el bff publique `segundo_factor` (y, para el Req 2.5, un `codigo` que diferencie el fallo de TOTP del de credenciales) en `bff.yaml → components.schemas.CredencialesEntrada`, y de que se regenere `@ai27-tech/contracts`. No se implementan ni se escribe el campo a mano hasta el desbloqueo. No aparecen en el Task Dependency Graph.
+> `segundo_factor` está disponible en `@ai27-tech/contracts@0.1.0-tracer.20`. B1 y B2 forman parte del alcance implementable del frontend. B3 queda diferida por una brecha externa de Identidad. B4 está parcial: el transporte está probado, pero no se prueba un error específico hasta que exista un código contractual y runtime estable.
 
-- [ ] B1. BLOQUEADA (brecha de contrato del bff: `segundo_factor`) — Captura del segundo factor en `LoginForm`
-  - Añadir un `Input` opcional dentro de un `FormField` de `@ai27-tech/ui` en el propio `LoginForm` para capturar el código de Segundo_Factor, tratándolo como opcional (enviado solo cuando el usuario captura un código)
-  - Desbloqueo: `bff.yaml → components.schemas.CredencialesEntrada.segundo_factor` publicado y `@ai27-tech/contracts` regenerado
+- [x] B1. Captura del segundo factor en `LoginForm`
+  - Agregar un `Input` opcional dentro de un `FormField` de `@ai27-tech/ui`.
+  - No marcarlo como requerido.
   - _Requirements: 2.2, 2.3_
 
-- [ ] B2. BLOQUEADA (brecha de contrato del bff: `segundo_factor`) — Envío del segundo factor en el cuerpo de `POST /api/v1/sesion`
-  - Transportar `segundo_factor?: string` en el cuerpo del mismo `POST /sesion` vía `iniciarSesion`/`CredencialesEntrada`, enviándolo solo cuando hay código
-  - Desbloqueo: mismo que B1
+- [x] B2. Envío del segundo factor en el cuerpo de `POST /api/v1/sesion`
+  - Enviar `segundo_factor` en el mismo request solo cuando el usuario captura un código.
+  - Omitir la propiedad cuando el campo está vacío.
   - _Requirements: 2.2_
 
-- [ ] B3. BLOQUEADA (brecha de contrato del bff: `segundo_factor`) — Mensaje de segundo factor inválido distinguible del de credenciales
-  - Mostrar un mensaje que indique que el código de Segundo_Factor es inválido, distinto del mensaje genérico de credenciales
-  - Desbloqueo: requiere además que el bff exponga un `codigo` que diferencie el fallo de TOTP del fallo de credenciales (hoy `iniciarSesion` colapsa todo `401` a `invalidCredentials`)
+- [ ] B3. Mensaje de segundo factor inválido distinguible del de credenciales
+  - **Diferida por brecha externa A-14 de Identidad.** El runtime actual no distingue OTP inválido de credenciales inválidas y no existe un `codigo` contractual publicado.
+  - Mientras tanto, el frontend conserva el mensaje genérico para cualquier `401`.
   - _Requirements: 2.5_
 
-- [ ] B4. BLOQUEADA (brecha de contrato del bff: `segundo_factor`) — Prueba e2e del segundo factor
-  - e2e de captura/envío del segundo factor
-  - Desbloqueo: mismo que B1 y B3; no se escribe un e2e que dependa de un campo de wire inexistente
+- [-] B4. Prueba e2e del segundo factor
+  - Implementada la prueba de captura y envío en el mismo request.
+  - Pendiente la prueba del mensaje específico hasta que Identidad publique un código estable.
   - _Requirements: 2.2, 2.5_
 
 ## Notes
@@ -128,7 +128,7 @@ El transporte del segundo factor está **bloqueado por una brecha de contrato de
 - Los checkpoints aseguran validación incremental.
 - Las pruebas de propiedad (`fast-check`, mínimo 100 iteraciones) validan las 7 Correctness Properties del diseño; las unitarias y el e2e cubren ejemplos y caminos concretos.
 - El cambio de la tarea 3.1 contradice el comportamiento actual del `useEffect` de refresco (hoy cierra ante cualquier fallo); es un cambio intencional del diseño.
-- Las tareas B1–B4 están bloqueadas por la brecha de contrato del bff y no se ejecutan hasta el desbloqueo descrito en cada una.
+- B1 y B2 quedan implementadas contra tracer.20; B3 queda diferida por la brecha externa de Identidad; B4 queda parcial con transporte verificado.
 
 ## Task Dependency Graph
 
@@ -154,7 +154,7 @@ El transporte del segundo factor está **bloqueado por una brecha de contrato de
         "5.6"
       ]
     },
-    { "id": 2, "tasks": ["7.1"] }
+    { "id": 2, "tasks": ["7.1", "B1", "B2", "B4"] }
   ]
 }
 ```
