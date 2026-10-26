@@ -53,9 +53,8 @@ function errorMessage(e: unknown): string {
       case 'invalidCredentials':
         return 'Correo o contraseña incorrectos.';
       case 'red':
-        return 'No se pudo conectar. Revisa tu red e inténtalo de nuevo.';
       case 'degradado':
-        return 'El servicio no está disponible ahora mismo. Inténtalo más tarde.';
+        return 'El servicio de identidad no está disponible ahora mismo. Inténtalo más tarde.';
       default:
         return 'No se pudo iniciar sesión. Inténtalo de nuevo.';
     }

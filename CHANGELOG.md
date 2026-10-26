@@ -4,6 +4,20 @@ Todos los cambios relevantes del proyecto se documentan en este archivo.
 Las entradas se escriben en español, con fecha en formato `yyyy:mm:dd` y hora en formato `hora:minuto`.
 Las entradas más recientes se colocan al inicio.
 
+## 2026:10:26 16:17
+
+**Resumen:** Se completó el alcance implementable en frontend de **E8-T5**: el Portal_Interno captura un Segundo_Factor opcional y lo transporta en el mismo `POST /sesion` cuando el Usuario_Interno proporciona un código. La integración usa `@ai27-tech/contracts@0.1.0-tracer.20`, que publica `CredencialesEntrada.segundo_factor`. Se documentó como brecha externa la distinción de un TOTP inválido frente a credenciales inválidas: Identidad/Keycloak todavía colapsa ambos casos en el mismo `401`, por lo que el portal conserva el Mensaje_Generico_Credenciales. `typecheck`, `lint`, `build`, la suite completa (30 archivos, 136 pruebas) y los e2e (3 pruebas) pasan.
+
+**Cambios:**
+
+- `src/features/sesion/LoginForm.tsx`: campo opcional de Segundo_Factor con `Input` y `FormField` de `@ai27-tech/ui`; el campo se omite del body cuando está vacío.
+- `tests/sesion/LoginForm.test.tsx` / `tests/contracts/sesion.test.ts`: cobertura de captura, omisión y compatibilidad con `CredencialesEntrada` de tracer.20.
+- `e2e/login.spec.ts`: verificación del body real del login con Segundo_Factor, además del render y login válido.
+- `.kiro/specs/e8-t5-login-segundo-factor/{requirements,design,tasks}.md`: actualización del estado contractual, B1/B2 completadas, B3 diferida y B4 parcial.
+- `.kiro/specs/e8-t5-login-segundo-factor/solicitud-contrato-bff-segundo-factor.md`: registro de la brecha externa de Identidad y del pendiente A-14/A-3.
+
+**Señalado (fuera del alcance frontend):** la propagación runtime del campo en el BFF y la emisión de un código estable para TOTP inválido dependen de servicios externos. No se inventó un código de error ni se simuló ese comportamiento en los mocks.
+
 ## 2026:10:26 13:14
 
 **Resumen:** Se cerró el lado frontend de **E8-T11** (crear un `viaje` por Operación): el `jefe_operativo` selecciona un `cliente` dentro de su alcance, captura origen, destinos y fecha/hora, y opcionalmente selecciona una o más `unidades` como escolta. El flujo encadena `crearViaje` → `asignarRecursos`, muestra `APROBADO` o `ASIGNADO` únicamente con confirmación contractual y conserva el viaje creado cuando la asignación falla. Se cerraron las brechas de contrato adoptando `@ai27-tech/contracts@0.1.0-tracer.20`, que publica `listarClientes` y `Asignacion.estado`. `typecheck`, `lint`, `build:mock` y la suite completa (27 archivos, 124 pruebas) pasan.

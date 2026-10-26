@@ -13,6 +13,7 @@
  *   - Encabezado: título + subtítulo.
  *   - Campo correo (con icono).
  *   - Campo contraseña (con icono y botón mostrar/ocultar).
+ *   - Campo opcional de Segundo_Factor.
  *   - Fila auxiliar: recordar sesión + enlace de contraseña olvidada.
  *   - Botón de envío a ancho completo.
  *   - Nota de seguridad al pie.
@@ -33,13 +34,30 @@ function LoginForm({ onSuccess }: LoginFormProps) {
   const { submitting, error, login } = useLogin();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [secondFactor, setSecondFactor] = useState('');
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    // La UI captura un correo; el contrato lo recibe como `usuario`/`contrasena`.
-    const ok = await login({ usuario: email, contrasena: password });
+
+    const emailIsEmpty = email.trim() === '';
+    const passwordIsEmpty = password.trim() === '';
+    setEmailError(emailIsEmpty ? 'El correo electrónico es obligatorio.' : null);
+    setPasswordError(passwordIsEmpty ? 'La contraseña es obligatoria.' : null);
+
+    if (emailIsEmpty || passwordIsEmpty) return;
+
+    // La UI captura credenciales y un Segundo_Factor opcional; el contrato los recibe como
+    // `usuario`, `contrasena` y `segundo_factor`.
+    const credenciales = {
+      usuario: email,
+      contrasena: password,
+      ...(secondFactor.trim() !== '' ? { segundo_factor: secondFactor.trim() } : {}),
+    };
+    const ok = await login(credenciales);
     if (ok) onSuccess();
   }
 
@@ -53,22 +71,32 @@ function LoginForm({ onSuccess }: LoginFormProps) {
         </header>
 
         <Form onSubmit={handleSubmit} noValidate>
-          <FormField label="Correo electrónico empresarial" required>
+          <FormField
+            label="Correo electrónico empresarial"
+            required
+            error={emailError ?? undefined}
+          >
             <Input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (e.target.value.trim() !== '') setEmailError(null);
+              }}
               placeholder="nombre@empresa.com"
               autoComplete="email"
               startAdornment={<MailIcon className="size-4" aria-hidden="true" />}
             />
           </FormField>
 
-          <FormField label="Contraseña" required error={error ?? undefined}>
+          <FormField label="Contraseña" required error={passwordError ?? error ?? undefined}>
             <Input
               type={showPassword ? 'text' : 'password'}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (e.target.value.trim() !== '') setPasswordError(null);
+              }}
               placeholder="••••••••"
               autoComplete="current-password"
               startAdornment={<LockIcon className="size-4" aria-hidden="true" />}
@@ -86,6 +114,17 @@ function LoginForm({ onSuccess }: LoginFormProps) {
                   )}
                 </button>
               }
+            />
+          </FormField>
+
+          <FormField label="Código de segundo factor (opcional)">
+            <Input
+              type="text"
+              value={secondFactor}
+              onChange={(e) => setSecondFactor(e.target.value)}
+              placeholder="Código de 6 dígitos"
+              autoComplete="one-time-code"
+              inputMode="numeric"
             />
           </FormField>
 
