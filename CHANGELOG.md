@@ -4,6 +4,35 @@ Todos los cambios relevantes del proyecto se documentan en este archivo.
 Las entradas se escriben en español, con fecha en formato `yyyy:mm:dd` y hora en formato `hora:minuto`.
 Las entradas más recientes se colocan al inicio.
 
+## 2026:10:26 13:14
+
+**Resumen:** Se cerró el lado frontend de **E8-T11** (crear un `viaje` por Operación): el `jefe_operativo` selecciona un `cliente` dentro de su alcance, captura origen, destinos y fecha/hora, y opcionalmente selecciona una o más `unidades` como escolta. El flujo encadena `crearViaje` → `asignarRecursos`, muestra `APROBADO` o `ASIGNADO` únicamente con confirmación contractual y conserva el viaje creado cuando la asignación falla. Se cerraron las brechas de contrato adoptando `@ai27-tech/contracts@0.1.0-tracer.20`, que publica `listarClientes` y `Asignacion.estado`. `typecheck`, `lint`, `build:mock` y la suite completa (27 archivos, 124 pruebas) pasan.
+
+**Cambios:**
+
+- `src/lib/contracts/clientes.ts` (nuevo) / `src/lib/api/clientes.ts` (nuevo): alias generados para `Cliente`/`PaginaClientes`, wrapper de `listarClientes` (`GET /clientes`) y consumo de todas las páginas por cursor.
+- `src/lib/contracts/viajes.ts` / `src/lib/api/viajes.ts`: alias generado de `CrearViajeEntrada` y wrapper contractual `crearViaje` (`POST /viajes`).
+- `src/features/viajes/crear/CrearViaje.tsx` (nuevo): pantalla privada de creación para `jefe_operativo`, con cliente, origen, destinos ordenados, fecha/hora, roster opcional, estados accesibles, resultado y continuación al detalle cuando falla la asignación.
+- `src/features/viajes/crear/ClienteSelector.tsx` (nuevo): selector compuesto con `@ai27-tech/ui`, estados de carga, vacío, error, reintento y selección válida sin texto libre.
+- `src/features/viajes/crear/useCrearViaje.ts` / `adaptadorCrearViaje.ts` (nuevos): consultas de clientes y unidades, validación, transformación a tipos generados, secuencia contractual, clasificación de errores y protección contra doble confirmación.
+- `src/routes/_private/viajes/crear.tsx` (nuevo) / `src/features/viajes/BandejaViajes.tsx`: ruta privada y entrada de navegación para crear viajes.
+- `src/mocks/data.ts` / `src/mocks/handlers.ts`: clientes activos paginados, creación de viajes y asignación con `estado: ASIGNADO`, manteniendo la forma de tracer.20.
+- `package.json` / `pnpm-workspace.yaml` / `pnpm-lock.yaml`: actualización de `@ai27-tech/contracts` de `0.1.0-tracer.18` a `0.1.0-tracer.20`.
+- `tests/viajes/{CrearViaje,ClienteSelector,clientesApi,crearViaje}.test.*` (nuevos): cobertura de formulario, selector, paginación, destinos, secuencia, resultado `ASIGNADO`, rechazo atómico y doble confirmación.
+- `.kiro/specs/e8-t11-crear-viaje-operacion/tasks.md`: tareas 1–14 marcadas como completadas.
+
+**Archivos modificados:**
+
+- `src/features/viajes/crear/` · `src/routes/_private/viajes/crear.tsx`
+- `src/lib/api/clientes.ts` · `src/lib/api/viajes.ts`
+- `src/lib/contracts/clientes.ts` · `src/lib/contracts/viajes.ts`
+- `src/mocks/data.ts` · `src/mocks/handlers.ts`
+- `package.json` · `pnpm-workspace.yaml` · `pnpm-lock.yaml`
+- `tests/viajes/` y `tests/contracts/sesion.test.ts`
+- `.kiro/specs/e8-t11-crear-viaje-operacion/tasks.md`
+
+**Señalado (no se tocó):** `pf-pkg-contracts` se sincronizó a `pf-contracts-m` con `VERSION v0.1.0-tracer.20`; `ai27-platform-context` ya estaba al día en el commit `ba1abc3`. No se crearon commits en esta sesión.
+
 ## 2026:10:23 16:13
 
 **Resumen:** Se cerró el lado frontend de **E8-T10** (asignar la escolta —una o más `unidades` del roster— a un `viaje` `APROBADO`), satisfaciendo `E1-HU-004`: el `Jefe Operativo` selecciona una o más unidades completas (paquete vehículo + custodios, ADR 31), la reserva es atómica y el viaje pasa a `ASIGNADO` (DEC-026); la aptitud es informativa y no gatea (DEC-055). La feature ya existía implementada contra mock (Opción A); esta entrada registra el **cierre de la brecha de contrato**: se adoptó `@ai27-tech/contracts@0.1.0-tracer.18`, que proyecta al `bff` las operaciones reales `asignarRecursos` (`POST /api/v1/viajes/{id}/asignacion`, respuesta `Asignacion`, 409 con código único `recurso_no_disponible`) y `listarUnidades` (`GET /api/v1/unidades`, `PaginaUnidades`). Los tipos locales esperados pasan a alias generados y los wrappers apuntan a la superficie real; los mocks se conservan como emulación fiel del `bff`. Además, el roster de asignación **solo ofrece unidades `activa`**: las inactivas no se muestran (el contrato describe `activa` como "disponible para asignarse", así que una inactiva no es asignable), y un roster solo-de-inactivas se lee como "sin unidades disponibles". `typecheck`, `lint` y `test` (23 archivos, 110 pruebas) en verde; `build` en verde.
