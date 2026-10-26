@@ -21,6 +21,7 @@ import {
   type ReactNode,
 } from 'react';
 
+import { ApiError } from '@/lib/api/errors';
 import { cerrarSesion, iniciarSesion, refrescarSesion } from '@/lib/api/sesion';
 import { tokenStore } from '@/lib/api/tokenStore';
 import { SESSION_REFRESH_MARGIN_MS } from '@/lib/constants';
@@ -93,9 +94,12 @@ export function SessionProvider({ children }: { readonly children: ReactNode }) 
       void (async () => {
         try {
           applySession(await refrescarSesion(refreshToken));
-        } catch {
-          // Si el refresco falla, la sesión dejó de ser válida: cerramos.
-          applySession(null);
+        } catch (error) {
+          // Solo un rechazo explícito de autorización invalida la sesión.
+          if (error instanceof ApiError && error.kind === 'noAutorizado') {
+            applySession(null);
+          }
+          // La indisponibilidad y los fallos ambiguos conservan la sesión vigente.
         }
       })();
     }, delay);

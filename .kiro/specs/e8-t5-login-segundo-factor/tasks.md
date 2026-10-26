@@ -10,8 +10,8 @@ El transporte del segundo factor está **bloqueado por una brecha de contrato de
 
 ## Tasks
 
-- [ ] 1. Validación local de campos vacíos en `LoginForm.tsx`
-  - [ ] 1.1 Impedir el envío cuando usuario o contraseña están vacíos
+- [x] 1. Validación local de campos vacíos en `LoginForm.tsx`
+  - [x] 1.1 Impedir el envío cuando usuario o contraseña están vacíos
     - En `src/features/sesion/LoginForm.tsx`, antes de llamar a `login` en `handleSubmit`, comprobar que `email` y `password` no estén vacíos tras `trim`
     - Si alguno está vacío, marcar el campo requerido con el prop `error`/`required` del `FormField` de `@ai27-tech/ui` y no emitir la petición `POST /sesion`
     - Reutilizar `FormField`/`Input` existentes; no crear componentes nuevos
@@ -21,8 +21,8 @@ El transporte del segundo factor está **bloqueado por una brecha de contrato de
     - Generar con `fast-check` pares (usuario, contraseña) con al menos un campo vacío o solo-espacios; verificar que `iniciarSesion` no se invoca y que el campo requerido queda marcado como inválido (mínimo 100 iteraciones)
     - **Validates: Requirements 1.2**
 
-- [ ] 2. Afinar el mapeo de errores en `useLogin.ts`
-  - [ ] 2.1 Distinguir indisponibilidad del IdP del fallo de credenciales
+- [x] 2. Afinar el mapeo de errores en `useLogin.ts`
+  - [x] 2.1 Distinguir indisponibilidad del IdP del fallo de credenciales
     - En `src/features/sesion/useLogin.ts`, mapear `invalidCredentials` al mensaje genérico de credenciales (único e indistinto)
     - Mapear `degradado` y `red` a un mensaje de indisponibilidad del servicio de identidad, distinguible del de credenciales y sin atribuir el error al usuario; asegurar que `red` no caiga en el genérico de login
     - Mantener `default` como genérico de fallo de login
@@ -36,12 +36,12 @@ El transporte del segundo factor está **bloqueado por una brecha de contrato de
     - **Feature: e8-t5-login-segundo-factor, Property 3: La indisponibilidad del IdP produce un mensaje distinto del de credenciales**
     - Generar `ApiError` de `kind` `degradado`/`red` con `fast-check`; verificar que `useLogin` produce el mensaje de indisponibilidad y que nunca coincide con el genérico de credenciales (mínimo 100 iteraciones)
     - **Validates: Requirements 4.1, 4.2**
-  - [ ]* 2.4 Escribir pruebas unitarias del mapeo por `kind` en `useLogin`
+  - [x]* 2.4 Escribir pruebas unitarias del mapeo por `kind` en `useLogin`
     - Cubrir cada `kind` (`invalidCredentials`, `degradado`, `red`, default) y su mensaje, incluido el nuevo mensaje de indisponibilidad
     - _Requirements: 1.4, 1.5, 4.1, 4.2_
 
-- [ ] 3. Clasificar el fallo de refresco por `kind` en `SessionContext.tsx`
-  - [ ] 3.1 Preservar la sesión vigente ante fallo de refresco por indisponibilidad
+- [x] 3. Clasificar el fallo de refresco por `kind` en `SessionContext.tsx`
+  - [x] 3.1 Preservar la sesión vigente ante fallo de refresco por indisponibilidad
     - En `src/context/SessionContext.tsx`, en la rama `catch` del callback del timer del `useEffect` de refresco, clasificar el error por `ApiError.kind`
     - `noAutorizado` → `applySession(null)` (cierra); `degradado`/`red` → conservar la sesión vigente y dejar que el ciclo reprograme; cualquier otro `kind` o error no-`ApiError` → conservador, mantener la sesión
     - **Contradice el comportamiento actual**: hoy el `catch` cierra la sesión ante cualquier fallo de refresco; este cambio solo cierra ante `noAutorizado`
@@ -59,7 +59,7 @@ El transporte del segundo factor está **bloqueado por una brecha de contrato de
     - Con timers falsos, el refresco se dispara con margen según `expira_en` (Req 3.3); `degradado`/`red` conserva la sesión y `noAutorizado` cierra; `logout` limpia el store y llama `cerrarSesion` best-effort (Req 3.5)
     - _Requirements: 3.3, 3.5, 4.4_
 
-- [ ] 4. Checkpoint — Asegurar que las pruebas pasan
+- [x] 4. Checkpoint — Asegurar que las pruebas pasan
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 5. Fijar con pruebas el comportamiento ya existente que cumple requisitos
@@ -84,17 +84,17 @@ El transporte del segundo factor está **bloqueado por una brecha de contrato de
     - Verificar que el envío se deshabilita y se muestra progreso con los estados `authenticating`/`submitting` durante el login
     - _Requirements: 1.4_
 
-- [ ] 6. Confirmar composición de la interfaz solo con `@ai27-tech/ui`
-  - [ ] 6.1 Verificar por inspección que `LoginForm` no define componentes propios
+- [x] 6. Confirmar composición de la interfaz solo con `@ai27-tech/ui`
+  - [x] 6.1 Verificar por inspección que `LoginForm` no define componentes propios
     - Confirmar que `LoginForm.tsx` compone únicamente componentes de `@ai27-tech/ui` (`Card`, `CardBody`, `Form`, `FormField`, `Input`, `Checkbox`, `Button`) y no introduce ninguno nuevo; si faltara un componente, documentar la brecha de la Libreria_UI en lugar de duplicarlo
     - _Requirements: 5.1, 5.2_
 
-- [ ] 7. Prueba e2e de login
-  - [ ]* 7.1 Escribir e2e login → panel
+- [x] 7. Prueba e2e de login
+  - [x]* 7.1 Escribir e2e login → panel
     - Credenciales válidas conceden sesión y navegan al destino (redirect o home)
     - _Requirements: 1.3, 1.6, 3.1_
 
-- [ ] 8. Checkpoint final — Asegurar que las pruebas pasan
+- [x] 8. Checkpoint final — Asegurar que las pruebas pasan
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Tareas BLOQUEADAS por la brecha de contrato del bff (`segundo_factor`)
