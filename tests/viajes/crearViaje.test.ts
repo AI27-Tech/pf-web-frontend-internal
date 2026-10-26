@@ -73,7 +73,7 @@ describe('adaptador de crearViaje', () => {
     expect(llamadasCreacion).toBe(1);
   });
 
-  it('encadena una sola asignación y no infiere ASIGNADO si el contrato no devuelve estado', async () => {
+  it('encadena una sola asignación y representa ASIGNADO con el estado contractual', async () => {
     const llamadas: string[] = [];
     server.use(
       http.post(path('/viajes'), () => {
@@ -88,6 +88,7 @@ describe('adaptador de crearViaje', () => {
         return HttpResponse.json(
           {
             viaje_id: 'VJ-2',
+            estado: EstadoViaje.Asignado,
             unidades: [{ unidad_id: 'UN-1', aptitud: [] }],
           },
           { status: 200 },
@@ -101,8 +102,9 @@ describe('adaptador de crearViaje', () => {
     );
 
     expect(resultado).toMatchObject({
-      tipo: 'asignacion_fallida',
+      tipo: 'asignado',
       viaje: { id: 'VJ-2', estado: EstadoViaje.Aprobado },
+      asignacion: { viaje_id: 'VJ-2', estado: EstadoViaje.Asignado },
     });
     expect(llamadas).toEqual(['crearViaje', 'asignarRecursos']);
   });

@@ -10,7 +10,8 @@
 import type { SesionWire } from '@/lib/contracts';
 import { Rol } from '@/lib/contracts';
 import { EstadoViaje, TRANSICIONES_VIAJE } from '@/lib/contracts/viajeDetalle';
-import type { ViajeResumen, PaginaViajesResumen } from '@/lib/contracts/viajes';
+import type { ViajeResumen, PaginaViajesResumen, CrearViajeEntrada } from '@/lib/contracts/viajes';
+import type { Cliente, PaginaClientes } from '@/lib/contracts/clientes';
 import type { ViajeDetalle } from '@/lib/contracts/viajeDetalle';
 import type { Asignacion, AptitudRecurso } from '@/lib/contracts/viajeDetalle';
 import type { Unidad } from '@/lib/contracts/unidades';
@@ -73,7 +74,7 @@ export function createSessionWire(): SesionWire {
  */
 
 /** Catálogo de viajes demo del alcance del operador. */
-const VIAJES_DEMO: readonly ViajeResumen[] = [
+const VIAJES_DEMO: ViajeResumen[] = [
   { id: 'VJ-1001', estado: EstadoViaje.EnTransito, origen: 'CDMX' },
   { id: 'VJ-1002', estado: EstadoViaje.Solicitado, origen: 'Monterrey' },
   { id: 'VJ-1003', estado: EstadoViaje.Asignado, origen: 'Guadalajara' },
@@ -110,8 +111,24 @@ export function listarViajesMock(
   return { items, cursor_siguiente };
 }
 
+export const CLIENTES_DEMO: readonly Cliente[] = [
+  { id: 'CLI-1001', nombre: 'Cliente Norte', estado: 'activo', contrato_vigente_id: null },
+  { id: 'CLI-1002', nombre: 'Cliente Centro', estado: 'activo', contrato_vigente_id: null },
+  { id: 'CLI-1003', nombre: 'Cliente Sur', estado: 'activo', contrato_vigente_id: null },
+];
+
+/** Página cursorada del catálogo que el BFF proyecta para el selector. */
+export function listarClientesMock(cursor: string | null): PaginaClientes {
+  const inicio = cursor ? Number.parseInt(cursor, 10) || 0 : 0;
+  const items = CLIENTES_DEMO.slice(inicio, inicio + 2);
+  const fin = inicio + items.length;
+  return {
+    items,
+    cursor_siguiente: fin < CLIENTES_DEMO.length ? String(fin) : null,
+  };
+}
+
 /*
- * Detalle del viaje (E8-T8). Sirve el contrato generado del BFF (tracer.15):
  * los mocks cumplen la forma de `ViajeDetalle` de `@ai27-tech/contracts`.
  *
  * Base de datos simulada: detalles por ID. Cada viaje expone:
@@ -241,6 +258,35 @@ const DETALLES_VIAJES: ViajeDetalleStore = {
   },
 };
 
+let siguienteViajeDemo = 2000;
+
+/** Crea un viaje APROBADO en la base simulada y deja listo su detalle. */
+export function crearViajeMock(entrada: CrearViajeEntrada): ViajeResumen {
+  const id = `VJ-${siguienteViajeDemo++}`;
+  const creado_en = new Date().toISOString();
+  const viaje: ViajeResumen = {
+    id,
+    estado: EstadoViaje.Aprobado,
+    origen: entrada.origen,
+  };
+
+  VIAJES_DEMO.push(viaje);
+  DETALLES_VIAJES[id] = {
+    viaje: {
+      id,
+      estado: EstadoViaje.Aprobado,
+      cliente_id: entrada.cliente_id ?? null,
+      origen: entrada.origen,
+      destinos: entrada.destinos,
+      fecha_hora_servicio: entrada.fecha_hora_servicio ?? null,
+      creado_en,
+    },
+    condiciones_activas: [],
+  };
+
+  return viaje;
+}
+
 /**
  * Recupera el detalle completo de un viaje por ID.
  *
@@ -355,6 +401,7 @@ export function asignarEscoltaMock(id: string, unidades_ids: string[]): Asignaci
   detalle.viaje.estado = EstadoViaje.Asignado;
   return {
     viaje_id: id,
+    estado: EstadoViaje.Asignado,
     unidades: unidades_ids.map((unidad_id) => {
       const unidad = UNIDADES_DEMO.find((item) => item.id === unidad_id);
       return {

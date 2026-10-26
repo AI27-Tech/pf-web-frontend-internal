@@ -6,7 +6,7 @@
  * endpoint alterno: la brecha se muestra como estado accionable.
  */
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import {
   Badge,
@@ -19,7 +19,6 @@ import {
   FormField,
   FormRow,
   Input,
-  Select,
   Table,
 } from '@ai27-tech/ui';
 import { useNavigate } from '@tanstack/react-router';
@@ -27,6 +26,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { useSession } from '@/context/SessionContext';
 import { ApiError } from '@/lib/api/errors';
 import type { Unidad } from '@/lib/contracts/unidades';
+import { ClienteSelector } from './ClienteSelector';
 import {
   mensajeErrorCrearViaje,
   quitarError,
@@ -58,6 +58,7 @@ export function CrearViaje() {
   const [errores, setErrores] = useState<ErroresCrearViaje>({});
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
   const [resultado, setResultado] = useState<ResultadoCrearViaje | null>(null);
+  const envioEnCurso = useRef(false);
   const c = useCrearViaje(usuario?.rol === 'jefe_operativo');
 
   if (usuario?.rol !== 'jefe_operativo') {
@@ -78,12 +79,15 @@ export function CrearViaje() {
   };
 
   const confirmar = async () => {
+    if (envioEnCurso.current) return;
+
     const nuevosErrores = validarDatosCrearViaje(datos);
     setErrores(nuevosErrores);
     setErrorEnvio(null);
     setResultado(null);
     if (Object.keys(nuevosErrores).length > 0) return;
 
+    envioEnCurso.current = true;
     try {
       const nuevoResultado = await c.crear(datos);
       setResultado(nuevoResultado);
@@ -94,6 +98,8 @@ export function CrearViaje() {
         return;
       }
       setErrorEnvio(mensajeErrorCrearViaje(error));
+    } finally {
+      envioEnCurso.current = false;
     }
   };
 
@@ -137,20 +143,26 @@ export function CrearViaje() {
             }}
             style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}
           >
-            <FormField
-              label="Cliente"
-              required
+            <ClienteSelector
+              estado={
+                c.cargandoClientes
+                  ? 'cargando'
+                  : c.errorClientes
+                    ? 'error'
+                    : c.clientes.length === 0
+                      ? 'vacio'
+                      : 'disponible'
+              }
+              clientes={c.clientes}
+              value={clienteId}
               error={errores.cliente}
-              helpText="El catálogo de clientes del BFF todavía no está publicado para este frontend."
-            >
-              <Select
-                value={clienteId}
-                options={[]}
-                placeholder="Catálogo no disponible"
-                onChange={(value) => setClienteId(String(value))}
-                disabled
-              />
-            </FormField>
+              onChange={(value) => {
+                setClienteId(value);
+                setErrores((actuales) => quitarError(actuales, 'cliente'));
+              }}
+              onReintentar={c.reintentarClientes}
+              disabled={c.enviando}
+            />
 
             <FormRow columns={2}>
               <FormField label="Origen" required error={errores.origen}>
@@ -254,7 +266,12 @@ export function CrearViaje() {
                 {errorEnvio}
               </p>
             )}
-            {resultado && <Resultado resultado={resultado} />}
+            {resultado && (
+              <Resultado
+                resultado={resultado}
+                onContinuar={(id) => void navigate({ to: '/viajes/$id', params: { id } })}
+              />
+            )}
 
             <CardFooter
               style={{
@@ -335,7 +352,13 @@ function Roster({
   );
 }
 
-function Resultado({ resultado }: { readonly resultado: ResultadoCrearViaje }) {
+function Resultado({
+  resultado,
+  onContinuar,
+}: {
+  readonly resultado: ResultadoCrearViaje;
+  readonly onContinuar: (viajeId: string) => void;
+}) {
   if (resultado.tipo === 'aprobado') {
     return (
       <Card variant="outlined">
@@ -357,7 +380,13 @@ function Resultado({ resultado }: { readonly resultado: ResultadoCrearViaje }) {
           <p>
             Identificador: <strong>{resultado.viaje.id}</strong>
           </p>
-          <Badge variant="secure">{resultado.viaje.estado}</Badge>
+          <Badge variant="escort">{resultado.asignacion.estado}</Badge>
+          <p>Escolta confirmada:</p>
+          <ul>
+            {resultado.asignacion.unidades.map((unidad) => (
+              <li key={unidad.unidad_id}>{unidad.unidad_id}</li>
+            ))}
+          </ul>
         </CardBody>
       </Card>
     );
@@ -385,6 +414,10 @@ function Resultado({ resultado }: { readonly resultado: ResultadoCrearViaje }) {
           pudo confirmarse.
         </p>
         <p>{mensajeErrorCrearViaje(resultado.error)}</p>
+        <p>La escolta puede intentarse desde el detalle del viaje.</p>
+        <Button variant="secondary" type="button" onClick={() => onContinuar(resultado.viaje.id)}>
+          Continuar con el viaje
+        </Button>
       </CardBody>
     </Card>
   );

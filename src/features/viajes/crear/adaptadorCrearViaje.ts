@@ -99,7 +99,10 @@ function esResumenValido(respuesta: ViajeResumen | undefined): respuesta is Viaj
 
 function esAsignacionValida(respuesta: Asignacion | undefined): respuesta is Asignacion {
   return Boolean(
-    respuesta?.viaje_id && Array.isArray(respuesta.unidades) && respuesta.unidades.length > 0,
+    respuesta?.viaje_id &&
+    respuesta.estado === EstadoViaje.Asignado &&
+    Array.isArray(respuesta.unidades) &&
+    respuesta.unidades.length > 0,
   );
 }
 
@@ -168,18 +171,14 @@ export async function ejecutarCreacion(
     const asignacion = await asignarEscolta(viaje.id, entrada, accessToken);
     if (!esAsignacionValida(asignacion) || asignacion.viaje_id !== viaje.id) {
       return {
-        tipo: 'asignacion_fallida',
+        tipo: 'respuesta_insuficiente',
         viaje,
-        error: errorRespuestaInsuficiente('asignarRecursos'),
+        etapa: 'asignarRecursos',
+        mensaje: errorRespuestaInsuficiente('asignarRecursos').message,
       };
     }
 
-    // El tracer.18 no devuelve estado en Asignacion. No se infiere ASIGNADO.
-    return {
-      tipo: 'asignacion_fallida',
-      viaje,
-      error: errorRespuestaInsuficiente('asignarRecursos'),
-    };
+    return { tipo: 'asignado', viaje, asignacion };
   } catch (error) {
     return {
       tipo: 'asignacion_fallida',

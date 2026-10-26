@@ -13,6 +13,8 @@ export { Rol, ROLES, esRol, esInterno } from '@ai27-tech/contracts/roles';
 
 // Modelo de sesión de la app + forma del wire generada.
 export type { SesionWire, CredencialesEntrada, RefrescoEntrada, Sesion, Usuario } from './sesion';
+export type { Cliente, PaginaClientes } from './clientes';
+export type { AsignacionEntrada, AptitudRecurso, UnidadAsignada, Asignacion } from './viajeDetalle';
 export { parseSesion, SesionInvalidaError } from './sesion';
 
 // Claims del JWT (brecha contractual aislada).
