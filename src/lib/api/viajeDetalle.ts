@@ -218,8 +218,8 @@ export async function completarFechaHora(
  * Reserva una o más unidades completas como escolta del viaje.
  *
  * `POST /viajes/{id}/asignacion` (`asignarRecursos`) es superficie real del
- * `bff` desde tracer.18. Devuelve `Asignacion`; el detalle del viaje se refresca
- * invalidando su query (segundo GET), no en esta respuesta.
+ * `bff` desde tracer.20. Devuelve `Asignacion` con `estado` y `unidades`; el
+ * estado confirma `ASIGNADO` y la UI no hace un GET adicional.
  */
 export async function asignarEscolta(
   id: string,

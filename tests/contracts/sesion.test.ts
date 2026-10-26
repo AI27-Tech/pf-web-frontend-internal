@@ -73,7 +73,7 @@ describe('contrato de sesion (tracer)', () => {
     expect(sesion.sesionId).toBe(wire.sesion_id);
     expect(sesion.accessToken).toBe(wire.access_token);
     // El rol/audiencia NO vienen del cuerpo (no existen ahi): salen del token.
-    expect(sesion.usuario.rol).toBe('monitorista');
+    expect(sesion.usuario.rol).toBe('jefe_operativo');
     expect(sesion.usuario.audiencia).toBe('Interno');
   });
 

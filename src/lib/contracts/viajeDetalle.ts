@@ -4,7 +4,7 @@
  * Este archivo es el único punto donde el resto del código toca el contrato: los
  * demás módulos importan estos alias, no el paquete generado directamente. Todos
  * los endpoints internos del viaje están publicados en
- * `@ai27-tech/contracts@0.1.0-tracer.15` y sus tipos se derivan del OpenAPI
+ * `@ai27-tech/contracts@0.1.0-tracer.20` y sus tipos se derivan del OpenAPI
  * generado (`@ai27-tech/contracts/openapi/bff`); no se replican a mano:
  *   GET   /api/v1/viajes/{id}/detalle      → ViajeDetalle (operationId: obtenerViajeInterno)
  *   POST  /api/v1/viajes/{id}/transiciones → ViajeDetalle (entrada: TransicionEntrada)
@@ -13,7 +13,7 @@
  *   POST  /api/v1/viajes/{id}/asignacion   → Asignacion   (entrada: AsignacionEntrada)
  *
  * Las brechas de escritura de `fecha_hora_servicio` (E8-T9, tracer.15) y de
- * asignación de escolta (E8-T10, tracer.18) quedaron CERRADAS: todos estos
+ * asignación de escolta (E8-T10, tracer.20) quedaron CERRADAS: todos estos
  * tipos son generados y sus operaciones son reales del `bff`.
  */
 
@@ -66,9 +66,9 @@ export type FechaHoraEntrada = Schemas['FechaHoraEntrada'];
 /**
  * Entrada y respuesta de asignación de la escolta (E8-T10, generado).
  *
- * La brecha quedó CERRADA en tracer.18: el `bff` proyecta `asignarRecursos`
- * (`POST /api/v1/viajes/{id}/asignacion`) como espejo de `operacion`. Estos
- * tipos dejan de ser locales y se derivan del OpenAPI generado.
+ * La brecha quedó CERRADA en tracer.20: el `bff` proyecta `asignarRecursos`
+ * (`POST /api/v1/viajes/{id}/asignacion`) como espejo de `operacion`. La
+ * respuesta incluye `estado` y `unidades`; no se infiere `ASIGNADO` localmente.
  *
  *   POST /api/v1/viajes/{id}/asignacion → Asignacion (entrada: AsignacionEntrada)
  *   409 con `codigo` `recurso_no_disponible` (único; incluye la carrera, DEC-043).
