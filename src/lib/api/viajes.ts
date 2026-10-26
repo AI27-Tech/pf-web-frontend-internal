@@ -8,7 +8,7 @@
  * aquí, nunca a client.ts.
  */
 
-import type { PaginaViajesResumen } from '../contracts/viajes';
+import type { CrearViajeEntrada, PaginaViajesResumen, ViajeResumen } from '../contracts/viajes';
 import { request } from './client';
 
 /** Parámetros de entrada para listar viajes. Omitir una clave = no filtrar. */
@@ -51,4 +51,16 @@ export async function listarViajes(
 ): Promise<PaginaViajesResumen> {
   const qs = construirQueryString(params);
   return request<PaginaViajesResumen>(`/viajes${qs}`, { accessToken });
+}
+
+/** Crea un viaje sin unidades; la asignación se realiza en una operación posterior. */
+export async function crearViaje(
+  entrada: CrearViajeEntrada,
+  accessToken: string,
+): Promise<ViajeResumen> {
+  return request<ViajeResumen>('/viajes', {
+    method: 'POST',
+    body: entrada,
+    accessToken,
+  });
 }

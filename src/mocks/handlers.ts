@@ -12,6 +12,8 @@ import { API_PREFIX } from '@/lib/constants';
 import type { CredencialesEntrada } from '@/lib/contracts';
 import {
   DEMO_CREDENTIALS,
+  crearViajeMock,
+  listarClientesMock,
   createSessionWire,
   listarViajesMock,
   obtenerDetalleViajeMock,
@@ -24,10 +26,24 @@ import {
   UNIDADES_SIN_DISPONIBLES_DEMO,
 } from './data';
 import type { TransicionEntrada, EtaEntrada, FechaHoraEntrada } from '@/lib/contracts/viajeDetalle';
+import type { CrearViajeEntrada } from '@/lib/contracts/viajes';
 
 const path = (segment: string) => `${API_PREFIX}${segment}`;
 
 export const handlers = [
+  // GET /clientes — catálogo proyectado por el BFF (tracer.20). El mock devuelve
+  // únicamente clientes activos dentro del alcance del operador demo.
+  http.get(path('/clientes'), ({ request }) => {
+    const url = new URL(request.url);
+    return HttpResponse.json(listarClientesMock(url.searchParams.get('cursor')), { status: 200 });
+  }),
+
+  // POST /viajes — creación por Operación. El mock devuelve APROBADO.
+  http.post(path('/viajes'), async ({ request }) => {
+    const body = (await request.json()) as CrearViajeEntrada;
+    return HttpResponse.json(crearViajeMock(body), { status: 201 });
+  }),
+
   // GET /viajes — listado de la bandeja (E8-T7). Filtra por `estado` y pagina por
   // `cursor` del lado del "bff" simulado; el cliente solo muestra lo que regresa.
   http.get(path('/viajes'), ({ request }) => {

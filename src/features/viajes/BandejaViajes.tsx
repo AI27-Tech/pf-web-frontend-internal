@@ -52,6 +52,7 @@ const TAMANO_PAGINA = 20;
 
 export function BandejaViajes() {
   const b = useBandejaViajes();
+  const { usuario } = useSession();
   const navigate = useNavigate();
   const columnasViaje = obtenerColumnasViaje(navigate);
 
@@ -69,9 +70,27 @@ export function BandejaViajes() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-      <h1 className="ui-text-headline-lg" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-        Viajes
-      </h1>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 'var(--ui-space-3)',
+        }}
+      >
+        <h1 className="ui-text-headline-lg" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
+          Viajes
+        </h1>
+        {usuario?.rol === 'jefe_operativo' && (
+          <Button
+            variant="primary"
+            type="button"
+            onClick={() => void navigate({ to: '/viajes/crear' })}
+          >
+            Crear viaje
+          </Button>
+        )}
+      </div>
 
       {/*
         Barra de filtros de la librerÃ­a (FilterBar). Siempre montada (Req 3.5/6.2).

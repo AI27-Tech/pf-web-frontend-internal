@@ -10,6 +10,9 @@
 
 import type { components } from '@ai27-tech/contracts/openapi/bff';
 
+/** Entrada de creación del viaje por Operación (generada desde el BFF). */
+export type CrearViajeEntrada = components['schemas']['CrearViajeEntrada'];
+
 /** Forma del wire generada por el contrato: resumen de un viaje individual. */
 export type ViajeResumen = components['schemas']['ViajeResumen'];
 
