@@ -28,6 +28,7 @@ describe('SessionProvider', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     refreshMock.mockReset();
+    tokenStore.limpiar();
     localStorage.clear();
   });
 

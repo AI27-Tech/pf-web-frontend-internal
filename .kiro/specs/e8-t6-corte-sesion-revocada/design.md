@@ -10,19 +10,19 @@ El principio rector viene del requirements: **el portal no ramifica sobre la cau
 
 Confirmado por lectura del código en ambos repos:
 
-| Pieza                          | Interno (`pf-web-frontend-internal`)                                                                              | Cliente (`pf-web-frontend-client`)                                                                                  |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Puerta HTTP                    | `src/lib/api/client.ts` → `request<T>`                                                                            | `src/lib/api/client.ts` → `request<T>` + `api.get/post/delete`                                                      |
-| Taxonomía de error             | `src/lib/api/errors.ts` → `ApiError` con `kind`, `status`, `codigo` (lee `codigo` del cuerpo)                     | `src/lib/api/errors.ts` → `ApiError` con `kind`, `status`, `detail` (no lee `codigo`)                               |
-| 401 hoy                        | `kindFromStatus` → `'noAutorizado'` (401 y 403)                                                                   | `kindFromStatus` → `'noAutorizado'` (401 y 403)                                                                     |
-| tokenStore                     | `src/lib/api/tokenStore.ts`: guarda el objeto `Sesion` completo (incluye `sesionId`, `refreshToken?`)             | `src/lib/api/tokenStore.ts`: guarda solo `{ accessToken, expiraEn }` — **no persiste `sesionId` ni `refreshToken`** |
-| Modelo parseado                | `src/lib/contracts/sesion.ts` → `Sesion` (`expiraEn` epoch ms, `usuario`)                                         | `src/lib/api/sesion.ts` → `SesionEmitida` (`expiraEn` ISO)                                                          |
-| Sesión / refresco              | `SessionContext.tsx`: refresco proactivo por temporizador; `logout()` limpia local + `DELETE /sesion` best-effort | `SessionContext.tsx`: igual, refresco proactivo por temporizador observando `tokenStore`                            |
-| Guarda privada                 | `src/routes/_private.tsx`: `beforeLoad` redirige a `/login?redirect=` si no hay token                             | `src/routes/_private.tsx`: igual                                                                                    |
-| Navegación a login             | TanStack Router, `/login` con `search.redirect`                                                                   | TanStack Router, `/login` con `search.redirect`                                                                     |
-| SSE / EventSource              | **No existe** código vivo                                                                                         | **No existe** (solo mocks V2 retirados)                                                                             |
-| Mensaje de "sesión finalizada" | **No existe** canal                                                                                               | **No existe** canal                                                                                                 |
-| Tests                          | Vitest, co-localizados (`*.test.ts`)                                                                              | Vitest, en `__tests__/`                                                                                             |
+| Pieza                          | Interno (`pf-web-frontend-internal`)                                                                              | Cliente (`pf-web-frontend-client`)                                                                                |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Puerta HTTP                    | `src/lib/api/client.ts` → `request<T>`                                                                            | `src/lib/api/client.ts` → `request<T>` + `api.get/post/delete`                                                    |
+| Taxonomía de error             | `src/lib/api/errors.ts` → `ApiError` con `kind`, `status`, `codigo` (lee `codigo` del cuerpo)                     | `src/lib/api/errors.ts` → `ApiError` con `kind`, `status`, `detail` (no lee `codigo`)                             |
+| 401 hoy                        | `kindFromStatus` → `'noAutorizado'` (401 y 403)                                                                   | `kindFromStatus` → `'noAutorizado'` (401 y 403)                                                                   |
+| tokenStore                     | `src/lib/api/tokenStore.ts`: persiste access/metadatos sin `refreshToken`; el `refreshToken` vive solo en memoria | `src/lib/api/tokenStore.ts`: persiste access/metadatos sin `refreshToken`; el `refreshToken` vive solo en memoria |
+| Modelo parseado                | `src/lib/contracts/sesion.ts` → `Sesion` (`expiraEn` epoch ms, `usuario`)                                         | `src/lib/api/sesion.ts` → `SesionEmitida` (`expiraEn` ISO)                                                        |
+| Sesión / refresco              | `SessionContext.tsx`: refresco proactivo por temporizador; `logout()` limpia local + `DELETE /sesion` best-effort | `SessionContext.tsx`: igual, refresco proactivo por temporizador observando `tokenStore`                          |
+| Guarda privada                 | `src/routes/_private.tsx`: `beforeLoad` redirige a `/login?redirect=` si no hay token                             | `src/routes/_private.tsx`: igual                                                                                  |
+| Navegación a login             | TanStack Router, `/login` con `search.redirect`                                                                   | TanStack Router, `/login` con `search.redirect`                                                                   |
+| SSE / EventSource              | **No existe** código vivo                                                                                         | **No existe** (solo mocks V2 retirados)                                                                           |
+| Mensaje de "sesión finalizada" | **No existe** canal                                                                                               | **No existe** canal                                                                                               |
+| Tests                          | Vitest, co-localizados (`*.test.ts`)                                                                              | Vitest, en `__tests__/`                                                                                           |
 
 **Hecho clave:** hoy el refresco vive solo en un temporizador proactivo del `SessionContext`; **ningún** portal reacciona al `401` de una petición. E8-T6 introduce ese manejo reactivo. El refresco proactivo existente se conserva: E8-T6 añade la ruta reactiva, no la reemplaza.
 
@@ -94,7 +94,7 @@ La navegación no la hace `client.ts` (no tiene router). El `SessionContext` se 
 
 La ruta `/login` de cada portal amplía su `validateSearch` para aceptar `motivo?: 'sesion_finalizada'` además del `redirect?` que ya maneja. Cuando `motivo === 'sesion_finalizada'`, el login muestra el **Mensaje_Sesion_Finalizada** con un componente de la Libreria_UI (p. ej. `Toast`/`Alert` de `@ai27-tech/ui`).
 
-- **Mensaje único (R4.3):** texto propuesto, pendiente de validación: _"Tu sesión finalizó. Inicia sesión de nuevo para continuar."_ No afirma revocación ni expiración.
+- **Mensaje único (R4.3):** se usa el texto neutral: _"Tu sesión finalizó. Inicia sesión de nuevo para continuar."_ No afirma revocación ni expiración.
 - **Preservación del destino (R4.4):** se reusa el mismo `redirect` de la guarda `_private.tsx`.
 
 ### 5. Taxonomía de error: nuevo `kind` 'sesionFinalizada'
@@ -105,15 +105,14 @@ Ambos `errors.ts` ganan un `ApiErrorKind` nuevo, `'sesionFinalizada'`, distinto 
 
 ### 6. Diferencias por portal
 
-**Cliente (`pf-web-frontend-client`) — dos gaps a cerrar:**
+**Cliente (`pf-web-frontend-client`) — decisión aplicada:**
 
-1. **`tokenStore` no persiste `sesionId` ni `refreshToken`.** Hoy guarda solo `{ accessToken, expiraEn }`, y `refresh()` envía un cuerpo vacío en modo mock. Para E8-T6 el corte no necesita `sesionId` (la correlación la hace el backend), pero **sí** necesita saber si hay `refresh_token` utilizable (R1.4). Decisión: el `tokenStore` del cliente pasa a persistir también `refreshToken` y `sesionId` cuando el wire los trae, alineándose con el interno. `hayRefreshTokenUtilizable()` consulta esa presencia. _(Si se prefiere no tocar el almacenamiento del cliente en V1, la alternativa es tratar siempre el `401` del cliente como no recuperable; se deja como decisión abierta DEC-DISEÑO-1 abajo.)_
-2. **`ApiError` del cliente no lee `codigo`.** No es necesario para E8-T6 (no ramificamos por `codigo`), así que no se cambia salvo que la brecha de contrato se cierre.
+1. El portal cliente conserva `accessToken` y `sesionId` en la persistencia provisional existente, pero mantiene `refreshToken?` únicamente en memoria. `toSesion`, `login` y `refresh` propagan el `refresh_token` cuando el wire lo trae; `refresh()` envía `{ refresh_token }` según el contrato. Tras una recarga, el access token puede llegar al siguiente `401`, pero la ausencia del token de refresco hace que ese `401` sea no recuperable.
+2. `ApiError` del cliente no lee `codigo`. No es necesario para E8-T6 porque el portal no ramifica sobre la causa del `401`.
 
-**Interno (`pf-web-frontend-internal`):**
+**Interno (`pf-web-frontend-internal`) — decisión aplicada:**
 
-- El `tokenStore` ya guarda la `Sesion` completa, así que `hayRefreshTokenUtilizable()` consulta `sesion.refreshToken`.
-- El `ApiError` ya lee `codigo`: si la BRECHA-CONTRATO-1 se cierra con un `sesion_revocada`, el interno podría afinar el mensaje sin más cambios de plomería.
+- El `tokenStore` persiste el access token y los metadatos necesarios para la guarda de rutas, pero excluye el `refreshToken`. El mismo patrón aplica a ambos portales: una recarga conserva el access token, pero elimina la capacidad de refresco y el siguiente `401` ejecuta el corte.
 
 ### 7. Qué NO se construye (R7)
 
@@ -149,8 +148,8 @@ CORTE = tokenStore.limpiar() + cerrarSuscripciones() + emitir('session-cut')
 - Tras el corte, el portal queda en `/login` con `motivo=sesion_finalizada` y el mensaje visible (R4).
 - El punto `onCut` recibe el evento (R3.2 / R5.2), verificado con un suscriptor de prueba.
 
-## Decisiones de diseño abiertas (a confirmar con Product/Tech)
+## Decisiones de diseño cerradas
 
-- **DEC-DISEÑO-1 (cliente):** ¿se amplía el `tokenStore` del cliente para persistir `refreshToken`/`sesionId`, o en V1 el cliente trata todo `401` como no recuperable (sin refresco reactivo)? La decisión de `localStorage` vs cookie httpOnly sigue abierta en ese repo y puede condicionar esto.
-- **DEC-DISEÑO-2 (R5):** alcance de la preservación del borrador: ¿solo advertir, o persistir y reofrecer? El requirements solo exige "no perder sin avisar"; el grado mayor depende de cuánto formulario exista hoy en cada portal.
-- **Texto del Mensaje_Sesion_Finalizada:** propuesto arriba, **pendiente de validación** de Producto.
+- **DEC-DISEÑO-1:** V1 mantiene `refreshToken?` únicamente en memoria en ambos portales. El access token y metadatos de sesión conservan la persistencia provisional existente, sin incluir el refresh token. La cookie `HttpOnly` queda como evolución de arquitectura fuera de E8-T6.
+- **DEC-DISEÑO-2:** V1 solo advierte que la información del formulario no se envió; no persiste ni reofrece borradores.
+- **Mensaje_Sesion_Finalizada:** se usa el texto neutral: _"Tu sesión finalizó. Inicia sesión de nuevo para continuar."_ No atribuye revocación ni expiración.

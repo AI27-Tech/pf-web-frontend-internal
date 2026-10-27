@@ -1,18 +1,15 @@
 /*
- * Custodia del token en el navegador — PROVISIONAL.
+ * Custodia de la sesión.
  *
- * TODO(auth) — Decisión abierta #2: ADR 8 cierra el proveedor, no el
- * almacenamiento. Esta implementación con localStorage existe SOLO para que el
- * scaffold arranque y está aislada tras `TokenStore`. localStorage es lo peor
- * ante XSS; memoria + refresh en cookie httpOnly es mejor pero exige que bff
- * ponga esa cookie, y el contrato no lo dice.
- *
- * El resto de la app depende de la INTERFAZ, no de esta implementación.
+ * El refreshToken vive únicamente en memoria: no se persiste en localStorage ni
+ * sessionStorage. El accessToken y los metadatos de sesión conservan la
+ * persistencia provisional existente para que una recarga pueda llegar al
+ * siguiente 401; después de la recarga ya no hay refreshToken utilizable y el
+ * corte es la reacción esperada.
  */
 
 import type { Sesion } from '../contracts';
 
-/** Contrato de custodia de la sesión. La app depende de esto, no del backing store. */
 export interface TokenStore {
   cargar(): Sesion | null;
   guardar(sesion: Sesion): void;
@@ -20,25 +17,54 @@ export interface TokenStore {
 }
 
 const STORAGE_KEY = 'ai27.panel.sesion';
+let refreshTokenEnMemoria: string | undefined;
+let sesionEnMemoria: Sesion | null = null;
 
-/** Implementación provisional sobre localStorage. Ver el TODO(auth) de arriba. */
+function cargarPersistida(): Sesion | null {
+  try {
+    const raw = globalThis.localStorage?.getItem(STORAGE_KEY);
+    if (raw === null || raw === undefined) return null;
+    return JSON.parse(raw) as Sesion;
+  } catch {
+    return null;
+  }
+}
+
+function guardarPersistida(sesion: Sesion): void {
+  globalThis.localStorage?.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      sesionId: sesion.sesionId,
+      accessToken: sesion.accessToken,
+      expiraEn: sesion.expiraEn,
+      usuario: sesion.usuario,
+    }),
+  );
+}
+
 export const tokenStore: TokenStore = {
   cargar() {
-    try {
-      const raw = globalThis.localStorage?.getItem(STORAGE_KEY);
-      if (raw === null || raw === undefined) return null;
-      return JSON.parse(raw) as Sesion;
-    } catch {
-      // Un valor corrupto no debe tumbar el arranque: se trata como sin sesión.
-      return null;
-    }
+    if (sesionEnMemoria !== null) return sesionEnMemoria;
+    const persistida = cargarPersistida();
+    if (persistida === null) return null;
+    sesionEnMemoria = persistida;
+    return persistida;
   },
 
   guardar(sesion) {
-    globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify(sesion));
+    sesionEnMemoria = sesion;
+    refreshTokenEnMemoria = sesion.refreshToken;
+    guardarPersistida(sesion);
   },
 
   limpiar() {
+    sesionEnMemoria = null;
+    refreshTokenEnMemoria = undefined;
     globalThis.localStorage?.removeItem(STORAGE_KEY);
   },
 };
+
+/** Solo el cliente HTTP necesita consultar el refreshToken efímero. */
+export function obtenerRefreshTokenEnMemoria(): string | undefined {
+  return refreshTokenEnMemoria;
+}

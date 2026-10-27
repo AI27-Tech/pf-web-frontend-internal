@@ -74,7 +74,9 @@ export function useBandejaViajes(): BandejaViajes {
     estadoSeleccionado: vista.estado,
     cargando: query.isPending,
     error,
-    esNoAutorizado: query.error instanceof ApiError && query.error.kind === 'noAutorizado',
+    esNoAutorizado:
+      query.error instanceof ApiError &&
+      (query.error.kind === 'noAutorizado' || query.error.kind === 'sesionFinalizada'),
     reintentar: () => void query.refetch(),
     cambiarFiltro: (estado) => dispatch({ tipo: 'cambiarFiltro', nuevoEstado: estado }),
     irAPagina: (pagina) => dispatch({ tipo: 'irAPagina', pagina, cursorSiguiente }),

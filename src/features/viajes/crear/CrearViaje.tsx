@@ -6,7 +6,7 @@
  * endpoint alterno: la brecha se muestra como estado accionable.
  */
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   Badge,
@@ -25,6 +25,7 @@ import { useNavigate } from '@tanstack/react-router';
 
 import { useSession } from '@/context/SessionContext';
 import { ApiError } from '@/lib/api/errors';
+import { onCut } from '@/lib/api/sessionCut';
 import type { Unidad } from '@/lib/contracts/unidades';
 import { ClienteSelector } from './ClienteSelector';
 import {
@@ -48,7 +49,7 @@ const columnasUnidades = [
 ];
 
 export function CrearViaje() {
-  const { usuario, sesion, logout } = useSession();
+  const { usuario, sesion } = useSession();
   const navigate = useNavigate();
   const [clienteId, setClienteId] = useState('');
   const [origen, setOrigen] = useState('');
@@ -58,8 +59,11 @@ export function CrearViaje() {
   const [errores, setErrores] = useState<ErroresCrearViaje>({});
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
   const [resultado, setResultado] = useState<ResultadoCrearViaje | null>(null);
+  const [avisoSesionFinalizada, setAvisoSesionFinalizada] = useState(false);
   const envioEnCurso = useRef(false);
   const c = useCrearViaje(usuario?.rol === 'jefe_operativo');
+
+  useEffect(() => onCut(() => setAvisoSesionFinalizada(true)), []);
 
   if (usuario?.rol !== 'jefe_operativo') {
     return <AccesoNoAutorizado onVolver={() => void navigate({ to: '/viajes' })} />;
@@ -92,11 +96,7 @@ export function CrearViaje() {
       const nuevoResultado = await c.crear(datos);
       setResultado(nuevoResultado);
     } catch (error) {
-      if (error instanceof ApiError && error.kind === 'noAutorizado') {
-        await logout();
-        void navigate({ to: '/login', search: { redirect: '/viajes/crear' } });
-        return;
-      }
+      if (error instanceof ApiError && error.kind === 'sesionFinalizada') return;
       setErrorEnvio(mensajeErrorCrearViaje(error));
     } finally {
       envioEnCurso.current = false;
@@ -115,6 +115,11 @@ export function CrearViaje() {
       }}
     >
       <header>
+        {avisoSesionFinalizada && (
+          <p role="alert" style={{ color: 'var(--ui-color-error)', margin: 0 }}>
+            Tu sesión finalizó. La información capturada no se envió.
+          </p>
+        )}
         <Button variant="ghost" type="button" onClick={volver}>
           Volver a viajes
         </Button>

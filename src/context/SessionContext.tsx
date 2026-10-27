@@ -3,12 +3,6 @@
  *
  * Exporta su Provider y su hook de consumo juntos a propósito (ver la nota en
  * eslint.config.js sobre react-refresh en src/context/).
- *
- * Responsabilidades:
- *  - Hidratar la sesión desde el TokenStore al arrancar.
- *  - Exponer login / logout, delegando el HTTP a lib/api/sesion.ts.
- *  - Refrescar CON MARGEN antes de expirar: el refresco es donde bff reevalúa
- *    los claims. Un 401 a media conexión significa "reconecta tras refrescar".
  */
 
 import {
@@ -20,12 +14,15 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { Toast, ToastContainer } from '@ai27-tech/ui';
 
 import { ApiError } from '@/lib/api/errors';
 import { cerrarSesion, iniciarSesion, refrescarSesion } from '@/lib/api/sesion';
+import { onCut, restablecerCorte } from '@/lib/api/sessionCut';
 import { tokenStore } from '@/lib/api/tokenStore';
 import { SESSION_REFRESH_MARGIN_MS } from '@/lib/constants';
 import type { CredencialesEntrada, Sesion, Usuario } from '@/lib/contracts';
+import { router } from '@/app/router';
 
 interface SessionValue {
   /** Sesión activa, o null si no hay nadie autenticado. */
@@ -36,19 +33,21 @@ interface SessionValue {
   authenticating: boolean;
   /** Inicia sesión. Lanza ApiError('credencialesInvalidas') si fallan. */
   login: (credenciales: CredencialesEntrada) => Promise<void>;
-  /** Cierra sesión: avisa a bff (best-effort) y limpia el estado local. */
+  /** Cierra la sesión local y avisa a bff de forma best-effort. */
   logout: () => Promise<void>;
 }
 
 const SessionContext = createContext<SessionValue | null>(null);
 
 export function SessionProvider({ children }: { readonly children: ReactNode }) {
-  // Hidratación síncrona: si había sesión en el store, arrancamos con ella.
   const [sesion, setSesion] = useState<Sesion | null>(() => tokenStore.cargar());
   const [authenticating, setAuthenticating] = useState(false);
+  const [motivoCorte, setMotivoCorte] = useState<string | null>(null);
 
   const applySession = useCallback((next: Sesion | null) => {
     if (next) {
+      restablecerCorte();
+      setMotivoCorte(null);
       tokenStore.guardar(next);
     } else {
       tokenStore.limpiar();
@@ -70,7 +69,6 @@ export function SessionProvider({ children }: { readonly children: ReactNode }) 
 
   const logout = useCallback(async () => {
     const current = sesion;
-    // Limpiamos local primero: la UI no debe quedar "dentro" si bff tarda o falla.
     applySession(null);
     if (current) {
       try {
@@ -81,25 +79,31 @@ export function SessionProvider({ children }: { readonly children: ReactNode }) 
     }
   }, [sesion, applySession]);
 
-  // Refresco con margen: un temporizador reprogramado en cada cambio de sesión.
-  useEffect(() => {
-    if (!sesion) return;
+  useEffect(
+    () =>
+      onCut((motivo) => {
+        applySession(null);
+        setMotivoCorte(motivo);
+        void router.navigate({
+          to: '/login',
+          search: { redirect: router.state.location.href, motivo },
+        });
+      }),
+    [applySession],
+  );
 
-    // El contrato marca refresh_token como opcional; sin él no hay refresco posible.
-    const refreshToken = sesion.refreshToken;
-    if (!refreshToken) return;
+  useEffect(() => {
+    if (!sesion?.refreshToken) return;
 
     const delay = Math.max(0, sesion.expiraEn - Date.now() - SESSION_REFRESH_MARGIN_MS);
     const timer = setTimeout(() => {
       void (async () => {
         try {
-          applySession(await refrescarSesion(refreshToken));
+          applySession(await refrescarSesion(sesion.refreshToken!));
         } catch (error) {
-          // Solo un rechazo explícito de autorización invalida la sesión.
           if (error instanceof ApiError && error.kind === 'noAutorizado') {
             applySession(null);
           }
-          // La indisponibilidad y los fallos ambiguos conservan la sesión vigente.
         }
       })();
     }, delay);
@@ -112,7 +116,20 @@ export function SessionProvider({ children }: { readonly children: ReactNode }) 
     [sesion, authenticating, login, logout],
   );
 
-  return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
+  return (
+    <SessionContext.Provider value={value}>
+      {children}
+      {motivoCorte !== null && (
+        <ToastContainer position="top-right">
+          <Toast
+            variant="info"
+            title="Tu sesión finalizó. Inicia sesión de nuevo para continuar."
+            onClose={() => setMotivoCorte(null)}
+          />
+        </ToastContainer>
+      )}
+    </SessionContext.Provider>
+  );
 }
 
 /** Hook de consumo. Lanza si se usa fuera del Provider: es un error de montaje. */
