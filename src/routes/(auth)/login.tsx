@@ -1,5 +1,6 @@
 /* Ruta pública de login. */
 
+import { Toast, ToastContainer } from '@ai27-tech/ui';
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 
 import LoginForm from '@/features/sesion/LoginForm';
@@ -53,6 +54,14 @@ function LoginPage() {
       </aside>
 
       <section className="bg-surface flex items-center justify-center p-6 sm:p-10">
+        {search.motivo === 'sesion_finalizada' && (
+          <ToastContainer position="top-right">
+            <Toast
+              variant="info"
+              title="Tu sesión finalizó. Inicia sesión de nuevo para continuar."
+            />
+          </ToastContainer>
+        )}
         <LoginForm onSuccess={handleSuccess} />
       </section>
     </main>

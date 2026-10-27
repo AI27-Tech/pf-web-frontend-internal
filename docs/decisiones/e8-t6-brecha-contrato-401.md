@@ -1,8 +1,8 @@
 # Brecha de contrato — `401` sin causa distinguible
 
-**Identificador:** BRECHA-CONTRATO-1  
-**Origen:** E8-T6 — corte de sesión no recuperable en los portales  
-**Estado:** abierta, fuera del alcance de implementación frontend  
+**Identificador:** BRECHA-CONTRATO-1
+**Origen:** E8-T6 — corte de sesión no recuperable en los portales
+**Estado:** abierta, fuera del alcance de implementación frontend
 **Destino:** `pf-pkg-contracts` / `bff`
 
 ## Situación

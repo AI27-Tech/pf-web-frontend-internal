@@ -14,7 +14,6 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Toast, ToastContainer } from '@ai27-tech/ui';
 
 import { ApiError } from '@/lib/api/errors';
 import { cerrarSesion, iniciarSesion, refrescarSesion } from '@/lib/api/sesion';
@@ -42,12 +41,10 @@ const SessionContext = createContext<SessionValue | null>(null);
 export function SessionProvider({ children }: { readonly children: ReactNode }) {
   const [sesion, setSesion] = useState<Sesion | null>(() => tokenStore.cargar());
   const [authenticating, setAuthenticating] = useState(false);
-  const [motivoCorte, setMotivoCorte] = useState<string | null>(null);
 
   const applySession = useCallback((next: Sesion | null) => {
     if (next) {
       restablecerCorte();
-      setMotivoCorte(null);
       tokenStore.guardar(next);
     } else {
       tokenStore.limpiar();
@@ -83,7 +80,6 @@ export function SessionProvider({ children }: { readonly children: ReactNode }) 
     () =>
       onCut((motivo) => {
         applySession(null);
-        setMotivoCorte(motivo);
         void router.navigate({
           to: '/login',
           search: { redirect: router.state.location.href, motivo },
@@ -116,20 +112,7 @@ export function SessionProvider({ children }: { readonly children: ReactNode }) 
     [sesion, authenticating, login, logout],
   );
 
-  return (
-    <SessionContext.Provider value={value}>
-      {children}
-      {motivoCorte !== null && (
-        <ToastContainer position="top-right">
-          <Toast
-            variant="info"
-            title="Tu sesión finalizó. Inicia sesión de nuevo para continuar."
-            onClose={() => setMotivoCorte(null)}
-          />
-        </ToastContainer>
-      )}
-    </SessionContext.Provider>
-  );
+  return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 
 /** Hook de consumo. Lanza si se usa fuera del Provider: es un error de montaje. */
