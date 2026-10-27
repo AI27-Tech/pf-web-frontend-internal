@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 2026:10:26 18:00
+
+**Resumen:** Se implementó E8-T6 en el Portal_Interno: corte reactivo de sesión ante un `401` no recuperable, refresco coordinado con reintento único, `refreshToken` solo en memoria, navegación al login con destino preservado y Mensaje_Sesion_Finalizada compuesto con `@ai27-tech/ui`.
+
+**Cambios:**
+
+- `src/lib/api/client.ts`, `refreshCoordinator.ts` y `sessionCut.ts`: máquina de recuperabilidad del `401`, coalescencia del refresco y corte idempotente.
+- `src/lib/api/tokenStore.ts`: sesión únicamente en memoria; no se persisten credenciales en `localStorage`.
+- `src/context/SessionContext.tsx` y la ruta de login: navegación a `/login?motivo=sesion_finalizada` y aviso neutral.
+- Pruebas Vitest y `e2e/session-cut.spec.ts` para refresco exitoso, corte, degradación y evento observable.
+- `docs/decisiones/e8-t6-brecha-contrato-401.md`: registro de la brecha contractual externa.
+
+**Señalado fuera del alcance:** el contrato actual no distingue con un `codigo` entre token expirado y sesión revocada; el portal no inventa esa causa.
+
 Todos los cambios relevantes del proyecto se documentan en este archivo.
 Las entradas se escriben en español, con fecha en formato `yyyy:mm:dd` y hora en formato `hora:minuto`.
 Las entradas más recientes se colocan al inicio.

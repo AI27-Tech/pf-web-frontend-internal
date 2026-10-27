@@ -50,7 +50,7 @@ describe('listarUnidades', () => {
     );
 
     await expect(listarUnidades('token')).rejects.toMatchObject({
-      kind: 'noAutorizado',
+      kind: 'sesionFinalizada',
       status: 401,
     });
   });

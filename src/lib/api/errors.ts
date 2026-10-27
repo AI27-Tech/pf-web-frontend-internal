@@ -11,6 +11,8 @@ export type ApiErrorKind =
   | 'invalidCredentials'
   /** Token ausente o vencido a media conexión: reconecta tras refrescar. */
   | 'noAutorizado'
+  /** La sesión no pudo recuperarse y el portal ejecutó el corte. */
+  | 'sesionFinalizada'
   /** Recurso inexistente (404). */
   | 'noEncontrado'
   /** Un servicio aguas-abajo respondió degradado (5xx). No es ausencia de dato. */

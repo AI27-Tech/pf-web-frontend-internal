@@ -47,6 +47,12 @@ export const handlers = [
   // GET /viajes — listado de la bandeja (E8-T7). Filtra por `estado` y pagina por
   // `cursor` del lado del "bff" simulado; el cliente solo muestra lo que regresa.
   http.get(path('/viajes'), ({ request }) => {
+    if (
+      request.headers.get('x-mock-session-cut') === '1' ||
+      request.headers.get('cookie')?.includes('ai27-mock-session-cut=1')
+    ) {
+      return HttpResponse.json({ mensaje: 'Sesión finalizada' }, { status: 401 });
+    }
     const url = new URL(request.url);
     const pagina = listarViajesMock(url.searchParams.get('estado'), url.searchParams.get('cursor'));
     return HttpResponse.json(pagina, { status: 200 });
@@ -191,7 +197,15 @@ export const handlers = [
   }),
 
   // POST /sesion/refresh — renueva la sesión. El mock no valida el refresh_token.
-  http.post(path('/sesion/refresh'), () => HttpResponse.json(createSessionWire(), { status: 200 })),
+  http.post(path('/sesion/refresh'), ({ request }) => {
+    if (
+      request.headers.get('x-mock-session-cut') === '1' ||
+      request.headers.get('cookie')?.includes('ai27-mock-session-cut=1')
+    ) {
+      return HttpResponse.json({ mensaje: 'Sesión revocada' }, { status: 401 });
+    }
+    return HttpResponse.json(createSessionWire(), { status: 200 });
+  }),
 
   // DELETE /sesion — cierre de sesión. Sin cuerpo.
   http.delete(path('/sesion'), () => new HttpResponse(null, { status: 204 })),
