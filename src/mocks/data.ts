@@ -13,6 +13,7 @@ import { EstadoViaje, TRANSICIONES_VIAJE } from '@/lib/contracts/viajeDetalle';
 import type { ViajeResumen, PaginaViajesResumen, CrearViajeEntrada } from '@/lib/contracts/viajes';
 import type { Cliente, PaginaClientes } from '@/lib/contracts/clientes';
 import type { ViajeDetalle } from '@/lib/contracts/viajeDetalle';
+import type { FichaTecnica } from '@/lib/contracts/fichaTecnica';
 import type { Asignacion, AptitudRecurso } from '@/lib/contracts/viajeDetalle';
 import type { Unidad } from '@/lib/contracts/unidades';
 
@@ -259,6 +260,27 @@ const DETALLES_VIAJES: ViajeDetalleStore = {
 };
 
 let siguienteViajeDemo = 2000;
+
+/** Fichas demo publicadas por la operación simulada. */
+const FICHAS_DEMO: Record<string, FichaTecnica> = {
+  'VJ-1001': {
+    viaje_id: 'VJ-1001',
+    tracto: {
+      placas: 'ABC-123',
+      economico: 'TR-27',
+      marca: 'Kenworth',
+      modelo: 'T680',
+      color: 'Blanco',
+    },
+    contenedores: [],
+    gps_ids: [],
+  },
+};
+
+/** Recupera la ficha demo; null representa una ficha aún no capturada. */
+export function obtenerFichaMock(id: string): FichaTecnica | null {
+  return FICHAS_DEMO[id] ?? null;
+}
 
 /** Crea un viaje APROBADO en la base simulada y deja listo su detalle. */
 export function crearViajeMock(entrada: CrearViajeEntrada): ViajeResumen {

@@ -92,6 +92,8 @@ interface ToastItem {
 export function DetalleViaje({ id }: DetalleViajeProps) {
   /** true cuando el modal de selección de unidades está abierto (E8-T10). */
   const [modalAsignacionAbierto, setModalAsignacionAbierto] = useState(false);
+  const { usuario } = useSession();
+  const navigate = useNavigate();
   const d = useDetalleViaje(id, { habilitarRoster: modalAsignacionAbierto });
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [modalEtaAbierto, setModalEtaAbierto] = useState(false);
@@ -266,6 +268,15 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
       <h1 className="ui-text-headline-lg" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
         Detalle del Viaje: {viajeInterno.id}
       </h1>
+      {usuario?.rol === 'monitorista' && (
+        <Button
+          variant="secondary"
+          type="button"
+          onClick={() => void navigate({ to: '/viajes/$id/ficha', params: { id } })}
+        >
+          Abrir ficha técnica
+        </Button>
+      )}
 
       {/* Cabecera: estado y condiciones en columnas separadas (P15, Req 1.2, 1.3) */}
       <Card>

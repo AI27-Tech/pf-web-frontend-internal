@@ -22,6 +22,7 @@ import {
   completarFechaHoraMock,
   listarUnidadesMock,
   asignarEscoltaMock,
+  obtenerFichaMock,
   UNIDADES_DEMO,
   UNIDADES_SIN_DISPONIBLES_DEMO,
 } from './data';
@@ -56,6 +57,18 @@ export const handlers = [
     const url = new URL(request.url);
     const pagina = listarViajesMock(url.searchParams.get('estado'), url.searchParams.get('cursor'));
     return HttpResponse.json(pagina, { status: 200 });
+  }),
+
+  // GET /viajes/{id}/ficha — lectura de la ficha técnica (E8-T12).
+  http.get(path('/viajes/:id/ficha'), ({ params }) => {
+    const { id } = params as { id: string };
+    const ficha = obtenerFichaMock(id);
+
+    if (!ficha) {
+      return HttpResponse.json({ mensaje: 'Ficha no encontrada' }, { status: 404 });
+    }
+
+    return HttpResponse.json(ficha, { status: 200 });
   }),
 
   // GET /viajes/{id}/detalle — detalle del viaje con estado canónico, destinos y eta_estimado.

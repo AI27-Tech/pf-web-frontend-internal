@@ -1,12 +1,14 @@
 # Brechas de contrato y UI — E8-T12 Ficha técnica del viaje
 
-## Resumen
+## Estado vigente — 2026-10-28
 
-E8-T12 (`E1-HU-006`) pide que el `monitorista` **capture y edite** la ficha técnica del viaje desde el panel interno: datos generales, escolta derivada, tracto del cliente (objeto `{placas, economico, marca, modelo, color}`, DEC-100), destinos (1..N), contenedores (0..N) y lista de GPS del catálogo registrado, con edición incremental (DEC-043).
+La verificación posterior del contrato supersede el análisis histórico de este documento: `pf-pkg-contracts` publicó `v0.1.0-tracer.21` con `obtenerFicha`, `guardarFicha` (PATCH), `Tracto`, `Contenedor`, `gps_ids`, `GET /api/v1/gps`, `tipo_servicio` y `arribo`; el frontend ya consume `@ai27-tech/contracts@0.1.0-tracer.21`. Las brechas de publicación descritas abajo quedan cerradas. Permanecen como trabajo frontend la implementación de escritura y como dependencia operativa la entrega de datos reales del catálogo GPS.
 
-**Estado actualizado (contexto `b4ce19c`).** Las decisiones de negocio que estaban abiertas ya se cerraron con Producto y se registraron como **DEC-100..104** y **ADR 36**, con la forma contractual decidida en `repos/ai27-platform-context/.scratch/e8-t12-ficha-tecnica/BORRADOR-FORMA.md`. Ya **no hay pendientes de producto**: los antiguos P-1 (campos de la `unidad`) y P-2 (obligatoriedad) quedaron resueltos (ver "Decisiones de cierre").
+## Registro histórico de brechas (verificación anterior a tracer.21)
 
-**Lo único que falta es ejecución de Contratos:** publicar la ola en `pf-pkg-contracts` (siguiente tracer libre tras `.20`) que materialice `obtenerFicha`, `guardarFicha`, el catálogo de GPS, `tipo_servicio` en lectura y `arribo` en destino. Hasta que ese tracer se publique y el frontend suba su dependencia, la escritura sigue **condicionada**: no se inventa superficie local (regla 6 del scaffold y `ai27-tech-library-first`).
+Las decisiones de negocio que estaban abiertas ya se cerraron con Producto y se registraron como **DEC-100..104** y **ADR 36**, con la forma contractual decidida en `repos/ai27-platform-context/.scratch/e8-t12-ficha-tecnica/BORRADOR-FORMA.md`. Ya **no hay pendientes de producto**: los antiguos P-1 (campos de la `unidad`) y P-2 (obligatoriedad) quedaron resueltos (ver "Decisiones de cierre").
+
+**Estado histórico contra tracer.20:** la forma de ficha aún no estaba publicada en esa versión. Este registro queda superseded por el estado vigente de tracer.21 al inicio del documento.
 
 ## Decisiones de cierre (DEC-100..104 / ADR 36)
 
@@ -24,7 +26,7 @@ Forma decidida en el borrador de Contratos; todo salió de sesión con Producto.
 ## Versiones verificadas
 
 - **Contexto:** `repos/ai27-platform-context` en `main`, commit `b4ce19c`, árbol limpio, al día con `origin/main`. Incluye DEC-100..104, ADR 36 y el borrador de forma de E8-T12.
-- **Contrato:** `@ai27-tech/contracts@0.1.0-tracer.20`, fijado en `repos/pf-web-frontend-internal/package.json`. La forma de ficha **aún no está publicada**: no existe `obtenerFicha`/`guardarFicha` en ninguna rama ni tag de `pf-pkg-contracts` (verificado por `git log --all -S`). El checkout local está en la rama `pf-contracts-m` y sus tags locales llegan solo hasta `tracer.9`; la superficie publicada vigente se lee contra el tag `v0.1.0-tracer.20` (el que fija el consumidor).
+- **Contrato histórico:** `@ai27-tech/contracts@0.1.0-tracer.20` era la versión fijada al levantar estas brechas. La superficie publicada vigente ahora es `v0.1.0-tracer.21`; ver el estado vigente al inicio del documento.
 - **UI:** `@ai27-tech/ui@0.2.0-beta.6`, fijado en `package.json`.
 
 ## Superficie disponible hoy (para no reinventarla)

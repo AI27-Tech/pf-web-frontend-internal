@@ -15,6 +15,7 @@ export { Rol, ROLES, esRol, esInterno } from '@ai27-tech/contracts/roles';
 export type { SesionWire, CredencialesEntrada, RefrescoEntrada, Sesion, Usuario } from './sesion';
 export type { Cliente, PaginaClientes } from './clientes';
 export type { AsignacionEntrada, AptitudRecurso, UnidadAsignada, Asignacion } from './viajeDetalle';
+export type { FichaTecnica, FichaTecnicaEntrada, DispositivoGps, PaginaGps } from './fichaTecnica';
 export { parseSesion, SesionInvalidaError } from './sesion';
 
 // Claims del JWT (brecha contractual aislada).
