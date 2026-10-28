@@ -2,15 +2,15 @@
 
 ## Introduction
 
-**Ficha técnica del viaje (E8-T12)** permite al `monitorista` de la mesa de bitácora capturar y editar, desde el panel interno, la ficha técnica del servicio, para que el expediente del `viaje` quede completo aunque la custodia reporte por teléfono o radio. La funcionalidad implementa el comportamiento confirmado de `E1-HU-006`: el usuario interno captura y edita la ficha; la ficha refleja la **escolta** (una o más `unidades` del roster) sin recapturar custodios sueltos; el **tracto del cliente** es texto libre; el viaje admite **varios destinos (1..N)** y **0..N contenedores**; la **lista de GPS** se elige del catálogo registrado (DEC-047); la bitácora es **editable** con **activación manual** en V1 (DEC-043); y `cuenta espejo`, `clave_amago` y `kit de seguridad` **no existen** en V1 (DEC-009, DEC-039, DEC-047).
+**Ficha técnica del viaje (E8-T12)** permite al `monitorista` de la mesa de bitácora capturar y editar, desde el panel interno, la ficha técnica del servicio, para que el expediente del `viaje` quede completo aunque la custodia reporte por teléfono o radio. La funcionalidad implementa el comportamiento confirmado de `E1-HU-006`: el usuario interno captura y edita la ficha; la ficha refleja la **escolta** (una o más `unidades` del roster) sin recapturar custodios sueltos; el **tracto del cliente** se captura como objeto `{placas, economico, marca, modelo, color}` de texto libre opcional (DEC-100); el viaje admite **varios destinos (1..N)** y **0..N contenedores**; la **lista de GPS** se elige del catálogo registrado (DEC-047); la bitácora es **editable** con **activación manual** en V1 (DEC-043); y `cuenta espejo`, `clave_amago` y `kit de seguridad` **no existen** en V1 (DEC-009, DEC-039, DEC-047).
 
 Este documento define el comportamiento funcional del frontend interno. El frontend no inventará endpoints, payloads, campos, catálogos ni componentes compartidos. La UI captura y edita, representa el resultado confirmado por el servidor y clasifica respuestas; autorización, alcance, atomicidad, auditoría y persistencia pertenecen al BFF y al dominio.
 
-**Hallazgo de verificación.** El comportamiento funcional de E8-T12 **está decidido** en el repo de contexto (commit `ba1abc3`): ficha editable e incremental (DEC-011, DEC-043), destinos 1..N y contenedores 0..N (DEC-012, DEC-013), lista de GPS del catálogo registrado (DEC-012 #3 + DEC-047 #2, que cierra el antiguo punto abierto de GPS), tracto texto libre (DEC-011 #2, DEC-044 #6) y exclusiones de `cuenta espejo`/`clave_amago`/`kit de seguridad` (DEC-009, DEC-039, DEC-047 #3). Ninguna de estas es una decisión de producto pendiente.
+**Hallazgo de verificación (actualizado, contexto `b4ce19c`).** El comportamiento funcional de E8-T12 está **decidido y cerrado**: ficha editable e incremental (DEC-011, DEC-043), destinos 1..N y contenedores 0..N (DEC-012, DEC-013), lista de GPS del catálogo registrado (DEC-012 #3 + DEC-047 #2) y exclusiones de `cuenta espejo`/`clave_amago`/`kit de seguridad` (DEC-009, DEC-039, DEC-047 #3). Además, las decisiones que estaban abiertas se resolvieron con Producto y se registraron como **DEC-100..104 / ADR 36**: el **tracto** pasa de texto libre a objeto `{placas, economico, marca, modelo, color}` (supera DEC-011 #2); el **contenedor** tiene `{economico, placas, sello, color}`; la **ficha es 100% opcional** sin guardas de estado en V1; `tipo_servicio` es **solo lectura**; el **catálogo de GPS** nace en `catalogos` con selector solo activos. **No quedan pendientes de producto** (los antiguos P-1 y P-2 están resueltos).
 
-Lo que está **pendiente es la superficie contractual**, no la decisión. Contra el contrato instalado (`@ai27-tech/contracts@0.1.0-tracer.20`, verificado en el tag `v0.1.0-tracer.20` del repo `pf-pkg-contracts`), el `bff` **no expone escritura ni edición de la ficha técnica**, ni campos para **contenedores**, **tracto del cliente** o **lista de GPS del catálogo**. Lo único disponible es la lectura del detalle interno (`obtenerViajeInterno` → `ViajeDetalle`), limitada a `estado`, `origen`, `destinos[{nombre, numero_envio}]`, `cliente_id`, `fecha_hora_servicio`, `eta_estimado` y condiciones activas; y la proyección de solo lectura `FichaTecnicaDescarga` usada por la descarga del expediente (E6-T3). Por lo tanto la capacidad central de E8-T12 —capturar y editar la ficha— queda **condicionada a una brecha de contrato** documentada en `BRECHAS.md`, no a una decisión de negocio. Este documento especifica el comportamiento decidido sin inventar la superficie faltante; los requisitos de escritura quedan marcados como condicionados a la brecha de contrato.
+Lo que está **pendiente es la publicación del contrato**, no la decisión. Contra el contrato instalado (`@ai27-tech/contracts@0.1.0-tracer.20`), el `bff` todavía no expone `obtenerFicha`/`guardarFicha`, `Tracto`, `Contenedor`, `gps_ids`, el catálogo `GET /api/v1/gps`, `tipo_servicio` en lectura ni `arribo` en destino; se verificó que no existen en ninguna rama ni tag de `pf-pkg-contracts`. Lo disponible hoy es la lectura del detalle interno (`obtenerViajeInterno` → `ViajeDetalle`) y la proyección de descarga dentro de `DescargaViaje` (E6-T3). Por lo tanto la capacidad de escritura de E8-T12 queda **condicionada a que Contratos publique la ola** (siguiente tracer tras `.20`) y a que el frontend suba su dependencia; la forma ya está decidida en `ai27-platform-context/.scratch/e8-t12-ficha-tecnica/BORRADOR-FORMA.md`. Este documento especifica el comportamiento decidido sin inventar la superficie; los requisitos de escritura quedan marcados como condicionados a la publicación.
 
-Pendientes de producto reales (dueño Operación, ver `BRECHAS.md` P-1 y P-2): los campos exactos de la `unidad` en la ficha y la obligatoriedad por campo. Son los únicos puntos genuinamente abiertos.
+**Alerta de alcance cruzado:** el nuevo schema `Tracto` también afecta `CrearViajeEntrada` (E8-T11), porque el tracto se captura al crear el viaje y al completar la ficha. El cambio debe coordinarse con esa tarea.
 
 ## Glossary
 
@@ -20,8 +20,8 @@ Pendientes de producto reales (dueño Operación, ver `BRECHAS.md` P-1 y P-2): l
 - **Ficha técnica**: expediente de datos del servicio (datos generales, escolta, tracto, destinos, contenedores, lista de GPS) distinto del histórico de bitácora (E8-T13).
 - **Escolta**: conjunto de una o más `unidades` asignadas al viaje (E1-HU-004 / E8-T10), cada una un paquete pre-armado de vehículo + custodios.
 - **Unidad**: paquete del roster (vehículo + custodios) que integra la escolta; se muestra derivada de la asignación y no se recaptura.
-- **Tracto del cliente**: identificación del tractocamión del cliente, capturada como **texto libre** (DEC-011/DEC-017).
-- **Contenedor**: dato repetible (0..N) de la ficha.
+- **Tracto del cliente**: identificación del tractocamión del cliente, capturada como objeto `{placas, economico, marca, modelo, color}` de texto libre opcional (DEC-100/C-1; supera DEC-011 #2).
+- **Contenedor**: dato repetible (0..N) de la ficha, con `{economico, placas, sello, color}` de texto libre opcional (DEC-101/C-2).
 - **Destino**: parada del viaje; la ficha admite 1..N destinos ordenados.
 - **Lista de GPS**: referencia a dispositivos elegidos del **catálogo registrado** de GPS (DEC-047); sin ingestión ni seguimiento en vivo.
 - **Activación manual**: en V1 la bitácora se activa manualmente; no hay disparo por telemetría (DEC-043).
@@ -66,12 +66,13 @@ Pendientes de producto reales (dueño Operación, ver `BRECHAS.md` P-1 y P-2): l
 
 ### Requirement 4: Tracto del cliente como texto libre
 
-**User Story:** Como `monitorista`, quiero capturar el tracto del cliente como texto libre, para registrarlo sin depender de un catálogo.
+**User Story:** Como `monitorista`, quiero capturar el tracto del cliente con sus datos de identificación, para registrarlo sin depender de un catálogo de recursos de AI27.
 
 #### Acceptance Criteria
 
-1. WHEN la captura del tracto esté disponible por contrato, THE FichaTecnica_UI SHALL capturar el tracto del cliente como **texto libre** y SHALL NOT exigir una selección de catálogo para ese dato. **(Condicionado a la Brecha 1.)**
-2. THE FichaTecnica_UI SHALL conservar el valor capturado de tracto tal como el usuario lo ingrese, sujeto a las reglas de validación confirmadas.
+1. WHEN la captura del tracto esté disponible por contrato, THE FichaTecnica_UI SHALL capturar el tracto como objeto con `placas`, `economico`, `marca`, `modelo` y `color`, todos **texto libre opcional**, y SHALL NOT exigir una selección de catálogo para esos datos (DEC-100/C-1). **(Condicionado a la publicación del schema `Tracto`.)**
+2. THE FichaTecnica_UI SHALL conservar los valores capturados del tracto tal como el usuario los ingrese, sujeto a las reglas de validación confirmadas.
+3. THE FichaTecnica_UI SHALL mantener coherente la forma del tracto con `CrearViajeEntrada` (E8-T11), ya que el mismo objeto se captura al crear el viaje.
 
 ### Requirement 5: Destinos y contenedores como grupos repetibles
 
@@ -173,18 +174,14 @@ Dado que el contrato no expone escritura de ficha, contenedores o lista de GPS, 
 
 ## Notas de brechas
 
-Estas notas son prerrequisitos de verificación y no reglas de producto. Si una verificación no está disponible, se documenta la brecha en `BRECHAS.md` y no se inventa una alternativa. Todas verificadas contra `@ai27-tech/contracts@0.1.0-tracer.20` (tag `v0.1.0-tracer.20`) y `@ai27-tech/ui@0.2.0-beta.6`.
+Estas notas son prerrequisitos de verificación y no reglas de producto. Las decisiones de negocio están cerradas (DEC-100..104 / ADR 36); lo que falta es publicar la ola en `pf-pkg-contracts`. Detalle completo en `BRECHAS.md`.
 
-- **Lectura (verificada):** el BFF expone `obtenerViajeInterno` (`GET /api/v1/viajes/{id}/detalle`) → `ViajeDetalle` con `viaje` (`ViajeInterno`: `id`, `estado`, `origen`, `destinos[{nombre, numero_envio}]`, `cliente_id?`, `fecha_hora_servicio?`, `eta_estimado?`, `creado_en`) y `condiciones_activas[]`. Es la base de solo lectura disponible.
-- **Escolta (verificada):** `GET /api/v1/viajes/{id}/asignacion` (`asignarRecursos`/espejo) y `listarUnidades` (`GET /api/v1/unidades`) dan la escolta/roster; la ficha representa la escolta derivada, no la recaptura.
-  Las brechas 1–4 son de **contrato, no de decisión**: el comportamiento está decidido (se cita la DEC) y falta publicar la superficie en el `bff`.
-
-- **Brecha 1 — escritura/edición de ficha (decidida en DEC-011/DEC-043; contrato pendiente):** el BFF **no** expone ninguna operación `PUT`/`PATCH`/`POST` de ficha técnica que capture o edite los datos. `FichaTecnicaDescarga` es solo lectura para la descarga del expediente (E6-T3). Ver `BRECHAS.md` Brecha 1.
-- **Brecha 2 — contenedores (decididos 0..N en DEC-012 #2; contrato pendiente):** el contrato no modela contenedores en ningún schema del viaje. Ver `BRECHAS.md` Brecha 2.
-- **Brecha 3 — lista de GPS de catálogo (decidida en DEC-012 #3 / DEC-047 #2; contrato pendiente):** el BFF no expone la superficie para elegir GPS del catálogo registrado ni asociarlos a la ficha. Ver `BRECHAS.md` Brecha 3.
-- **Brecha 4 — tracto del cliente (decidido texto libre en DEC-011 #2 / DEC-044 #6; contrato pendiente):** no hay campo de tracto en la lectura ni en ninguna entrada de escritura disponible. Ver `BRECHAS.md` Brecha 4.
-- **Pendiente de producto P-1 (realmente abierto):** los **campos exactos** de la `unidad` que muestra la ficha están abiertos en `propuesta-modelo-bitacora-v1.md §4 #8`, con dueño Operación. La escolta se muestra derivada de la asignación y no se recaptura; los campos mostrados quedan sujetos a esa definición. Ver `BRECHAS.md` P-1.
-- **Pendiente de producto P-2 (realmente abierto):** la **obligatoriedad por campo** (incluidos destinos y contenedores) está abierta en `propuesta-modelo-bitacora-v1.md §4 #7` y la Nota de DEC-012. La UI solo fuerza obligatorios confirmados; mientras tanto admite datos faltantes (DEC-043). Ver `BRECHAS.md` P-2.
+- **Lectura (verificada, `tracer.20`):** el BFF expone `obtenerViajeInterno` (`GET /api/v1/viajes/{id}/detalle`) → `ViajeDetalle` con `viaje` (`ViajeInterno`: `id`, `estado`, `origen`, `destinos[{nombre, numero_envio}]`, `cliente_id?`, `fecha_hora_servicio?`, `eta_estimado?`, `creado_en`) y `condiciones_activas[]`. Es la base de solo lectura disponible hoy.
+- **Escolta (verificada, `tracer.20`):** `GET /api/v1/viajes/{id}/asignacion` y `listarUnidades` (`GET /api/v1/unidades`) dan la escolta/roster; la ficha representa la escolta derivada reutilizando `Asignacion`/`UnidadAsignada`/`Unidad`, no la recaptura (P-1 resuelto).
+- **Forma decidida, pendiente de publicar:** `obtenerFicha` + `guardarFicha` (`PATCH`, ningún `required` salvo `viaje_id`); `Tracto {placas, economico, marca, modelo, color}`; `Contenedor {economico, placas, sello, color}` `0..N`; `gps_ids[]` + catálogo `GET /api/v1/gps` (`DispositivoGps {id, identificador, activo}`, solo activos); `tipo_servicio` solo lectura en `ViajeInterno`; `arribo: boolean` en `Destino`. Verificado que **nada de esto existe aún** en ninguna rama ni tag de `pf-pkg-contracts`.
+- **Semántica de escritura (decidida):** `PATCH` con colecciones por reemplazo — propiedad omitida no se toca, `tracto: null` borra el tracto, arreglo `[]` vacía la lista, elemento de contenedor `{}` se descarta, `gps_ids` se deduplica. La ficha es 100% opcional; no hay guardas de estado en V1 (P-2 resuelto, C-3).
+- **Alcance cruzado:** el schema `Tracto` también afecta `CrearViajeEntrada` (E8-T11). Coordinar.
+- **Datos pendientes:** valores reales del catálogo de GPS (Operación, DEC-047); no bloquean la forma, sí la operación real del selector.
 - **Librerías compartidas (verificado):** `@ai27-tech/ui@0.2.0-beta.6` ofrece `Form`/`FormSection`/`FormRow`/`FormActions`, `Input`/`Textarea`/`Select`/`Checkbox`/`Radio`/`Switch`/`FormField`, `Button`, `Table`, `Modal`, `Toast`, `Badge`, `Card`, `Pagination`, `FilterTable`, `Navbar`, `Sidebar`, `Tooltip`. **Sin componente dedicado de grupo repetible ni de multiselección de catálogo:** los grupos de destinos/contenedores y la selección de GPS se componen con primitivas (`FormRow` + `Input`/`Textarea` + `Button` para agregar/quitar; `Table`/`Card` + `Checkbox` para selección múltiple), nunca con un componente local nuevo; un control dedicado sería una solicitud a la librería.
 
 ## Trazabilidad
@@ -192,7 +189,7 @@ Estas notas son prerrequisitos de verificación y no reglas de producto. Si una 
 - Acceso y separación ficha/histórico: Requirement 1 y escenario 1.
 - Lectura y escolta derivada: Requirement 2 y escenario 1.
 - Captura/edición incremental: Requirement 3 y escenarios 2, 7, 9 (condicionados a Brecha 1).
-- Tracto texto libre: Requirement 4 (condicionado a Brecha 1/4).
+- Tracto como objeto de texto libre: Requirement 4 (condicionado a la publicación del schema `Tracto`; alcance cruzado con E8-T11).
 - Destinos y contenedores repetibles: Requirement 5 y escenarios 3, 6 (contenedores condicionados a Brecha 2).
 - Lista de GPS de catálogo: Requirement 6 y escenario 4 (condicionado a Brecha 3).
 - Campos excluidos ausentes: Requirement 7 y escenario 5.
