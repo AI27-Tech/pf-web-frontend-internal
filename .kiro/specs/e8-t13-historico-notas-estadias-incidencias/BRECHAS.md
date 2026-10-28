@@ -2,23 +2,35 @@
 
 Documento de brechas del spec. Cada brecha indica qué pide la tarea, qué existe hoy, qué falta, el impacto en el spec y la propuesta de resolución. **No** se rellena nada con una alternativa local: una operación ausente se solicita al repo de contratos; un componente ausente se compone con primitivas de la librería o se solicita a la librería.
 
-## Fuentes y versiones verificadas
+## Estado (actualizado 2026-10-27)
 
-- **Contexto:** `repos/ai27-platform-context@ba1abc3` (árbol limpio, al día con `origin/main`). Historia técnica en `docs/historias-tecnicas/E8-panel-admin.md` §E8-T13. HU `E1-HU-007`, `E1-HU-008`, `E1-HU-009`. Decisiones DEC-003, DEC-006, DEC-011, DEC-020 #3, DEC-038, DEC-045, DEC-060.
-- **Contrato:** fijado por `repos/pf-web-frontend-internal/package.json`: `@ai27-tech/contracts@0.1.0-tracer.20`, `@ai27-tech/ui@0.2.0-beta.6`. El checkout local de `repos/pf-pkg-contracts` está en la rama `pf-contracts-m` (`31e6e2a`), **no** en un tag; el contrato se leyó contra el tag `v0.1.0-tracer.20`, que es también el último publicado. Por tanto el frontend está en la versión más reciente.
+Las tres brechas que dependían del contrato quedaron **resueltas o decididas** con fuente verificada. El único pendiente externo es la **publicación del tracer**: la ola vive en la rama `feat/ficha-tecnica-e-historico-tracer21` (PR #76, commit `a47ed70`), aún sin promover a `-m` ni taguear. Hoy `package.json` fija `@ai27-tech/contracts@0.1.0-tracer.20`; cuando se publique `tracer.21` y se suba el pin, T13 cierra sus brechas de contrato.
+
+| Brecha                                   | Estado                                                  | Base verificada                                                      |
+| ---------------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------- |
+| 1. Operaciones del histórico en el `bff` | Resuelta en la rama (pendiente de publicar `tracer.21`) | `bff.yaml` de la rama + DEC-105                                      |
+| 2. Tipo de entrada de bitácora           | Decidida: V1 solo `{ texto }`, sin tipo                 | `propuesta-clasificacion-estatus-v1.md` §5 (no hay catálogo cerrado) |
+| 3. `tipo_interno` de incidencia          | Decidida: V1 `string`, enum en ola aditiva posterior    | DEC-003 §2 (lista existe) + DEC-105                                  |
+| 4. Componentes de `@ai27-tech/ui`        | No depende del contrato                                 | Verificación en el frontend                                          |
 
 ---
 
-## Brecha 1 — Operaciones del histórico ausentes en el `bff` (BLOQUEANTE)
+## Fuentes y versiones verificadas
 
-**Qué pide la tarea.** E8-T13 declara el contrato `POST`/`GET /api/v1/viajes/{id}/bitacora` y `POST`/`PATCH /api/v1/viajes/{id}/incidencias[/{iid}]`, y la historia de estadías (`E1-HU-008`) exige abrir/cerrar/listar estadías. El frontend interno solo habla con el `bff`.
+- **Contexto:** `repos/ai27-platform-context` al día con `origin/main`. Historia técnica en `docs/historias-tecnicas/E8-panel-admin.md` §E8-T13. HU `E1-HU-007`, `E1-HU-008`, `E1-HU-009`. Decisiones DEC-003, DEC-006, DEC-011, DEC-020 #3, DEC-038, DEC-045, DEC-060 y **DEC-105** (commit `1ee30db`: proyección del histórico al `bff` para E8-T13; `tipo_interno` se mantiene `string`, a tipificar en ola aditiva).
+- **Contrato:** fijado por `repos/pf-web-frontend-internal/package.json`: `@ai27-tech/contracts@0.1.0-tracer.20`, `@ai27-tech/ui@0.2.0-beta.6`. El último tag publicado es `v0.1.0-tracer.20`. La ola de T13 (las 7 operaciones del histórico) vive en la rama `feat/ficha-tecnica-e-historico-tracer21` (PR #76, commit `a47ed70`), que sube `VERSION`/`package.json` a `tracer.21` y regenera los clientes (`bff.gen.ts`, `bff.gen.go`, etc.). Aún no promovida ni tagueada.
 
-**Qué existe hoy.**
+---
 
-- En `bff.yaml@v0.1.0-tracer.20`: de este dominio solo **lecturas curadas** — `IncidenciaCurada` (categoría + estado para el cliente, DEC-006), `IncidenciaActiva`/`CondicionAbierta` embebidas en el detalle interno (solo lectura), y `EntradaBitacoraDescarga` (expediente de descarga, E6). **No hay** ninguna ruta de escritura ni lectura operativa del histórico.
-- En `operacion.yaml@v0.1.0-tracer.20`: existen las siete operaciones — `listarBitacora`, `registrarEntradaBitacora`, `abrirIncidencia`, `resolverIncidencia`, `listarEstadias`, `abrirEstadia`, `cerrarEstadia`. `operacion` es consumo interno del `bff`, **no** del frontend.
+## Brecha 1 — Operaciones del histórico en el `bff` (RESUELTA en la rama; pendiente de publicar `tracer.21`)
 
-**Qué falta exactamente.** Que el `bff` exponga (reenviando a `operacion`):
+**Qué pedía la tarea.** E8-T13 declara `POST`/`GET /api/v1/viajes/{id}/bitacora` y `POST`/`PATCH /api/v1/viajes/{id}/incidencias[/{iid}]`, y la historia de estadías (`E1-HU-008`) exige abrir/cerrar/listar estadías. El frontend interno solo habla con el `bff`.
+
+**Estado.** En el último tag publicado (`v0.1.0-tracer.20`) el `bff` **no** exponía estas operaciones; solo tenía lecturas curadas (`IncidenciaCurada`, `IncidenciaActiva`/`CondicionAbierta` del detalle interno, `EntradaBitacoraDescarga`). La rama `feat/ficha-tecnica-e-historico-tracer21` (PR #76) **ya las agrega al `bff`**, reenviando a `operacion`, y DEC-105 registra la decisión. Verificado contra el `bff.yaml` de la rama: las siete operaciones existen con sus schemas, los `409` (`condicion_ya_abierta`, `estadia_ya_cerrada`), el `403` y el estado de incidencia tipado `enum [en_atencion, resuelta]`.
+
+**Qué queda.** Que la rama pase CI, se promueva a `-m` y se taguee `tracer.21`, y que `package.json` del frontend suba el pin de `tracer.20` a `tracer.21`. Hasta entonces, la pantalla se construye contra el **contrato esperado**, con la brecha aislada en `lib/contracts/historicoViaje.ts` y servida con mocks (MSW); al publicar, se reemplazan esos tipos por los generados (`@ai27-tech/contracts/openapi/bff`) — cambio de importación, no reescritura.
+
+**Operaciones (verificadas en el `bff.yaml` de la rama, reenviando a `operacion`):**
 
 | Operación esperada         | Método y ruta (esperada)                      | Request                                            | Response                                                        |
 | -------------------------- | --------------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------- |
@@ -30,42 +42,30 @@ Documento de brechas del spec. Cada brecha indica qué pide la tarea, qué exist
 | `abrirEstadia`             | `POST /api/v1/viajes/{id}/estadias`           | `EstadiaEntrada { motivo, eje_autorizacion }`      | `201 Estadia`                                                   |
 | `cerrarEstadia`            | `PATCH /api/v1/viajes/{id}/estadias/{eid}`    | `CierreEstadiaEntrada {}` (vacío)                  | `200 Estadia` / `409 estadia_ya_cerrada`                        |
 
-Formas de respuesta (verificadas en `operacion.yaml@v0.1.0-tracer.20`):
+Formas de respuesta (verificadas en el `bff.yaml` de la rama):
 
 - `Incidencia { id, viaje_id, tipo_interno, estado(en_atencion|resuelta), abierta_en, resuelta_en? }`.
 - `Estadia { id, viaje_id, motivo, eje_autorizacion, inicio, cierre? }`. La **duración se deriva** de `inicio`/`cierre`; no es un campo, no existe `prolongada` ni umbral (DEC-038).
 
-**Impacto en el spec.** Bloquea las operaciones reales de los Requirements 1–5. La pantalla se construye contra el **contrato esperado**, con la brecha aislada en `lib/contracts/historicoViaje.ts` y servida con mocks (MSW). Reemplazo mecánico cuando el `bff` publique.
+---
 
-**Propuesta de resolución.** Solicitar al dueño de `pf-pkg-contracts` exponer las siete operaciones en el `bff` (reenvío a `operacion`), preservando el curado de incidencia hacia el cliente (DEC-006) y el índice único parcial (`409 condicion_ya_abierta`). Es la misma brecha de superficie que ya reportó E8-T8 para transiciones/ETA; conviene resolverlas juntas. Mientras tanto, no se escriben clientes a mano como autoridad paralela.
+## Brecha 2 — Tipo de entrada de bitácora (DECIDIDA: V1 solo texto)
+
+**Qué pedía la tarea.** `E1-HU-009` define un campo **Tipo de entrada** (nota de monitoreo / observación).
+
+**Resolución (confirmada por Contratos contra la fuente).** En `propuesta-clasificacion-estatus-v1.md` §5 las "anotaciones de bitácora" están como prosa suelta, **no** como un catálogo cerrado `nota/observacion`. No existe una lista validada de dos valores. Por tanto, en V1 la bitácora es solo `{ texto }`, sin tipo de entrada. El contrato **no** lo inventa.
+
+**Impacto en el spec.** Requirement 2.4 queda como **"V1 sin tipo de entrada"**: la UI captura solo texto. Tipar el campo sería una decisión **nueva de Producto** (definir el catálogo), no una brecha de contrato.
 
 ---
 
-## Brecha 2 — Catálogo de tipo de entrada de bitácora (CONDICIONA)
+## Brecha 3 — `tipo_interno` de incidencia (DECIDIDA: V1 `string`, enum en ola posterior)
 
-**Qué pide la tarea.** `E1-HU-009` define un campo **Tipo de entrada** (nota de monitoreo / observación) como catálogo obligatorio.
+**Qué pedía la tarea.** `E1-HU-007` registra la incidencia con su **tipo** desde un catálogo interno (DEC-003).
 
-**Qué existe hoy.** `EntradaBitacoraEntrada` del contrato tiene solo `{ texto }`; no hay enum de tipo de entrada.
+**Resolución (confirmada por Contratos contra la fuente).** Sí existe la lista de tipos internos, validada por Operación en `propuesta-clasificacion-estatus-v1.md` §2 (cerrada en DEC-003, 2026-10-02): ~20 valores (p. ej. _Asalto o Robo_, _Bloqueo Carretero_, _Desvío de Ruta_, _Falla Mecánica_, _Retiro de GPS_). Lo que impide tiparla a enum en esta ola **no** es la ausencia de catálogo, sino tres cosas: (1) la forma del token (prosa con acentos/espacios, falta fijar snake_case); (2) la lista no está congelada (DEC-003 deja un pendiente documental, p. ej. _LT No Responde_); (3) mezcla de dimensiones (algunos valores al curarse resultan observación o condición de señal, no incidencia). DEC-105 registra que `tipo_interno` se mantiene `string` y se tipifica en una **ola aditiva posterior** con su propia DEC.
 
-**Qué falta.** Un catálogo/enum de tipo de entrada, o la confirmación de que en V1 la bitácora es solo texto.
-
-**Impacto en el spec.** Requirement 2.4 queda condicionado: la UI ofrece el tipo como dato tipado solo si el contrato lo publica; no inventa valores.
-
-**Propuesta de resolución.** Confirmar con Operación (DEC-003 cita la validación del catálogo del histórico como pendiente) y, si aplica, solicitar el enum en el contrato.
-
----
-
-## Brecha 3 — Catálogo de tipos internos de incidencia (CONDICIONA)
-
-**Qué pide la tarea.** `E1-HU-007` registra la incidencia con su **tipo** desde un catálogo interno (DEC-003).
-
-**Qué existe hoy.** `IncidenciaEntrada.tipo_interno` es `string` libre en el contrato; no hay enum publicado del catálogo operativo.
-
-**Qué falta.** El enum/catálogo de tipos internos de incidencia (DEC-003 marca la clasificación como validada por Operación el 2026-10-02, pero el contrato aún no lo tipa).
-
-**Impacto en el spec.** Requirement 4.2 queda condicionado: el selector de tipo se ofrece desde el catálogo cuando exista; la UI no inventa tipos.
-
-**Propuesta de resolución.** Solicitar el catálogo tipado (o su fuente desde `catalogos`) para el `bff`/contrato. Mientras tanto, el tipo se trata como el `string` del contrato sin una lista cerrada inventada.
+**Impacto en el spec.** Requirement 4.2 queda como **"V1: `string`, enum planificado"**. La UI trata `tipo_interno` como texto; **no** inventa un selector cerrado con esos ~20 valores mientras el contrato no publique el enum curado.
 
 ---
 

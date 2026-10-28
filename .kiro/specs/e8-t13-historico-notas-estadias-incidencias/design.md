@@ -6,9 +6,9 @@ Diseño del **histórico del viaje: notas, estadías e incidencias** (E8-T13): l
 
 ### Hecho de contrato verificado (fundamento del diseño)
 
-Contexto consultado: `ai27-platform-context@ba1abc3` (árbol limpio, al día). Contrato fijado por el frontend: `@ai27-tech/contracts@0.1.0-tracer.20`, `@ai27-tech/ui@0.2.0-beta.6`. El contrato se leyó contra el tag `v0.1.0-tracer.20` del repo de contratos (el checkout local está en la rama `pf-contracts-m`, no en el tag; el tag `.20` es también el último publicado, así que el frontend está al día).
+Contexto consultado: `ai27-platform-context` al día (incluye DEC-105). Contrato fijado por el frontend: `@ai27-tech/contracts@0.1.0-tracer.20`, `@ai27-tech/ui@0.2.0-beta.6`.
 
-El `bff` (`bff.yaml`) hoy **NO expone** escritura ni lectura del histórico interno. De este dominio solo tiene **lecturas curadas**: `IncidenciaCurada` (categoría + estado para el cliente, DEC-006), `IncidenciaActiva`/`CondicionAbierta` embebidas en el detalle interno (solo lectura), y `EntradaBitacoraDescarga` (expediente de descarga, E6). Las operaciones que esta historia necesita existen **solo en `operacion.yaml`**, que el frontend no consume directo:
+Estado del contrato: el `bff` del tag publicado `v0.1.0-tracer.20` **no** expone escritura ni lectura del histórico interno (solo lecturas curadas: `IncidenciaCurada`, `IncidenciaActiva`/`CondicionAbierta` del detalle, `EntradaBitacoraDescarga`). La ola que **agrega las siete operaciones al `bff`** (reenviando a `operacion`) vive en la rama `feat/ficha-tecnica-e-historico-tracer21` (PR #76, DEC-105), pendiente de publicar como `tracer.21`. Verificadas en el `bff.yaml` de la rama con sus schemas, `409`/`403` y el estado de incidencia `enum [en_atencion, resuelta]`. Forma esperada (la misma que la rama ya trae):
 
 ```
 # Bitácora (E1-HU-009)
@@ -29,7 +29,7 @@ PATCH /api/v1/viajes/{id}/estadias/{eid}      cerrarEstadia             body Cie
 #   EjeAutorizacionEstadia enum: autorizada|no_autorizada|antes_200km
 ```
 
-Consecuencia de diseño: la ausencia de estas operaciones en el `bff` se maneja como **brecha de contrato aislada** —tipos de wire esperados en una sola capa (`lib/contracts/historicoViaje.ts`) y mocks (MSW) que los sirven. Cuando el `bff` publique el contrato, se reemplazan esos tipos por los generados de `@ai27-tech/contracts/openapi/bff` —cambio de importación, no reescritura. Nada del resto del código asume más que el contrato esperado. Detalle y resolución en `BRECHAS.md`.
+Consecuencia de diseño: mientras el pin siga en `tracer.20`, la superficie del histórico se maneja como **capa de contrato aislada** —tipos de wire esperados en una sola capa (`lib/contracts/historicoViaje.ts`) y mocks (MSW) que los sirven. Cuando se publique `tracer.21` y suba el pin, se reemplazan esos tipos por los generados de `@ai27-tech/contracts/openapi/bff` —cambio de importación, no reescritura. Nada del resto del código asume más que el contrato esperado. Detalle y resolución en `BRECHAS.md`.
 
 Dos propiedades del dominio son del `bff`/backend, no de la UI: la **atomicidad del índice único parcial** (una sola incidencia abierta por tipo → `409 condicion_ya_abierta`) y la **autorización por rol** de corrección/cierre (`403`). La interfaz no las reimplementa: deriva la visibilidad del gesto del rol de sesión y clasifica las respuestas.
 
@@ -80,7 +80,7 @@ Verificación de la lista de la librería pendiente contra `@ai27-tech/ui@0.2.0-
 
 ## Componentes y responsabilidades
 
-- **`lib/contracts/historicoViaje.ts`** — tipos de wire esperados (`EntradaBitacora`, `EntradaBitacoraEntrada`, `PaginaBitacora`, `Incidencia`, `IncidenciaEntrada`, `ResolucionIncidenciaEntrada`, `Estadia`, `EstadiaEntrada`, `CierreEstadiaEntrada`, `PaginaEstadias`, enums `MotivoEstadia`/`EjeAutorizacionEstadia`), documentados como brecha. Único punto de cambio cuando el `bff` publique el contrato.
+- **`lib/contracts/historicoViaje.ts`** — tipos de wire esperados (`EntradaBitacora`, `EntradaBitacoraEntrada`, `PaginaBitacora`, `Incidencia`, `IncidenciaEntrada`, `ResolucionIncidenciaEntrada`, `Estadia`, `EstadiaEntrada`, `CierreEstadiaEntrada`, `PaginaEstadias`, enums `MotivoEstadia`/`EjeAutorizacionEstadia`). `tipo_interno` queda como `string` (sin enum en V1, DEC-105). Único punto de cambio: cuando el pin suba a `tracer.21`, estos tipos se reemplazan por los generados de `@ai27-tech/contracts/openapi/bff`.
 - **`lib/api/historicoViaje.ts`** — wrappers de las siete operaciones, delegando en `request` de `client.ts`. Traducen `409` por `codigo` (`condicion_ya_abierta`, `estadia_ya_cerrada`) y `403` (autorización de corrección) a clases de error, para que la presentación decida la política. No contiene reglas de dominio.
 - **`features/viajes/historico/duracionEstadia.ts`** — función pura `duracionDe(inicio, cierre?, ahora): Duracion` que deriva la duración; para una estadía abierta usa `ahora`. **No** clasifica ni rotula (DEC-038).
 - **`features/viajes/historico/visibilidadCorreccion.ts`** — función pura `puedeCorregirIncidencia(rol): boolean` que decide si se ofrece el gesto de resolver/cerrar (Supervisor/Coordinador sí; Monitorista no). Es una ayuda de interfaz; la autoridad final es el `403` del `bff`.
@@ -94,7 +94,7 @@ Verificación de la lista de la librería pendiente contra `@ai27-tech/ui@0.2.0-
 2. **Duración sin clasificación.** Para toda estadía, `duracionDe(inicio, cierre?, ahora)` depende solo de `inicio` y de `cierre ?? ahora`; nunca produce un rótulo `prolongada` ni un booleano de "estadía larga" (DEC-038).
 3. **Gesto de corrección por rol.** Para todo rol, `puedeCorregirIncidencia(rol)` es verdadero solo para Supervisor/Coordinador; falso para Monitorista. Ocultar el gesto no sustituye la autorización del `bff`: un `403` se clasifica como autorización insuficiente, no como error genérico.
 4. **Clasificación de 409.** Para todo `409` del wrapper, el `codigo` se mapea a la clase esperada (`condicion_ya_abierta` → segunda incidencia del mismo tipo; `estadia_ya_cerrada` → cierre duplicado) sin colapsarlos en un error genérico.
-5. **Enums cerrados.** Los selectores de estadía ofrecen exactamente los valores del enum del contrato (`MotivoEstadia`, `EjeAutorizacionEstadia`) y ninguno fuera de él; no hay captura de texto libre para esos campos.
+5. **Enums cerrados solo donde el contrato los define.** Los selectores de estadía ofrecen exactamente los valores del enum del contrato (`MotivoEstadia`, `EjeAutorizacionEstadia`) y ninguno fuera de él. En cambio, `tipo_interno` de incidencia es `string` en V1 (DEC-105): se captura como texto, sin un selector cerrado inventado, hasta que el contrato publique el enum curado. La bitácora es solo `{ texto }`, sin tipo de entrada.
 
 ## Mocks (MSW)
 
@@ -109,7 +109,8 @@ Ampliar `src/mocks/data.ts` y `handlers.ts` para servir el contrato esperado:
 ## Decisiones
 
 - **Append-only de principio a interfaz:** no se construye ningún gesto de edición o eliminación; la corrección es una nueva entrada. Es la propiedad probatoria de E8-T13 y su DoD.
-- **Brecha aislada en una capa:** toda la incertidumbre de contrato vive en `lib/contracts/historicoViaje.ts` + mocks; el resto del código asume solo el contrato esperado, igual que en E8-T8.
+- **Capa de contrato aislada hasta publicar `tracer.21`:** las operaciones ya existen en el `bff` de la rama (PR #76, DEC-105); mientras el pin siga en `tracer.20`, viven en `lib/contracts/historicoViaje.ts` + mocks, y se reemplazan por los tipos generados al subir el pin. El resto del código asume solo el contrato esperado, igual que en E8-T8.
+- **Catálogos decididos:** bitácora solo `{ texto }` (sin tipo de entrada); `tipo_interno` de incidencia es `string` en V1 con enum en ola posterior (DEC-105). La UI no inventa esos valores.
 - **Duración derivada, nunca clasificada:** la UI muestra inicio/cierre/duración y deja fuera `prolongada` y cualquier umbral (DEC-038); introducir uno sería implementar un umbral no aprobado.
 - **Rol como ayuda, `bff` como autoridad:** la visibilidad del gesto de corrección es conveniencia de interfaz; la autorización efectiva es del `bff`.
 - **Nada de UI nueva:** solo composición de `@ai27-tech/ui`; cualquier afordancia faltante se reporta como brecha.
