@@ -14,6 +14,7 @@ import type { ViajeResumen, PaginaViajesResumen, CrearViajeEntrada } from '@/lib
 import type { Cliente, PaginaClientes } from '@/lib/contracts/clientes';
 import type { ViajeDetalle } from '@/lib/contracts/viajeDetalle';
 import type { FichaTecnica } from '@/lib/contracts/fichaTecnica';
+import type { FichaTecnicaEntrada, DispositivoGps } from '@/lib/contracts/fichaTecnica';
 import type { Asignacion, AptitudRecurso } from '@/lib/contracts/viajeDetalle';
 import type { Unidad } from '@/lib/contracts/unidades';
 
@@ -27,7 +28,7 @@ export const DEMO_CREDENTIALS = {
 const DEMO_CLAIMS = {
   sub: 'usr-demo-1',
   tenant_id: 'tenant-demo',
-  rol: Rol.JefeOperativo,
+  rol: Rol.Monitorista,
   sesion_id: 'ses-demo-1',
 } as const;
 
@@ -280,6 +281,31 @@ const FICHAS_DEMO: Record<string, FichaTecnica> = {
 /** Recupera la ficha demo; null representa una ficha aún no capturada. */
 export function obtenerFichaMock(id: string): FichaTecnica | null {
   return FICHAS_DEMO[id] ?? null;
+}
+
+/** Catálogo demo de GPS; incluye un inactivo para demostrar el filtro contractual. */
+const GPS_DEMO: readonly DispositivoGps[] = [
+  { id: 'GPS-1001', identificador: 'GPS-ALPHA', activo: true },
+  { id: 'GPS-1002', identificador: 'GPS-BETA', activo: true },
+  { id: 'GPS-1003', identificador: 'GPS-INACTIVO', activo: false },
+];
+
+/** Recupera la página del catálogo registrado. */
+export function listarGpsMock() {
+  return { items: [...GPS_DEMO], cursor_siguiente: null };
+}
+
+/** Guarda la forma PATCH de la ficha en la base simulada. */
+export function guardarFichaMock(id: string, entrada: FichaTecnicaEntrada): FichaTecnica | null {
+  if (!DETALLES_VIAJES[id]) return null;
+
+  const actual = FICHAS_DEMO[id] ?? { viaje_id: id };
+  const siguiente: FichaTecnica = { ...actual };
+  if ('tracto' in entrada) siguiente.tracto = entrada.tracto;
+  if ('contenedores' in entrada) siguiente.contenedores = entrada.contenedores;
+  if ('gps_ids' in entrada) siguiente.gps_ids = entrada.gps_ids;
+  FICHAS_DEMO[id] = siguiente;
+  return siguiente;
 }
 
 /** Crea un viaje APROBADO en la base simulada y deja listo su detalle. */
