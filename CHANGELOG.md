@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 2026:10:29 17:40
+
+**Resumen:** Se cerró el lado frontend de **E8-T13** (histórico del `viaje`: notas, estadías e incidencias). El Portal_Interno expone una vista append-only bajo `/viajes/$id/historico` con tres secciones: bitácora (registrar y listar notas de solo texto, sin tipo de entrada en V1), estadías (abrir con `motivo` y `eje_autorizacion` de los enums del contrato, cerrar, y mostrar la duración **derivada** de `inicio`/`cierre` sin rótulo `prolongada` por DEC-038) e incidencias (marcar con `tipo_interno` como texto en V1, y resolver). La vista **no ofrece editar ni borrar**: la corrección de una incidencia agrega el cierre, nunca reescribe la apertura. El gesto de resolver incidencia solo se ofrece a `supervisor`/`coordinador`; la autoridad final es el `403` del BFF. Se adoptó `@ai27-tech/contracts@0.1.0-tracer.22`, que publica `listarIncidencias` (lectura que faltaba en `tracer.21`), completando las ocho operaciones del histórico; el histórico de incidencias previas ya es observable. `typecheck`, `lint`, la suite completa (37 archivos, 170 pruebas) y `build:mock` pasan.
+
+**Cambios:**
+
+- `src/features/viajes/historico/HistoricoViaje.tsx`: vista append-only con las tres secciones, estados de carga/vacío/error con reintento, avisos de éxito/rechazo (`condicion_ya_abierta`, `estadia_ya_cerrada`, `403`) con `Toast`, y modal de resolución visible solo según el rol.
+- `src/features/viajes/historico/NotaForm.tsx`, `EstadiaForm.tsx`, `IncidenciaForm.tsx`: captura de nota (solo texto), estadía (selectores de los enums del contrato) e incidencia (`tipo_interno` como texto, descripción opcional), con bloqueo de doble envío.
+- `src/features/viajes/historico/useHistoricoViaje.ts`: lecturas de bitácora, estadías e incidencias (`useQuery`, `retry: false`) y mutaciones que invalidan la lectura correspondiente; las incidencias se leen de `listarIncidencias` (tracer.22), no del estado de sesión.
+- `src/features/viajes/historico/duracionEstadia.ts` y `visibilidadCorreccion.ts`: función pura de duración derivada (sin clasificar) y predicado de rol para el gesto de corrección.
+- `src/lib/api/historicoViaje.ts` y `src/lib/contracts/historicoViaje.ts`: wrappers de las ocho operaciones con clasificación de `409`/`403` en clases de error, y alias de los tipos generados del contrato.
+- `src/mocks/data.ts` / `src/mocks/handlers.ts`: BFF simulado para bitácora, estadías e incidencias (incluido `GET /incidencias`), con los conflictos `409` por índice único parcial y cierre duplicado.
+- `src/routes/_private/viajes/$id/route.tsx`, `index.tsx`, `historico.tsx`: el detalle pasa a ruta índice y `$id` se vuelve layout con `<Outlet/>`; esto habilita el histórico y la ficha (E8-T12) como vistas hermanas bajo el mismo parámetro.
+- `tests/viajes/HistoricoViaje.test.tsx`, `historicoViaje.unit.test.ts`: cobertura de nota append-only, apertura/cierre de estadía con duración derivada, segunda incidencia rechazada con `condicion_ya_abierta`, resolución por `supervisor` y ausencia del gesto para `monitorista`, lectura del histórico al montar, y ausencia de editar/borrar.
+- `.kiro/specs/e8-t13-historico-notas-estadias-incidencias/*`: spec y cierre de brechas (las cinco brechas cerradas).
+
+**Señalado:** `tracer.22` cerró la última brecha de contrato (lectura de incidencias). Esta entrada se integra sobre el merge de `pf-wfi-d` que trajo E8-T12 (ficha técnica): el layout de rutas con `<Outlet/>` que introduce E8-T13 también habilita la vista de ficha, que había quedado anidada sin punto de montaje.
+
 ## 2026:10:29 14:30
 
 **Resumen:** Se cerró el lado frontend de **E8-T12** (ficha técnica del `viaje`): el `monitorista` consulta los datos conocidos del viaje y la `escolta` derivada del roster en solo lectura, y captura/edita la ficha de forma incremental. El tracto se captura como objeto `{placas, economico, marca, modelo, color}` de texto libre opcional; los contenedores son grupo repetible `0..N` con `{economico, placas, sello, color}`; la lista de GPS se elige del catálogo registrado (solo dispositivos activos). El guardado usa `PATCH` con colecciones por reemplazo y bloqueo de doble guardado, y la ficha se representa solo con la respuesta confirmada por el BFF. Se adoptó `@ai27-tech/contracts@0.1.0-tracer.21`, que publica `obtenerFicha`/`guardarFicha`, `Tracto`, `Contenedor`, el catálogo `GET /gps`, `tipo_servicio` en lectura y `arribo` en destino. `typecheck` y la suite completa (35 archivos, 155 pruebas) pasan.
