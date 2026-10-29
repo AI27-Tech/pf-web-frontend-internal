@@ -110,8 +110,8 @@ importers:
   .:
     dependencies:
       '@ai27-tech/contracts':
-        specifier: 0.1.0-tracer.21
-        version: 0.1.0-tracer.21
+        specifier: 0.1.0-tracer.22
+        version: 0.1.0-tracer.22
       '@ai27-tech/ui':
         specifier: 0.2.0-beta.6
         version: 0.2.0-beta.6(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -224,8 +224,8 @@ packages:
   '@adobe/css-tools@4.5.0':
     resolution: {integrity: sha512-6OzddxPio9UiWTCemp4N8cYLV2ZN1ncRnV1cVGtve7dhPOtRkleRyx32GQCYSwDYgaHU3USMm84tNsvKzRCa1Q==}
 
-  '@ai27-tech/contracts@0.1.0-tracer.21':
-    resolution: {integrity: sha512-c9UqE/BfpVisTCeg7UoRfLQ09Y1NGIJ5j7PzHxev4Uahblubi8Y1/+R2RHCAJO/K8u3RTP0GrWIg1XYK2ELPgA==, tarball: https://npm.pkg.github.com/download/@ai27-tech/contracts/0.1.0-tracer.21/b43d50bbed0fed9f180b67bbcb0884f9e8c12774}
+  '@ai27-tech/contracts@0.1.0-tracer.22':
+    resolution: {integrity: sha512-x4vcfzoegwSt89TfxY/P5wXE9KN7nO9IayGlSbsk8tcMe8GAZXhwG7GTmK8pfLsG4LP20gvQbdBr+0y2Sgfk9A==, tarball: https://npm.pkg.github.com/download/@ai27-tech/contracts/0.1.0-tracer.22/b080374fb8f53a018e06e521e769f423caff6a00}
 
   '@ai27-tech/ui@0.2.0-beta.6':
     resolution: {integrity: sha512-r6B4o0v06DVK4HAYdGAeZ8y23W27YnDQKdiZ7aftZE44TpRDeuXcTDlIUxzwptgfh9rSb5V4T5Qcwv3Vy7M7xw==, tarball: https://npm.pkg.github.com/download/@ai27-tech/ui/0.2.0-beta.6/af434e1bfa9207b170374252bdcd0a009d879d74}
@@ -2191,7 +2191,7 @@ snapshots:
 
   '@adobe/css-tools@4.5.0': {}
 
-  '@ai27-tech/contracts@0.1.0-tracer.21': {}
+  '@ai27-tech/contracts@0.1.0-tracer.22': {}
 
   '@ai27-tech/ui@0.2.0-beta.6(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
