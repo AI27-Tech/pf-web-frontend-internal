@@ -28,7 +28,7 @@ export const DEMO_CREDENTIALS = {
 const DEMO_CLAIMS = {
   sub: 'usr-demo-1',
   tenant_id: 'tenant-demo',
-  rol: Rol.Monitorista,
+  rol: Rol.JefeOperativo,
   sesion_id: 'ses-demo-1',
 } as const;
 
