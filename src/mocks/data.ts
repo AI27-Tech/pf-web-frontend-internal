@@ -464,3 +464,144 @@ export function asignarEscoltaMock(id: string, unidades_ids: string[]): Asignaci
     }),
   };
 }
+
+// E8-T13: colecciones append-only del histórico operativo.
+import type {
+  EntradaBitacora,
+  EntradaBitacoraEntrada,
+  Estadia,
+  EstadiaEntrada,
+  Incidencia,
+  IncidenciaEntrada,
+  PaginaBitacora,
+  PaginaEstadias,
+  PaginaIncidencias,
+} from '@/lib/contracts/historicoViaje';
+
+const TAMANO_PAGINA_HISTORICO = 2;
+const BITACORA_DEMO: EntradaBitacora[] = [
+  {
+    id: 'BIT-1001',
+    viaje_id: 'VJ-1001',
+    texto: 'Unidad en tránsito hacia el destino.',
+    autor: 'Mesa de monitoreo',
+    ts: new Date(Date.now() - 7_200_000).toISOString(),
+  },
+];
+const INCIDENCIAS_DEMO: Incidencia[] = [];
+const ESTADIAS_DEMO: Estadia[] = [
+  {
+    id: 'EST-1001',
+    viaje_id: 'VJ-1001',
+    motivo: 'descanso',
+    eje_autorizacion: 'autorizada',
+    inicio: new Date(Date.now() - 3_600_000).toISOString(),
+    cierre: null,
+  },
+];
+let siguienteHistoricoDemo = 2000;
+
+function paginaHistorico<T>(
+  items: readonly T[],
+  cursor: string | null,
+): { items: T[]; cursor_siguiente: string | null } {
+  const inicio = cursor ? Number.parseInt(cursor, 10) || 0 : 0;
+  const pagina = [...items.slice(inicio, inicio + TAMANO_PAGINA_HISTORICO)];
+  const fin = inicio + pagina.length;
+  return { items: pagina, cursor_siguiente: fin < items.length ? String(fin) : null };
+}
+
+export function listarBitacoraMock(viajeId: string, cursor: string | null): PaginaBitacora {
+  return paginaHistorico(
+    BITACORA_DEMO.filter((entrada) => entrada.viaje_id === viajeId),
+    cursor,
+  );
+}
+
+export function registrarEntradaBitacoraMock(
+  viajeId: string,
+  entrada: EntradaBitacoraEntrada,
+): EntradaBitacora {
+  const registrada: EntradaBitacora = {
+    id: `BIT-${siguienteHistoricoDemo++}`,
+    viaje_id: viajeId,
+    texto: entrada.texto,
+    autor: 'Operador demo',
+    ts: new Date().toISOString(),
+  };
+  BITACORA_DEMO.push(registrada);
+  return registrada;
+}
+
+export function listarIncidenciasMock(viajeId: string, cursor: string | null): PaginaIncidencias {
+  return paginaHistorico(
+    INCIDENCIAS_DEMO.filter((incidencia) => incidencia.viaje_id === viajeId).map((incidencia) => ({
+      ...incidencia,
+    })),
+    cursor,
+  );
+}
+
+export function abrirIncidenciaMock(
+  viajeId: string,
+  entrada: IncidenciaEntrada,
+): Incidencia | 'condicion_ya_abierta' {
+  if (
+    INCIDENCIAS_DEMO.some(
+      (incidencia) => incidencia.viaje_id === viajeId && incidencia.estado === 'en_atencion',
+    )
+  ) {
+    return 'condicion_ya_abierta';
+  }
+  const incidencia: Incidencia = {
+    id: `INC-${siguienteHistoricoDemo++}`,
+    viaje_id: viajeId,
+    tipo_interno: entrada.tipo_interno,
+    estado: 'en_atencion',
+    abierta_en: new Date().toISOString(),
+    resuelta_en: null,
+  };
+  INCIDENCIAS_DEMO.push(incidencia);
+  return incidencia;
+}
+
+export function resolverIncidenciaMock(viajeId: string, incidenciaId: string): Incidencia | null {
+  const incidencia = INCIDENCIAS_DEMO.find(
+    (item) => item.viaje_id === viajeId && item.id === incidenciaId,
+  );
+  if (!incidencia) return null;
+  incidencia.estado = 'resuelta';
+  incidencia.resuelta_en = new Date().toISOString();
+  return { ...incidencia };
+}
+
+export function listarEstadiasMock(viajeId: string, cursor: string | null): PaginaEstadias {
+  return paginaHistorico(
+    ESTADIAS_DEMO.filter((estadia) => estadia.viaje_id === viajeId),
+    cursor,
+  );
+}
+
+export function abrirEstadiaMock(viajeId: string, entrada: EstadiaEntrada): Estadia {
+  const estadia: Estadia = {
+    id: `EST-${siguienteHistoricoDemo++}`,
+    viaje_id: viajeId,
+    motivo: entrada.motivo,
+    eje_autorizacion: entrada.eje_autorizacion,
+    inicio: new Date().toISOString(),
+    cierre: null,
+  };
+  ESTADIAS_DEMO.push(estadia);
+  return estadia;
+}
+
+export function cerrarEstadiaMock(
+  viajeId: string,
+  estadiaId: string,
+): Estadia | 'estadia_ya_cerrada' | null {
+  const estadia = ESTADIAS_DEMO.find((item) => item.viaje_id === viajeId && item.id === estadiaId);
+  if (!estadia) return null;
+  if (estadia.cierre) return 'estadia_ya_cerrada';
+  estadia.cierre = new Date().toISOString();
+  return { ...estadia };
+}

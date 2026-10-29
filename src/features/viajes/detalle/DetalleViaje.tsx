@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 
 import {
   Badge,
@@ -25,8 +26,6 @@ import {
   Toast,
   ToastContainer,
 } from '@ai27-tech/ui';
-import { useNavigate } from '@tanstack/react-router';
-
 import { useSession } from '@/context/SessionContext';
 import { ApiError } from '@/lib/api/errors';
 import { ErrorAsignacion, ErrorTransicion } from '@/lib/api/viajeDetalle';
@@ -90,10 +89,10 @@ interface ToastItem {
  * 4. Si datos: renderiza cabecera, acciones, modal, ETA, avisos
  */
 export function DetalleViaje({ id }: DetalleViajeProps) {
+  const navigate = useNavigate();
+  const { usuario } = useSession();
   /** true cuando el modal de selección de unidades está abierto (E8-T10). */
   const [modalAsignacionAbierto, setModalAsignacionAbierto] = useState(false);
-  const { usuario } = useSession();
-  const navigate = useNavigate();
   const d = useDetalleViaje(id, { habilitarRoster: modalAsignacionAbierto });
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [modalEtaAbierto, setModalEtaAbierto] = useState(false);
@@ -277,6 +276,14 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
           Abrir ficha técnica
         </Button>
       )}
+
+      <Button
+        variant="secondary"
+        type="button"
+        onClick={() => void navigate({ to: '/viajes/$id/historico', params: { id } })}
+      >
+        Ver histórico del viaje
+      </Button>
 
       {/* Cabecera: estado y condiciones en columnas separadas (P15, Req 1.2, 1.3) */}
       <Card>

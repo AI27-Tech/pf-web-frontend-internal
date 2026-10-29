@@ -6,9 +6,9 @@ Diseño del **histórico del viaje: notas, estadías e incidencias** (E8-T13): l
 
 ### Hecho de contrato verificado (fundamento del diseño)
 
-Contexto consultado: `ai27-platform-context` al día (incluye DEC-105). Contrato fijado por el frontend: `@ai27-tech/contracts@0.1.0-tracer.20`, `@ai27-tech/ui@0.2.0-beta.6`.
+Contexto consultado: `ai27-platform-context` al día (incluye DEC-105). Contrato fijado por el frontend: `@ai27-tech/contracts@0.1.0-tracer.22`, `@ai27-tech/ui@0.2.0-beta.6`.
 
-Estado del contrato: el `bff` del tag publicado `v0.1.0-tracer.20` **no** expone escritura ni lectura del histórico interno (solo lecturas curadas: `IncidenciaCurada`, `IncidenciaActiva`/`CondicionAbierta` del detalle, `EntradaBitacoraDescarga`). La ola que **agrega las siete operaciones al `bff`** (reenviando a `operacion`) vive en la rama `feat/ficha-tecnica-e-historico-tracer21` (PR #76, DEC-105), pendiente de publicar como `tracer.21`. Verificadas en el `bff.yaml` de la rama con sus schemas, `409`/`403` y el estado de incidencia `enum [en_atencion, resuelta]`. Forma esperada (la misma que la rama ya trae):
+Estado del contrato: `tracer.22` **está publicado e instalado** y expone las ocho operaciones del histórico interno en el `bff` (reenviando a `operacion`), con sus schemas, `409`/`403` y el estado de incidencia `enum [en_atencion, resuelta]`. La lectura de incidencias (`listarIncidencias`) llegó en `tracer.22`; las otras siete en `tracer.21`. Verificadas directamente en `node_modules/@ai27-tech/contracts/.../openapi/bff.gen.ts`. Forma publicada:
 
 ```
 # Bitácora (E1-HU-009)
@@ -29,7 +29,7 @@ PATCH /api/v1/viajes/{id}/estadias/{eid}      cerrarEstadia             body Cie
 #   EjeAutorizacionEstadia enum: autorizada|no_autorizada|antes_200km
 ```
 
-Consecuencia de diseño: mientras el pin siga en `tracer.20`, la superficie del histórico se maneja como **capa de contrato aislada** —tipos de wire esperados en una sola capa (`lib/contracts/historicoViaje.ts`) y mocks (MSW) que los sirven. Cuando se publique `tracer.21` y suba el pin, se reemplazan esos tipos por los generados de `@ai27-tech/contracts/openapi/bff` —cambio de importación, no reescritura. Nada del resto del código asume más que el contrato esperado. Detalle y resolución en `BRECHAS.md`.
+Consecuencia de diseño: la superficie del histórico vive en una sola capa de contrato aislada (`lib/contracts/historicoViaje.ts`), con mocks (MSW) para desarrollo. Con `tracer.21` ya publicado, esa capa debe consumir los tipos generados de `@ai27-tech/contracts/openapi/bff` en vez de reafirmarlos a mano (deuda pendiente; ver `BRECHAS.md`). Nada del resto del código asume más que el contrato publicado.
 
 Dos propiedades del dominio son del `bff`/backend, no de la UI: la **atomicidad del índice único parcial** (una sola incidencia abierta por tipo → `409 condicion_ya_abierta`) y la **autorización por rol** de corrección/cierre (`403`). La interfaz no las reimplementa: deriva la visibilidad del gesto del rol de sesión y clasifica las respuestas.
 
@@ -109,7 +109,7 @@ Ampliar `src/mocks/data.ts` y `handlers.ts` para servir el contrato esperado:
 ## Decisiones
 
 - **Append-only de principio a interfaz:** no se construye ningún gesto de edición o eliminación; la corrección es una nueva entrada. Es la propiedad probatoria de E8-T13 y su DoD.
-- **Capa de contrato aislada hasta publicar `tracer.21`:** las operaciones ya existen en el `bff` de la rama (PR #76, DEC-105); mientras el pin siga en `tracer.20`, viven en `lib/contracts/historicoViaje.ts` + mocks, y se reemplazan por los tipos generados al subir el pin. El resto del código asume solo el contrato esperado, igual que en E8-T8.
+- **Capa de contrato aislada (`tracer.21` ya publicado):** las operaciones existen en el `bff` publicado (DEC-105) y el pin ya está en `tracer.21`. La capa `lib/contracts/historicoViaje.ts` + mocks sigue siendo el único punto de acoplamiento, pero debe consumir los tipos generados en vez de reafirmarlos a mano (deuda pendiente). El resto del código asume solo el contrato, igual que en E8-T8.
 - **Catálogos decididos:** bitácora solo `{ texto }` (sin tipo de entrada); `tipo_interno` de incidencia es `string` en V1 con enum en ola posterior (DEC-105). La UI no inventa esos valores.
 - **Duración derivada, nunca clasificada:** la UI muestra inicio/cierre/duración y deja fuera `prolongada` y cualquier umbral (DEC-038); introducir uno sería implementar un umbral no aprobado.
 - **Rol como ayuda, `bff` como autoridad:** la visibilidad del gesto de corrección es conveniencia de interfaz; la autorización efectiva es del `bff`.
