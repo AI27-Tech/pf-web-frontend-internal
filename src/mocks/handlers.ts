@@ -22,11 +22,15 @@ import {
   completarFechaHoraMock,
   listarUnidadesMock,
   asignarEscoltaMock,
+  obtenerFichaMock,
+  guardarFichaMock,
+  listarGpsMock,
   UNIDADES_DEMO,
   UNIDADES_SIN_DISPONIBLES_DEMO,
 } from './data';
 import type { TransicionEntrada, EtaEntrada, FechaHoraEntrada } from '@/lib/contracts/viajeDetalle';
 import type { CrearViajeEntrada } from '@/lib/contracts/viajes';
+import type { FichaTecnicaEntrada } from '@/lib/contracts/fichaTecnica';
 
 const path = (segment: string) => `${API_PREFIX}${segment}`;
 
@@ -56,6 +60,36 @@ export const handlers = [
     const url = new URL(request.url);
     const pagina = listarViajesMock(url.searchParams.get('estado'), url.searchParams.get('cursor'));
     return HttpResponse.json(pagina, { status: 200 });
+  }),
+
+  // GET /gps — catálogo registrado; el wrapper vuelve a filtrar activos como defensa.
+  http.get(path('/gps'), () => {
+    return HttpResponse.json(listarGpsMock(), { status: 200 });
+  }),
+
+  // GET /viajes/{id}/ficha — lectura de la ficha técnica (E8-T12).
+  http.get(path('/viajes/:id/ficha'), ({ params }) => {
+    const { id } = params as { id: string };
+    const ficha = obtenerFichaMock(id);
+
+    if (!ficha) {
+      return HttpResponse.json({ mensaje: 'Ficha no encontrada' }, { status: 404 });
+    }
+
+    return HttpResponse.json(ficha, { status: 200 });
+  }),
+
+  // PATCH /viajes/{id}/ficha — guardado parcial de la ficha (E8-T12).
+  http.patch(path('/viajes/:id/ficha'), async ({ params, request }) => {
+    const { id } = params as { id: string };
+    const body = (await request.json()) as FichaTecnicaEntrada;
+    const ficha = guardarFichaMock(id, body);
+
+    if (!ficha) {
+      return HttpResponse.json({ mensaje: 'Viaje no encontrado' }, { status: 404 });
+    }
+
+    return HttpResponse.json(ficha, { status: 200 });
   }),
 
   // GET /viajes/{id}/detalle — detalle del viaje con estado canónico, destinos y eta_estimado.
