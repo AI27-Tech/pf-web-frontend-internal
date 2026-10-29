@@ -10,7 +10,7 @@ import { createFileRoute } from '@tanstack/react-router';
 
 import { DetalleViaje } from '@/features/viajes/detalle/DetalleViaje';
 
-export const Route = createFileRoute('/_private/viajes/$id')({
+export const Route = createFileRoute('/_private/viajes/$id/')({
   component: DetalleViajeRoute,
 });
 
