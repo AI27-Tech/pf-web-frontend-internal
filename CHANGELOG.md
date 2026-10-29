@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## 2026:10:29 14:30
+
+**Resumen:** Se cerró el lado frontend de **E8-T12** (ficha técnica del `viaje`): el `monitorista` consulta los datos conocidos del viaje y la `escolta` derivada del roster en solo lectura, y captura/edita la ficha de forma incremental. El tracto se captura como objeto `{placas, economico, marca, modelo, color}` de texto libre opcional; los contenedores son grupo repetible `0..N` con `{economico, placas, sello, color}`; la lista de GPS se elige del catálogo registrado (solo dispositivos activos). El guardado usa `PATCH` con colecciones por reemplazo y bloqueo de doble guardado, y la ficha se representa solo con la respuesta confirmada por el BFF. Se adoptó `@ai27-tech/contracts@0.1.0-tracer.21`, que publica `obtenerFicha`/`guardarFicha`, `Tracto`, `Contenedor`, el catálogo `GET /gps`, `tipo_servicio` en lectura y `arribo` en destino. `typecheck` y la suite completa (35 archivos, 155 pruebas) pasan.
+
+**Cambios:**
+
+- `src/features/viajes/ficha/FichaTecnicaViaje.tsx`: vista de la ficha con datos del viaje, destinos en solo lectura (con `arribo`) y la sección de `escolta` derivada del roster (`listarUnidades`), sin recaptura de custodios ni patrulla.
+- `src/features/viajes/ficha/FichaEditor.tsx` y `adaptadorFichaTecnica.ts`: editor incremental compuesto con primitivas de `@ai27-tech/ui` y frontera de adaptador al contrato (`PATCH`, colecciones por reemplazo, deduplicación de GPS, descarte de contenedores vacíos).
+- `src/features/viajes/ficha/useFichaTecnica.ts`: estado de lectura de detalle, ficha, catálogo GPS y escolta; mutación que representa la ficha solo con la respuesta del BFF.
+- `src/lib/api/fichaTecnica.ts` y `src/lib/contracts/fichaTecnica.ts`: wrapper y alias de contrato para `obtenerFicha`, `guardarFicha` y el catálogo de GPS (solo activos).
+- `src/mocks/data.ts` / `src/mocks/handlers.ts`: BFF simulado para ficha y catálogo GPS.
+- `src/routes/_private/viajes/$id/ficha.tsx`: ruta privada de la ficha del viaje.
+- `tests/viajes/FichaTecnicaViaje.test.tsx`, `FichaEditor.test.tsx`, `fichaTecnica.test.ts`: cobertura de lectura, escolta derivada, contenedores `0..N`, selección de GPS, adaptador, bloqueo de doble guardado y ausencia de campos excluidos.
+- `.kiro/specs/e8-t12-ficha-tecnica-viaje/*`: spec y cierre de brechas.
+
+**Señalado (fuera del alcance V1):** la **edición** de destinos desde la ficha queda fuera por **DEC-109** (destinos de solo lectura en V1; se capturan al crear el viaje). Su edición post-creación se difiere al camino B (una operación nueva del viaje) en una fase posterior. El `arribo` del destino existe en el contrato pero ninguna operación lo escribe aún (deuda registrada en DEC-109, no bloquea V1). `tracer.22` (lectura de incidencias) pertenece a E8-T13, no a esta tarea.
+
 ## 2026:10:26 18:00
 
 **Resumen:** Se implementó E8-T6 en el Portal_Interno: corte reactivo de sesión ante un `401` no recuperable, refresco coordinado con reintento único, `refreshToken` solo en memoria, navegación al login con destino preservado y Mensaje_Sesion_Finalizada compuesto con `@ai27-tech/ui`.
