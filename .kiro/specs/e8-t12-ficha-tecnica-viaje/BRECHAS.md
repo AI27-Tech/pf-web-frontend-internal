@@ -6,17 +6,19 @@ La verificación posterior del contrato supersede el análisis histórico de est
 
 **Implementado y verificado (155 pruebas en verde, `tsc` limpio):** lectura del detalle y de la ficha, **escolta derivada en solo lectura vía `listarUnidades`**, lectura de destinos con `arribo`, formulario de datos generales, contenedores `0..N`, tracto como objeto, selector de GPS activos, adaptador PATCH con colecciones por reemplazo, bloqueo de doble guardado y ausencia verificable de campos excluidos.
 
-**Única brecha abierta — escritura de destinos.** `FichaTecnicaEntrada` (`tracer.21`) expone `tracto`, `contenedores` y `gps_ids`, pero **no `destinos`**. El Escenario 2 de `E1-HU-006` pide que el monitorista agregue destinos desde la ficha; hoy los destinos solo se capturan al crear el viaje (`CrearViajeEntrada`) y se **leen** en la ficha. Falta que Contratos agregue `destinos` a `FichaTecnicaEntrada`, o que se acote la HU para que la edición de destinos post-creación quede fuera de E8-T12. No se rellena con superficie local. Ver "Brecha abierta — destinos" abajo.
+**Sin brechas abiertas — E8-T12 cerrado.** La última brecha (edición de destinos) se resolvió por **DEC-109**: en V1 los destinos son de **solo lectura** en la ficha (opción C del brief). No hay cambio de contrato; `FichaTecnicaEntrada` sigue sin `destinos` por diseño (verificado en `tracer.22`). La ficha los **lee** con `arribo`, que es justo lo implementado. La edición post-creación queda diferida a una fase posterior por el camino B (PATCH de viaje), fuera de E8-T12. Ver "Brecha de destinos — cerrada por DEC-109" abajo.
+
+Nota: `tracer.22` (lectura de incidencias) pertenece a **E8-T13**, no a T12; T12 permanece en `tracer.21`.
 
 **Corrección a una sesión previa:** las operaciones `obtenerAsignacion`, `actualizarDestinos` y `PATCH /viajes/{id}/destinos` que una sesión de ejecución citó como bloqueo **no existen** en el spec ni en el contrato y no son requisito de E8-T12. La lectura de escolta se resuelve con `listarUnidades` (ya implementada). El único bloqueo real es `destinos` en `FichaTecnicaEntrada`.
 
-## Brecha abierta — destinos en `FichaTecnicaEntrada`
+## Brecha de destinos — cerrada por DEC-109
 
-- **Qué pide la HU:** `E1-HU-006`, Escenario 2 — "cuando el Monitorista agrega varios destinos y contenedores, la ficha los conserva como colecciones". La ficha es editable (DEC-043).
-- **Qué existe en `tracer.21`:** `FichaTecnicaEntrada` = `{ tracto?, contenedores?, gps_ids? }`. Los destinos se leen (en `ViajeInterno.destinos`, con `arribo`) y se capturan al crear el viaje (`CrearViajeEntrada`), pero **no hay forma de editarlos después**.
-- **Qué falta:** agregar `destinos` (1..N, con `nombre`, `numero_envio`, `arribo`) a `FichaTecnicaEntrada`, o una operación equivalente de edición de destinos.
-- **Impacto:** bloquea la tarea 7 y la parte de "agregar/quitar destinos" de la definición de terminado. El resto de E8-T12 está implementado.
-- **Resolución:** reportar a Contratos como posible omisión de la ola `tracer.21`; alternativamente, Producto confirma si editar destinos post-creación queda fuera de E8-T12. No se inventa superficie local.
+- **Qué pedía la HU (original):** `E1-HU-006`, Escenario 2 — "cuando el Monitorista agrega varios destinos y contenedores".
+- **Qué existe en `tracer.21`/`tracer.22`:** `FichaTecnicaEntrada` = `{ tracto?, contenedores?, gps_ids? }`, sin `destinos`. Los destinos se **leen** (`ViajeInterno.destinos`, con `arribo`) y se capturan al crear el viaje (`CrearViajeEntrada`).
+- **Resolución (DEC-109, Producto):** opción **C** — en V1 los destinos solo se capturan al crear; la ficha solo los **lee**. Se ajustó el Escenario 2 de la HU a solo lectura. No hay cambio de contrato. La contradicción HU↔contrato se cerró a favor del contrato.
+- **Diferido:** la edición de destinos post-creación, si una fase posterior la requiere, va por el camino **B** (una operación nueva del viaje, p. ej. `PATCH /viajes/{id}`), con su propia DEC y ola. Fuera de E8-T12.
+- **Deuda anotada (DEC-109, no bloquea V1):** `Destino.arribo` existe pero ninguna operación lo escribe; se resolvería junto con el camino B.
 
 ## Registro histórico de brechas (verificación anterior a tracer.21)
 

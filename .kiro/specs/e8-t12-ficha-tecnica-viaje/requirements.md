@@ -8,9 +8,13 @@ Este documento define el comportamiento funcional del frontend interno. El front
 
 **Hallazgo de verificación (actualizado, contexto `b4ce19c`).** El comportamiento funcional de E8-T12 está **decidido y cerrado**: ficha editable e incremental (DEC-011, DEC-043), destinos 1..N y contenedores 0..N (DEC-012, DEC-013), lista de GPS del catálogo registrado (DEC-012 #3 + DEC-047 #2) y exclusiones de `cuenta espejo`/`clave_amago`/`kit de seguridad` (DEC-009, DEC-039, DEC-047 #3). Además, las decisiones que estaban abiertas se resolvieron con Producto y se registraron como **DEC-100..104 / ADR 36**: el **tracto** pasa de texto libre a objeto `{placas, economico, marca, modelo, color}` (supera DEC-011 #2); el **contenedor** tiene `{economico, placas, sello, color}`; la **ficha es 100% opcional** sin guardas de estado en V1; `tipo_servicio` es **solo lectura**; el **catálogo de GPS** nace en `catalogos` con selector solo activos. **No quedan pendientes de producto** (los antiguos P-1 y P-2 están resueltos).
 
-Lo que está **pendiente es la publicación del contrato**, no la decisión. Contra el contrato instalado (`@ai27-tech/contracts@0.1.0-tracer.20`), el `bff` todavía no expone `obtenerFicha`/`guardarFicha`, `Tracto`, `Contenedor`, `gps_ids`, el catálogo `GET /api/v1/gps`, `tipo_servicio` en lectura ni `arribo` en destino; se verificó que no existen en ninguna rama ni tag de `pf-pkg-contracts`. Lo disponible hoy es la lectura del detalle interno (`obtenerViajeInterno` → `ViajeDetalle`) y la proyección de descarga dentro de `DescargaViaje` (E6-T3). Por lo tanto la capacidad de escritura de E8-T12 queda **condicionada a que Contratos publique la ola** (siguiente tracer tras `.20`) y a que el frontend suba su dependencia; la forma ya está decidida en `ai27-platform-context/.scratch/e8-t12-ficha-tecnica/BORRADOR-FORMA.md`. Este documento especifica el comportamiento decidido sin inventar la superficie; los requisitos de escritura quedan marcados como condicionados a la publicación.
+**Contrato publicado y consumido.** La superficie se publicó en `@ai27-tech/contracts@0.1.0-tracer.21` (fijado en `package.json`): `obtenerFicha`/`guardarFicha` (PATCH), `Tracto`, `Contenedor`, `gps_ids`, catálogo `GET /api/v1/gps`, `tipo_servicio` en lectura y `arribo` en destino. La implementación se ejecutó y verificó sobre esa versión (`tsc` limpio, 155 pruebas en verde).
 
-**Alerta de alcance cruzado:** el nuevo schema `Tracto` también afecta `CrearViajeEntrada` (E8-T11), porque el tracto se captura al crear el viaje y al completar la ficha. El cambio debe coordinarse con esa tarea.
+**Destinos: solo lectura en V1 (DEC-109).** El Escenario 2 original pedía que el monitorista "agregara destinos" desde la ficha, pero `FichaTecnicaEntrada` no incluye `destinos` (por diseño: los destinos pertenecen al viaje, DEC-104). Producto resolvió por la opción C: en V1 los destinos solo se capturan al crear el viaje (`CrearViajeEntrada`) y la ficha los **conserva y muestra** en solo lectura. La edición post-creación queda diferida (camino B, fuera de E8-T12). **No quedan brechas abiertas.**
+
+**Alerta de alcance cruzado:** el schema `Tracto` también afecta `CrearViajeEntrada` (E8-T11), porque el tracto se captura al crear el viaje y al completar la ficha. Coordinar con esa tarea.
+
+**Nota:** `tracer.22` (lectura de incidencias, `listarIncidencias`) pertenece a E8-T13, no a esta tarea; E8-T12 permanece en `tracer.21`.
 
 ## Glossary
 
@@ -76,13 +80,13 @@ Lo que está **pendiente es la publicación del contrato**, no la decisión. Con
 
 ### Requirement 5: Destinos y contenedores como grupos repetibles
 
-**User Story:** Como `monitorista`, quiero agregar y quitar destinos y contenedores, para reflejar viajes multi-parada con carga variable.
+**User Story:** Como `monitorista`, quiero ver los destinos del viaje y gestionar los contenedores, para reflejar viajes multi-parada con carga variable.
 
 #### Acceptance Criteria
 
-1. THE FichaTecnica_UI SHALL permitir conservar uno o más destinos ordenados y SHALL mostrar los destinos que el BFF devuelva en la lectura.
-2. WHEN exista superficie de escritura de ficha, THE FichaTecnica_UI SHALL permitir **agregar y quitar destinos** conservando orden y cardinalidad (1..N). **(Condicionado a la Brecha 1.)**
-3. WHEN exista superficie de escritura de ficha, THE FichaTecnica_UI SHALL permitir **agregar y quitar contenedores** (0..N) como grupo repetible. **(Condicionado a la Brecha 1 y a la Brecha 2: el contrato no modela contenedores.)**
+1. THE FichaTecnica_UI SHALL mostrar los destinos (1..N) que el BFF devuelva en la lectura, conservando su orden, incluido el indicador `arribo`.
+2. THE FichaTecnica_UI SHALL tratar los destinos como **solo lectura** en V1 (DEC-109): se capturan al crear el viaje (`CrearViajeEntrada`) y la ficha no los agrega, quita ni edita. (La edición post-creación es camino B, fuera de E8-T12.)
+3. THE FichaTecnica_UI SHALL permitir **agregar y quitar contenedores** (0..N) como grupo repetible, con los campos `{economico, placas, sello, color}` de texto libre opcional.
 4. THE FichaTecnica_UI SHALL permitir una ficha con **cero contenedores** sin tratarlo como error.
 
 ### Requirement 6: Lista de GPS desde catálogo registrado
@@ -129,8 +133,8 @@ Dado que un viaje tiene escolta asignada, cuando el `monitorista` abre la ficha,
 **Escenario 2. Captura incremental (condicionado a brecha)**
 Dado que existe la operación de escritura de ficha, cuando el `monitorista` guarda la ficha con datos faltantes y después los completa, entonces la interfaz permite ambos guardados y refleja lo que el BFF confirma.
 
-**Escenario 3. Multi-destino y contenedores (condicionado a brecha)**
-Dado que existe superficie de escritura y de contenedores, cuando el `monitorista` agrega varios destinos y varios contenedores y guarda, entonces la ficha conserva orden y cardinalidad.
+**Escenario 3. Multi-destino (solo lectura) y contenedores**
+Dado un viaje con varios destinos y varios contenedores, cuando el `monitorista` abre la ficha, entonces ve los destinos en solo lectura conservando su orden (DEC-109) y puede agregar/quitar contenedores conservando cardinalidad.
 
 **Escenario 4. Lista de GPS desde catálogo (condicionado a brecha)**
 Dado que existe superficie de la lista de GPS, cuando el `monitorista` elige dispositivos del catálogo registrado, entonces la interfaz referencia los dispositivos sin permitir texto libre y sin implicar seguimiento en vivo.
@@ -190,7 +194,7 @@ Estas notas son prerrequisitos de verificación y no reglas de producto. Las dec
 - Lectura y escolta derivada: Requirement 2 y escenario 1.
 - Captura/edición incremental: Requirement 3 y escenarios 2, 7, 9 (condicionados a Brecha 1).
 - Tracto como objeto de texto libre: Requirement 4 (condicionado a la publicación del schema `Tracto`; alcance cruzado con E8-T11).
-- Destinos y contenedores repetibles: Requirement 5 y escenarios 3, 6 (contenedores condicionados a Brecha 2).
+- Destinos en solo lectura (DEC-109) y contenedores repetibles: Requirement 5 y escenarios 3, 6.
 - Lista de GPS de catálogo: Requirement 6 y escenario 4 (condicionado a Brecha 3).
 - Campos excluidos ausentes: Requirement 7 y escenario 5.
 - Estados y errores: Requirement 8 y escenarios 7, 8.
