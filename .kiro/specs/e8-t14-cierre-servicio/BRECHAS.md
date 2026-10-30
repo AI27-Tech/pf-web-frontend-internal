@@ -2,20 +2,20 @@
 
 Documento de brechas del spec. Cada brecha indica qué pide la tarea, qué existe hoy, qué falta, el impacto en el spec y la propuesta de resolución. **No** se rellena nada con una alternativa local: una operación o campo ausente se solicita al repo de contratos; una regla sin definir se pregunta a Product Management; un componente ausente se compone con primitivas de la librería o se solicita a la librería.
 
-## Estado (actualizado 2026-10-29, tras la respuesta al brief y la publicación de `tracer.24`)
+## Estado (actualizado 2026-10-30, tras las decisiones de Producto y del Lead)
 
-El brief (`.scratch/brecha-contrato-cierre-servicio/brief-cierre-servicio.md`) fue respondido por Contratos, Backend y Producto. **`v0.1.0-tracer.24` está publicado** y trae el motivo tipado y los códigos de 409 declarados. DEC-113 retiró el motivo `bitacora`. Quedan abiertas solo las dependencias de plataforma (códigos de 409 en runtime y 403 real) y la decisión de Producto sobre la fecha exacta de la ventana.
+El brief y las preguntas de seguimiento (.scratch/brecha-contrato-cierre-servicio/) fueron respondidos por Contratos, Backend, Producto y el Lead (Fabricio Fuentes, 2026-10-30). **Las ocho brechas están cerradas.** La brecha 5 queda cerrada **con una limitación**: el BFF aún no monta la ruta interna `/transiciones`, por lo que la matriz de errores se prueba con mocks y no de punta a punta. DEC-115 y DT-02/DT-03 constan en el mensaje del Lead pero todavía no aparecen en `origin/main` de `ai27-platform-context` (`c21d21d`).
 
-| #   | Brecha                                                         | Estado                                                                                                                    | Efecto en el spec                                                       |
-| --- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| 1   | Motivo de cierre sin campo ni catálogo en el contrato          | **Cerrada:** `motivo_cierre` tipado en `tracer.24`, enum `[normal, por_incidencia]`                                       | El spec consume el enum generado; se elimina el puente por `causa`      |
-| 2   | "Observaciones de cierre" sin campo                            | **Cerrada por decisión:** se omiten en V1 (Producto)                                                                      | Fuera de alcance; sin condicionamiento                                  |
-| 3   | Motivo `bitacora`                                              | **Cerrada:** DEC-113 lo retira; solo `normal` y `por_incidencia`                                                          | Sin motivo "por definir"; ventanas 3 días y 6 meses                     |
-| 4   | Ventana de escritura no expuesta por el bff                    | **Diferida:** `escritura_hasta` solo si Producto lo exige (C5)                                                            | La UI comunica la regla, no la fecha. Condicionado a C5                 |
-| 5   | Códigos de 409 en runtime; 401 en lugar de 403                 | **Parcial:** códigos declarados en `tracer.24`; el runtime sigue enviando `conflicto`; 403 diferido                       | La UI previene con datos propios; condicionado a la tarea de plataforma |
-| 6   | "Listo para cerrar" y rol facultado                            | **Cerrada:** criterio por estado de origen vigente (B2/C3); cierran solo `jefe_operativo` y `administrador` (C4, DEC-060) | Sin condicionamiento; la UI no usa `arribo`                             |
-| 7   | Componentes de `@ai27-tech/ui`                                 | **Verificada:** sin aviso en línea dedicado; se compone                                                                   | Sin bloqueo                                                             |
-| 8   | Pin del frontend en `tracer.22`, contrato nuevo en `tracer.24` | **Cerrada (2026-10-29):** pin en `tracer.24`, instalado y verificado; falta commitear                                     | Tarea 1 del plan, hecha                                                 |
+| #   | Brecha                                                         | Estado                                                                                                                                                      | Efecto en el spec                                                    |
+| --- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| 1   | Motivo de cierre sin campo ni catálogo en el contrato          | **Cerrada:** `motivo_cierre` tipado en `tracer.24`, enum `[normal, por_incidencia]`                                                                         | El spec consume el enum generado; se elimina el puente por `causa`   |
+| 2   | "Observaciones de cierre" sin campo                            | **Cerrada por decisión:** se omiten en V1 (Producto)                                                                                                        | Fuera de alcance; sin condicionamiento                               |
+| 3   | Motivo `bitacora`                                              | **Cerrada:** DEC-113 lo retira; solo `normal` y `por_incidencia`                                                                                            | Sin motivo "por definir"; ventanas 3 días y 6 meses                  |
+| 4   | Ventana de escritura no expuesta por el bff                    | **Cerrada por decisión (2026-10-30):** Opción A, se comunica la regla; fecha exacta = deuda técnica DT-02                                                   | Sin condicionamiento                                                 |
+| 5   | Códigos de 409 en runtime; 401 en lugar de 403                 | **Cerrada con limitación (2026-10-30):** Ola C entregó 403 y códigos (ramas `-d`); riesgo del 401 aceptado por el Lead; el BFF aún no monta la ruta interna | Matriz probada con mocks; punta a punta pendiente de la ruta del BFF |
+| 6   | "Listo para cerrar" y rol facultado                            | **Cerrada:** criterio por estado de origen vigente (B2/C3); cierran solo `jefe_operativo` y `administrador` (C4, DEC-060)                                   | Sin condicionamiento; la UI no usa `arribo`                          |
+| 7   | Componentes de `@ai27-tech/ui`                                 | **Verificada:** sin aviso en línea dedicado; se compone                                                                                                     | Sin bloqueo                                                          |
+| 8   | Pin del frontend en `tracer.22`, contrato nuevo en `tracer.24` | **Cerrada (2026-10-29):** pin en `tracer.24`, instalado y verificado; falta commitear                                                                       | Tarea 1 del plan, hecha                                              |
 
 ---
 
@@ -63,7 +63,9 @@ El brief (`.scratch/brecha-contrato-cierre-servicio/brief-cierre-servicio.md`) f
 
 ---
 
-## Brecha 4 — Ventana de escritura no expuesta por el `bff` (DIFERIDA, condicionada a C5)
+## Brecha 4 — Ventana de escritura no expuesta por el `bff` (CERRADA por decisión de Producto, 2026-10-30)
+
+**Resolución (2026-10-30).** Producto (Fabricio Fuentes, Lead/Producto) eligió la **Opción A**: la pantalla comunica la regla (3 días más con motivo `normal`, 6 meses con `por_incidencia`), no la fecha. La fecha exacta queda como deuda técnica **DT-02**, a retomar si Producto la eleva a requisito. Sin código. Nota: DT-02 aún no aparece en `docs/DEUDA-TECNICA.md` de `ai27-platform-context` (`origin/main` `c21d21d`); la fuente es el mensaje del Lead.
 
 **Qué pide la tarea.** DoD de E8-T14: "la interfaz comunica la ventana de escritura resultante (3 días o 6 meses) según el motivo y anticipa el paso posterior a sólo lectura".
 
@@ -75,7 +77,9 @@ El brief (`.scratch/brecha-contrato-cierre-servicio/brief-cierre-servicio.md`) f
 
 ---
 
-## Brecha 5 — Códigos de 409 en runtime y 403 real (PARCIAL; diferida a plataforma)
+## Brecha 5 — Códigos de 409 en runtime y 403 real (CERRADA con limitación, 2026-10-30)
+
+**Resolución (2026-10-30).** (1) La Ola C ya entregó el `403` (`CategoryProhibido`/`NewProhibido`) y el código de máquina (`PlatformError.Codigo`/`NewConflictoCodigo`), propagados de `operacion` al `bff`: `bd0d3b9` (`pf-pkg-platform-go`), `46fea3c` (`pf-svc-operacion`), `5aa0f01` (`pf-svc-bff`); PR #38, #66 y #43 según el Lead; verificado por mí en las ramas `-d`. `validarCierre` responde `403` a un rol sin facultad y `409` con `cierre_anticipado_solo_por_incidencia` o `cierre_anticipado_requiere_incidencia`. Por eso se retiran las advertencias sobre el `401` y sobre el `conflicto` genérico como único camino: el genérico es ahora solo la red de seguridad para la carrera. (2) El Lead aceptó el riesgo residual del `401` de sesión (Opción A) sin tocar `client.ts`; la alternativa transversal queda como deuda técnica **DT-03**. (3) **Limitación vigente:** `bff.go` no monta la ruta interna `POST /api/v1/viajes/{id}/transiciones` (`bff.go:18`, `ports.go:41`: la fase (a) la dejó fuera a propósito). La matriz de casos (`400`, `403`, `409` específico, `409` genérico, carrera, `401` de sesión) se cubre con mocks; la verificación de punta a punta queda pendiente de que el BFF monte la ruta (el Lead lo coordina con el dueño del BFF). La DEC-115 que cierra el pendiente de DEC-111 aún no aparece en `origin/main` del contexto (`c21d21d`); la fuente es el mensaje del Lead.
 
 **Qué pide la tarea.** Estados obligatorios: cierre sin motivo (bloqueado), cierre anticipado sin incidencia abierta (bloqueado, con la razón visible), viaje ya cerrado.
 
@@ -122,13 +126,10 @@ El brief (`.scratch/brecha-contrato-cierre-servicio/brief-cierre-servicio.md`) f
 
 ## Resultado de implementación (2026-10-30)
 
-Las tareas 2 a 10 quedaron implementadas en el frontend. La UI usa el motivo generado por `tracer.24`, deriva las aristas desde la máquina contractual, bloquea el cierre anticipado sin `INCIDENCIA`, conserva el motivo ante 400/409/red, recarga el detalle tras 409 y cubre los códigos futuros junto con el `conflicto` actual. Se agregaron mocks para `VJ-1010`, 400, 409 específicos/genérico, carrera y 403.
+Las tareas 2 a 14 están cerradas. La UI usa el motivo generado por `tracer.24`, deriva las aristas desde la máquina contractual, bloquea el cierre anticipado sin `INCIDENCIA`, conserva el motivo ante 400/409/red, recarga el detalle tras 409 y cubre los códigos de cierre junto con el `conflicto` genérico. Textos aprobados por Producto aplicados (`3 días más`, `Se actualizó el detalle; puedes reintentar.`). Se agregaron pruebas de que un `403` no corta la sesión y de que un `401` de sesión se delega al corte de sesión del cliente. No se calculan fechas de `escritura_hasta` (DT-02).
 
-Validación: `typecheck` ✓, `lint` ✓, `test` ✓ (40 archivos, 200 pruebas), `build:mock` ✓ y `prettier --check` ✓. No se calculan fechas de `escritura_hasta`: la brecha 4 sigue condicionada a la decisión de Producto. Las brechas de runtime (409/403), riesgo de 401 y textos siguen abiertas en las tareas 12–14.
+## Pendientes que siguen abiertos (2026-10-30)
 
-## Pendientes que siguen abiertos
-
-1. **C5 (Producto):** ¿la fecha exacta de paso a sólo lectura entra en V1? Decide si la brecha 4 se activa.
-2. **C6 (Producto):** validación de los textos de bloqueo y de la ventana (copy). Los textos del spec son propuestos.
-3. **Plataforma (A3 + B1):** códigos de 409 en runtime y 403 real. Sin fecha.
-4. **Senior del frontend:** si se acepta el riesgo del 401 con la prevención por rol o se abre una tarea transversal sobre `client.ts`.
+1. **Ruta interna del BFF:** montar `POST /api/v1/viajes/{id}/transiciones` (y definir si se monta toda la superficie interna). Coordina el Lead con el dueño del BFF; sin fecha. Al existir, repetir la matriz contra el runtime.
+2. **Registro formal:** publicar DEC-115 (cierre del pendiente de DEC-111) y DT-02/DT-03 en `ai27-platform-context`; hoy solo constan en el mensaje del Lead.
+3. **Fuera de T14:** el contrato publicado es ya `tracer.29` (`.26` retirada, DEC-114); T14 usa `tracer.24` y no necesita subirlo.

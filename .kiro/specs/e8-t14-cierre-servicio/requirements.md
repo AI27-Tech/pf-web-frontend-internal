@@ -13,7 +13,7 @@ Principios rectores de la historia técnica E8-T14:
 - **El cliente no cierra** viajes. Esta pantalla es del panel interno. **Supervisor y Coordinador tampoco cierran en V1** (DEC-060).
 - Autorización, alcance, validación de la máquina de estados y de las guardas del cierre las aplica el `bff`/`operacion`. La interfaz **previene** lo que puede con datos que ya tiene (rol, estado, condiciones activas) y **clasifica** las respuestas; no reimplementa dominio.
 
-> **Estado de las brechas (2026-10-29).** El brief de cierre fue respondido y `@ai27-tech/contracts@0.1.0-tracer.24` está publicado (motivo tipado y códigos de 409 declarados). Quedan tres condicionamientos, marcados en el texto: **[Condicionado a brecha 4]** (fecha exacta de la ventana, depende de Producto), **[Condicionado a brecha 5]** (códigos de 409 en runtime y 403 real, diferidos a plataforma) y **[Condicionado a brecha 8]** (el pin del frontend debe subir a `tracer.24`). Detalle en `BRECHAS.md`.
+> **Estado de las brechas (2026-10-30).** Las ocho brechas están cerradas (`BRECHAS.md`). Decisiones de Producto y del Lead del 2026-10-30: la pantalla comunica la regla de la ventana y no la fecha exacta (deuda técnica DT-02); el Lead aceptó el riesgo residual del `401` sin tocar `client.ts` (alternativa en DT-03); los textos quedaron aprobados. La Ola C ya entrega el `403` y los códigos de `409` desde `operacion` hasta el `bff`. **Limitación vigente:** el BFF aún no monta la ruta interna `POST /api/v1/viajes/{id}/transiciones`, por lo que el cierre se verifica contra mocks y no de punta a punta.
 
 Este documento define el comportamiento funcional del frontend interno. El frontend no inventa endpoints, payloads, campos, catálogos ni componentes compartidos.
 
@@ -54,7 +54,7 @@ Este documento define el comportamiento funcional del frontend interno. El front
 
 1. WHEN el usuario elige "Cerrar servicio", THE Cierre_UI SHALL abrir un diálogo que solicita el motivo de cierre del enum generado `MotivoCierre` (`normal`, `por_incidencia`), sin texto libre.
 2. THE Cierre_UI SHALL mantener deshabilitada la confirmación mientras no se haya elegido un motivo, y IF el usuario intenta confirmar sin motivo THEN THE Cierre_UI SHALL impedir el envío y señalar el dato faltante.
-3. WHEN el usuario confirma con un motivo, THE Cierre_UI SHALL enviar `transicionarViaje` con `a_estado: CERRADO` y `motivo_cierre` en la entrada, y SHALL NOT enviar el motivo en `causa`. **[Condicionado a brecha 8: requiere el pin `tracer.24`]**
+3. WHEN el usuario confirma con un motivo, THE Cierre_UI SHALL enviar `transicionarViaje` con `a_estado: CERRADO` y `motivo_cierre` en la entrada, y SHALL NOT enviar el motivo en `causa`.
 4. THE Cierre_UI SHALL tomar los valores del motivo del tipo generado y SHALL NOT declarar localmente un catálogo propio.
 5. THE Cierre_UI SHALL NOT capturar observaciones de cierre en V1 (decisión de Producto: se omiten).
 6. THE Cierre_UI SHALL NOT ofrecer el motivo `bitacora` ni mencionarlo (DEC-113).
@@ -69,7 +69,7 @@ Este documento define el comportamiento funcional del frontend interno. El front
 2. IF el viaje está en `EN_TRANSITO` y `condiciones_activas` no contiene una `INCIDENCIA`, THEN THE Cierre_UI SHALL mostrar la acción de cierre deshabilitada con la **razón visible** ("El cierre anticipado solo es válido con una incidencia abierta") y SHALL NOT permitir enviarlo.
 3. WHEN el viaje está en `EN_TRANSITO` y `condiciones_activas` contiene una `INCIDENCIA`, THE Cierre_UI SHALL habilitar el cierre con el motivo "por incidencia" ya determinado.
 4. WHEN el viaje está en `EN_DESTINO` o `EN_DESCARGA`, THE Cierre_UI SHALL ofrecer los dos motivos del catálogo.
-5. IF el `bff` rechaza el cierre con `409`, THEN THE Cierre_UI SHALL informar el conflicto, recargar el detalle y SHALL NOT presentar el viaje como cerrado. Cuando el `codigo` recibido sea `cierre_anticipado_requiere_incidencia` o `cierre_anticipado_solo_por_incidencia`, THE Cierre_UI SHALL mostrar el mensaje específico de esa causa; mientras el runtime envíe `codigo: conflicto`, SHALL mostrar el mensaje genérico de conflicto. **[Condicionado a brecha 5: emisión de códigos en runtime]**
+5. IF el `bff` rechaza el cierre con `409`, THEN THE Cierre_UI SHALL informar el conflicto, recargar el detalle y SHALL NOT presentar el viaje como cerrado. Cuando el `codigo` recibido sea `cierre_anticipado_requiere_incidencia` o `cierre_anticipado_solo_por_incidencia`, THE Cierre_UI SHALL mostrar el mensaje específico de esa causa; mientras el runtime envíe `codigo: conflicto`, SHALL mostrar el mensaje genérico de conflicto.
 
 ### Requirement 4: Comunicar la ventana de escritura
 
@@ -78,10 +78,10 @@ Este documento define el comportamiento funcional del frontend interno. El front
 #### Acceptance Criteria
 
 1. WHEN el usuario elige un motivo en el diálogo de cierre, THE Cierre_UI SHALL mostrar la ventana de escritura resultante: 3 días para "normal" y 6 meses para "por incidencia", e indicar que al vencer la conversación pasa a sólo lectura.
-2. WHEN el `bff` confirma el cierre, THE Cierre_UI SHALL mostrar un aviso de éxito que repita la ventana del motivo enviado y el paso posterior a sólo lectura.
-3. THE Cierre_UI SHALL NOT calcular una fecha de vencimiento (`cerrado_en` + ventana): esa regla es de `mensajeria`. Mostrar la fecha exacta queda condicionado a que Producto la exija y el contrato la publique. **[Condicionado a brecha 4]**
+2. WHEN el `bff` confirma el cierre, THE Cierre_UI SHALL mostrar un aviso de éxito que repita la ventana del motivo enviado ("3 días más" con `normal`, "6 meses" con `por_incidencia`) y el paso posterior a sólo lectura. El "más" solo aclara que el plazo corre desde el cierre (texto aprobado por Producto, 2026-10-30).
+3. THE Cierre_UI SHALL NOT calcular una fecha de vencimiento (`cerrado_en` + ventana): esa regla es de `mensajeria`. Mostrar la fecha exacta queda diferido a la deuda técnica DT-02 (decisión de Producto, 2026-10-30).
 4. THE Cierre_UI SHALL NOT afirmar que la ventana ya se aplicó en la conversación; solo comunica la regla asociada al motivo.
-5. WHEN el detalle de un viaje ya `CERRADO` se carga de nuevo, THE Cierre_UI SHALL mostrar que el viaje está cerrado sin reconstruir la ventana, porque el detalle no trae el motivo ni el vencimiento. **[Condicionado a brecha 4]**
+5. WHEN el detalle de un viaje ya `CERRADO` se carga de nuevo, THE Cierre_UI SHALL mostrar que el viaje está cerrado sin reconstruir la ventana, porque el detalle no trae el motivo ni el vencimiento.
 
 ### Requirement 5: Resultado del cierre y manejo de errores
 
@@ -90,11 +90,11 @@ Este documento define el comportamiento funcional del frontend interno. El front
 #### Acceptance Criteria
 
 1. WHEN el `bff` responde `200` con el detalle actualizado, THE Cierre_UI SHALL cerrar el diálogo, reflejar el estado `CERRADO`, retirar todas las acciones y mostrar el aviso de éxito de Requirement 4.2.
-2. IF el `bff` responde `409`, THEN THE Cierre_UI SHALL informar que el cierre no es posible en el estado actual, recargar el detalle y SHALL NOT presentar el viaje como cerrado (ver Requirement 3.5 para los mensajes por `codigo`). **[Condicionado a brecha 5]**
+2. IF el `bff` responde `409`, THEN THE Cierre_UI SHALL informar que el cierre no es posible en el estado actual, recargar el detalle y SHALL NOT presentar el viaje como cerrado (ver Requirement 3.5 para los mensajes por `codigo`). El mensaje genérico dice "Se actualizó el detalle; puedes reintentar." (texto aprobado por Producto, 2026-10-30).
 3. IF el `bff` responde `400` (motivo ausente o fuera de catálogo), THEN THE Cierre_UI SHALL mostrar el error en el diálogo y conservar el motivo elegido.
-4. IF el `bff` responde `403`, THEN THE Cierre_UI SHALL informar que el cierre requiere Jefe Operativo o Administrador, sin romper la vista. **[Condicionado a brecha 5: hoy `operacion` responde `401` para este caso]**
+4. IF el `bff` responde `403`, THEN THE Cierre_UI SHALL informar que el cierre requiere Jefe Operativo o Administrador, sin romper la vista.
 5. IF el `bff` responde `404`, THEN THE Cierre_UI SHALL tratar el viaje como inexistente, igual que el detalle del viaje.
-6. IF el `bff` responde `401` o la sesión expira durante el flujo, THEN THE Cierre_UI SHALL delegar el manejo al flujo de sesión vigente (`client.ts`) y SHALL NOT modificar ese flujo en esta tarea. Un `401` por falta de facultad cortaría la sesión; la prevención por rol de Requirement 1.4 es la mitigación. **[Condicionado a brecha 5 y a la decisión del senior]**
+6. IF el `bff` responde `401` o la sesión expira durante el flujo, THEN THE Cierre_UI SHALL delegar el manejo al flujo de sesión vigente (`client.ts`) y SHALL NOT modificar ese flujo en esta tarea. Un `401` por falta de facultad cortaría la sesión; la prevención por rol de Requirement 1.4 es la mitigación.
 7. IF la petición falla por red u otro error no clasificado, THEN THE Cierre_UI SHALL mostrar un error accionable, conservar el motivo elegido y permitir reintentar.
 8. WHILE el cierre está en curso, THE Cierre_UI SHALL deshabilitar la confirmación y el cierre del diálogo para impedir envíos duplicados.
 
@@ -103,7 +103,7 @@ Este documento define el comportamiento funcional del frontend interno. El front
 ### Escenarios positivos
 
 **Escenario 1. Cierre normal**
-Dado que un viaje descargó en su última parada (`EN_DESCARGA`) y el usuario es Jefe Operativo, cuando elige "Cerrar servicio", selecciona el motivo "normal" y confirma, entonces el `bff` aplica la transición, el detalle muestra `CERRADO` sin acciones, y el aviso indica que la conversación acepta mensajes durante 3 días y luego pasa a sólo lectura.
+Dado que un viaje descargó en su última parada (`EN_DESCARGA`) y el usuario es Jefe Operativo, cuando elige "Cerrar servicio", selecciona el motivo "normal" y confirma, entonces el `bff` aplica la transición, el detalle muestra `CERRADO` sin acciones, y el aviso indica que la conversación acepta mensajes durante 3 días más y luego pasa a sólo lectura.
 
 **Escenario 2. Cierre por incidencia desde una parada**
 Dado que un viaje está en `EN_DESTINO` y tuvo una incidencia, cuando el Jefe Operativo cierra con el motivo "por incidencia", entonces el viaje pasa a `CERRADO` y el aviso indica 6 meses de escritura antes de sólo lectura.
@@ -135,7 +135,7 @@ Dado que el detalle mostraba una incidencia abierta en un viaje `EN_TRANSITO`, c
 Dado que otro operador cerró el viaje entre la lectura y el envío, cuando el Jefe Operativo confirma, entonces el `bff` responde `409`, la interfaz informa que el viaje ya no admite el cierre y recarga el detalle en `CERRADO`.
 
 **Escenario 11. 409 sin código diferenciado**
-Dado que el runtime todavía envía `codigo: conflicto` para el rechazo del cierre, cuando el `bff` responde `409`, entonces la interfaz muestra el mensaje genérico de conflicto y recarga el detalle sin intentar adivinar la causa. Cuando el runtime emita los códigos de `tracer.24`, la misma pantalla muestra el mensaje específico. **[Condicionado a brecha 5]**
+Dado que el runtime todavía envía `codigo: conflicto` para el rechazo del cierre, cuando el `bff` responde `409`, entonces la interfaz muestra el mensaje genérico de conflicto y recarga el detalle sin intentar adivinar la causa. Cuando el runtime emita los códigos de `tracer.24`, la misma pantalla muestra el mensaje específico.
 
 **Escenario 12. Falla de red al cerrar**
 Dado que la petición de cierre falla por red, cuando ocurre el error, entonces la interfaz muestra un error accionable, conserva el motivo elegido y permite reintentar sin presentar el viaje como cerrado.
@@ -169,12 +169,12 @@ Dado que la sesión expira durante el cierre, cuando el `bff` responde `401` y e
 
 Estas notas son prerrequisitos de verificación y no reglas. El detalle, las fuentes y las propuestas están en `BRECHAS.md`.
 
-- **Brecha 4, ventana de escritura:** el `bff` no expone el vencimiento; la UI comunica la regla, no la fecha. Condicionada a la respuesta de Producto (C5).
-- **Brecha 5, códigos de 409 y 403:** `tracer.24` declara `cierre_anticipado_solo_por_incidencia`, `cierre_anticipado_requiere_incidencia` y `transicion_no_permitida`, pero el runtime envía `conflicto`; `operacion` responde `401` (no `403`) a un rol sin facultad. Ambos cambios son de plataforma y están diferidos. `client.ts` refresca y, si el reintento vuelve a dar `401`, corta la sesión; la mitigación es la prevención por rol.
+- **Brecha 4, ventana de escritura (cerrada):** Producto eligió comunicar la regla, no la fecha; la fecha exacta queda como deuda técnica DT-02.
+- **Brecha 5, códigos de 409 y 403 (cerrada con limitación):** la Ola C entrega el `403` y los códigos `cierre_anticipado_solo_por_incidencia`, `cierre_anticipado_requiere_incidencia` y `transicion_no_permitida` desde `operacion` hasta el `bff` (ramas `-d`). El riesgo del `401` de sesión lo aceptó el Lead; el `403` no entra al ciclo de refresco y corte de sesión de `client.ts`. Limitación: el BFF no monta aún la ruta interna `/transiciones`.
 - **Brecha 8, pin del frontend:** cerrada; el `package.json` fija `tracer.24` y los tipos `motivo_cierre`/`MotivoCierre` están disponibles.
 - **Brechas 1, 2, 3 y 6:** cerradas (motivo tipado en `tracer.24`; observaciones omitidas; `bitacora` retirado por DEC-113; criterio por estado de origen y roles facultados confirmados).
 - **Brecha 7, librería:** no hay aviso en línea dedicado; se compone con texto semántico y tokens `--ui-*`.
-- **Textos (C6):** los mensajes de bloqueo y de ventana de este spec son propuestos y están pendientes de validación de copy por Producto.
+- **Textos (C6):** aprobados por Producto el 2026-10-30; estilo "sólo lectura" con tilde y "por incidencia" en etiquetas de motivo.
 
 ## Trazabilidad
 

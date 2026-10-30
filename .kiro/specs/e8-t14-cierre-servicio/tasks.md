@@ -8,7 +8,7 @@ Las brechas 1, 2, 3 y 6 están cerradas (ver `BRECHAS.md`). Las tareas 1 a 10 se
 
 ## Estado de avance
 
-**Implementado hasta la tarea 10 (2026-10-30).** Las tareas 2 a 10 quedaron implementadas y verificadas en `feature/e8-t14-cierre-servicio`. El pin de `@ai27-tech/contracts` en `tracer.24` ya estaba instalado y la línea base de la tarea 1 sigue vigente. Las tareas 11 a 14 permanecen abiertas porque dependen de Producto, Plataforma y la decisión del senior del frontend; no bloquean la implementación.
+**Implementado hasta la tarea 10 y decisiones cerradas (2026-10-30).** Las tareas 2 a 10 están hechas. Las tareas 11, 13 y 14 se cerraron con la respuesta del Lead/Producto (Fabricio Fuentes, 2026-10-30). La tarea 12 queda cerrada **con limitación**: la matriz se cubre con mocks porque el BFF aún no monta la ruta interna `POST /api/v1/viajes/{id}/transiciones`. Línea base tras los cambios: `typecheck` ✓, `lint` ✓, `test` 202/202 ✓ (`build:mock` no se corrió).
 
 ## Task Dependency Graph
 
@@ -62,26 +62,26 @@ La tarea 1 sube el pin y verifica contrato y librería. Las 2 y 3 son independie
 
 `pnpm typecheck` ✓, `pnpm lint` ✓, `pnpm test` ✓ (40 archivos, 200 pruebas), `pnpm build:mock` ✓ y `prettier --check` ✓ sobre los archivos modificados. Las pruebas de integración validan etiquetas, foco del modal, selector deshabilitado en cierre anticipado, estado disabled y conservación del motivo después de errores. Las tareas 11 a 14 siguen pendientes por dependencias externas y no se simularon como resueltas.
 
-## Pendientes de terceros (no bloquean la tarea 10)
+## Cierre de pendientes de terceros (hecho 2026-10-30)
 
-Cada tarea de esta ola pide la respuesta a su dueño, aplica el cambio mínimo en el módulo indicado y actualiza `BRECHAS.md` y los requisitos marcados **[Condicionado]**.
+Cada tarea de esta ola se cerró con la respuesta del Lead/Producto del 2026-10-30. La DEC-115 y la deuda técnica DT-02 que cita la respuesta **no aparecen todavía en `origin/main` de `ai27-platform-context` (commit `c21d21d`)**; hasta que se publiquen, la fuente es el mensaje del Lead.
 
-- [ ] 11. **Brecha 4, fecha exacta de la ventana (Producto, C5).** Si Producto responde que basta con la regla (3 días / 6 meses): registrar la decisión, retirar la condición de los Requirements 4.3 y 4.5 y cerrar la brecha 4. Si responde que la fecha es imprescindible: pedir a Contratos el campo `escritura_hasta` y la lectura en el `bff`, y mostrar la fecha tal como la devuelve el contrato (sin calcular `cerrado_en` + ventana) en el aviso de éxito y en el detalle de un viaje `CERRADO`. _Cierra: Requisitos 4.3, 4.5._
+- [x] 11. **Brecha 4, fecha exacta de la ventana (Producto, C5). CERRADA (2026-10-30):** Producto eligió la Opción A: la pantalla comunica la regla (3 días más / 6 meses), no la fecha. La fecha exacta queda como deuda técnica DT-02. Sin código; solo documentos. _Cierra: Requisitos 4.3, 4.5._
 
-- [ ] 12. **Brecha 5, códigos de 409 en runtime y 403 real (plataforma, diferido).** Cuando la tarea de plataforma (A3 + B1) emita los códigos de máquina y el `403`: verificar contra el runtime que el `codigo` llega al cliente, confirmar que el mensaje específico de Requirement 3.5 se muestra y que el mensaje de facultad de Requirement 5.4 aparece con el `403`; retirar la advertencia sobre `401` y actualizar mocks y pruebas. Sin fecha. _Cierra: Requisitos 3.5, 5.2, 5.4._
+- [x] 12. **Brecha 5, códigos de 409 y 403 real. CERRADA CON LIMITACIÓN (2026-10-30).** La Ola C entregó el 403 y el código de máquina (`pf-pkg-platform-go` `bd0d3b9`, `pf-svc-operacion` `46fea3c`, `pf-svc-bff` `5aa0f01`; PR #38, #66 y #43 según el Lead; verificado en las ramas `-d`) y el frontend ya clasifica los dos códigos de cierre, el `conflicto` genérico, el `400`, el `403`, la carrera y el `401` (pruebas en `tests/viajes/CierreViaje.test.tsx`). **Limitación:** la verificación de punta a punta no es posible porque `bff.go` no monta la ruta interna `POST /api/v1/viajes/{id}/transiciones` (fase (a) del scaffolding, `ports.go:41`); la matriz se cubre con mocks. Seguimiento: cuando el BFF monte la ruta (el Lead lo coordina con el dueño del BFF), repetir la matriz contra el runtime. _Cierra: Requisitos 3.5, 5.2, 5.4 (con la limitación anotada)._
 
-- [ ] 13. **Brecha 5, riesgo del 401 (senior del frontend).** Obtener la decisión del senior: aceptar el riesgo con la prevención por rol hasta que llegue el `403`, o abrir una tarea transversal sobre `client.ts` (Backend sugiere que `transicionarViaje` no corte sesión ante un 401; `client.ts` ya refresca antes de cortar, por lo que hay que definir qué comportamiento se pide exactamente). Registrar la decisión en `BRECHAS.md`. T14 no modifica `client.ts`. _Cierra: Requisito 5.6._
+- [x] 13. **Brecha 5, riesgo del 401. CERRADA (2026-10-30):** el Lead aceptó el riesgo residual (Opción A) y no se modifica `client.ts`: el `401` por falta de facultad ya no existe en la ruta de cierre (`operacion` responde `403`) y el `403` no entra al ciclo de refresco y corte de sesión (`client.ts` solo trata `response.status === 401`). Evidencia: pruebas "un 403 de cierre no corta la sesión" y "un 401 de sesión durante el cierre se delega al corte de sesión del cliente". La alternativa transversal sobre `client.ts` queda como deuda técnica DT-03. _Cierra: Requisito 5.6._
 
-- [ ] 14. **Textos (Producto, C6).** Validar con Producto los textos de bloqueo ("El cierre anticipado solo es válido con una incidencia abierta"), de conflicto, de facultad y de la ventana de escritura; ajustar los literales en `cierreViaje.ts`, `cierreForm.tsx` y `DetalleViaje.tsx` y actualizar las pruebas. _Cierra: textos de los Requirements 3, 4 y 5._
+- [x] 14. **Textos (Producto, C6). CERRADA (2026-10-30):** aprobados los seis textos con dos ajustes, aplicados en el código. Fila 1 (cierre exitoso): "aceptará mensajes durante 3 días más / 6 meses y después pasará a sólo lectura" (`ventanaTrasCierre`; el "más" solo aclara que el plazo corre desde el cierre). Fila 5 (conflicto genérico): se agrega "Se actualizó el detalle; puedes reintentar." Estilo: "sólo lectura" con tilde en todo el producto; "por incidencia" en etiquetas que nombran el motivo y "con incidencia" solo en prosa. _Cierra: textos de los Requirements 3, 4 y 5._
 
 ## Notes
 
 ### Notas de brechas
 
 - **Brechas 1, 2, 3 y 6 (cerradas):** motivo tipado en `tracer.24`; observaciones omitidas en V1; `bitacora` retirado por DEC-113; criterio por estado de origen y roles facultados (`jefe_operativo`, `administrador`) confirmados.
-- **Brecha 4, ventana de escritura:** el `bff` no expone el vencimiento; se comunica la regla, no la fecha. Tarea 11.
-- **Brecha 5, códigos de 409 y 403:** códigos declarados en `tracer.24` pero el runtime envía `conflicto`; `operacion` responde `401` a un rol sin facultad y `client.ts` cortaría la sesión. Mitigación: prevención por rol. Tareas 12 y 13.
+- **Brecha 4, ventana de escritura (cerrada):** Producto eligió comunicar la regla, no la fecha; fecha exacta como deuda técnica DT-02. Tarea 11.
+- **Brecha 5, códigos de 409 y 403 (cerrada con limitación):** la Ola C entregó el `403` y el código de máquina (verificado en las ramas `-d`); el riesgo del `401` lo aceptó el Lead y queda DT-03 para la alternativa transversal. Limitación: el BFF aún no monta la ruta interna `/transiciones`, así que la matriz se prueba con mocks. Tareas 12 y 13.
 - **Brecha 7, librería:** sin aviso en línea dedicado; se compone con texto semántico y tokens. Sin acción; solicitud opcional registrada en `BRECHAS.md`.
-- **Brecha 8, pin del frontend:** `tracer.22` → `tracer.24`. Tarea 1.
+- **Brecha 8, pin del frontend (cerrada):** `tracer.22` → `tracer.24`. Tarea 1. El contrato publicado ya es `tracer.29` (`.26` retirada, DEC-114); T14 no necesita subirlo, y si se sube debe ser a `.27` o posterior.
 - **Contrato:** verificar siempre con `git show` sobre el tag; el checkout local de `pf-pkg-contracts` no está en el tag del `package.json`.
 - **Vinculación con otras tareas:** la incidencia abierta que habilita el cierre anticipado se marca en E8-T13 (histórico); el panel del Jefe Operativo con viajes listos para cerrar (`E6-HU-033`) es una tarea aparte que enlazará a esta acción.

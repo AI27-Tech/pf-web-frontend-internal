@@ -6,7 +6,7 @@ Diseño del **cierre del servicio** (E8-T14): la acción del panel interno con l
 
 El cambio es pequeño y concentrado: **no hay operación nueva**. El cierre reutiliza `transicionar` (`POST /api/v1/viajes/{id}/transiciones`), el hook `useDetalleViaje` y la derivación de acciones `accionesDesde`. Lo nuevo es (a) una capa de contrato que reexporta el motivo tipado y arma la entrada de cierre, (b) funciones puras que deciden cuándo y cómo se ofrece el cierre, (c) un formulario de cierre, y (d) el cableado en `DetalleViaje` que reemplaza el botón genérico "Transicionar a: CERRADO".
 
-> **Estado de las brechas (2026-10-30).** Con `tracer.24` publicado y las respuestas del brief, el motivo está tipado, `bitacora` se retiró (DEC-113), las observaciones se omiten y los roles y el criterio de última parada están confirmados. Quedan condicionados: la fecha exacta de la ventana (**brecha 4**, Producto) y los códigos de 409 en runtime y el 403 real (**brecha 5**, plataforma, diferidos). La brecha 8, correspondiente al pin del frontend, está cerrada.
+> **Estado de las brechas (2026-10-30).** Las ocho brechas están cerradas (`BRECHAS.md`). El motivo está tipado (`tracer.24`), `bitacora` se retiró (DEC-113), las observaciones se omiten y la fecha exacta de la ventana quedó como deuda técnica DT-02. La Ola C ya entrega el `403` y los códigos de `409` (ramas `-d`); el Lead aceptó el riesgo residual del `401` (alternativa en DT-03). **Limitación vigente:** el BFF aún no monta la ruta interna `/transiciones`, así que el cierre se verifica contra mocks.
 
 ### Hecho de contrato verificado (fundamento del diseño)
 
@@ -23,7 +23,7 @@ POST /api/v1/viajes/{id}/transiciones   transicionarViaje
      409 Error — codigo declarado: transicion_no_permitida
                                  | cierre_anticipado_solo_por_incidencia
                                  | cierre_anticipado_requiere_incidencia
-                 (DECLARADO en el contrato; el runtime hoy envía codigo "conflicto", brecha 5)
+                 (declarados en el contrato y emitidos por operacion y bff desde la Ola C; el genérico "conflicto" queda como red de seguridad para la carrera)
 
 Aristas a CERRADO (viaje.estados.yaml):
   EN_DESTINO  → CERRADO   guarda ultima_parada
@@ -38,9 +38,9 @@ Comportamiento de `operacion` (`validarCierre`, referencia; el contrato es la fu
 Consecuencias de diseño:
 
 - El motivo es un campo tipado: el diseño importa `MotivoCierre` del contrato generado y no declara un catálogo propio.
-- El detalle **no** trae el motivo de cierre ni el vencimiento de la ventana de escritura **[brecha 4]**: la ventana se comunica como regla asociada al motivo elegido, no como dato leído.
-- Los códigos de 409 están declarados pero el runtime envía `conflicto`: la UI debe funcionar con el mensaje genérico hoy y mostrar el específico sin cambios cuando el runtime emita los códigos **[brecha 5]**.
-- El `401` por falta de facultad cortaría la sesión (`client.ts`: refresco y un reintento, luego `cortarSesion()`): la defensa es no ofrecer la acción a roles sin facultad **[brecha 5]**.
+- El detalle **no** trae el motivo de cierre ni el vencimiento de la ventana de escritura: la ventana se comunica como regla asociada al motivo elegido, no como dato leído.
+- Los códigos de 409 ya los emite el runtime (Ola C, ramas `-d`), pero la UI conserva el mensaje genérico como red de seguridad ante un `409` sin código reconocido (carrera).
+- El `401` por falta de facultad cortaría la sesión (`client.ts`: refresco y un reintento, luego `cortarSesion()`): la defensa es no ofrecer la acción a roles sin facultad.
 - `DetalleViaje.tsx` hoy ofrece `CERRADO` como botón genérico sin motivo (`requiereCausa` no lo incluye), lo que contra `operacion` produce `400`. Se reemplaza.
 
 ## Architecture
@@ -125,7 +125,7 @@ export function bloqueoDeCierre(
 export function motivosPermitidos(tipo: TipoCierre): readonly MotivoCierre[];
 // anticipado → ['por_incidencia']; normal → ['normal', 'por_incidencia']
 
-/** Ventana de escritura asociada al motivo. No calcula fechas. [brecha 4] */
+/** Ventana de escritura asociada al motivo. No calcula fechas (DT-02). */
 export function ventanaDeEscritura(motivo: MotivoCierre): string;
 // normal → '3 días'; por_incidencia → '6 meses'  (Record<MotivoCierre, string>)
 ```
@@ -151,9 +151,9 @@ Props: `tipo: TipoCierre`, `onConfirm(motivo): Promise<void>`, `onCancel()`.
   - Si no → `Button` "Cerrar servicio" que abre el diálogo. El texto genérico "Transicionar a: CERRADO" desaparece.
 - En `handleAccion`: si `a_estado === EstadoViaje.Cerrado`, abre `cierreAbierto` y retorna (defensa en profundidad: nunca se envía `CERRADO` sin motivo).
 - `handleCierreConfirm(motivo)`: llama a la mutación de cierre del hook, cierra el diálogo y lanza el `Toast` de éxito con la ventana del motivo (Requirement 4.2). Ante error, clasifica con la misma lógica que `enviarTransicion` y repropaga para que el formulario conserve el motivo:
-  - `ErrorTransicion` (409) con `codigo` `cierre_anticipado_requiere_incidencia` → "El cierre anticipado requiere una incidencia abierta"; `cierre_anticipado_solo_por_incidencia` → "El cierre anticipado solo es válido por incidencia"; cualquier otro (incluido el `conflicto` que hoy envía el runtime) → "El cierre no es posible en el estado actual del viaje". En todos los casos recarga el detalle. **[Condicionado a brecha 5]**
+  - `ErrorTransicion` (409) con `codigo` `cierre_anticipado_requiere_incidencia` → "El cierre anticipado requiere una incidencia abierta"; `cierre_anticipado_solo_por_incidencia` → "El cierre anticipado solo es válido por incidencia"; cualquier otro (incluido el `conflicto` que hoy envía el runtime) → "El cierre no es posible en el estado actual del viaje". En todos los casos recarga el detalle.
   - `ApiError` 400 → mensaje del formulario "El motivo de cierre no es válido".
-  - `ApiError` 403 → "El cierre requiere Jefe Operativo o Administrador". **[Condicionado a brecha 5]**
+  - `ApiError` 403 → "El cierre requiere Jefe Operativo o Administrador".
   - 401 → sin tratamiento propio; lo gobierna `client.ts` (Requirement 5.6).
 - Viaje terminal en `CERRADO`: sin acciones (ya lo garantiza `accionesDesde`); se muestra una línea "Este viaje está cerrado". No se reconstruye la ventana (Requirement 4.5).
 
@@ -169,7 +169,7 @@ Props: `tipo: TipoCierre`, `onConfirm(motivo): Promise<void>`, `onCancel()`.
 3. **Sin bloqueo fuera del anticipado.** Para `estado ∈ {EN_DESTINO, EN_DESCARGA}` y cualquier `condiciones`, `bloqueoDeCierre` es `null`: la UI no inventa un gateo por `arribo` ni por incidencia en el cierre normal (C3, B2).
 4. **Terminal sin acciones.** Para todo estado terminal (incluido `CERRADO`), `tipoDeCierre(estado) === null` y no se renderiza ninguna acción de cierre.
 5. **Rol facultado.** Para todo `rol: Rol`, `puedeCerrar(rol)` es verdadero si y solo si `rol ∈ {jefe_operativo, administrador}`. Ocultar la acción no sustituye la autorización del `bff` (C4, DEC-060).
-6. **Ventana total y sin fechas.** `ventanaDeEscritura` está definida para todo `MotivoCierre`; `normal → 3 días`, `por_incidencia → 6 meses`. Nunca produce una fecha. **[Condicionado a brecha 4 si Producto exige la fecha]**
+6. **Ventana total y sin fechas.** `ventanaDeEscritura` está definida para todo `MotivoCierre`; `normal → 3 días`, `por_incidencia → 6 meses`. El aviso de éxito usa `ventanaTrasCierre` (`3 días más` / `6 meses`). Nunca produce una fecha (DT-02).
 7. **Derivación desde la máquina.** `tipoDeCierre(e) !== null` si y solo si `accionesDesde(e)` contiene `CERRADO`; no existe una segunda tabla de aristas de cierre.
 8. **Clasificación de errores.** Todo `409` del cierre se clasifica como `ErrorTransicion` y recarga el detalle sin presentar el viaje como cerrado; un `codigo` desconocido (como `conflicto`) cae al mensaje genérico; todo `400` conserva el motivo elegido.
 
