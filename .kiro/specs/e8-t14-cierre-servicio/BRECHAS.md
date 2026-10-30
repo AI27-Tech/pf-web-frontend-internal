@@ -2,159 +2,127 @@
 
 Documento de brechas del spec. Cada brecha indica qué pide la tarea, qué existe hoy, qué falta, el impacto en el spec y la propuesta de resolución. **No** se rellena nada con una alternativa local: una operación o campo ausente se solicita al repo de contratos; una regla sin definir se pregunta a Product Management; un componente ausente se compone con primitivas de la librería o se solicita a la librería.
 
-## Estado (2026-10-29)
+## Estado (actualizado 2026-10-29, tras la respuesta al brief y la publicación de `tracer.24`)
 
-El spec (`requirements.md`, `design.md`, `tasks.md`) **está redactado con las brechas abiertas**: el comportamiento que depende de una brecha está marcado como **condicionado** en los requisitos y tiene una tarea de cierre en la última ola de `tasks.md`. Se decidió cerrar las brechas durante la ejecución, no antes. Las brechas 1 a 4 y 6 requieren respuesta externa; la 5 es una inconsistencia conocida de plataforma; la 7 está verificada y no bloquea. Las propuestas del frontend que usa el spec mientras tanto están marcadas **no vigentes hasta confirmarse**.
+El brief (`.scratch/brecha-contrato-cierre-servicio/brief-cierre-servicio.md`) fue respondido por Contratos, Backend y Producto. **`v0.1.0-tracer.24` está publicado** y trae el motivo tipado y los códigos de 409 declarados. DEC-113 retiró el motivo `bitacora`. Quedan abiertas solo las dependencias de plataforma (códigos de 409 en runtime y 403 real) y la decisión de Producto sobre la fecha exacta de la ventana.
 
-| #   | Brecha                                                         | Dueño de la respuesta | Estado     | Bloquea                                     |
-| --- | -------------------------------------------------------------- | --------------------- | ---------- | ------------------------------------------- |
-| 1   | Motivo de cierre sin campo ni catálogo en el contrato          | Contratos             | Abierta    | Captura del motivo (condiciona, no bloquea) |
-| 2   | "Observaciones de cierre" sin campo en el contrato             | PM + Contratos        | Abierta    | Campo opcional de la HU                     |
-| 3   | Motivo `bitacora` sin definición ni ventana de escritura       | PM                    | Abierta    | Texto de la ventana para ese motivo         |
-| 4   | Ventana de escritura (3 días / 6 meses) no expuesta por el bff | Contratos + PM        | Abierta    | Solo la fecha concreta de vencimiento       |
-| 5   | Códigos de error del cierre sin publicar; 401 en vez de 403    | Contratos + Backend   | Abierta    | Mensajes diferenciados por causa            |
-| 6   | Criterio de "listo para cerrar" y rol facultado                | PM                    | Abierta    | Cuándo ofrecer la acción y a quién          |
-| 7   | Componentes de `@ai27-tech/ui`                                 | —                     | Verificada | Nada                                        |
+| #   | Brecha                                                         | Estado                                                                                                                    | Efecto en el spec                                                       |
+| --- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| 1   | Motivo de cierre sin campo ni catálogo en el contrato          | **Cerrada:** `motivo_cierre` tipado en `tracer.24`, enum `[normal, por_incidencia]`                                       | El spec consume el enum generado; se elimina el puente por `causa`      |
+| 2   | "Observaciones de cierre" sin campo                            | **Cerrada por decisión:** se omiten en V1 (Producto)                                                                      | Fuera de alcance; sin condicionamiento                                  |
+| 3   | Motivo `bitacora`                                              | **Cerrada:** DEC-113 lo retira; solo `normal` y `por_incidencia`                                                          | Sin motivo "por definir"; ventanas 3 días y 6 meses                     |
+| 4   | Ventana de escritura no expuesta por el bff                    | **Diferida:** `escritura_hasta` solo si Producto lo exige (C5)                                                            | La UI comunica la regla, no la fecha. Condicionado a C5                 |
+| 5   | Códigos de 409 en runtime; 401 en lugar de 403                 | **Parcial:** códigos declarados en `tracer.24`; el runtime sigue enviando `conflicto`; 403 diferido                       | La UI previene con datos propios; condicionado a la tarea de plataforma |
+| 6   | "Listo para cerrar" y rol facultado                            | **Cerrada:** criterio por estado de origen vigente (B2/C3); cierran solo `jefe_operativo` y `administrador` (C4, DEC-060) | Sin condicionamiento; la UI no usa `arribo`                             |
+| 7   | Componentes de `@ai27-tech/ui`                                 | **Verificada:** sin aviso en línea dedicado; se compone                                                                   | Sin bloqueo                                                             |
+| 8   | Pin del frontend en `tracer.22`, contrato nuevo en `tracer.24` | **Cerrada (2026-10-29):** pin en `tracer.24`, instalado y verificado; falta commitear                                     | Tarea 1 del plan, hecha                                                 |
 
 ---
 
 ## Fuentes y versiones verificadas
 
-- **Contexto:** `repos/ai27-platform-context` al día con `origin/main`, commit `07f906d` (`pull --ff-only` desde `1dd8256`). Historia técnica `docs/historias-tecnicas/E8-panel-admin.md` §E8-T14 y `E1-prestacion-del-servicio.md` §E1-T8. HU `docs/hu/E1-HU-010-cerrar-el-servicio.md` (estado: **Borrador, pendiente de validación**). Decisiones DEC-013, DEC-020 #6, DEC-030, DEC-041, DEC-060, DEC-111 (nota sobre 401/403).
-- **Contrato:** el frontend fija `@ai27-tech/contracts@0.1.0-tracer.22`. El último tag publicado es `v0.1.0-tracer.23`, que solo agrega `transicionarViajeCliente` (E9-T7) y no afecta a T14; no se subió el pin. El checkout local de `pf-pkg-contracts` está en la rama `feat/ficha-tecnica-e-historico-tracer21` (cfefcec, adelantada 8 commits), **no** en el tag del `package.json`: la superficie se leyó con `git show v0.1.0-tracer.22:contracts/openapi/bff.yaml` y `…/estados/viaje.estados.yaml`.
-- **Backend (referencia, no autoridad):** `repos/pf-svc-operacion/internal/viajes/transicion.go` (`validarCierre`), presente en `origin/pf-op-m` vía "Cierre del servicio (#45)". Se leyó el checkout local de `pf-svc-operacion` (rama `pf-op-d`); sirve para entender el comportamiento real, pero el contrato publicado es la fuente.
+- **Contexto:** `repos/ai27-platform-context` al día con `origin/main`, commit `2e80dd2` (`pull --ff-only` desde `07f906d`). Historia técnica `docs/historias-tecnicas/E8-panel-admin.md` §E8-T14 y `E1-prestacion-del-servicio.md` §E1-T8. HU `E1-HU-010` (corregida: sin "bitácora", sin pendiente de quién cierra). Decisiones DEC-020 #6, DEC-030, DEC-041, DEC-060, **DEC-113** (motivos de cierre solo `normal` y `por_incidencia`), DEC-111 (nota ampliada con A3/B1 de E8-T14, diferido).
+- **Contrato:** último tag publicado `v0.1.0-tracer.24` (ola A1/A2 de E8-T14: contratos PR #85, `operacion` PR #62, `bff` PR #37). El `package.json` del frontend fija todavía `@ai27-tech/contracts@0.1.0-tracer.22` (brecha 8). `tracer.23` agrega `transicionarViajeCliente` (E9-T7) y no afecta al cierre. El checkout local de `pf-pkg-contracts` no estaba en el tag del `package.json`; la superficie se lee con `git show v0.1.0-tracer.24:…`.
+- **Backend (referencia):** `operacion` en `origin/pf-op-d`/`pf-op-m` (merge de `feat/motivo-cierre-e8-t14`): `validarCierre` lee `motivo_cierre` y ya no acepta `bitacora`.
 - **Librería:** `@ai27-tech/ui@0.2.0-beta.6`.
 
-### Superficie contractual que la tarea consume (verificada en `tracer.22`)
+### Superficie contractual que la tarea consume (verificada en `tracer.24`)
 
-| Elemento            | Hecho verificado                                                                                                                                                                      |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Operación           | `POST /api/v1/viajes/{id}/transiciones` (`transicionarViaje`) → `200 ViajeDetalle`; `400`, `401`, `403`, `409`                                                                        |
-| Entrada             | `TransicionEntrada { a_estado: string, causa?: string }`, `additionalProperties: false`. `causa`: "obligatoria cuando el destino la requiere; la validación fina vive en `operacion`" |
-| Aristas a `CERRADO` | `EN_DESTINO→CERRADO` y `EN_DESCARGA→CERRADO` (guarda `ultima_parada`); `EN_TRANSITO→CERRADO` (guarda `cierre_anticipado_por_incidencia`) — `viaje.estados.yaml`                       |
-| Detalle             | `ViajeDetalle { viaje: ViajeInterno, condiciones_activas: CondicionAbierta[] }`; `CondicionAbierta.tipo ∈ {INCIDENCIA, SIN_SENAL}`; `destinos[].arribo?: boolean`                     |
-| 409 documentado     | Solo `transicion_no_permitida` ("la UI distingue el rechazo por carrera a partir de él")                                                                                              |
-
----
-
-## Brecha 1 — Motivo de cierre sin campo ni catálogo en el contrato
-
-**Qué pide la tarea.** E8-T14 / `E1-HU-010`: el cierre exige un **motivo** del catálogo _normal / por incidencia / bitácora_ (DEC-013). `E1-T8` pide que `viaje.cerrado` lleve el motivo. Contrato declarado por la historia técnica: `POST /api/v1/viajes/{id}/transiciones` "con motivo".
-
-**Qué existe hoy.** `TransicionEntrada` solo tiene `a_estado` y `causa` (texto libre). No hay campo `motivo_cierre` ni enum del catálogo en `bff.yaml` ni en `operacion.yaml` (`tracer.22`). `operacion` resuelve el motivo leyendo `causa` y validándolo contra los literales `normal`, `por_incidencia` y `bitacora`; su propio código lo documenta como atajo ("brecha de contrato… cuando el contrato gane ese campo, esta lectura cambia"). El documento de brecha que cita ese comentario (`.scratch/e1-t8-cierre-viaje/brecha-motivo-de-cierre.md`) **no está en este workspace**.
-
-**Qué falta exactamente.** Un campo tipado para el motivo (p. ej. `motivo_cierre` con enum `normal | por_incidencia | bitacora`) en `TransicionEntrada` del `bff` y de `operacion`, o la confirmación explícita de que `causa` con esos literales es el contrato definitivo.
-
-**Impacto en el spec.** Los tres literales no están en el contrato generado, así que la UI no puede importarlos como enum. La captura del motivo queda **condicionada**: sin decisión, el spec no puede fijar si el selector se alimenta de un enum generado o de una constante local.
-
-**Propuesta de resolución.**
-
-- _Solicitud a Contratos:_ publicar el campo tipado (ver brief). Mientras no exista, la UI aísla el puente en **una sola capa** (`lib/contracts/cierreViaje.ts`), igual que la Opción A de E8-T9, con los tres literales declarados una vez y un comentario que apunta a esta brecha. El resto del código no asume más que esa capa.
-- _Decisión pendiente (no tomada):_ si el puente por `causa` es aceptable para V1 o se espera al campo tipado.
+| Elemento                  | Hecho verificado                                                                                                                                                                                                                                |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Operación                 | `POST /api/v1/viajes/{id}/transiciones` (`transicionarViaje`) → `200 ViajeDetalle`; `400`, `401`, `403`, `409`                                                                                                                                  |
+| Entrada                   | `TransicionEntrada { a_estado: string, causa?: string, motivo_cierre?: MotivoCierre }`, `additionalProperties: false`. `motivo_cierre`: "obligatorio al transicionar a `CERRADO`; ignorado en otras aristas"; la validación vive en `operacion` |
+| Enum                      | `MotivoCierre = "normal" \| "por_incidencia"` (`bff.gen.ts` de `tracer.24`)                                                                                                                                                                     |
+| Códigos de 409 declarados | `transicion_no_permitida`, `cierre_anticipado_solo_por_incidencia`, `cierre_anticipado_requiere_incidencia`. **Solo declarados:** hoy el runtime envía `codigo: conflicto`                                                                      |
+| Aristas a `CERRADO`       | `EN_DESTINO→CERRADO` y `EN_DESCARGA→CERRADO` (guarda `ultima_parada`); `EN_TRANSITO→CERRADO` (guarda `cierre_anticipado_por_incidencia`)                                                                                                        |
+| Detalle                   | `ViajeDetalle { viaje: ViajeInterno, condiciones_activas: CondicionAbierta[] }`; `CondicionAbierta.tipo ∈ {INCIDENCIA, SIN_SENAL}`                                                                                                              |
 
 ---
 
-## Brecha 2 — "Observaciones de cierre" sin campo en el contrato
+## Brecha 1 — Motivo de cierre (CERRADA: `motivo_cierre` tipado en `tracer.24`)
 
-**Qué pide la tarea.** `E1-HU-010`, tabla de campos: _Observaciones de cierre_ (texto, **opcional**, "detalle libre"). El criterio de aceptación pide que el cierre quede registrado con actor y marca de tiempo; no menciona observaciones en los criterios, solo en la tabla de campos.
+**Qué pedía la tarea.** `E1-HU-010`: el cierre exige un motivo del catálogo cerrado. La historia técnica declara `POST /api/v1/viajes/{id}/transiciones` "con motivo".
 
-**Qué existe hoy.** `TransicionEntrada` no tiene dónde llevarlas. `causa` ya está ocupada por el motivo en el puente de la brecha 1. `operacion` no las lee. La historia técnica E8-T14 no las menciona.
+**Estado.** `tracer.24` agrega `TransicionEntrada.motivo_cierre` con el enum `MotivoCierre = [normal, por_incidencia]` en `bff` y `operacion`, y `operacion` lo lee de ahí en lugar de `causa`. Verificado en el `bff.gen.ts` de `tracer.24`.
 
-**Qué falta exactamente.** Un campo opcional (p. ej. `observaciones`) en `TransicionEntrada`, y su persistencia y exposición en el histórico, si Producto las quiere en V1.
-
-**Impacto en el spec.** Campo opcional de la HU, no bloqueante. Sin definición, no se captura: meterlas dentro de `causa` mezclaría dos datos en un campo que `operacion` valida como catálogo cerrado y lo rechazaría con `400`.
-
-**Propuesta de resolución.** Pregunta a PM: ¿las observaciones entran en V1? Si sí, solicitud a Contratos. Si no, la HU se ajusta y el spec no las modela. Recomendación del frontend: omitirlas en V1.
+**Qué queda.** Subir el pin del frontend (brecha 8). La capa `lib/contracts/cierreViaje.ts` reexporta el enum generado y arma `{ a_estado: CERRADO, motivo_cierre }`; ya no envía el motivo en `causa`.
 
 ---
 
-## Brecha 3 — Motivo `bitacora`: sin definición ni ventana de escritura
+## Brecha 2 — Observaciones de cierre (CERRADA por decisión: se omiten en V1)
 
-**Qué pide la tarea.** La HU lista el motivo _de bitácora_ "(DEC-013)" y la Definición de terminado de E8-T14 exige que la UI comunique la ventana de escritura resultante "según el motivo".
+**Qué pedía la tarea.** `E1-HU-010`, tabla de campos: observaciones de cierre (opcional).
 
-**Qué existe hoy.** DEC-013 trata el modelo multi-parada y **no** define un motivo de cierre "bitácora". Ninguna fuente de contexto dice qué significa ni qué ventana le corresponde. Las fuentes solo fijan: sin incidencia → 3 días; con incidencia → 6 meses (DEC-030, DEC-041). `E1-T8` dice que `mensajeria` decide la ventana a partir del motivo en `viaje.cerrado`, pero no cómo se mapea `bitacora`. `operacion` solo valida el literal; tampoco lo interpreta.
-
-**Qué falta exactamente.** Definición funcional del motivo `bitacora` (cuándo se usa, quién lo elige) y su ventana (3 días o 6 meses).
-
-**Impacto en el spec.** El texto de la ventana para ese motivo no puede escribirse. También queda abierto si el motivo se ofrece en el selector o se oculta hasta tener definición.
-
-**Propuesta de resolución.** Pregunta a PM. Propuesta del frontend, **no vigente hasta que PM la confirme**: la UI comunica 3 días para `normal`, 6 meses para `por_incidencia` y, para `bitacora`, "ventana por definir" sin inventar un valor.
+**Estado.** Producto y Contratos coinciden en omitirlas en V1: no están en los criterios de aceptación ni en el contrato. Si Producto las quiere después, es un campo nuevo aparte. El spec no las modela.
 
 ---
 
-## Brecha 4 — Ventana de escritura no expuesta por el `bff`
+## Brecha 3 — Motivo `bitacora` (CERRADA: retirado por DEC-113)
+
+**Estado.** DEC-113 establece que los motivos de cierre de V1 son exactamente `normal` y `por_incidencia`. El motivo `bitacora` era una cita circular a DEC-013 (modelo multi-parada) sin respaldo. Ventanas: `normal` → 3 días; `por_incidencia` → 6 meses (DEC-030, DEC-041). `operacion` ya rechaza `bitacora` con `400`; la HU quedó corregida. El selector ofrece dos motivos y no existe ventana "por definir".
+
+---
+
+## Brecha 4 — Ventana de escritura no expuesta por el `bff` (DIFERIDA, condicionada a C5)
 
 **Qué pide la tarea.** DoD de E8-T14: "la interfaz comunica la ventana de escritura resultante (3 días o 6 meses) según el motivo y anticipa el paso posterior a sólo lectura".
 
-**Qué existe hoy.** `ViajeDetalle` y `ViajeInterno` no traen ningún dato de la conversación. `mensajeria.yaml` menciona `escritura_hasta` y el código `conversacion_solo_lectura` (DEC-030/DEC-041), pero solo en prosa del envío de mensajes; no hay un schema ni una operación del `bff` que devuelva el vencimiento de la ventana de un viaje cerrado.
+**Qué existe hoy.** `ViajeDetalle` no trae datos de la conversación. `escritura_hasta` existe en `mensajeria`, pero el `bff` no lee la conversación del viaje; exponerlo exige contrato más una lectura nueva. Contratos lo difiere salvo que Producto diga que la fecha exacta es imprescindible (C5).
 
-**Qué falta exactamente.** Para mostrar **la fecha concreta** de paso a sólo lectura: un campo `escritura_hasta` (o equivalente) en el detalle del viaje o en una lectura de conversación expuesta por el `bff`. Para mostrar **la regla** (3 días / 6 meses) no falta nada: es texto derivado del motivo elegido.
+**Impacto en el spec.** No bloquea. La UI comunica la **regla** (3 días / 6 meses) derivada del motivo, y tras el cierre repite esa regla. **No** calcula `cerrado_en + ventana` (es regla de `mensajeria`). Al reabrir un viaje ya `CERRADO` solo dice que está cerrado: el detalle no trae el motivo ni el vencimiento.
 
-**Impacto en el spec.** No bloquea. El spec puede cumplir el DoD con texto fijo por motivo antes de confirmar y, tras cerrar, con el aviso derivado del motivo enviado. La fecha exacta queda **condicionada** a esta brecha. La UI no calcula `cerrado_en + 3 días` por su cuenta: esa cuenta es regla de `mensajeria`.
-
-**Propuesta de resolución.** Solicitud a Contratos (ver brief), de prioridad baja: exponer `escritura_hasta` tras el cierre. Mientras tanto, la UI solo comunica la regla.
+**Qué falta para cerrarla.** Respuesta de Producto a C5 (¿la fecha exacta entra en V1?). Si sí: contrato para `escritura_hasta` y lectura en el `bff`; el frontend la muestra sin calcularla (tarea 10 del plan).
 
 ---
 
-## Brecha 5 — Códigos de error del cierre sin publicar; 401 en lugar de 403
+## Brecha 5 — Códigos de 409 en runtime y 403 real (PARCIAL; diferida a plataforma)
 
-**Qué pide la tarea.** Estados obligatorios de E8-T14: cierre sin motivo (bloqueado), cierre anticipado sin incidencia abierta (bloqueado "con la razón visible"), viaje ya cerrado.
+**Qué pide la tarea.** Estados obligatorios: cierre sin motivo (bloqueado), cierre anticipado sin incidencia abierta (bloqueado, con la razón visible), viaje ya cerrado.
 
 **Qué existe hoy.**
 
-- El `bff` documenta para `transicionarViaje` un único `codigo` de 409: `transicion_no_permitida`. `operacion` rechaza el cierre con 409 por al menos tres causas distintas (anticipado con motivo ≠ `por_incidencia`; anticipado sin condición `INCIDENCIA` abierta; arista no permitida, p. ej. viaje ya `CERRADO`), todas con mensaje libre y sin `codigo` propio publicado.
-- `operacion` responde **401** cuando un rol sin facultad intenta cerrar (`rolesQuePuedenCerrar`, solo `jefe_operativo` y `administrador`) porque `pf-pkg-platform-go/errors` no tiene categoría 403. DEC-111 lo reconoce como inconsistencia diferida y pide revisar `validarCierre` cuando se agregue el 403. El contrato del `bff` sí declara `403` para la operación.
-- Motivo faltante o fuera de catálogo → `400` (declarado en el contrato).
-- No se verificó qué `codigo` serializa el `bff` en cada 409 reenviado desde `operacion` (`pf-svc-bff/internal/errores` traduce el estado HTTP a una categoría genérica).
-
-**Qué falta exactamente.** `codigo` diferenciado por causa de 409 (p. ej. `cierre_anticipado_requiere_incidencia`, `cierre_anticipado_solo_por_incidencia`) y 403 real para "sin facultad de cerrar".
+- `tracer.24` **declara** los códigos de 409 del cierre (`cierre_anticipado_solo_por_incidencia`, `cierre_anticipado_requiere_incidencia`, `transicion_no_permitida`), pero **no los emite**: `operacion` no produce código de máquina (su error solo lleva categoría) y el `bff` aplana los 409 por status. Hoy todo 409 llega con `codigo: conflicto`. Arreglarlo es un cambio transversal de plataforma (código propio en `PlatformError`), diferido por decisión del Lead (DEC-111, nota ampliada).
+- `validarCierre` responde **401** a un rol sin facultad porque la plataforma no tiene categoría 403. Mismo cambio de plataforma, diferido junto con lo anterior.
+- **Riesgo (verificado en `lib/api/client.ts`):** ante un 401 en un endpoint que no es de sesión, `manejar401` refresca el token y reintenta una vez; si vuelve a dar 401, ejecuta `cortarSesion()`. Un 401 por falta de facultad cierra la sesión del usuario.
+- `lib/api/viajeDetalle.ts` (`clasificarConflicto`) hoy reconoce solo `transicion_no_permitida` y `viaje_en_estado_terminal`; cualquier otro 409 cae al respaldo `transicion_no_permitida`.
 
 **Impacto en el spec.**
 
-- La UI **previene** lo que puede con datos que ya tiene: oculta o deshabilita "Cerrar" según el rol de la sesión, bloquea el cierre anticipado cuando `condiciones_activas` no trae `INCIDENCIA`, y no ofrece acciones en `CERRADO` (terminal). Eso cubre los estados obligatorios sin depender de códigos.
-- Ante una carrera (la incidencia se cerró entre la lectura y el envío), la UI solo puede mostrar un mensaje de conflicto genérico y recargar el detalle; no puede nombrar la causa.
-- **Riesgo (verificado en `lib/api/client.ts`):** ante cualquier 401 en un endpoint que no es de sesión, `manejar401` refresca el token y reintenta una vez; si el reintento vuelve a dar 401, ejecuta `cortarSesion()` y lanza `sesionFinalizada`. Un 401 por falta de facultad (que el refresco no corrige) **cierra la sesión del usuario**. El frontend lo mitiga ocultando "Cerrar" a los roles sin facultad; no modifica `client.ts` (es transversal y fuera del alcance de T14). El riesgo residual es un rol sin facultad que fuerce la petición, o un cambio de rol entre la lectura y el envío.
-- **Hallazgo del código actual:** `DetalleViaje.tsx` ofrece hoy `CERRADO` como un botón genérico "Transicionar a: CERRADO" para cualquier rol y **sin motivo** (`requiereCausa` no lo incluye). Contra `operacion` eso produce un `400`. E8-T14 reemplaza ese botón por la acción dedicada de cierre.
+- La UI **previene** con datos propios: oculta "Cerrar" por rol, bloquea el cierre anticipado cuando `condiciones_activas` no trae `INCIDENCIA`, y no ofrece acciones en `CERRADO`. Eso cubre los estados obligatorios sin depender de códigos.
+- Ante una carrera, hoy solo puede mostrar un conflicto genérico y recargar. El spec ya contempla los códigos nuevos: el tipo `ConflictoCodigoTransicion` y los mensajes se amplían ahora para que, cuando el runtime los emita, no haya cambios en la UI (hasta entonces el respaldo aplica).
+- El riesgo del 401 se mitiga con la prevención por rol. Backend propone además que `transicionarViaje` no corte la sesión ante un 401 sin intentar refresco; `client.ts` ya intenta refresco y corta si el reintento falla, así que la propuesta no es evidente. **Decisión abierta con el senior del frontend**; T14 no modifica `client.ts`.
 
-**Propuesta de resolución.** Solicitud a Contratos/Backend (ver brief): publicar los `codigo` de 409 del cierre y migrar el rechazo de facultad a 403 (ya diferido en DEC-111). Hasta entonces, prevención en la UI y mensaje genérico de conflicto, sin inventar códigos.
+**Qué falta para cerrarla.** La tarea de plataforma (A3 + B1): código de máquina en los errores, 403 real, y su propagación en el `bff`. Sin fecha. Tarea 11 del plan.
 
 ---
 
-## Brecha 6 — Criterio de "listo para cerrar" y rol facultado (pendientes de la HU)
+## Brecha 6 — "Listo para cerrar" y rol facultado (CERRADA)
 
-**Qué pide la tarea.** Cierre "desde un estado válido tras la última parada" y solo por el Jefe Operativo (o Administrador).
-
-**Qué existe hoy.**
-
-- La guarda `ultima_parada` del YAML es nominal. `operacion` la **aproxima por el estado de origen** (`EN_DESTINO` o `EN_DESCARGA`) y no verifica que sea literalmente la última parada: su código declara que no existe puntero de parada actual y que la condición de "listo para cerrar" no está fijada en las fuentes. `E6-HU-033` (panel del Jefe Operativo) tiene el mismo pendiente.
-- `ViajeInterno.destinos[].arribo` existe, pero ninguna fuente dice que deba gatear el cierre.
-- `E1-HU-010`, Pendientes: "si Supervisor/Coordinador también pueden cerrar viajes (DEC-060 se lo asigna al Jefe Operativo)". `operacion` hoy solo acepta `jefe_operativo` y `administrador`.
-
-**Qué falta exactamente.** (a) Definición de "última parada" / "listo para cerrar". (b) Confirmación de que solo `jefe_operativo` y `administrador` cierran.
-
-**Impacto en el spec.** Sin (a), la UI no puede decidir si advierte o bloquea cuando hay destinos sin `arribo`; hacerlo sería inventar una regla. Sin (b), la visibilidad de la acción se fija con DEC-060 tal como está.
-
-**Propuesta de resolución.** Preguntas a PM. Propuesta del frontend, **no vigente hasta confirmarse**: la UI deriva las acciones de la máquina de estados generada y de `condiciones_activas`, no de `arribo`, y ofrece "Cerrar" solo a `jefe_operativo` y `administrador` (DEC-060). La autoridad final es el `bff`.
+**Estado.** Backend confirma (B2) que aproximar la última parada por el estado de origen (`EN_DESTINO` o `EN_DESCARGA`) es el criterio vigente de V1 (atajo documentado; no hay puntero de parada; mismo pendiente que `E6-HU-033`). Producto confirma (C3) que la UI deriva de la máquina de estados y `condiciones_activas`, no de `destinos[].arribo`, hasta que se defina otro criterio. Producto confirma (C4, DEC-060) que solo `jefe_operativo` y `administrador` cierran; Supervisor y Coordinador no cierran en V1 (pendiente de la HU cerrado). El spec no tiene condicionamientos por esta brecha.
 
 ---
 
 ## Brecha 7 — Componentes de `@ai27-tech/ui` (VERIFICADA)
 
-**Qué pide la tarea.** Un diálogo de cierre con selector de motivo, aviso de la ventana de escritura, bloqueos con razón visible y avisos de resultado.
+**Qué existe.** En `@ai27-tech/ui@0.2.0-beta.6` están `Modal`, `Select`, `Radio`, `Textarea`, `Badge`, `Toast`, `ToastContainer` y `Tooltip`; el detalle del viaje ya usa `Modal`, `Form`, `FormField`, `Button`, `Card` y `Toast`. No se encontró un aviso en línea (`Alert`/`Callout`).
 
-**Qué existe.** En `@ai27-tech/ui@0.2.0-beta.6` están `Modal`, `Select`, `Radio`, `Textarea`, `Badge`, `Toast`, `ToastContainer` y `Tooltip`; el detalle del viaje ya usa `Modal`, `Form`, `FormField`, `Button`, `Card` y `Toast` (E8-T8 a E8-T10). No se encontró un componente de aviso en línea (tipo `Alert`/`Callout`).
-
-**Qué falta.** Un aviso en línea dedicado para la razón de bloqueo y para la ventana de escritura.
-
-**Impacto y resolución.** No bloquea. Se compone con texto semántico y los tokens `--ui-*` de la librería, igual que el mensaje de error de `CausaForm`, y se registra como solicitud a la librería si el equipo de diseño quiere un componente. No se crea componente local.
+**Impacto y resolución.** No bloquea. La razón de bloqueo y la ventana se componen con texto semántico y tokens `--ui-*`, igual que el error de `CausaForm`. Solicitud opcional a la librería de un aviso en línea; no se crea componente local.
 
 ---
 
-## Resumen de decisiones que el spec necesita
+## Brecha 8 — Pin del frontend desfasado respecto del contrato (CERRADA, 2026-10-29)
 
-1. ¿Puente por `causa` con `normal | por_incidencia | bitacora` o esperar el campo tipado? (brecha 1)
-2. ¿Observaciones de cierre en V1? (brecha 2)
-3. ¿Qué es el motivo `bitacora` y qué ventana tiene? (brecha 3)
-4. ¿Se necesita la fecha exacta de vencimiento de la ventana en V1? (brecha 4)
-5. ¿Cómo se distingue el 401 por falta de facultad de una sesión expirada? (brecha 5)
-6. ¿Qué define "listo para cerrar", y cierran solo `jefe_operativo` y `administrador`? (brecha 6)
+**Estado.** El pin se subió a `@ai27-tech/contracts@0.1.0-tracer.24` (`package.json`, `pnpm-lock.yaml`; pnpm agregó `tracer.24` a `minimumReleaseAgeExclude` en `pnpm-workspace.yaml`). Verificado en `node_modules`: `MotivoCierre`, `TransicionEntrada.motivo_cierre`, los códigos de 409 y las aristas a `CERRADO`. Línea base: `typecheck` ✓, `lint` ✓, `test` 170/170 ✓. Queda commitear el cambio.
+
+**Historial.** `package.json` fijaba `0.1.0-tracer.22`; sin subir el pin, `motivo_cierre` y `MotivoCierre` no existían en los tipos generados.
+
+**Propuesta de resolución.** Tarea 1 del plan: subir el pin a `0.1.0-tracer.24` (cambio aditivo respecto de `tracer.22`: `tracer.23` agrega la operación de cliente de E9-T7 y `tracer.24` el motivo y los códigos), reinstalar, confirmar en `node_modules` que `MotivoCierre` y `motivo_cierre` están presentes y correr `typecheck`, `lint` y `test` para descartar regresiones antes de seguir. Si el paquete `0.1.0-tracer.24` no está disponible en el registro del equipo, detener y avisar; no se escribe el tipo a mano.
+
+---
+
+## Pendientes que siguen abiertos
+
+1. **C5 (Producto):** ¿la fecha exacta de paso a sólo lectura entra en V1? Decide si la brecha 4 se activa.
+2. **C6 (Producto):** validación de los textos de bloqueo y de la ventana (copy). Los textos del spec son propuestos.
+3. **Plataforma (A3 + B1):** códigos de 409 en runtime y 403 real. Sin fecha.
+4. **Senior del frontend:** si se acepta el riesgo del 401 con la prevención por rol o se abre una tarea transversal sobre `client.ts`.
