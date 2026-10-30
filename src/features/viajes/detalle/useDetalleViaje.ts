@@ -14,6 +14,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@/context/SessionContext';
 import { listarUnidades } from '@/lib/api/unidades';
 import { ApiError } from '@/lib/api/errors';
+import { entradaDeCierre, type MotivoCierre } from '@/lib/contracts/cierreViaje';
 import {
   asignarEscolta,
   completarFechaHora,
@@ -49,6 +50,8 @@ export interface DetalleViajeHook {
   readonly reintentar: () => void;
   /** Transiciona el viaje a un nuevo estado. Invalida la lectura. */
   readonly transicionar: (a_estado: EstadoViaje, causa?: string) => Promise<void>;
+  /** Cierra el servicio con un motivo contractual e invalida la lectura. */
+  readonly cerrarServicio: (motivo: MotivoCierre) => Promise<void>;
   /** Fija el ETA estimado manual. Invalida la lectura. */
   readonly fijarEta: (eta_estimado: string) => Promise<void>;
   /** Completa/edita la fecha/hora del servicio (E8-T9). */
@@ -109,6 +112,21 @@ export function useDetalleViaje(
     },
   });
 
+  const mutacionCierre = useMutation({
+    mutationFn: async ({ motivo }: { motivo: MotivoCierre }) =>
+      transicionar(id, entradaDeCierre(motivo), accessToken),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['viaje', id] });
+    },
+    onError: (mutationError) => {
+      // Una carrera durante el cierre puede resolver la incidencia entre la
+      // lectura y la escritura; refrescar evita mostrar un detalle obsoleto.
+      if (mutationError instanceof ApiError && mutationError.status === 409) {
+        void queryClient.invalidateQueries({ queryKey: ['viaje', id] });
+      }
+    },
+  });
+
   const mutacionEta = useMutation({
     mutationFn: async ({ eta_estimado }: { eta_estimado: string }) =>
       fijarEta(id, { eta_estimado }, accessToken),
@@ -152,6 +170,13 @@ export function useDetalleViaje(
     [mutacionTransicion],
   );
 
+  const cerrarServicioHandler = useCallback(
+    async (motivo: MotivoCierre) => {
+      await mutacionCierre.mutateAsync({ motivo });
+    },
+    [mutacionCierre],
+  );
+
   const fijarEtaHandler = useCallback(
     async (eta_estimado: string) => {
       await mutacionEta.mutateAsync({ eta_estimado });
@@ -188,6 +213,7 @@ export function useDetalleViaje(
     esNoAutorizado,
     reintentar: () => void query.refetch(),
     transicionar: transicionarHandler,
+    cerrarServicio: cerrarServicioHandler,
     fijarEta: fijarEtaHandler,
     completarFechaHora: completarFechaHoraHandler,
     unidades: rosterQuery.data ?? [],

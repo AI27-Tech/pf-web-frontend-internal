@@ -31,8 +31,11 @@ import { ApiError } from '@/lib/api/errors';
 import { ErrorAsignacion, ErrorTransicion } from '@/lib/api/viajeDetalle';
 import type { CondicionAbierta, ViajeInterno } from '@/lib/contracts/viajeDetalle';
 import { EstadoViaje, esTerminal } from '@/lib/contracts/viajeDetalle';
+import type { MotivoCierre } from '@/lib/contracts/cierreViaje';
 
 import { CausaForm } from './causaForm';
+import { CierreForm } from './cierreForm';
+import { bloqueoDeCierre, puedeCerrar, tipoDeCierre, ventanaTrasCierre } from './cierreViaje';
 import { requiereCausa } from './causaTransicion';
 import { puedeAprobar } from './decisionSolicitud';
 import { AsignacionForm } from './asignacionForm';
@@ -100,6 +103,8 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
   const [modalFechaHoraAbierto, setModalFechaHoraAbierto] = useState(false);
   /** Destino pendiente de confirmar con causa; null si no hay modal de causa abierto. */
   const [causaPendiente, setCausaPendiente] = useState<EstadoViaje | null>(null);
+  /** true cuando el modal de motivo de cierre está abierto (E8-T14). */
+  const [cierreAbierto, setCierreAbierto] = useState(false);
   const toastIdRef = useRef(0);
 
   // Helper para agregar un toast
@@ -141,6 +146,13 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
   const condicionesActivas: CondicionAbierta[] = d.condicionesActivas ?? [];
   // Req 4.1: el ETA solo se ofrece cuando el viaje NO está en estado terminal.
   const viajeTerminal = esTerminal(viajeInterno.estado as EstadoViaje);
+  const tipoCierre = tipoDeCierre(viajeInterno.estado as EstadoViaje);
+  const bloqueoCierre = tipoCierre
+    ? bloqueoDeCierre(viajeInterno.estado as EstadoViaje, condicionesActivas)
+    : null;
+  const accionesVisibles = d.acciones.filter(
+    (accion) => accion !== EstadoViaje.Cerrado || (usuario !== null && puedeCerrar(usuario.rol)),
+  );
 
   // Envío real de la transición (con causa opcional). Clasifica el 409 por el
   // código REAL devuelto por el wrapper (Req 3.3).
@@ -167,6 +179,12 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
   // Clic en una acción: si el destino requiere causa (Req 2.5 / 4.1), abre el
   // modal de causa; si no, envía la transición directo.
   const handleAccion = async (a_estado: EstadoViaje) => {
+    // CERRADO requiere motivo_cierre; nunca se envía como transición genérica.
+    if (a_estado === EstadoViaje.Cerrado) {
+      setCierreAbierto(true);
+      return;
+    }
+
     // ASIGNADO es la acción de reservar la escolta; la transición se confirma
     // atómicamente junto con las unidades seleccionadas por el formulario.
     if (a_estado === EstadoViaje.Asignado) {
@@ -217,6 +235,44 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
       }
       // El formulario conserva la selección y muestra el error contextual.
       throw err;
+    }
+  };
+
+  // Confirmación del cierre del servicio (E8-T14).
+  const handleCierreConfirm = async (motivo: MotivoCierre) => {
+    try {
+      await d.cerrarServicio(motivo);
+      setCierreAbierto(false);
+      addToast(
+        `Servicio cerrado. La conversación aceptará mensajes durante ${ventanaTrasCierre(motivo)} y después pasará a sólo lectura.`,
+        'success',
+      );
+    } catch (err) {
+      let mensaje = 'No se pudo cerrar el servicio. Revisa tu conexión e inténtalo de nuevo.';
+
+      if (err instanceof ErrorTransicion) {
+        if (err.codigo === 'cierre_anticipado_requiere_incidencia') {
+          mensaje = 'El cierre anticipado requiere una incidencia abierta';
+        } else if (err.codigo === 'cierre_anticipado_solo_por_incidencia') {
+          mensaje = 'El cierre anticipado solo es válido por incidencia';
+        } else {
+          // Incluye el `conflicto` que el runtime actual usa como código genérico.
+          mensaje =
+            'El cierre no es posible en el estado actual del viaje. Se actualizó el detalle; puedes reintentar.';
+        }
+        addToast(mensaje, 'error');
+      } else if (err instanceof ApiError && err.status === 400) {
+        mensaje = 'El motivo de cierre no es válido';
+        addToast(mensaje, 'error');
+      } else if (err instanceof ApiError && err.status === 403) {
+        mensaje = 'El cierre requiere Jefe Operativo o Administrador';
+        addToast(mensaje, 'error');
+      } else {
+        addToast(mensaje, 'error');
+      }
+
+      // El formulario conserva el motivo y pinta este mensaje en su campo.
+      throw new Error(mensaje, { cause: err });
     }
   };
 
@@ -444,10 +500,18 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
         </Card>
       )}
 
-      {/* Acciones: lista de botones derivados del hook (Req 1.1, 1.2, 2.x, 4.x).
-          La acción APROBADO aplica el guard `puedeAprobar`: deshabilitada si falta
-          la fecha/hora. Las acciones que requieren causa abren el modal de causa. */}
-      {d.acciones.length > 0 && (
+      {viajeInterno.estado === EstadoViaje.Cerrado && (
+        <Card variant="outlined">
+          <CardBody>
+            <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
+              Este viaje está cerrado.
+            </p>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* Acciones: CERRADO tiene un flujo dedicado con motivo obligatorio (E8-T14). */}
+      {accionesVisibles.length > 0 && (
         <Card>
           <CardHeader>
             <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
@@ -456,10 +520,38 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
           </CardHeader>
           <CardBody>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
-              {d.acciones.map((accion) => {
+              {accionesVisibles.map((accion) => {
                 const esAprobar = accion === EstadoViaje.Aprobado;
                 const esAsignar = accion === EstadoViaje.Asignado;
+                const esCerrar = accion === EstadoViaje.Cerrado;
                 const deshabilitado = esAprobar && !aprobarHabilitado;
+
+                if (esCerrar) {
+                  return (
+                    <div key={accion}>
+                      <Button
+                        variant="primary"
+                        onClick={() => void handleAccion(accion)}
+                        disabled={bloqueoCierre !== null}
+                        style={{ width: '100%' }}
+                      >
+                        Cerrar servicio
+                      </Button>
+                      {bloqueoCierre && (
+                        <p
+                          className="ui-text-body-xs"
+                          style={{
+                            color: 'var(--ui-color-text-muted)',
+                            margin: 'var(--ui-space-1) 0 0',
+                          }}
+                        >
+                          {bloqueoCierre}
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
+
                 return (
                   <Button
                     key={accion}
@@ -544,6 +636,17 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
           onConfirm={handleFechaHoraConfirm}
           onCancel={() => setModalFechaHoraAbierto(false)}
         />
+      </Modal>
+
+      {/* Modal de cierre del servicio (E8-T14). */}
+      <Modal open={cierreAbierto} onClose={() => setCierreAbierto(false)} title="Cerrar servicio">
+        {tipoCierre && (
+          <CierreForm
+            tipo={tipoCierre}
+            onConfirm={handleCierreConfirm}
+            onCancel={() => setCierreAbierto(false)}
+          />
+        )}
       </Modal>
 
       {/* Modal de causa para transiciones que la requieren (Req 2.5) */}
