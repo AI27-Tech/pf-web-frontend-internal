@@ -8,6 +8,7 @@ import type { ReactNode } from 'react';
 import { Rol } from '@ai27-tech/contracts/roles';
 
 import { DetalleViaje } from '@/features/viajes/detalle/DetalleViaje';
+import { onCut, restablecerCorte } from '@/lib/api/sessionCut';
 import { API_PREFIX } from '@/lib/constants';
 
 const path = (segment: string) => `${API_PREFIX}${segment}`;
@@ -32,6 +33,7 @@ afterEach(() => {
   server.resetHandlers();
   rolActual = Rol.JefeOperativo;
   cerrarLlamadas = 0;
+  restablecerCorte();
 });
 afterAll(() => server.close());
 
@@ -85,7 +87,9 @@ describe('E8-T14 · cierre del servicio', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Confirmar cierre' }));
 
     await waitFor(() => expect(screen.getByText('Este viaje está cerrado.')).toBeInTheDocument());
-    expect(screen.getByText(/durante 3 días/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/durante 3 días más y después pasará a sólo lectura/),
+    ).toBeInTheDocument();
     expect(cerrarLlamadas).toBe(1);
   });
 
@@ -220,6 +224,10 @@ describe('E8-T14 · cierre del servicio', () => {
     await waitFor(() =>
       expect(screen.getAllByText(/El cierre no es posible/).length).toBeGreaterThan(0),
     );
+    // Texto aprobado por Producto (C6): el genérico sugiere reintentar.
+    expect(
+      screen.getAllByText(/Se actualizó el detalle; puedes reintentar/).length,
+    ).toBeGreaterThan(0);
   });
 
   it('conserva el motivo si la API rechaza la solicitud con 400', async () => {
@@ -270,5 +278,45 @@ describe('E8-T14 · cierre del servicio', () => {
         screen.getAllByText('El cierre requiere Jefe Operativo o Administrador').length,
       ).toBeGreaterThan(0),
     );
+  });
+
+  it('un 403 de cierre no corta la sesión', async () => {
+    const cortes: string[] = [];
+    const quitar = onCut((motivo) => cortes.push(motivo));
+    server.use(
+      http.get(path('/viajes/:id/detalle'), () => HttpResponse.json(detalle('EN_DESTINO'))),
+      http.post(path('/viajes/:id/transiciones'), () =>
+        HttpResponse.json({ mensaje: 'prohibido' }, { status: 403 }),
+      ),
+    );
+    renderDetalle();
+    await userEvent.click(await screen.findByRole('button', { name: 'Cerrar servicio' }));
+    await elegirMotivo('Cierre normal');
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmar cierre' }));
+    await waitFor(() =>
+      expect(
+        screen.getAllByText('El cierre requiere Jefe Operativo o Administrador').length,
+      ).toBeGreaterThan(0),
+    );
+    quitar();
+    expect(cortes).toEqual([]);
+  });
+
+  it('un 401 de sesión durante el cierre se delega al corte de sesión del cliente', async () => {
+    const cortes: string[] = [];
+    const quitar = onCut((motivo) => cortes.push(motivo));
+    server.use(
+      http.get(path('/viajes/:id/detalle'), () => HttpResponse.json(detalle('EN_DESTINO'))),
+      http.post(path('/viajes/:id/transiciones'), () =>
+        HttpResponse.json({ mensaje: 'no autorizado' }, { status: 401 }),
+      ),
+    );
+    renderDetalle();
+    await userEvent.click(await screen.findByRole('button', { name: 'Cerrar servicio' }));
+    await elegirMotivo('Cierre normal');
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmar cierre' }));
+    await waitFor(() => expect(cortes).toEqual(['sesion_finalizada']));
+    quitar();
+    expect(screen.queryByText('Este viaje está cerrado.')).not.toBeInTheDocument();
   });
 });

@@ -56,3 +56,17 @@ const VENTANA_ESCRITURA: Record<MotivoCierre, string> = {
 export function ventanaDeEscritura(motivo: MotivoCierre): string {
   return VENTANA_ESCRITURA[motivo];
 }
+
+/**
+ * Redacción de la ventana en el aviso de cierre exitoso (texto aprobado por
+ * Producto, 2026-10-30, fila 1 de C6). El "más" solo aclara que el plazo corre
+ * desde el cierre; la regla es la misma de `ventanaDeEscritura`. Nunca es una fecha.
+ */
+const VENTANA_TRAS_CIERRE: Record<MotivoCierre, string> = {
+  normal: '3 días más',
+  por_incidencia: '6 meses',
+};
+
+export function ventanaTrasCierre(motivo: MotivoCierre): string {
+  return VENTANA_TRAS_CIERRE[motivo];
+}

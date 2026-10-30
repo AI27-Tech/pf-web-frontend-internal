@@ -6,6 +6,7 @@ import {
   puedeCerrar,
   tipoDeCierre,
   ventanaDeEscritura,
+  ventanaTrasCierre,
 } from '@/features/viajes/detalle/cierreViaje';
 import { EstadoViaje } from '@/lib/contracts/viajeDetalle';
 
@@ -44,6 +45,8 @@ describe('reglas puras del cierre del servicio', () => {
   });
 
   it('comunica la ventana sin calcular fechas', () => {
+    expect(ventanaTrasCierre('normal')).toBe('3 días más');
+    expect(ventanaTrasCierre('por_incidencia')).toBe('6 meses');
     expect(ventanaDeEscritura('normal')).toBe('3 días');
     expect(ventanaDeEscritura('por_incidencia')).toBe('6 meses');
   });

@@ -35,7 +35,7 @@ import type { MotivoCierre } from '@/lib/contracts/cierreViaje';
 
 import { CausaForm } from './causaForm';
 import { CierreForm } from './cierreForm';
-import { bloqueoDeCierre, puedeCerrar, tipoDeCierre, ventanaDeEscritura } from './cierreViaje';
+import { bloqueoDeCierre, puedeCerrar, tipoDeCierre, ventanaTrasCierre } from './cierreViaje';
 import { requiereCausa } from './causaTransicion';
 import { puedeAprobar } from './decisionSolicitud';
 import { AsignacionForm } from './asignacionForm';
@@ -244,7 +244,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
       await d.cerrarServicio(motivo);
       setCierreAbierto(false);
       addToast(
-        `Servicio cerrado. La conversación aceptará mensajes durante ${ventanaDeEscritura(motivo)} y después pasará a sólo lectura.`,
+        `Servicio cerrado. La conversación aceptará mensajes durante ${ventanaTrasCierre(motivo)} y después pasará a sólo lectura.`,
         'success',
       );
     } catch (err) {
@@ -257,7 +257,8 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
           mensaje = 'El cierre anticipado solo es válido por incidencia';
         } else {
           // Incluye el `conflicto` que el runtime actual usa como código genérico.
-          mensaje = 'El cierre no es posible en el estado actual del viaje';
+          mensaje =
+            'El cierre no es posible en el estado actual del viaje. Se actualizó el detalle; puedes reintentar.';
         }
         addToast(mensaje, 'error');
       } else if (err instanceof ApiError && err.status === 400) {
