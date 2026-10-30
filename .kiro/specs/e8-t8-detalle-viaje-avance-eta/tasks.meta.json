@@ -1,0 +1,214 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Crear `src/lib/contracts/viajeDetalle.ts`": [
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792599700327
+      },
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792599707459
+      },
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792599822476
+      }
+    ],
+    "2.1 Crear `src/lib/api/viajeDetalle.ts`": [
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792599700618
+      },
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792599827754
+      },
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792600104903
+      }
+    ],
+    "3.1 Crear `src/features/viajes/detalle/accionesTransicion.ts`": [
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792599700922
+      },
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792599828065
+      },
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792600105255
+      }
+    ],
+    "4.1 Ampliar `src/mocks/data.ts` y `src/mocks/handlers.ts`": [
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792599701066
+      },
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792599828554
+      },
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792600105725
+      }
+    ],
+    "5.1 Crear `src/features/viajes/detalle/useDetalleViaje.ts`": [
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792599701197
+      },
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792600111067
+      },
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792600294532
+      }
+    ],
+    "6. Checkpoint — capas internas verificadas": [
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792599701333
+      },
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792600320938
+      },
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792600389151
+      }
+    ],
+    "7.1 Crear `src/features/viajes/detalle/DetalleViaje.tsx` y `etaForm.tsx`": [
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792599701461
+      },
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792600397301
+      },
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792600661898
+      }
+    ],
+    "8.1 Crear `src/routes/_private/viajes.$id.tsx`": [
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792599701586
+      },
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792600669111
+      },
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792600811949
+      }
+    ],
+    "9.1 Ejecutar typecheck, lint y la suite en modo única ejecución; resolver errores; sin archivos temporales ni código huérfano.": [
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792599701720
+      },
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792600818025
+      },
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792600885840
+      }
+    ],
+    "1. Capa de contrato aislada (brecha del `bff`)": [
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792599822754
+      }
+    ],
+    "2. Wrapper de dominio del detalle": [
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792600105059
+      }
+    ],
+    "3. Acciones derivadas de la máquina de estados (función pura)": [
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792600105636
+      }
+    ],
+    "4. Mocks del detalle (MSW)": [
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792600105823
+      }
+    ],
+    "5. Hook de datos y mutaciones": [
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792600294612
+      }
+    ],
+    "7. Presentación del detalle": [
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792600661999
+      }
+    ],
+    "8. Ruta de detalle y enlace desde la bandeja": [
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792600812007
+      }
+    ],
+    "9. Checkpoint final — verificación del repo": [
+      {
+        "executionId": "cecba811-7345-480b-b603-35f037a2e7db",
+        "chatSessionId": "sess_7107e733-f4f1-4966-a487-be0a5cd88ed5",
+        "timestamp": 1792600885966
+      }
+    ]
+  }
+}
