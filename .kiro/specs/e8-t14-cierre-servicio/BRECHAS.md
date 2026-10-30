@@ -22,7 +22,7 @@ El brief (`.scratch/brecha-contrato-cierre-servicio/brief-cierre-servicio.md`) f
 ## Fuentes y versiones verificadas
 
 - **Contexto:** `repos/ai27-platform-context` al día con `origin/main`, commit `2e80dd2` (`pull --ff-only` desde `07f906d`). Historia técnica `docs/historias-tecnicas/E8-panel-admin.md` §E8-T14 y `E1-prestacion-del-servicio.md` §E1-T8. HU `E1-HU-010` (corregida: sin "bitácora", sin pendiente de quién cierra). Decisiones DEC-020 #6, DEC-030, DEC-041, DEC-060, **DEC-113** (motivos de cierre solo `normal` y `por_incidencia`), DEC-111 (nota ampliada con A3/B1 de E8-T14, diferido).
-- **Contrato:** último tag publicado `v0.1.0-tracer.24` (ola A1/A2 de E8-T14: contratos PR #85, `operacion` PR #62, `bff` PR #37). El `package.json` del frontend fija todavía `@ai27-tech/contracts@0.1.0-tracer.22` (brecha 8). `tracer.23` agrega `transicionarViajeCliente` (E9-T7) y no afecta al cierre. El checkout local de `pf-pkg-contracts` no estaba en el tag del `package.json`; la superficie se lee con `git show v0.1.0-tracer.24:…`.
+- **Contrato:** último tag publicado `v0.1.0-tracer.24` ... El `package.json` del frontend fija `@ai27-tech/contracts@0.1.0-tracer.24`; la superficie se lee con `git show v0.1.0-tracer.24:…` porque el checkout local de contratos no está en ese tag.
 - **Backend (referencia):** `operacion` en `origin/pf-op-d`/`pf-op-m` (merge de `feat/motivo-cierre-e8-t14`): `validarCierre` lee `motivo_cierre` y ya no acepta `bitacora`.
 - **Librería:** `@ai27-tech/ui@0.2.0-beta.6`.
 
@@ -114,11 +114,17 @@ El brief (`.scratch/brecha-contrato-cierre-servicio/brief-cierre-servicio.md`) f
 
 **Estado.** El pin se subió a `@ai27-tech/contracts@0.1.0-tracer.24` (`package.json`, `pnpm-lock.yaml`; pnpm agregó `tracer.24` a `minimumReleaseAgeExclude` en `pnpm-workspace.yaml`). Verificado en `node_modules`: `MotivoCierre`, `TransicionEntrada.motivo_cierre`, los códigos de 409 y las aristas a `CERRADO`. Línea base: `typecheck` ✓, `lint` ✓, `test` 170/170 ✓. Queda commitear el cambio.
 
-**Historial.** `package.json` fijaba `0.1.0-tracer.22`; sin subir el pin, `motivo_cierre` y `MotivoCierre` no existían en los tipos generados.
+**Historial.** El frontend partía de `tracer.22`; la tarea 1 subió el pin a `0.1.0-tracer.24`, donde están `motivo_cierre` y `MotivoCierre`.
 
 **Propuesta de resolución.** Tarea 1 del plan: subir el pin a `0.1.0-tracer.24` (cambio aditivo respecto de `tracer.22`: `tracer.23` agrega la operación de cliente de E9-T7 y `tracer.24` el motivo y los códigos), reinstalar, confirmar en `node_modules` que `MotivoCierre` y `motivo_cierre` están presentes y correr `typecheck`, `lint` y `test` para descartar regresiones antes de seguir. Si el paquete `0.1.0-tracer.24` no está disponible en el registro del equipo, detener y avisar; no se escribe el tipo a mano.
 
 ---
+
+## Resultado de implementación (2026-10-30)
+
+Las tareas 2 a 10 quedaron implementadas en el frontend. La UI usa el motivo generado por `tracer.24`, deriva las aristas desde la máquina contractual, bloquea el cierre anticipado sin `INCIDENCIA`, conserva el motivo ante 400/409/red, recarga el detalle tras 409 y cubre los códigos futuros junto con el `conflicto` actual. Se agregaron mocks para `VJ-1010`, 400, 409 específicos/genérico, carrera y 403.
+
+Validación: `typecheck` ✓, `lint` ✓, `test` ✓ (40 archivos, 200 pruebas), `build:mock` ✓ y `prettier --check` ✓. No se calculan fechas de `escritura_hasta`: la brecha 4 sigue condicionada a la decisión de Producto. Las brechas de runtime (409/403), riesgo de 401 y textos siguen abiertas en las tareas 12–14.
 
 ## Pendientes que siguen abiertos
 

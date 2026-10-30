@@ -148,7 +148,7 @@ Dado que la sesión expira durante el cierre, cuando el `bff` responde `401` y e
 - `E1-HU-010` (corregida: motivos `normal` y `por_incidencia`; cierran solo Jefe Operativo y Administrador). `E1-T8`: cierre como transición validada con motivo obligatorio y evento `viaje.cerrado`.
 - E8-T8 (detalle del viaje, acciones derivadas de la máquina de estados, toasts, wrapper `transicionar`), E8-T13 (la incidencia abierta que habilita el cierre anticipado se marca en el histórico) y E8-T4 (rol efectivo en la sesión).
 - DEC-020 #6 (cierre anticipado), DEC-030 y DEC-041 (ventanas y sólo lectura), DEC-060 (facultades por rol), **DEC-113** (motivos de cierre), DEC-111 (nota: `operacion` responde `401` en lugar de `403`; A3/B1 diferidos).
-- Contrato `@ai27-tech/contracts@0.1.0-tracer.24` (el frontend fija hoy `tracer.22`; ver brecha 8) y `@ai27-tech/ui@0.2.0-beta.6`.
+- Contrato `@ai27-tech/contracts@0.1.0-tracer.24` (pin vigente; brecha 8 cerrada) y `@ai27-tech/ui@0.2.0-beta.6`.
 
 ## Fuera de alcance
 
@@ -171,7 +171,7 @@ Estas notas son prerrequisitos de verificación y no reglas. El detalle, las fue
 
 - **Brecha 4, ventana de escritura:** el `bff` no expone el vencimiento; la UI comunica la regla, no la fecha. Condicionada a la respuesta de Producto (C5).
 - **Brecha 5, códigos de 409 y 403:** `tracer.24` declara `cierre_anticipado_solo_por_incidencia`, `cierre_anticipado_requiere_incidencia` y `transicion_no_permitida`, pero el runtime envía `conflicto`; `operacion` responde `401` (no `403`) a un rol sin facultad. Ambos cambios son de plataforma y están diferidos. `client.ts` refresca y, si el reintento vuelve a dar `401`, corta la sesión; la mitigación es la prevención por rol.
-- **Brecha 8, pin del frontend:** el `package.json` fija `tracer.22`; `motivo_cierre` y `MotivoCierre` están en `tracer.24`.
+- **Brecha 8, pin del frontend:** cerrada; el `package.json` fija `tracer.24` y los tipos `motivo_cierre`/`MotivoCierre` están disponibles.
 - **Brechas 1, 2, 3 y 6:** cerradas (motivo tipado en `tracer.24`; observaciones omitidas; `bitacora` retirado por DEC-113; criterio por estado de origen y roles facultados confirmados).
 - **Brecha 7, librería:** no hay aviso en línea dedicado; se compone con texto semántico y tokens `--ui-*`.
 - **Textos (C6):** los mensajes de bloqueo y de ventana de este spec son propuestos y están pendientes de validación de copy por Producto.

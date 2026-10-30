@@ -27,7 +27,11 @@ import { request } from './client';
  * Códigos de conflicto (409) que el BFF devuelve, tipificados según
  * la máquina de estados (bff.yaml fuente).
  */
-export type ConflictoCodigoTransicion = 'transicion_no_permitida' | 'viaje_en_estado_terminal';
+export type ConflictoCodigoTransicion =
+  | 'transicion_no_permitida'
+  | 'viaje_en_estado_terminal'
+  | 'cierre_anticipado_solo_por_incidencia'
+  | 'cierre_anticipado_requiere_incidencia';
 
 /**
  * Error de transición o ETA rechazado.
@@ -47,6 +51,8 @@ export class ErrorTransicion extends ApiError {
 const MENSAJE_CONFLICTO: Record<ConflictoCodigoTransicion, string> = {
   transicion_no_permitida: 'La transición solicitada no es permitida en este estado del viaje.',
   viaje_en_estado_terminal: 'No se puede fijar ETA en un viaje en estado terminal.',
+  cierre_anticipado_solo_por_incidencia: 'El cierre anticipado solo es válido por incidencia.',
+  cierre_anticipado_requiere_incidencia: 'El cierre anticipado requiere una incidencia abierta.',
 };
 
 /**
@@ -60,7 +66,10 @@ const MENSAJE_CONFLICTO: Record<ConflictoCodigoTransicion, string> = {
 function clasificarConflicto(err: unknown, respaldo: ConflictoCodigoTransicion): never {
   if (err instanceof ApiError && err.kind === 'conflicto' && err.status === 409) {
     const codigo: ConflictoCodigoTransicion =
-      err.codigo === 'transicion_no_permitida' || err.codigo === 'viaje_en_estado_terminal'
+      err.codigo === 'transicion_no_permitida' ||
+      err.codigo === 'viaje_en_estado_terminal' ||
+      err.codigo === 'cierre_anticipado_solo_por_incidencia' ||
+      err.codigo === 'cierre_anticipado_requiere_incidencia'
         ? err.codigo
         : respaldo;
     throw new ErrorTransicion(codigo, MENSAJE_CONFLICTO[codigo]);

@@ -85,8 +85,8 @@ const VIAJES_DEMO: ViajeResumen[] = [
   { id: 'VJ-1006', estado: EstadoViaje.EnTransito, origen: 'Toluca' },
   { id: 'VJ-1007', estado: EstadoViaje.Cerrado, origen: 'León' },
   { id: 'VJ-1008', estado: EstadoViaje.EnDescarga, origen: 'Veracruz' },
-  // E8-T9: solicitud SIN fecha/hora (Aprobar bloqueado hasta completarla).
-  { id: 'VJ-1009', estado: EstadoViaje.Solicitado, origen: 'Tijuana' },
+  // Viaje con incidencia abierta para ejercitar el cierre anticipado (E8-T14).
+  { id: 'VJ-1010', estado: EstadoViaje.EnTransito, origen: 'San Luis Potosí' },
 ];
 
 /** Tamaño de página del listado simulado. */
@@ -257,6 +257,20 @@ const DETALLES_VIAJES: ViajeDetalleStore = {
       creado_en: new Date(Date.now() - 1200_000).toISOString(),
     },
     condiciones_activas: [],
+  },
+  // E8-T14: incidencia abierta que habilita el cierre anticipado.
+  'VJ-1010': {
+    viaje: {
+      id: 'VJ-1010',
+      estado: EstadoViaje.EnTransito,
+      origen: 'Carretera 57, San Luis Potosí',
+      destinos: [{ nombre: 'Centro de Distribución Bajío', numero_envio: 'ENV-1010-A' }],
+      fecha_hora_servicio: new Date(Date.now() - 1800_000).toISOString(),
+      creado_en: new Date(Date.now() - 7200_000).toISOString(),
+    },
+    condiciones_activas: [
+      { tipo: 'INCIDENCIA', abierta_en: new Date(Date.now() - 900_000).toISOString() },
+    ],
   },
 };
 

@@ -85,6 +85,45 @@ describe('transicionar — clasificación de 409 por codigo real', () => {
     });
   });
 
+  it('clasifica el código de cierre anticipado que requiere incidencia', async () => {
+    server.use(
+      http.post(path('/viajes/:id/transiciones'), () =>
+        HttpResponse.json(
+          { error: { codigo: 'cierre_anticipado_requiere_incidencia' } },
+          { status: 409 },
+        ),
+      ),
+    );
+    await expect(transicionar('VJ-1', { a_estado: 'CERRADO' }, 'token')).rejects.toMatchObject({
+      codigo: 'cierre_anticipado_requiere_incidencia',
+    });
+  });
+
+  it('clasifica el código de cierre anticipado que exige por incidencia', async () => {
+    server.use(
+      http.post(path('/viajes/:id/transiciones'), () =>
+        HttpResponse.json(
+          { error: { codigo: 'cierre_anticipado_solo_por_incidencia' } },
+          { status: 409 },
+        ),
+      ),
+    );
+    await expect(transicionar('VJ-1', { a_estado: 'CERRADO' }, 'token')).rejects.toMatchObject({
+      codigo: 'cierre_anticipado_solo_por_incidencia',
+    });
+  });
+
+  it('usa el respaldo genérico cuando el runtime envía codigo conflicto', async () => {
+    server.use(
+      http.post(path('/viajes/:id/transiciones'), () =>
+        HttpResponse.json({ error: { codigo: 'conflicto' } }, { status: 409 }),
+      ),
+    );
+    await expect(transicionar('VJ-1', { a_estado: 'CERRADO' }, 'token')).rejects.toMatchObject({
+      codigo: 'transicion_no_permitida',
+    });
+  });
+
   it('usa el respaldo si el 409 no trae codigo interpretable', async () => {
     server.use(
       http.post(path('/viajes/:id/transiciones'), () =>

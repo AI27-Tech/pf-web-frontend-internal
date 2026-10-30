@@ -6,11 +6,11 @@ Diseño del **cierre del servicio** (E8-T14): la acción del panel interno con l
 
 El cambio es pequeño y concentrado: **no hay operación nueva**. El cierre reutiliza `transicionar` (`POST /api/v1/viajes/{id}/transiciones`), el hook `useDetalleViaje` y la derivación de acciones `accionesDesde`. Lo nuevo es (a) una capa de contrato que reexporta el motivo tipado y arma la entrada de cierre, (b) funciones puras que deciden cuándo y cómo se ofrece el cierre, (c) un formulario de cierre, y (d) el cableado en `DetalleViaje` que reemplaza el botón genérico "Transicionar a: CERRADO".
 
-> **Estado de las brechas (2026-10-29).** Con `tracer.24` publicado y las respuestas del brief, el motivo está tipado, `bitacora` se retiró (DEC-113), las observaciones se omiten y los roles y el criterio de última parada están confirmados. Quedan condicionados: la fecha exacta de la ventana (**brecha 4**, Producto), los códigos de 409 en runtime y el 403 real (**brecha 5**, plataforma, diferidos) y la subida del pin del frontend a `tracer.24` (**brecha 8**). Cada punto afectado está marcado en el texto.
+> **Estado de las brechas (2026-10-30).** Con `tracer.24` publicado y las respuestas del brief, el motivo está tipado, `bitacora` se retiró (DEC-113), las observaciones se omiten y los roles y el criterio de última parada están confirmados. Quedan condicionados: la fecha exacta de la ventana (**brecha 4**, Producto) y los códigos de 409 en runtime y el 403 real (**brecha 5**, plataforma, diferidos). La brecha 8, correspondiente al pin del frontend, está cerrada.
 
 ### Hecho de contrato verificado (fundamento del diseño)
 
-Contexto consultado: `ai27-platform-context` commit `2e80dd2` (incluye DEC-113). Contrato: `v0.1.0-tracer.24` (publicado); el `package.json` del frontend fija todavía `tracer.22` (brecha 8). `@ai27-tech/ui@0.2.0-beta.6`. Superficie leída con `git show v0.1.0-tracer.24:…` porque el checkout local de contratos no está en ese tag.
+Contexto consultado: `ai27-platform-context` commit `2e80dd2` (incluye DEC-113). Contrato: `v0.1.0-tracer.24` (publicado); el `package.json` del frontend fija `tracer.24` y la brecha 8 está cerrada. `@ai27-tech/ui@0.2.0-beta.6`. Superficie leída con `git show v0.1.0-tracer.24:…` porque el checkout local de contratos no está en ese tag.
 
 ```
 POST /api/v1/viajes/{id}/transiciones   transicionarViaje

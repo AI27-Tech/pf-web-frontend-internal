@@ -37,6 +37,7 @@ import {
   cerrarEstadiaMock,
 } from './data';
 import type { TransicionEntrada, EtaEntrada, FechaHoraEntrada } from '@/lib/contracts/viajeDetalle';
+import { EstadoViaje } from '@/lib/contracts/viajeDetalle';
 import type { CrearViajeEntrada } from '@/lib/contracts/viajes';
 import type {
   EntradaBitacoraEntrada,
@@ -148,14 +149,60 @@ export const handlers = [
     return HttpResponse.json(detalle, { status: 200 });
   }),
 
-  // POST /viajes/{id}/transiciones ÔÇö transiciona el estado del viaje.
-  // Valida contra puedeTransicionar; si no es permitida, responde 409 con c├│digo
-  // 'transicion_no_permitida'.
-  // Punto de entrada: POST /viajes/{id}/transiciones (E8-T8).
+  // POST /viajes/{id}/transiciones — transiciona el estado del viaje.
+  // El cierre exige `motivo_cierre` y aplica sus guardas contractuales.
   http.post(path('/viajes/:id/transiciones'), async ({ params, request }) => {
     const { id } = params as { id: string };
     const body = (await request.json()) as Partial<TransicionEntrada>;
     const a_estado = body.a_estado ?? '';
+    const detalle = obtenerDetalleViajeMock(id);
+
+    if (!detalle) {
+      return HttpResponse.json({ mensaje: 'Viaje no encontrado' }, { status: 404 });
+    }
+
+    const rolSinFacultad = request.headers.get('x-mock-rol-sin-facultad');
+    if (rolSinFacultad === 'true' || rolSinFacultad === '1') {
+      return HttpResponse.json({ mensaje: 'Autorización insuficiente' }, { status: 403 });
+    }
+
+    if (a_estado === EstadoViaje.Cerrado) {
+      const motivoValido =
+        body.motivo_cierre === 'normal' || body.motivo_cierre === 'por_incidencia';
+      if (!motivoValido) {
+        return HttpResponse.json(
+          { mensaje: 'El motivo de cierre es obligatorio.' },
+          { status: 400 },
+        );
+      }
+
+      // Simula la carrera entre la lectura del detalle y la confirmación.
+      const incidenciaResuelta = request.headers.get('x-mock-cierre-incidencia-resuelta');
+      if (incidenciaResuelta === 'true' || incidenciaResuelta === '1') {
+        detalle.condiciones_activas = detalle.condiciones_activas.filter(
+          (condicion) => condicion.tipo !== 'INCIDENCIA',
+        );
+      }
+
+      const codigo409 = request.headers.get('x-mock-409-generico');
+      const codigoConflicto = codigo409 === 'true' || codigo409 === '1' ? 'conflicto' : undefined;
+      const conflicto = (codigo: string) =>
+        HttpResponse.json({ error: { codigo: codigoConflicto ?? codigo } }, { status: 409 });
+
+      if (detalle.viaje.estado === EstadoViaje.EnTransito) {
+        if (body.motivo_cierre !== 'por_incidencia') {
+          return conflicto('cierre_anticipado_solo_por_incidencia');
+        }
+        if (!detalle.condiciones_activas.some((condicion) => condicion.tipo === 'INCIDENCIA')) {
+          return conflicto('cierre_anticipado_requiere_incidencia');
+        }
+      }
+
+      const exito = transicionarViajeMock(id, a_estado);
+      if (!exito) return conflicto('transicion_no_permitida');
+
+      return HttpResponse.json(obtenerDetalleViajeMock(id), { status: 200 });
+    }
 
     const exito = transicionarViajeMock(id, a_estado);
 
@@ -164,8 +211,7 @@ export const handlers = [
     }
 
     // Devolver el detalle completo actualizado
-    const detalle = obtenerDetalleViajeMock(id);
-    return HttpResponse.json(detalle, { status: 200 });
+    return HttpResponse.json(obtenerDetalleViajeMock(id), { status: 200 });
   }),
 
   // PATCH /viajes/{id}/eta ÔÇö fija el ETA manual del viaje.
