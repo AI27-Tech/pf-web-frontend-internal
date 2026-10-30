@@ -1,5 +1,43 @@
 # CHANGELOG
 
+## 2026:10:30 16:54
+
+**Resumen:** Se cerró el lado frontend de **E8-T14** (cierre del servicio). El detalle del viaje ofrece la acción "Cerrar servicio" al `jefe_operativo` y al `administrador` (los demás roles no la ven) y reemplaza el botón genérico "Transicionar a: CERRADO", que enviaba el cierre sin motivo. El cierre exige un motivo del enum generado `MotivoCierre` (`normal` o `por_incidencia`; `bitacora` se retiró por DEC-113) y se envía en `motivo_cierre`. El cierre anticipado (desde `EN_TRANSITO`) solo permite `por_incidencia` y se bloquea con la razón visible si `condiciones_activas` no trae una `INCIDENCIA`. La pantalla comunica la ventana de escritura de la conversación (3 días más con `normal`, 6 meses con `por_incidencia`, luego sólo lectura) sin calcular fechas (deuda técnica DT-02). Se adoptó `@ai27-tech/contracts@0.1.0-tracer.24`, que tipa `motivo_cierre` y declara los códigos de `409` del cierre. Textos aprobados por Producto el 2026-10-30. `typecheck`, `lint`, la suite completa (40 archivos, 202 pruebas) y `build:mock` pasan.
+**Cambios:**
+
+- `src/lib/contracts/cierreViaje.ts`: reexporta el tipo generado `MotivoCierre` y arma la entrada de cierre (`a_estado: CERRADO` + `motivo_cierre`, sin `causa`).
+- `src/features/viajes/detalle/cierreViaje.ts`: funciones puras `puedeCerrar`, `tipoDeCierre`, `bloqueoDeCierre`, `motivosPermitidos`, `ventanaDeEscritura` y `ventanaTrasCierre`.
+- `src/features/viajes/detalle/cierreForm.tsx`: diálogo de cierre con selector de motivo, texto de la ventana y conservación del motivo ante error.
+- `src/features/viajes/detalle/DetalleViaje.tsx` y `useDetalleViaje.ts`: acción dedicada de cierre, bloqueo con razón visible, avisos de éxito/conflicto/facultad y recarga del detalle tras `409`.
+- `src/lib/api/viajeDetalle.ts`: `ConflictoCodigoTransicion` y mensajes ganan `cierre_anticipado_solo_por_incidencia` y `cierre_anticipado_requiere_incidencia`; el `conflicto` genérico cae al respaldo.
+- `src/mocks/data.ts` / `src/mocks/handlers.ts`: viaje `VJ-1010` (`EN_TRANSITO` con incidencia) y validación del cierre (`400`, `409` con códigos, `403`, carrera).
+- `tests/viajes/CierreViaje.test.tsx`, `cierreViaje.unit.test.ts`, `cierreViaje.property.test.ts`, `viajeDetalleApi.test.ts`: cobertura de los escenarios del cierre, incluidos "un 403 no corta la sesión" y "un 401 de sesión se delega al corte del cliente".
+- `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`: pin de `@ai27-tech/contracts` de `tracer.22` a `tracer.24` y su exclusión de `minimumReleaseAge`.
+- `.kiro/specs/e8-t14-cierre-servicio/*`: spec y cierre de las ocho brechas.
+  **Señalado:** el BFF aún no monta la ruta interna `POST /api/v1/viajes/{id}/transiciones` (`bff.go`, fase (a) del scaffolding), así que el cierre se verifica contra mocks y no de punta a punta; la matriz de errores queda cubierta con mocks hasta que exista la ruta. El `403` y los códigos de `409` ya salen de `operacion` y del `bff` (Ola C, ramas `-d`). El riesgo residual del `401` de sesión lo aceptó el Lead sin tocar `client.ts` (alternativa en DT-03). El contrato publicado ya es `tracer.29`; T14 no necesita subirlo. DEC-115, DT-02 y DT-03 constan en el mensaje del Lead y aún no aparecen en `ai27-platform-context`.
+  **Archivos modificados:**
+- `package.json`
+- `pnpm-lock.yaml`
+- `pnpm-workspace.yaml`
+- `src/features/viajes/detalle/DetalleViaje.tsx`
+- `src/features/viajes/detalle/cierreForm.tsx`
+- `src/features/viajes/detalle/cierreViaje.ts`
+- `src/features/viajes/detalle/useDetalleViaje.ts`
+- `src/lib/api/viajeDetalle.ts`
+- `src/lib/contracts/cierreViaje.ts`
+- `src/mocks/data.ts`
+- `src/mocks/handlers.ts`
+- `tests/viajes/CierreViaje.test.tsx`
+- `tests/viajes/cierreViaje.property.test.ts`
+- `tests/viajes/cierreViaje.unit.test.ts`
+- `tests/viajes/viajeDetalleApi.test.ts`
+- `.kiro/specs/e8-t14-cierre-servicio/.config.kiro`
+- `.kiro/specs/e8-t14-cierre-servicio/BRECHAS.md`
+- `.kiro/specs/e8-t14-cierre-servicio/design.md`
+- `.kiro/specs/e8-t14-cierre-servicio/requirements.md`
+- `.kiro/specs/e8-t14-cierre-servicio/tasks.md`
+- `CHANGELOG.md`
+
 ## 2026:10:29 17:40
 
 **Resumen:** Se cerró el lado frontend de **E8-T13** (histórico del `viaje`: notas, estadías e incidencias). El Portal_Interno expone una vista append-only bajo `/viajes/$id/historico` con tres secciones: bitácora (registrar y listar notas de solo texto, sin tipo de entrada en V1), estadías (abrir con `motivo` y `eje_autorizacion` de los enums del contrato, cerrar, y mostrar la duración **derivada** de `inicio`/`cierre` sin rótulo `prolongada` por DEC-038) e incidencias (marcar con `tipo_interno` como texto en V1, y resolver). La vista **no ofrece editar ni borrar**: la corrección de una incidencia agrega el cierre, nunca reescribe la apertura. El gesto de resolver incidencia solo se ofrece a `supervisor`/`coordinador`; la autoridad final es el `403` del BFF. Se adoptó `@ai27-tech/contracts@0.1.0-tracer.22`, que publica `listarIncidencias` (lectura que faltaba en `tracer.21`), completando las ocho operaciones del histórico; el histórico de incidencias previas ya es observable. `typecheck`, `lint`, la suite completa (37 archivos, 170 pruebas) y `build:mock` pasan.
