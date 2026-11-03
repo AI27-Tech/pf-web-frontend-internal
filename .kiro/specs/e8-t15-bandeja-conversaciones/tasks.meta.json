@@ -1,0 +1,24 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "13. Crear pruebas de integración con MSW: reclamar y responder; reclamo concurrente con `409`; perder el reclamo con la conversación abierta (compositor deshabilitado, historial y borrador conservados); devolver al pool y reclamar por otro usuario simulado sin pérdida de historia; marcar atendida y que un mensaje nuevo del cliente la desmarque; `403` en devolver y en marcar atendida; `conversacion_solo_lectura`; `404` sin bandeja y `403` sin membresía; `401` delegado al AppShell; `409 stream_resync_required` y falla de polling.": [
+      {
+        "executionId": "5313673f-4f21-4513-bfb2-005f402931c4",
+        "chatSessionId": "sess_d8491b58-d927-450d-8068-062558fae02f",
+        "timestamp": 1793730381069
+      },
+      {
+        "executionId": "5313673f-4f21-4513-bfb2-005f402931c4",
+        "chatSessionId": "sess_d8491b58-d927-450d-8068-062558fae02f",
+        "timestamp": 1793731321632
+      }
+    ],
+    "12. Crear pruebas unitarias y de propiedades: `afordancias` (compositor por estado y reclamante, sin excepción por rol), `aplicarCambios` (idempotencia, orden por `secuencia`, sin duplicados, cobertura sin huecos con bootstrap + catch-ups), reutilización de `client_message_id`, uso de la versión vigente (nunca `0` fijo) y clasificación de errores del wrapper.": [
+      {
+        "executionId": "c5ca83a6-e7c9-4ada-9000-fccef8c77121",
+        "chatSessionId": "sess_d8491b58-d927-450d-8068-062558fae02f",
+        "timestamp": 1793732013076
+      }
+    ]
+  }
+}

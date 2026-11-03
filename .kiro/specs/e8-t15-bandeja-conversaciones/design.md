@@ -69,7 +69,7 @@ La conversación abierta se representa con un parámetro de búsqueda (`?convers
 Lista: `cargando` · `vacio` · `error` (reintento) · `sin_acceso` (403) · `sin_bandeja` (404) · `datos`.
 Conversación: `cargando` · `no_disponible` (404) · `error` · `datos`.
 Actualización (transversal): `al_dia` (con hora de la última consulta correcta) · `desactualizada` (falló el polling) · `resincronizando` (bootstrap en curso).
-Compositor: `habilitado` · `deshabilitado` con razón (`en_pool` · `reclamada_por_otro` · `solo_lectura` · `reclamo_perdido`).
+Compositor: `habilitado` · `deshabilitado` con razón (`en_pool` · `reclamada_por_otro` · `solo_lectura`).
 
 ### Afordancias puras (`afordancias.ts`)
 

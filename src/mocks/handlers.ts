@@ -35,6 +35,18 @@ import {
   listarEstadiasMock,
   abrirEstadiaMock,
   cerrarEstadiaMock,
+  enviarMensajeMock,
+  liberarReclamoMock,
+  listarMensajesMock,
+  listarTrabajoBandejaMock,
+  marcarAtendidaMock,
+  obtenerConversacionMock,
+  reclamarConversacionMock,
+  registrarReciboLeidoMock,
+  registrarSolicitudConversaciones,
+  tomarFalloConversaciones,
+  type FalloConversaciones,
+  type OperacionConversaciones,
 } from './data';
 import type { TransicionEntrada, EtaEntrada, FechaHoraEntrada } from '@/lib/contracts/viajeDetalle';
 import { EstadoViaje } from '@/lib/contracts/viajeDetalle';
@@ -48,7 +60,166 @@ import type { FichaTecnicaEntrada } from '@/lib/contracts/fichaTecnica';
 
 const path = (segment: string) => `${API_PREFIX}${segment}`;
 
+/*
+ * E8-T15 — superficie interna de bandeja del bff (tracer.33).
+ *
+ * Cada handler consulta primero el fallo forzado de su operación (caída de red o
+ * respuesta HTTP con `codigo` de máquina) y registra la solicitud para que las
+ * pruebas puedan afirmar qué se envió (versión, `client_message_id`, cuerpo).
+ */
+const CODIGO_POR_STATUS: Record<number, string> = {
+  401: 'no_autorizado',
+  403: 'prohibido',
+  404: 'no_encontrado',
+  409: 'conflicto_version_reclamo',
+};
+
+function errorConversaciones(status: number, codigo?: string) {
+  return HttpResponse.json(
+    { codigo: codigo ?? CODIGO_POR_STATUS[status] ?? 'error_interno', mensaje: 'Error simulado' },
+    { status },
+  );
+}
+
+function respuestaDeFallo(fallo: FalloConversaciones) {
+  return fallo.tipo === 'red'
+    ? HttpResponse.error()
+    : errorConversaciones(fallo.status, fallo.codigo);
+}
+
+/** Registra la solicitud y devuelve la respuesta del fallo forzado, si lo hay. */
+function interceptar(
+  operacion: OperacionConversaciones,
+  solicitud: {
+    conversacionId?: string;
+    cuerpo?: Record<string, unknown>;
+    query?: Record<string, string>;
+  },
+) {
+  registrarSolicitudConversaciones({ operacion, ...solicitud });
+  const fallo = tomarFalloConversaciones(operacion);
+  return fallo ? respuestaDeFallo(fallo) : undefined;
+}
+
+async function leerCuerpo(request: Request): Promise<Record<string, unknown>> {
+  try {
+    const cuerpo: unknown = await request.json();
+    return cuerpo && typeof cuerpo === 'object' ? (cuerpo as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function numeroDeQuery(url: URL, nombre: string): number | undefined {
+  const valor = url.searchParams.get(nombre);
+  if (valor === null || valor === '') return undefined;
+  const numero = Number(valor);
+  return Number.isFinite(numero) ? numero : undefined;
+}
+
+export const handlersConversaciones = [
+  // GET /bandeja/trabajo — bootstrap (sin `desde_revision`) o catch-up (con ella).
+  http.get(path('/bandeja/trabajo'), ({ request }) => {
+    const url = new URL(request.url);
+    const desde = numeroDeQuery(url, 'desde_revision');
+    const cursor = url.searchParams.get('cursor');
+    const query = Object.fromEntries(url.searchParams.entries());
+    const forzada = interceptar(desde === undefined ? 'bandeja' : 'bandejaCatchUp', { query });
+    if (forzada) return forzada;
+    const resultado = listarTrabajoBandejaMock(desde ?? null, cursor);
+    if (!resultado.ok) return errorConversaciones(resultado.status, resultado.codigo);
+    return HttpResponse.json(resultado.valor, { status: 200 });
+  }),
+
+  // GET /conversaciones/{id}
+  http.get(path('/conversaciones/:id'), ({ params }) => {
+    const { id } = params as { id: string };
+    const forzada = interceptar('obtener', { conversacionId: id });
+    if (forzada) return forzada;
+    const conversacion = obtenerConversacionMock(id);
+    if (!conversacion) return errorConversaciones(404);
+    return HttpResponse.json(conversacion, { status: 200 });
+  }),
+
+  // GET /conversaciones/{id}/mensajes — `antes_de` (historial) y `despues_de` (catch-up).
+  http.get(path('/conversaciones/:id/mensajes'), ({ params, request }) => {
+    const { id } = params as { id: string };
+    const url = new URL(request.url);
+    const query = Object.fromEntries(url.searchParams.entries());
+    const forzada = interceptar('listarMensajes', { conversacionId: id, query });
+    if (forzada) return forzada;
+    const antesDe = numeroDeQuery(url, 'antes_de');
+    const despuesDe = numeroDeQuery(url, 'despues_de');
+    const limite = numeroDeQuery(url, 'limite');
+    const pagina = listarMensajesMock(id, {
+      ...(antesDe !== undefined ? { antesDe } : {}),
+      ...(despuesDe !== undefined ? { despuesDe } : {}),
+      ...(limite !== undefined ? { limite } : {}),
+    });
+    if (!pagina) return errorConversaciones(404);
+    return HttpResponse.json(pagina, { status: 200 });
+  }),
+
+  // POST /conversaciones/{id}/mensajes — 201 al crear, 200 en el reintento idempotente.
+  http.post(path('/conversaciones/:id/mensajes'), async ({ params, request }) => {
+    const { id } = params as { id: string };
+    const cuerpo = await leerCuerpo(request);
+    const forzada = interceptar('enviar', { conversacionId: id, cuerpo });
+    if (forzada) return forzada;
+    const resultado = enviarMensajeMock(id, cuerpo);
+    if (!resultado.ok) return errorConversaciones(resultado.status, resultado.codigo);
+    return HttpResponse.json(resultado.valor.mensaje, {
+      status: resultado.valor.reintento ? 200 : 201,
+    });
+  }),
+
+  // POST /conversaciones/{id}/reclamos
+  http.post(path('/conversaciones/:id/reclamos'), async ({ params, request }) => {
+    const { id } = params as { id: string };
+    const cuerpo = await leerCuerpo(request);
+    const forzada = interceptar('reclamar', { conversacionId: id, cuerpo });
+    if (forzada) return forzada;
+    const resultado = reclamarConversacionMock(id, cuerpo.version_esperada);
+    if (!resultado.ok) return errorConversaciones(resultado.status, resultado.codigo);
+    return HttpResponse.json(resultado.valor, { status: 201 });
+  }),
+
+  // DELETE /conversaciones/{id}/reclamos/{rid}?version_esperada=
+  http.delete(path('/conversaciones/:id/reclamos/:rid'), ({ params, request }) => {
+    const { id, rid } = params as { id: string; rid: string };
+    const url = new URL(request.url);
+    const query = Object.fromEntries(url.searchParams.entries());
+    const forzada = interceptar('liberar', { conversacionId: id, query });
+    if (forzada) return forzada;
+    const resultado = liberarReclamoMock(id, rid, numeroDeQuery(url, 'version_esperada'));
+    if (!resultado.ok) return errorConversaciones(resultado.status, resultado.codigo);
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // POST /conversaciones/{id}/atendida
+  http.post(path('/conversaciones/:id/atendida'), async ({ params, request }) => {
+    const { id } = params as { id: string };
+    const cuerpo = await leerCuerpo(request);
+    const forzada = interceptar('atendida', { conversacionId: id, cuerpo });
+    if (forzada) return forzada;
+    const resultado = marcarAtendidaMock(id, cuerpo.version_esperada);
+    if (!resultado.ok) return errorConversaciones(resultado.status, resultado.codigo);
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // POST /conversaciones/{id}/recibos/leido y /entregado
+  http.post(path('/conversaciones/:id/recibos/:tipo'), async ({ params, request }) => {
+    const { id } = params as { id: string };
+    const cuerpo = await leerCuerpo(request);
+    const forzada = interceptar('recibo', { conversacionId: id, cuerpo });
+    if (forzada) return forzada;
+    if (!registrarReciboLeidoMock(id)) return errorConversaciones(404);
+    return new HttpResponse(null, { status: 204 });
+  }),
+];
+
 export const handlers = [
+  ...handlersConversaciones,
   // GET /clientes ÔÇö cat├ílogo proyectado por el BFF (tracer.20). El mock devuelve
   // ├║nicamente clientes activos dentro del alcance del operador demo.
   http.get(path('/clientes'), ({ request }) => {

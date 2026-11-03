@@ -17,6 +17,14 @@ import type { FichaTecnica } from '@/lib/contracts/fichaTecnica';
 import type { FichaTecnicaEntrada, DispositivoGps } from '@/lib/contracts/fichaTecnica';
 import type { Asignacion, AptitudRecurso } from '@/lib/contracts/viajeDetalle';
 import type { Unidad } from '@/lib/contracts/unidades';
+import type {
+  Conversacion as ConversacionWire,
+  EnviarMensajeInternaEntrada as EnviarMensajeInternaEntradaWire,
+  Mensaje as MensajeWire,
+  PaginaMensajes as PaginaMensajesWire,
+  Reclamo as ReclamoWire,
+  TrabajoBandeja as TrabajoBandejaWire,
+} from '@/lib/contracts/conversaciones';
 
 /** Credenciales del operador demo. Documentadas en el README. */
 export const DEMO_CREDENTIALS = {
@@ -618,4 +626,550 @@ export function cerrarEstadiaMock(
   if (estadia.cierre) return 'estadia_ya_cerrada';
   estadia.cierre = new Date().toISOString();
   return { ...estadia };
+}
+
+/*
+ * E8-T15 — Bandeja de conversaciones.
+ *
+ * Estado en memoria del `bff` simulado para la superficie interna de bandeja
+ * (`tracer.33`). Las formas salen de los tipos generados (`Conversacion`,
+ * `Reclamo`, `Mensaje`, `TrabajoBandeja`, `PaginaMensajes`); no se inventan
+ * campos. Reglas que respeta el mock (DEC-116 a DEC-122, PR #41 de `mensajeria`):
+ *
+ * - `version_reclamo` es monótona por conversación y sube al reclamar y al liberar.
+ * - Liberar y marcar atendida por quien NO es el responsable activo responde 403
+ *   `prohibido`; una versión vieja responde 409 `conflicto_version_reclamo`;
+ *   marcar atendida sin reclamo activo responde 409.
+ * - Responder NO marca atendida (DEC-117); un mensaje nuevo del cliente deja
+ *   `atendida_en` vacío (DEC-122).
+ * - Sin vista previa ni conteo de no leídos en la fila (DEC-118).
+ * - El envío rechaza con 400 cualquier `motivo_override` (DEC-107).
+ *
+ * El estado es reiniciable (`reiniciarConversacionesMock`) para que las pruebas
+ * sean deterministas. Los fallos se fuerzan con `forzarFalloConversaciones`.
+ */
+
+/** Sujeto de la sesión demo (claim `sub` del operador demo). */
+export const SUJETO_CONVERSACIONES_DEMO: string = DEMO_CLAIMS.sub;
+/** Otra persona del pool: reclama, libera y responde en los escenarios de concurrencia. */
+export const OTRO_RESPONSABLE_DEMO = 'usr-demo-2';
+/** Cliente sin entrada en `listarClientes` (inactivo o fuera de alcance): el nombre no se resuelve. */
+export const CLIENTE_SIN_NOMBRE_DEMO = 'CLI-9999';
+/** Ids de las conversaciones demo. */
+export const CONVERSACIONES_DEMO_IDS = {
+  pool: 'CNV-1',
+  mia: 'CNV-2',
+  deOtro: 'CNV-3',
+  atendida: 'CNV-4',
+  soloLectura: 'CNV-5',
+  historialLargo: 'CNV-6',
+} as const;
+
+const TAMANO_PAGINA_BANDEJA = 5;
+const LIMITE_MENSAJES_POR_DEFECTO = 5;
+const INSTANTE_BASE_CONVERSACIONES = Date.parse('2026-11-03T10:00:00.000Z');
+
+/** Operaciones sobre las que se puede forzar un fallo. */
+export type OperacionConversaciones =
+  | 'bandeja'
+  | 'bandejaCatchUp'
+  | 'obtener'
+  | 'listarMensajes'
+  | 'enviar'
+  | 'reclamar'
+  | 'liberar'
+  | 'atendida'
+  | 'recibo';
+
+/** Fallo forzado: respuesta HTTP con código de máquina, o caída de red. */
+export type FalloConversaciones =
+  | { readonly tipo: 'http'; readonly status: number; readonly codigo?: string }
+  | { readonly tipo: 'red' };
+
+export interface SolicitudConversaciones {
+  readonly operacion: OperacionConversaciones;
+  readonly conversacionId?: string;
+  readonly cuerpo?: Record<string, unknown>;
+  readonly query?: Record<string, string>;
+}
+
+export type ResultadoConversaciones<T> =
+  | { readonly ok: true; readonly valor: T }
+  | { readonly ok: false; readonly status: 400 | 403 | 404 | 409; readonly codigo: string };
+
+interface ConversacionInterna {
+  conversacion: ConversacionWire;
+  /** Revisión de la colección en la que cambió por última vez. */
+  revisionCambio: number;
+  mensajes: MensajeWire[];
+}
+
+interface ReglaFallo {
+  readonly fallo: FalloConversaciones;
+  restantes: number;
+}
+
+interface EstadoConversacionesMock {
+  sujetoId: string;
+  revision: number;
+  /** Revisión mínima con catch-up posible; por debajo, `stream_resync_required`. */
+  ventanaMinima: number;
+  conversaciones: ConversacionInterna[];
+  fallos: Map<OperacionConversaciones, ReglaFallo>;
+  solicitudes: SolicitudConversaciones[];
+  contadorInstantes: number;
+}
+
+function marcaConversaciones(minutos: number): string {
+  return new Date(INSTANTE_BASE_CONVERSACIONES + minutos * 60_000).toISOString();
+}
+
+function mensajeDemo(
+  conversacionId: string,
+  secuencia: number,
+  autor: 'cliente' | 'ai27',
+  cuerpo: string,
+  actorInterno: string,
+): MensajeWire {
+  const esCliente = autor === 'cliente';
+  return {
+    id: `MSG-${conversacionId}-${secuencia}`,
+    conversacion_id: conversacionId,
+    secuencia,
+    client_message_id: `cmid-${conversacionId}-${secuencia}`,
+    audiencia_autor: esCliente ? 'Cliente' : 'Interno',
+    alias_mostrado: esCliente ? 'Cliente' : 'AI27 Operations',
+    actor_real: esCliente ? null : actorInterno,
+    rol_al_enviar: esCliente ? null : Rol.Ejecutivo,
+    cuerpo,
+    creado_en: marcaConversaciones(secuencia),
+  };
+}
+
+function reclamoDemo(conversacionId: string, responsableId: string, version: number): ReclamoWire {
+  return {
+    id: `REC-${conversacionId}-${version}`,
+    conversacion_id: conversacionId,
+    responsable_id: responsableId,
+    version,
+    abierto_en: marcaConversaciones(version),
+    cerrado_en: null,
+  };
+}
+
+function crearConversacionInterna(
+  base: {
+    id: string;
+    clienteId: string;
+    version: number;
+    responsableId?: string;
+    atendida?: boolean;
+    estado?: ConversacionWire['estado'];
+    revisionCambio: number;
+  },
+  mensajes: MensajeWire[],
+): ConversacionInterna {
+  const ultima = mensajes.at(-1)?.secuencia ?? 0;
+  const soloLectura = base.estado === 'solo_lectura';
+  return {
+    revisionCambio: base.revisionCambio,
+    mensajes,
+    conversacion: {
+      id: base.id,
+      viaje_id: `VJ-${base.id.replace('CNV-', '100')}`,
+      cliente_id: base.clienteId,
+      bandeja_id: 'BDJ-1',
+      estado: base.estado ?? 'abierta',
+      escritura_hasta: soloLectura ? marcaConversaciones(-60) : marcaConversaciones(60 * 24 * 3),
+      ultima_secuencia: ultima,
+      version_reclamo: base.version,
+      reclamo_activo: base.responsableId
+        ? reclamoDemo(base.id, base.responsableId, base.version)
+        : null,
+      atendida_en: base.atendida ? marcaConversaciones(30) : null,
+      abierta_en: marcaConversaciones(-base.revisionCambio * 10),
+    },
+  };
+}
+
+function crearEstadoConversaciones(sujetoId: string): EstadoConversacionesMock {
+  const c = CONVERSACIONES_DEMO_IDS;
+  const o = OTRO_RESPONSABLE_DEMO;
+  return {
+    sujetoId,
+    revision: 6,
+    ventanaMinima: 0,
+    fallos: new Map(),
+    solicitudes: [],
+    contadorInstantes: 200,
+    conversaciones: [
+      // En el pool, sin atender, con historial anterior a cualquier alta.
+      crearConversacionInterna(
+        { id: c.pool, clienteId: 'CLI-1001', version: 2, revisionCambio: 1 },
+        [
+          mensajeDemo(c.pool, 3, 'cliente', 'Buenos días, ¿ya salió la unidad?', o),
+          mensajeDemo(c.pool, 7, 'ai27', 'Estamos confirmando con el monitorista.', o),
+          mensajeDemo(c.pool, 12, 'cliente', 'Quedo atento.', o),
+        ],
+      ),
+      // Reclamada por el usuario de la sesión, sin atender.
+      crearConversacionInterna(
+        {
+          id: c.mia,
+          clienteId: 'CLI-1002',
+          version: 3,
+          responsableId: sujetoId,
+          revisionCambio: 2,
+        },
+        [
+          mensajeDemo(c.mia, 4, 'cliente', '¿Cuál es el ETA de la unidad?', o),
+          mensajeDemo(c.mia, 9, 'ai27', 'El ETA estimado es 18:30.', sujetoId),
+          mensajeDemo(c.mia, 15, 'cliente', 'Gracias, ¿pueden confirmar la parada?', o),
+        ],
+      ),
+      // Reclamada por otra persona.
+      crearConversacionInterna(
+        { id: c.deOtro, clienteId: 'CLI-1003', version: 5, responsableId: o, revisionCambio: 3 },
+        [
+          mensajeDemo(c.deOtro, 2, 'cliente', 'Necesito cambiar el destino.', o),
+          mensajeDemo(c.deOtro, 6, 'ai27', 'Lo estamos revisando.', o),
+        ],
+      ),
+      // Reclamada por el usuario y ya marcada atendida.
+      crearConversacionInterna(
+        {
+          id: c.atendida,
+          clienteId: 'CLI-1001',
+          version: 1,
+          responsableId: sujetoId,
+          atendida: true,
+          revisionCambio: 4,
+        },
+        [
+          mensajeDemo(c.atendida, 5, 'cliente', 'Recibimos la unidad, gracias.', o),
+          mensajeDemo(c.atendida, 8, 'ai27', 'A sus órdenes.', sujetoId),
+        ],
+      ),
+      // Ventana de escritura vencida y cliente que no resuelve nombre.
+      crearConversacionInterna(
+        {
+          id: c.soloLectura,
+          clienteId: CLIENTE_SIN_NOMBRE_DEMO,
+          version: 4,
+          estado: 'solo_lectura',
+          revisionCambio: 5,
+        },
+        [
+          mensajeDemo(c.soloLectura, 1, 'cliente', 'Cierre del servicio.', o),
+          mensajeDemo(c.soloLectura, 10, 'ai27', 'Servicio concluido.', o),
+        ],
+      ),
+      // En el pool, con historial más largo que una página de mensajes. Cae en la
+      // segunda página de la bandeja (cursor).
+      crearConversacionInterna(
+        { id: c.historialLargo, clienteId: 'CLI-1002', version: 0, revisionCambio: 6 },
+        [
+          mensajeDemo(c.historialLargo, 2, 'cliente', 'Mensaje 2 del historial.', o),
+          mensajeDemo(c.historialLargo, 5, 'ai27', 'Mensaje 5 del historial.', o),
+          mensajeDemo(c.historialLargo, 9, 'cliente', 'Mensaje 9 del historial.', o),
+          mensajeDemo(c.historialLargo, 14, 'ai27', 'Mensaje 14 del historial.', o),
+          mensajeDemo(c.historialLargo, 20, 'cliente', 'Mensaje 20 del historial.', o),
+          mensajeDemo(c.historialLargo, 27, 'ai27', 'Mensaje 27 del historial.', o),
+          mensajeDemo(c.historialLargo, 35, 'cliente', 'Mensaje 35 del historial.', o),
+          mensajeDemo(c.historialLargo, 44, 'ai27', 'Mensaje 44 del historial.', o),
+        ],
+      ),
+    ],
+  };
+}
+
+let estadoConversaciones = crearEstadoConversaciones(SUJETO_CONVERSACIONES_DEMO);
+
+/** Reinicia fixtures, fallos forzados y solicitudes registradas. */
+export function reiniciarConversacionesMock(opciones: { sujetoId?: string } = {}): void {
+  estadoConversaciones = crearEstadoConversaciones(opciones.sujetoId ?? SUJETO_CONVERSACIONES_DEMO);
+}
+
+/** Sujeto cuya sesión simula el mock (el que "reclama" y "responde"). */
+export function sujetoConversacionesMock(): string {
+  return estadoConversaciones.sujetoId;
+}
+
+/** Solicitudes recibidas por el `bff` simulado, en orden (cuerpo y query ya interpretados). */
+export function solicitudesConversacionesMock(): readonly SolicitudConversaciones[] {
+  return estadoConversaciones.solicitudes;
+}
+
+export function registrarSolicitudConversaciones(solicitud: SolicitudConversaciones): void {
+  estadoConversaciones.solicitudes.push(solicitud);
+}
+
+/**
+ * Fuerza el fallo de una operación. `veces` limita cuántas peticiones lo sufren
+ * (por omisión una; `Infinity` lo deja fijo hasta `limpiarFallosConversaciones`).
+ */
+export function forzarFalloConversaciones(
+  operacion: OperacionConversaciones,
+  fallo: FalloConversaciones,
+  veces = 1,
+): void {
+  estadoConversaciones.fallos.set(operacion, { fallo, restantes: veces });
+}
+
+export function limpiarFallosConversaciones(): void {
+  estadoConversaciones.fallos.clear();
+}
+
+/** Consume un uso del fallo forzado de la operación, si lo hay. */
+export function tomarFalloConversaciones(
+  operacion: OperacionConversaciones,
+): FalloConversaciones | undefined {
+  const regla = estadoConversaciones.fallos.get(operacion);
+  if (!regla) return undefined;
+  regla.restantes -= 1;
+  if (regla.restantes <= 0) estadoConversaciones.fallos.delete(operacion);
+  return regla.fallo;
+}
+
+function buscarConversacion(id: string): ConversacionInterna | undefined {
+  return estadoConversaciones.conversaciones.find((item) => item.conversacion.id === id);
+}
+
+/** Avanza la revisión de la colección y marca la conversación como cambiada en ella. */
+function registrarCambio(item: ConversacionInterna): void {
+  estadoConversaciones.revision += 1;
+  item.revisionCambio = estadoConversaciones.revision;
+}
+
+function copiar<T>(valor: T): T {
+  return structuredClone(valor);
+}
+
+function siguienteInstante(): string {
+  estadoConversaciones.contadorInstantes += 1;
+  return marcaConversaciones(estadoConversaciones.contadorInstantes);
+}
+
+const rechazo = (
+  status: 400 | 403 | 404 | 409,
+  codigo: string,
+): { ok: false; status: 400 | 403 | 404 | 409; codigo: string } => ({ ok: false, status, codigo });
+
+/**
+ * Bootstrap (`desdeRevision` nulo): página por `cursor`. Catch-up: solo las
+ * conversaciones cambiadas después de `desdeRevision`; si la revisión quedó fuera
+ * de la ventana retenida, `stream_resync_required`.
+ */
+export function listarTrabajoBandejaMock(
+  desdeRevision: number | null,
+  cursor: string | null,
+): ResultadoConversaciones<TrabajoBandejaWire> {
+  const { conversaciones, revision, ventanaMinima } = estadoConversaciones;
+  if (desdeRevision !== null) {
+    if (desdeRevision < ventanaMinima) return rechazo(409, 'stream_resync_required');
+    const cambiadas = conversaciones
+      .filter((item) => item.revisionCambio > desdeRevision)
+      .map((item) => copiar(item.conversacion));
+    return { ok: true, valor: { items: cambiadas, revision, cursor_siguiente: null } };
+  }
+  const inicio = cursor ? Number.parseInt(cursor, 10) || 0 : 0;
+  const pagina = conversaciones.slice(inicio, inicio + TAMANO_PAGINA_BANDEJA);
+  const fin = inicio + pagina.length;
+  return {
+    ok: true,
+    valor: {
+      items: pagina.map((item) => copiar(item.conversacion)),
+      revision,
+      cursor_siguiente: fin < conversaciones.length ? String(fin) : null,
+    },
+  };
+}
+
+export function obtenerConversacionMock(id: string): ConversacionWire | null {
+  const item = buscarConversacion(id);
+  return item ? copiar(item.conversacion) : null;
+}
+
+/**
+ * Sin parámetros: la página más reciente. `antesDe`: la página inmediata anterior a
+ * esa secuencia. `despuesDe`: catch-up en orden ascendente. Siempre ascendente.
+ */
+export function listarMensajesMock(
+  id: string,
+  params: { antesDe?: number; despuesDe?: number; limite?: number },
+): PaginaMensajesWire | null {
+  const item = buscarConversacion(id);
+  if (!item) return null;
+  const limite = params.limite ?? LIMITE_MENSAJES_POR_DEFECTO;
+  if (params.despuesDe !== undefined) {
+    const nuevos = item.mensajes.filter((m) => m.secuencia > params.despuesDe!);
+    return { items: copiar(nuevos.slice(0, limite)), hay_mas: nuevos.length > limite };
+  }
+  const candidatos =
+    params.antesDe !== undefined
+      ? item.mensajes.filter((m) => m.secuencia < params.antesDe!)
+      : item.mensajes;
+  const pagina = candidatos.slice(-limite);
+  return { items: copiar(pagina), hay_mas: candidatos.length > pagina.length };
+}
+
+export function enviarMensajeMock(
+  id: string,
+  entrada: Partial<EnviarMensajeInternaEntradaWire> & Record<string, unknown>,
+): ResultadoConversaciones<{ mensaje: MensajeWire; reintento: boolean }> {
+  const item = buscarConversacion(id);
+  if (!item) return rechazo(404, 'no_encontrado');
+  if ('motivo_override' in entrada) return rechazo(400, 'solicitud_invalida');
+  if (typeof entrada.cuerpo !== 'string' || !entrada.cuerpo.trim() || !entrada.client_message_id) {
+    return rechazo(400, 'solicitud_invalida');
+  }
+  // Reintento idempotente: mismo `client_message_id`, mismo mensaje (200).
+  const previo = item.mensajes.find((m) => m.client_message_id === entrada.client_message_id);
+  if (previo) return { ok: true, valor: { mensaje: copiar(previo), reintento: true } };
+
+  const c = item.conversacion;
+  if (c.estado !== 'abierta') return rechazo(409, 'conversacion_solo_lectura');
+  if (c.reclamo_activo?.responsable_id !== estadoConversaciones.sujetoId) {
+    return rechazo(403, 'prohibido');
+  }
+  if (entrada.version_reclamo_esperada !== c.version_reclamo) {
+    return rechazo(409, 'conflicto_version_reclamo');
+  }
+  const secuencia = c.ultima_secuencia + 1;
+  const mensaje: MensajeWire = {
+    id: `MSG-${id}-${secuencia}`,
+    conversacion_id: id,
+    secuencia,
+    client_message_id: entrada.client_message_id,
+    audiencia_autor: 'Interno',
+    alias_mostrado: 'AI27 Operations',
+    actor_real: estadoConversaciones.sujetoId,
+    rol_al_enviar: Rol.Ejecutivo,
+    cuerpo: entrada.cuerpo,
+    creado_en: siguienteInstante(),
+  };
+  item.mensajes.push(mensaje);
+  // Responder NO marca atendida (DEC-117): `atendida_en` queda como estaba.
+  c.ultima_secuencia = secuencia;
+  return { ok: true, valor: { mensaje: copiar(mensaje), reintento: false } };
+}
+
+export function reclamarConversacionMock(
+  id: string,
+  versionEsperada: unknown,
+): ResultadoConversaciones<ReclamoWire> {
+  const item = buscarConversacion(id);
+  if (!item) return rechazo(404, 'no_encontrado');
+  const c = item.conversacion;
+  if (c.estado !== 'abierta') return rechazo(409, 'conversacion_solo_lectura');
+  if (c.reclamo_activo || versionEsperada !== c.version_reclamo) {
+    return rechazo(409, 'conflicto_version_reclamo');
+  }
+  c.version_reclamo += 1;
+  c.reclamo_activo = reclamoDemo(id, estadoConversaciones.sujetoId, c.version_reclamo);
+  registrarCambio(item);
+  return { ok: true, valor: copiar(c.reclamo_activo) };
+}
+
+export function liberarReclamoMock(
+  id: string,
+  reclamoId: string,
+  versionEsperada: unknown,
+): ResultadoConversaciones<null> {
+  const item = buscarConversacion(id);
+  if (!item) return rechazo(404, 'no_encontrado');
+  const c = item.conversacion;
+  if (!c.reclamo_activo) return rechazo(409, 'conflicto_version_reclamo');
+  if (c.reclamo_activo.responsable_id !== estadoConversaciones.sujetoId) {
+    return rechazo(403, 'prohibido');
+  }
+  if (c.reclamo_activo.id !== reclamoId || versionEsperada !== c.version_reclamo) {
+    return rechazo(409, 'conflicto_version_reclamo');
+  }
+  c.version_reclamo += 1;
+  c.reclamo_activo = null;
+  registrarCambio(item);
+  return { ok: true, valor: null };
+}
+
+export function marcarAtendidaMock(
+  id: string,
+  versionEsperada: unknown,
+): ResultadoConversaciones<null> {
+  const item = buscarConversacion(id);
+  if (!item) return rechazo(404, 'no_encontrado');
+  const c = item.conversacion;
+  if (!c.reclamo_activo) return rechazo(409, 'conflicto_version_reclamo');
+  if (c.reclamo_activo.responsable_id !== estadoConversaciones.sujetoId) {
+    return rechazo(403, 'prohibido');
+  }
+  if (versionEsperada !== c.version_reclamo) return rechazo(409, 'conflicto_version_reclamo');
+  c.atendida_en = siguienteInstante();
+  registrarCambio(item);
+  return { ok: true, valor: null };
+}
+
+export function registrarReciboLeidoMock(id: string): boolean {
+  return buscarConversacion(id) !== undefined;
+}
+
+/* --- Acciones de otras personas (simulación de concurrencia en pruebas) --- */
+
+/** Otra persona reclama la conversación: sube la versión y cambia el responsable. */
+export function simularReclamoDeOtraPersonaMock(id: string): void {
+  const item = buscarConversacion(id);
+  if (!item) return;
+  const c = item.conversacion;
+  c.version_reclamo += 1;
+  c.reclamo_activo = reclamoDemo(id, OTRO_RESPONSABLE_DEMO, c.version_reclamo);
+  registrarCambio(item);
+}
+
+/** Otra persona devuelve la conversación al pool. */
+export function simularLiberacionDeOtraPersonaMock(id: string): void {
+  const item = buscarConversacion(id);
+  if (!item) return;
+  const c = item.conversacion;
+  c.version_reclamo += 1;
+  c.reclamo_activo = null;
+  registrarCambio(item);
+}
+
+/** El cliente escribe: agrega el mensaje y deja `atendida_en` vacío (DEC-122). */
+export function simularMensajeDeClienteMock(id: string, cuerpo: string): MensajeWire | null {
+  const item = buscarConversacion(id);
+  if (!item) return null;
+  const c = item.conversacion;
+  const mensaje = mensajeDemo(id, c.ultima_secuencia + 1, 'cliente', cuerpo, OTRO_RESPONSABLE_DEMO);
+  item.mensajes.push(mensaje);
+  c.ultima_secuencia = mensaje.secuencia;
+  c.atendida_en = null;
+  registrarCambio(item);
+  return copiar(mensaje);
+}
+
+/**
+ * Descarta la ventana de cambios retenida: cualquier catch-up desde una revisión
+ * anterior responde `stream_resync_required`; el bootstrap sigue disponible.
+ */
+export function compactarVentanaConversacionesMock(): void {
+  estadoConversaciones.revision += 1;
+  estadoConversaciones.ventanaMinima = estadoConversaciones.revision;
+}
+
+/** Pasa la conversación a `solo_lectura`: venció la ventana de escritura (DEC-030, DEC-041). */
+export function simularVencimientoDeVentanaMock(id: string): void {
+  const item = buscarConversacion(id);
+  if (!item) return;
+  item.conversacion.estado = 'solo_lectura';
+  item.conversacion.escritura_hasta = marcaConversaciones(-1);
+  registrarCambio(item);
+}
+
+/**
+ * Cambia el sujeto que "es" la sesión para el mock, conservando el estado. Sirve
+ * para simular a una segunda persona del pool actuando sobre la misma conversación.
+ */
+export function cambiarSujetoConversacionesMock(sujetoId: string): void {
+  estadoConversaciones.sujetoId = sujetoId;
 }
