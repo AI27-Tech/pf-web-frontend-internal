@@ -2,62 +2,64 @@
 
 ## Overview
 
-Las tareas implementan el comportamiento funcional de E8-T15: bandeja compartida con reclamo exclusivo, lectura del historial, respuesta, liberación, transferencia y actualización viva (sin override ni alerta: DEC-107 y DEC-108). **Hay brechas de contrato abiertas** (ver `BRECHAS.md`): el `bff` no expone todavía la superficie de conversación interna (Brecha 1), por lo que la capa de API se escribe contra los tipos de `mensajeria` con el prefijo de ruta como un único punto de cambio y se verifica con mocks MSW. Las tareas que dependen de una brecha están marcadas y no se publican contra el `bff` real hasta que se cierre. No se inventan superficies, campos ni componentes.
+Las tareas implementan el comportamiento funcional de E8-T15 en su alcance V1: bandeja compartida de cola única, lectura del historial, reclamo exclusivo, respuesta, marcar atendida y devolver la conversación al pool, con actualización por polling HTTP. **El backend ya expone la superficie por el `bff`** (`tracer.30` en adelante, montada en `pf-svc-bff`); el frontend todavía no la consume. Las exclusiones de V1 (override, alerta, transferencia dirigida, mando sobre conversaciones ajenas, vista previa, no leídos y SSE) están decididas en DEC-107, DEC-108, DEC-118, DEC-119 y DT-01; no se construyen. No se inventan superficies, campos ni componentes.
 
 ## Estado de avance
 
-**Sin iniciar.** El spec está escrito; no hay código. La ruta `/conversaciones` es un stub (E8-T4).
+**Sin iniciar.** El spec está al día con DEC-116 a DEC-122. La ruta `/conversaciones` es un stub (E8-T4). `package.json` fija `@ai27-tech/contracts@0.1.0-tracer.24`, que no trae la superficie interna de bandeja; la tarea 1 sube el pin.
 
 ## Task Dependency Graph
 
-`1 → 2 → 3–11 → 12–14`
+`1 → 2 → 3–10 → 11 → 12–14`
 
 ```json
 {
   "waves": [
     { "id": 1, "tasks": [1] },
     { "id": 2, "tasks": [2], "dependsOn": [1] },
-    { "id": 3, "tasks": [3, 4, 5, 6, 7, 8, 9, 10, 11], "dependsOn": [2] },
-    { "id": 4, "tasks": [12, 13, 14], "dependsOn": [3] }
+    { "id": 3, "tasks": [3, 4, 5, 6, 7, 8, 9, 10], "dependsOn": [2] },
+    { "id": 4, "tasks": [11], "dependsOn": [3] },
+    { "id": 5, "tasks": [12, 13, 14], "dependsOn": [11] }
   ]
 }
 ```
 
-La tarea 1 verifica contrato y librería. La tarea 2 fija las capas de tipos y API. Las tareas 3 a 11 implementan la vista y los flujos. Las tareas 12 a 14 verifican comportamiento, accesibilidad y contrato.
+La tarea 1 sube el contrato y verifica la librería. La tarea 2 fija las capas de tipos y API. Las tareas 3 a 10 implementan la lógica pura, los hooks y los flujos. La tarea 11 monta la ruta real. Las tareas 12 a 14 verifican comportamiento, accesibilidad y contrato.
 
 ## Tasks
 
 ## Prerrequisito
 
-- [ ] 1. Verificar el contrato instalado, la librería y las brechas abiertas. Confirmar contra `@ai27-tech/contracts@0.1.0-tracer.22` (y el último tracer publicado) si el `bff` ya expone `bandejas`, `conversaciones`, `reclamos` y `transferencias`; confirmar los tipos de `mensajeria.gen.ts` y de `realtime.gen.ts`; verificar la API exacta de `MessagePanel`, `MessageList`, `MessageBubble`, `MessageComposer`, `Modal` y `FilterTable` en `@ai27-tech/ui@0.2.0-beta.6`. Actualizar `BRECHAS.md` con lo que haya cambiado. No subir el pin del `package.json` sin que se pida.
+- [ ] 1. Subir el contrato y verificar lo instalado. **Requiere aprobación explícita.** Cambiar `@ai27-tech/contracts` de `0.1.0-tracer.24` a `0.1.0-tracer.33` (`tracer.30` y `tracer.31` no existen para TS, DEC-120) y agregar `|| 0.1.0-tracer.33` a la entrada de `@ai27-tech/contracts` en `minimumReleaseAgeExclude` de `pnpm-workspace.yaml`. Instalar y confirmar en `bff.gen.ts` las operaciones `listarTrabajoBandeja`, `obtenerConversacion`, `listarMensajes`, `enviarMensaje`, `reclamarConversacion`, `liberarReclamo`, `marcarAtendida`, `registrarReciboLeido` y `listarClientes`. Verificar la API exacta de `MessagePanel`, `MessageList`, `MessageBubble`, `MessageComposer`, `Modal` y `FilterTable` en `@ai27-tech/ui@0.2.0-beta.6`. Revisar si el PR #41 de `mensajeria` ya se mergeó (semántica de `version_reclamo` y `403`) y actualizar `BRECHAS.md` con lo que cambie.
 
 ## Implementación
 
-- [ ] 2. Crear `lib/contracts/conversaciones.ts` (re-exporta los tipos generados; sin tipos de wire a mano) y `lib/api/conversaciones.ts` con las operaciones `listarTrabajoBandeja`, `obtenerConversacion`, `listarMensajes`, `enviarMensaje`, `reclamarConversacion`, `liberarReclamo`, `transferirConversacion`, `marcarAtendida`, con el prefijo de ruta en un único punto de cambio y clasificación de errores (`401`, `403`, `404`, `409 conflicto_version_reclamo`, `409 conversacion_solo_lectura`, `409 stream_resync_required`). _(Condicionado: Brecha 1.)_
-- [ ] 3. Implementar `afordancias.ts` (funciones puras): `puedeReclamar`, `puedeResponder`, `puedeLiberar`, `puedeTransferir` y `razonCompositor`, a partir de `estado`, `reclamo_activo`, sujeto y rol de sesión, sin calcular ventanas de tiempo.
-- [ ] 4. Implementar `useTrabajoBandeja.ts` y `ListaTrabajo.tsx`: bootstrap con `revision`, paginación por cursor sin confundirlo con `revision`, distinción visual de pool / mía / de otra persona, estados de carga, vacío, error y sin acceso. No se muestran vista previa ni conteo de no leídos. _(Condicionado: Brechas 2 y 4.)_
-- [ ] 5. Implementar `useConversacion.ts` y `PanelConversacion.tsx` sobre `MessagePanel`/`MessageList`/`MessageBubble`: detalle, historial ordenado por `secuencia`, carga hacia atrás, autor y rol al enviar, estado `404` sin distinguir causa, estado vacío y sin adjuntos ni edición.
-- [ ] 6. Implementar el reclamo en `AccionesReclamo.tsx`: reclamar con la `version_esperada` vigente, bloqueo de doble envío, conflicto `409 conflicto_version_reclamo` con aviso del ganador y recarga, sin reintento silencioso.
-- [ ] 7. Implementar el envío de respuesta con `MessageComposer`: `client_message_id` generado en el cliente y reutilizado en el reintento, `version_reclamo_esperada`, cuerpo no vacío, conservación del borrador ante `403`/`409`, y la regla de `marcarAtendida` una vez verificada con Mensajería.
-- [ ] 8. Implementar `BannerEstado.tsx` y el comportamiento de reclamo perdido y solo lectura: compositor deshabilitado con la razón visible, historial conservado, borrador conservado, y `conversacion_solo_lectura` sin recalcular la ventana.
-- [ ] 9. Implementar liberar y `TransferirDialogo.tsx`: liberar con confirmación si hay borrador; transferir con selección de destino de la lista que entregue el `bff` y motivo opcional, sin estado intermedio, y recarga ante `409`. _(La transferencia queda condicionada a la Brecha 3: sin lista de miembros no se puede poblar el destino.)_
-- [ ] 10. Verificar la exclusión de override y alerta en V1 (DEC-107, DEC-108): ningún envío incluye `motivo_override`, ningún rol ve gesto de override y no se muestra alerta de mensaje pendiente. No se construye `OverrideDialogo` ni la alerta; si las DEC se reabren, se cambia el spec.
-- [ ] 11. Implementar `aplicarDelta.ts`, `useStreamVivo.ts` y `lib/api/stream.ts`: bootstrap → apertura sin selector → catch-up con buffer → modo vivo, deduplicación por `evento_id`, orden por secuencia de dominio, repetición de bootstrap ante `409 stream_resync_required`, degradación a recuperación HTTP ante `stream.stale` y marca de frescura visible. La parte viva queda condicionada a los frames publicados; la recuperación HTTP se entrega completa. _(Condicionado: Brecha 5.)_
-- [ ] 12. Reemplazar el stub `routes/_private/conversaciones.tsx` por la feature real `BandejaConversaciones` (conversación abierta por parámetro de búsqueda), integrar estados de carga/vacío/error con reintento, delegación de `401` al AppShell, avisos con `Toast`, anuncios accesibles de cambios de reclamo y pérdida de frescura, y etiquetas/foco de los componentes compartidos.
+- [ ] 2. Crear `lib/contracts/conversaciones.ts` (re-exporta de `@ai27-tech/contracts/openapi/bff`; sin tipos de wire a mano) y `lib/api/conversaciones.ts` con las operaciones de la tarea 1, sin exponer `transferirConversacion`. Clasificar errores (`401`, `403` en lectura y en acciones, `404` sin bandeja y en conversación, `409 conflicto_version_reclamo`, `409 conversacion_solo_lectura`, `409 stream_resync_required`).
+- [ ] 3. Implementar `afordancias.ts` (funciones puras): `puedeReclamar`, `puedeResponder`, `puedeDevolverAlPool`, `puedeMarcarAtendida` y `razonCompositor`, a partir de `estado`, `reclamo_activo` y el sujeto de la sesión, sin excepción por rol y sin calcular ventanas de tiempo.
+- [ ] 4. Implementar `aplicarCambios.ts` (reducer puro: mezcla de conversaciones por `id` y de mensajes por `secuencia`, sin duplicados) y `actualizacion.ts` (interfaz de actualización con implementación de polling y cadencia tomada de configuración del cliente).
+- [ ] 5. Implementar `useTrabajoBandeja.ts`, `useNombresCliente.ts` y `ListaTrabajo.tsx`: bootstrap sin identificador de bandeja, `revision`, polling con `desde_revision`, paginación por cursor sin confundirlo con `revision`, nombre del cliente con `listarClientes` y texto neutro si no se resuelve, distinción visual de pool / mía / de otra persona, marca de atendida, estados de carga, vacío, error, `sin_acceso` (403) y `sin_bandeja` (404). Sin vista previa ni conteo de no leídos.
+- [ ] 6. Implementar `useConversacion.ts` y `PanelConversacion.tsx` sobre `MessagePanel`/`MessageList`/`MessageBubble`: detalle, historial ordenado por `secuencia`, carga hacia atrás, polling por `despues_de`, `alias_mostrado` y rol al enviar, "Tú" / "otra persona" para el reclamante, estado `404` sin distinguir causa, estado vacío, sin adjuntos ni edición.
+- [ ] 7. Implementar el reclamo en `AccionesReclamo.tsx`: reclamar con la `version_reclamo` recibida (nunca un `0` fijo), bloqueo de doble envío, conflicto `409` con aviso de que otra persona lo tiene y recarga, sin reintento silencioso.
+- [ ] 8. Implementar el envío con `MessageComposer`: `client_message_id` generado en el cliente y reutilizado en el reintento, `version_reclamo_esperada`, sin `motivo_override`, cuerpo no vacío, conservación del borrador ante `403`/`409`.
+- [ ] 9. Implementar `BannerEstado.tsx` y el comportamiento de reclamo perdido y solo lectura: compositor deshabilitado con la razón visible, historial y borrador conservados, `conversacion_solo_lectura` sin recalcular la ventana, e indicador de actualización (hora de la última consulta correcta, desactualizada, resincronizando).
+- [ ] 10. Implementar devolver al pool y marcar atendida: devolver con `liberarReclamo` y confirmación si hay borrador; marcar atendida como gesto separado del envío; tratamiento de `403` (no es el responsable) y `409` con recarga del detalle; `atendida_en` desde el detalle; `registrarReciboLeido` solo si el usuario es el reclamante. No hay selector de destino, override ni alerta, y ningún gesto sobre conversaciones ajenas.
+- [ ] 11. Reemplazar el stub `routes/_private/conversaciones.tsx` por la feature real `BandejaConversaciones` (conversación abierta por parámetro de búsqueda), integrar estados con reintento, delegación de `401` al AppShell, avisos con `Toast`, anuncios accesibles de cambios de reclamo y de desactualización, y etiquetas/foco de los componentes compartidos.
 
 ## Verificación
 
-- [ ] 13. Crear pruebas unitarias y de propiedades: `afordancias` (compositor por estado y reclamante, sin excepción por rol), `aplicarDelta` (idempotencia, orden por `secuencia`, deduplicación por `evento_id`, exactamente una vez con bootstrap + catch-up + buffer), reutilización de `client_message_id`, uso de la versión vigente y clasificación de errores del wrapper.
-- [ ] 14. Crear pruebas de integración con MSW: reclamar y responder; reclamo concurrente con `409` y ganador visible; perder el reclamo con la conversación abierta (compositor deshabilitado, historial y borrador conservados); liberar; transferir entre dos usuarios simulados sin pérdida de historia; `conversacion_solo_lectura`; `403` sin membresía; `401` delegado al AppShell; `409 stream_resync_required` y `stream.stale` con recuperación HTTP. Ejecutar `typecheck`, `lint`, `test` y `build:mock`, y registrar en `BRECHAS.md` toda superficie que no permita demostrar el resultado requerido.
+- [ ] 12. Crear pruebas unitarias y de propiedades: `afordancias` (compositor por estado y reclamante, sin excepción por rol), `aplicarCambios` (idempotencia, orden por `secuencia`, sin duplicados, cobertura sin huecos con bootstrap + catch-ups), reutilización de `client_message_id`, uso de la versión vigente (nunca `0` fijo) y clasificación de errores del wrapper.
+- [ ] 13. Crear pruebas de integración con MSW: reclamar y responder; reclamo concurrente con `409`; perder el reclamo con la conversación abierta (compositor deshabilitado, historial y borrador conservados); devolver al pool y reclamar por otro usuario simulado sin pérdida de historia; marcar atendida y que un mensaje nuevo del cliente la desmarque; `403` en devolver y en marcar atendida; `conversacion_solo_lectura`; `404` sin bandeja y `403` sin membresía; `401` delegado al AppShell; `409 stream_resync_required` y falla de polling.
+- [ ] 14. Ejecutar `typecheck`, `lint`, `test` y `build:mock`, y verificar la ausencia de gestos excluidos (override, alerta, selector de destino, liberar o atender ajeno, vista previa, no leídos). Registrar en `BRECHAS.md` toda superficie que no permita demostrar el resultado requerido.
 
 ## Notes
 
 ### Notas de brechas
 
-- **Superficie en el `bff` (Brecha 1):** el `bff` (`tracer.22` a `tracer.24`) no expone la conversación interna; existe solo en `mensajeria.yaml`. `bff.md` y `mensajeria.yaml` difieren en las rutas. Bloquea publicar contra el `bff` real.
-- **Bandeja del usuario (Brecha 2, parcial por DEC-103), nombres y miembros (Brecha 3), datos de fila (Brecha 4):** sin resolver. Condicionan las tareas 4, 5 y 9.
-- **Stream (Brecha 5, parcial):** host y bearer están resueltos; falta la codificación de frames y los eventos de control. La tarea 11 entrega la rebanada HTTP completa y deja el stream detrás de una interfaz.
-- **Alerta y override (Brechas 6 y 7): cerradas para V1** por DEC-108 y DEC-107; no hay superficie que esperar.
-- **Pendientes de verificación antes de implementar:** regla de `marcarAtendida` (si responder lo implica); textos aprobados para conflicto, reclamo perdido, solo lectura y autorización insuficiente.
-- **Contrato fijado:** `package.json` fija `tracer.22`; el último publicado es `tracer.24`. No se sube sin que se pida.
-- **Fuera de alcance:** adjuntos (Q107), chat ejecutivo-a-ejecutivo (E3-T7, DEC-029), administración de membresía (E3-HU-034), conversación del cliente (E9), emergencias (E7).
+- **Brechas de la primera versión: cerradas** por DEC-116 a DEC-119 y DEC-122 (superficie en el `bff`, bandeja sin `{id}`, fila, tiempo real, `marcarAtendida`). La de nombres y destino de transferencia queda **diferida a V2** (DEC-119, DT-04).
+- **Pin del contrato:** hoy `tracer.24`; la tarea 1 lo sube a `tracer.33` con aprobación explícita.
+- **PR #41 de `mensajeria` (por mergearse):** `version_reclamo` monótona por conversación y `403` para quien no es el responsable al liberar, transferir o marcar atendida. Reverificar al mergearse.
+- **`transferirConversacion`:** el contrato aún exige `responsable_destino_id`; en V1 la UI solo devuelve al pool con `liberarReclamo`. Confirmar con el dueño del `bff`.
+- **`listarClientes` para `ejecutivo`:** DEC-118 lo asume; verificar en integración. Un cliente inactivo no aparece.
+- **Historia técnica E8-T15 en contexto:** desactualizada (override, ruta con `{id}`, SSE). Las DEC prevalecen.
+- **Pendientes de producto:** textos aprobados (conflicto de reclamo, reclamo perdido, solo lectura, autorización insuficiente) y cadencia del polling.
+- **Fuera de alcance:** adjuntos (Q107), chat ejecutivo-a-ejecutivo (E3-T7, DEC-029), administración de membresía (E3-HU-034), conversación del cliente (E9), emergencias (E7, E8-T18), SSE (DT-01).

@@ -1,139 +1,39 @@
 # Brechas — E8-T15 Bandeja de conversaciones
 
-Documento de brechas del spec. Cada brecha indica qué pide la tarea, qué existe hoy, qué falta, el impacto en el spec y la propuesta de resolución. **No** se rellena nada con una alternativa local: una operación ausente se solicita al repo de contratos; un componente ausente se compone con primitivas de la librería o se solicita a la librería.
+Documento de brechas del spec. Cada brecha indica qué pedía la tarea, cómo se resolvió y qué queda. **No** se rellena nada con una alternativa local.
 
-## Estado
+## Estado (2026-11-03)
 
-**Abierto en las brechas 1 a 4; parcial en la 5; cerradas para V1 la 6 y la 7.** Las decisiones DEC-107 y DEC-108 sacan de V1 el override y la alerta. La brecha 1 (proyección al `bff`) sigue sin decisión ni tag. El spec condiciona el comportamiento bloqueado y no inventa la superficie.
+**Las brechas de contrato están cerradas o diferidas por decisión.** El backend ya expone la superficie por el `bff`. Queda trabajo del frontend (subir el pin y construir) y cuatro verificaciones menores (ver "Pendientes residuales").
 
-## Fuentes y versiones verificadas (revisión repetida)
+## Fuentes y versiones verificadas
 
-- **Contexto:** `repos/ai27-platform-context`, `git fetch --all` y `pull --ff-only` hechos; commit **`883732e`** (2026-10-30), igual a `origin/main`. Una primera pasada se hizo sobre `3ca0d3b`, que estaba 2 commits atrás (solo regeneraciones de `HARNESS.md` y `ESTADO-REPOS-VS-PLAN.md`). Historia técnica: `docs/historias-tecnicas/E8-panel-admin.md` §E8-T15 y `E3-comunicacion-mensajeria.md` §E3-T2 a E3-T6. HU `E3-HU-015`, `E3-HU-016`. Decisiones leídas: DEC-014, DEC-015, DEC-021, DEC-029, DEC-030, DEC-041, DEC-045, DEC-046, DEC-097, DEC-098, **DEC-103**, **DEC-107**, **DEC-108**; ADR 28, 32 y 36.
-- **Contrato:** `repos/pf-pkg-contracts`, `git fetch --all --tags`. El repo no tiene `main`; la rama por defecto es `pf-contracts-m` (`15ab635`, `VERSION` `tracer.25`). **Último tag publicado: `v0.1.0-tracer.25`.** `tracer.26` está abierto en la rama `fix/conversacion-cliente-paginacion-secuencia` (conversación del Cliente) y no está publicado. Una primera pasada se hizo sobre `tracer.24` y la rama `feat/conversacion-cliente-e9-t8`.
-- **Pin del frontend:** `@ai27-tech/contracts@0.1.0-tracer.22`, **tres tracers atrás** del último publicado. No se sube sin que se pida. Entre `tracer.22` y `tracer.25`, `bff.yaml` solo añade `/api/v1/viajes/{id}/conversacion`, `/conversacion/mensajes` (audiencia **Cliente**) y `/viajes/{id}/transiciones-cliente`; `mensajeria.yaml` no cambia salvo la versión. La conclusión sobre la brecha 1 no cambia.
-- **Checkout local de `pf-pkg-contracts`:** rama `feat/ficha-tecnica-e-historico-tracer21`, en el commit de `tracer.24`, no en el tag que fija el frontend. La superficie se leyó de los tags `tracer.22` y `tracer.25`.
-- **UI:** `@ai27-tech/ui@0.2.0-beta.6`.
+- **Contexto:** `repos/ai27-platform-context` en **`f8d5056`** (2026-11-03), igual a `origin/main` tras `pull --ff-only`. Registra DEC-116 a DEC-122, DT-04 y DT-05, y el mensaje del equipo `.scratch/mensajes-equipo-2026-11-03.md`. La respuesta de Plataforma a este spec está en `.scratch/e8-t15-bandeja-conversaciones/RESPUESTA-BRIEF-E8-T15.md`.
+- **Contrato:** `repos/pf-pkg-contracts`, rama por defecto `pf-contracts-m` en **`a8fcfb7`**, `VERSION` **`v0.1.0-tracer.33`**, último tag publicado. `tracer.30` y `tracer.31` no existen para TS (DEC-120); `tracer.32` los republica y `tracer.33` agrega `obtenerConversacionDeViaje` (Cliente). `bff.yaml` es idéntico entre `tracer.32` y `tracer.33`. Hay ramas abiertas `tracer-34` (bandeja de Reacción, E8-T18); no afectan a E8-T15.
+- **Pin del frontend:** `@ai27-tech/contracts@0.1.0-tracer.24`. **No** contiene la superficie interna de bandeja (entró en `tracer.30`). Hay que subirlo a `tracer.33` y agregar `|| 0.1.0-tracer.33` a `minimumReleaseAgeExclude`. No se hizo sin aprobación explícita.
+- **Backend verificado:** `pf-svc-bff` (`pf-bff-m`) monta en `bff.go` `GET /api/v1/bandeja/trabajo`, `GET /api/v1/conversaciones/{id}`, `GET/POST .../mensajes`, `POST .../reclamos`, `DELETE .../reclamos/{rid}`, `POST .../transferencias`, `POST .../atendida` y `POST .../recibos/entregado|leido`. `pf-svc-mensajeria` (`pf-msg-m`) sirve la bandeja sin `{id}`.
+- **UI:** `@ai27-tech/ui@0.2.0-beta.6` (`MessagePanel`, `MessageList`, `MessageBubble`, `MessageComposer`, `Table`, `FilterTable`, `Badge`, `Modal`, `Toast`).
 
-## Contradicciones de fuentes (a corregir en el repo de contexto)
+## Resolución por brecha
 
-1. **E8-T15 vs DEC-107 y DEC-108.** La historia técnica de E8-T15 (título, "Cubre") todavía lista el override de supervisor auditado y la alerta de mensaje pendiente. DEC-107 cierra el override en V1 y DEC-108 saca la alerta de V1. E3-T3 también describe el override, y E3-T2 la alerta. Este spec sigue a las DEC.
-2. **DEC-103 vs DEC-097 / DEC-098 / E3-T4.** DEC-103 y ADR 36 fijan un pool único e implícito y un vínculo por auto-asignación. DEC-097 #1 dice que la membresía se administra a mano y #3 que la bandeja se asocia al usuario-cliente; DEC-098 y E3-HU-034 administran la membresía; E3-T4 describe `bandeja` "único por nombre y alcance" y `pool_membresia` por usuario. DEC-103 solo declara complementar a DEC-045/046; no enmienda explícitamente a DEC-097/098.
-3. **Rutas del `bff`.** `bff.md` usa `/claim`, `/release`, `/transfer`; la historia técnica y `mensajeria.yaml` usan `/reclamos` y `/transferencias`.
+| #   | Brecha                                              | Resolución                                                                                                                                                                 | Fuente                       |
+| --- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| 1   | Conversación interna no proyectada al `bff` / rutas | **Cerrada.** Juego de rutas de `mensajeria.yaml`, mismas operaciones, schemas y errores en `bff.yaml`                                                                      | DEC-116, `tracer.30` a `.33` |
+| 2   | Cómo se obtiene la bandeja                          | **Cerrada.** `GET /api/v1/bandeja/trabajo` sin `{id}`; el servidor resuelve por membresía. `404` sin pool de chat; error si hay más de una bandeja de chat                 | DEC-103, DEC-116             |
+| 3   | Nombres y lista de Ejecutivos para transferir       | **Diferida a V2.** En V1 la transferencia devuelve al pool, sin selector ni nombres. El nombre del Ejecutivo solo vive en el IdP                                           | DEC-119, DT-04               |
+| 4   | Datos de la fila                                    | **Cerrada.** Sin vista previa ni no leídos; nombre del cliente con `listarClientes`                                                                                        | DEC-118                      |
+| 5   | Stream SSE                                          | **Cerrada para V1.** Polling HTTP (bootstrap y catch-up con `desde_revision`); el SSE queda como deuda detrás de una interfaz                                              | DEC-118, DT-01               |
+| 6   | Alerta de mensaje pendiente                         | **Fuera de V1**                                                                                                                                                            | DEC-108                      |
+| 7   | Override y mando de Supervisor                      | **Fuera de V1.** Un Supervisor no libera ni transfiere ajeno                                                                                                               | DEC-107, DEC-118             |
+| 8   | `marcarAtendida` y recibos                          | **Cerrada.** `marcarAtendida` explícita; un mensaje del cliente la desmarca; sin reclamo activo es `409`; los recibos no se auditan y el cliente no ve el "leído por AI27" | DEC-117, DEC-122, DT-05      |
+| 9   | Contradicciones del repo de contexto                | **Parcial.** `bff.md` se corrigió (rutas). Siguen: historia técnica E8-T15 (ver abajo) y DEC-097/098 vs DEC-103                                                            | DEC-116                      |
+| 10  | Componentes de `@ai27-tech/ui`                      | **Sin brecha.** Hay `Message*`, `Table`, `FilterTable`, `Badge`, `Modal`, `Toast`; el banner se compone con `Card` y `Badge`                                               | —                            |
 
----
+## Pendientes residuales
 
-## Brecha 1 — Superficie de conversación interna en el `bff`
-
-**Qué pide la tarea.** La historia técnica declara como contrato `GET /api/v1/bandejas/{id}/trabajo`, `POST /api/v1/conversaciones/{id}/mensajes`, `POST /reclamos`, `DELETE /reclamos/{rid}` y `POST /transferencias`. El frontend interno habla **solo** con el `bff`.
-
-**Qué existe hoy.** Las cinco operaciones existen en `contracts/openapi/mensajeria.yaml` (tag `v0.1.0-tracer.22`): `listarTrabajoBandeja`, `listarConversaciones`, `obtenerConversacion`, `listarMensajes`, `enviarMensaje`, `reclamarConversacion`, `liberarReclamo`, `transferirConversacion`, `registrarReciboEntregado`, `registrarReciboLeido`, `marcarAtendida`. El contrato de `mensajeria` se declara "consumido por `bff`". En `contracts/openapi/bff.yaml` (`tracer.22` y `tracer.24`) **no existe ninguna** ruta de `bandejas`, `conversaciones`, `reclamos` ni `transferencias`. El paquete instalado trae `mensajeria.gen.ts`, pero el `bff` es la única superficie HTTP del frontend (cabecera de `bff.yaml`).
-
-**Contradicción de fuentes (rutas).** `docs/arquitectura/services/bff.md` lista para el `bff` rutas distintas: `GET /api/v1/bandejas`, `GET /api/v1/bandejas/{id}/conversaciones` y `POST /api/v1/conversaciones/{id}/claim|release|transfer`. La historia técnica y `mensajeria.yaml` usan `/trabajo`, `/reclamos` y `/transferencias`. No se elige una en silencio.
-
-**Qué falta.** La proyección al `bff` de las operaciones listadas, con la forma de ruta definitiva, o la decisión explícita de que el frontend consuma `mensajeria` por otra vía.
-
-**Impacto en el spec.** Condiciona los Requirements 1 a 8. Mientras no exista, la capa `lib/api/conversaciones.ts` se escribe contra los tipos de `mensajeria.gen.ts` (nombres de operación y schemas), con el prefijo de ruta como un único punto de cambio, y las pruebas corren sobre mocks MSW. No se publica a producción un consumo que el `bff` no sirve.
-
-**Propuesta.** Solicitud al repo de contratos: ola aditiva que proyecte al `bff` las once operaciones, con la misma forma de errores (`conflicto_version_reclamo`, `conversacion_solo_lectura`, `stream_resync_required`). Precedente: DEC-105 para el histórico (E8-T13). Pedir a Arquitectura que reconcilie `bff.md` con `mensajeria.yaml`.
-
----
-
-## Brecha 2 — Cómo se descubre la bandeja del usuario
-
-**Qué pide la tarea.** Un ejecutivo ve la bandeja compartida de los clientes de su alcance, con membresía efectiva.
-
-**Qué existe hoy.** `listarTrabajoBandeja` exige el `{id}` de la bandeja. `listarConversaciones` lista por alcance sin `{id}` y cada `Conversacion` trae `bandeja_id` (nullable, solo Interno). No hay operación que liste las bandejas o membresías del sujeto. `bff.md` menciona `GET /api/v1/bandejas`, que no está en ningún OpenAPI.
-
-**Qué falta.** Una operación para obtener las bandejas con membresía efectiva del llamante, o la regla de que se derive de `listarConversaciones`.
-
-**Impacto.** Condiciona el Requirement 1 (qué `{id}` se consulta para el bootstrap) y el Requirement 11 (el stream no admite selector). Hasta resolverlo, la vista no fija cómo se obtiene el `{id}`.
-
-**Propuesta.** Preguntar a Arquitectura/Mensajería si la bandeja del ejecutivo es única por sesión (DEC-097: bandeja al alta de la cuenta del cliente) o es una lista. Solicitar la operación si es lista.
-
-**Actualización de verificación.** DEC-103 / ADR 36 fijan una **cola única e implícita**: todos los Ejecutivos pertenecen a ella y el vínculo con el cliente nace al tomar la primera conversación. Eso hace probable una sola bandeja, pero no resuelve cómo obtiene el frontend su `{id}`, y choca con DEC-097 #3 (bandeja por usuario de cliente). Sigue abierta la parte contractual y la contradicción (ver arriba).
----
-
-## Brecha 3 — Nombres de personas y directorio de destino de transferencia
-
-**Qué pide la tarea.** La transferencia mueve el reclamo a otro miembro del pool, y el portal interno **muestra nombres reales** entre internos (historia técnica, Fuera de alcance V1; DEC-021 #4).
-
-**Qué existe hoy.** `Reclamo.responsable_id`, `Mensaje.actor_real` y `TransferenciaEntrada.responsable_destino_id` son UUID. No hay nombre ni etiqueta. No hay operación que liste los miembros del pool (la administración de membresía es E3-HU-034 y no publica lectura para esta vista). `identidad.yaml` expone `/api/v1/sujetos`, pero no es superficie del `bff`.
-
-**Qué falta.** Una lectura de miembros del pool con nombre mostrable, y un alias o nombre para `responsable_id` y `actor_real`.
-
-**Impacto.** Condiciona el Requirement 7 (el selector de destino no se puede poblar) y la visualización de autor y responsable en los Requirements 2 y 3. Hasta que exista, la UI no muestra UUID crudo como si fuera un nombre; ver la decisión de presentación en `design.md`.
-
-**Propuesta.** Solicitud al repo de contratos: lectura de miembros efectivos de la bandeja proyectada al `bff` con `{ sujeto_id, nombre }`, y nombre mostrable en `Reclamo` y `Mensaje` para audiencia Interno.
-
-**Actualización de verificación.** Con el pool único (DEC-103), el destino de una transferencia es **otro Ejecutivo** y no un subconjunto administrado. Sigue faltando la lectura de Ejecutivos con nombre y la definición de "disponible" que menciona ADR 36 para la re-asignación. No hay DEC que la cierre.
----
-
-## Brecha 4 — Datos de la fila de la bandeja
-
-**Qué pide la tarea.** Una bandeja operable: saber qué conversación atender.
-
-**Qué existe hoy.** `Conversacion` trae `id`, `viaje_id`, `cliente_id`, `bandeja_id`, `estado`, `escritura_hasta`, `ultima_secuencia`, `version_reclamo`, `reclamo_activo`, `atendida_en`, `abierta_en`.
-
-**Qué falta.** Nombre del cliente (hay `cliente_id`; `listarClientes` ya se proyecta al `bff`, DEC-101), vista previa del último mensaje, indicador de mensajes sin leer y una marca explícita de "pendiente de respuesta". `atendida_en` indica atención, pero el contrato no declara que `atendida_en` nulo equivalga a "pendiente de respuesta".
-
-**Impacto.** El spec muestra solo los campos del contrato. El nombre del cliente se resuelve con `listarClientes` si el rol lo puede leer (verificar alcance del `ejecutivo`). No se muestran vista previa ni conteo de no leídos.
-
-**Propuesta.** Preguntar a Producto si la bandeja V1 requiere vista previa y conteo; si sí, solicitud de campos al `bff`.
-
----
-
-## Brecha 5 — Frames y control del stream SSE
-
-**Qué pide la tarea.** Transporte SSE según `E0-T9` y ADR 28: bootstrap por HTTP, apertura, catch-up con buffer de deltas vivos, aplicación por secuencia de dominio con deduplicación por `evento_id`, `409 stream_resync_required` y `stream.stale`.
-
-**Qué existe hoy.** `realtime.yaml` (tag `tracer.22`) declara solo `GET /api/v1/stream`. Su cabecera deja **fuera** del contrato la codificación del `id` SSE / `Last-Event-ID`, los eventos de control de línea (anuncio de `heartbeat_interval`, `liveness_timeout`, replay y `stream.stale`) y el esquema de los frames. El stream **no pasa por el `bff`**: el cliente lo abre directo contra el proxy de la DMZ (`api.<dominio>`, ADR 32 §2). `contracts/events/INVENTARIO.md` declara `conversacion.*` y `mensaje.creado` con destino `realtime`.
-
-**Qué falta.** Los tipos generados de los frames y de los eventos de control; la base URL del stream para el navegador; y cómo se autentica la apertura (el `EventSource` nativo no envía cabecera `Authorization`).
-
-**Impacto.** Condiciona el Requirement 11. La rebanada HTTP (bootstrap, catch-up, recuperación) **no** depende de esta brecha y se construye completa. La parte viva queda condicionada: hasta que el contrato publique los frames, la bandeja se actualiza por recuperación HTTP periódica y no se presenta como fresca por tiempo real.
-
-**Propuesta.** Solicitud al repo de contratos: tipos de frame y control. Preguntar a Arquitectura el mecanismo de autenticación del stream en navegador y la base URL por entorno.
-
-**Actualización de verificación (parcial).**
-
-- **Base URL: resuelta.** ADR 32 §2: `bff` y `realtime` (`/api/v1/stream`) comparten el host `api.<dominio>` detrás del mismo proxy. Mismo origen que el `bff`; no hay CORS adicional.
-- **Autenticación: derivable del contrato.** `realtime.yaml` declara `bearer` en `security`. El `EventSource` nativo no envía cabeceras, así que el frontend usa `fetch` en streaming con bearer. Solo se confirma con Arquitectura si pretenden otro mecanismo.
-- **Tipos del sobre: existen.** `contracts/events/.../sobre.proto` (`Sobre.evento_id`, `tipo`, `agregado_id`), `sobre_vivo.proto` (`SobreVivo.cursor_dominio`, `audience_version`, `target_sujeto_ids`) y `conversacion.proto` (`ConversacionReclamada`, `ConversacionLiberada`, `ConversacionTransferida`, `ConversacionAtendida`, `MensajeCreado`, `ReciboLeido`, `MembresiaCambiada`, entre otros) están generados en TS. La afirmación anterior de que faltaba el sobre de dominio era incorrecta.
-- **Sigue abierto:** la codificación del `id` SSE / `Last-Event-ID`, los eventos de control de línea (`stream.stale`, anuncio de liveness y replay; no hay tipo generado) y cómo se serializa el sobre en el `data:` del frame.
-
----
-
-## Brecha 6 — Alerta de mensaje pendiente para Supervisor (CERRADA para V1: DEC-108)
-
-**Qué pedía la tarea.** E3-HU-016 (Escenarios 4 y 5): alerta inmediata a Supervisor por mensaje del cliente sin respuesta.
-
-**Resolución.** **DEC-108** (2026-10-28, FUERA DE ALCANCE): la condición "mensaje pendiente de respuesta" no se implementa en V1. Verificado por el Lead contra el contrato `tracer.21`: no existe superficie, ni en `mensajeria.yaml` ni en `registro.tipos.yaml`. Reabrirla exige una sesión de diseño con cuatro preguntas (forma de la condición, entrega de la alerta, qué ve el Supervisor, si "se detiene" equivale a `conversacion.atendida`) y una ola de contrato.
-
-**Impacto en el spec.** El Requirement 9 pasa a exclusión explícita. La interfaz no muestra ni infiere la alerta. Queda pendiente corregir la historia técnica de E8-T15 y E3-HU-016 en el repo de contexto.
----
-
-## Brecha 7 — Override y alcance de supervisión (CERRADA para V1: DEC-107)
-
-**Qué pedía la tarea.** Override de supervisor auditado y lectura/intervención de Supervisor y Coordinador.
-
-**Resolución.** **DEC-107** (2026-10-28): el override del envío queda **cerrado en V1**. `mensajeria.Enviar` rechaza cualquier envío con `motivo_override` con `400` (`motivo_override no está disponible en V1`). La causa: el alcance jerárquico no viaja en el token (DEC-053 §3) y `mensajeria` no tiene la proyección de mando. Reabrirlo exige construir esa proyección primero.
-
-**Impacto en el spec.** El Requirement 8 pasa a exclusión explícita: no hay gesto de override y ningún envío incluye `motivo_override`. **Pregunta residual (menor):** DEC-107 solo cierra el override del _envío_; no dice si en V1 un Supervisor puede liberar o transferir una conversación ajena (E3-T3 lo describe, y `liberarReclamo` dice "supervisor dentro de su alcance"). El frontend no ofrece el gesto y deja que decida el `bff`; si Producto lo quiere en V1, necesita la misma proyección de alcance.
----
-
-## Brecha 8 — Componentes de `@ai27-tech/ui`
-
-**Qué pide la tarea.** Lista de bandeja, panel de conversación con burbujas y compositor, avisos de conflicto y de solo lectura, diálogos de transferencia y de override.
-
-**Qué existe hoy (`@ai27-tech/ui@0.2.0-beta.6`).** `MessagePanel`, `MessageList`, `MessageBubble`, `MessageDayDivider`, `MessageComposer` (props `value`, `onChange`, `onSend`, `disabled`, `placeholder`, `sendButton`), `MessageDock`, `Table`, `FilterTable`, `Pagination`, `Badge`, `Modal`, `Toast`/`ToastContainer`, `Button`, `Select`, `Textarea`, `FormField`, `Card`, `Tooltip`.
-
-**Qué falta.** Posiblemente un banner de estado persistente (conexión/solo lectura/reclamo perdido). Se compone con `Card`/`Badge`. No hay lista de bandeja dedicada: se compone con `FilterTable`/`Table`.
-
-**Impacto.** Ninguno bloqueante. Verificar la API exacta de `MessageBubble`, `MessageList` y `Modal` al implementar.
-
-**Propuesta.** Sin duplicación local. Si falta una afordancia, solicitud a la librería.
----
-
-## Brecha 9 — Recibos y `marcarAtendida` (MAYORMENTE RESUELTA: E3-T6)
-
-E3-T6 fija que los recibos `entregado`/`leido` son llamadas del cliente que avanzan cursores por usuario; que el "leído por AI27" visible al cliente cambia **solo** cuando lo avanza el responsable activo (una vista incidental de un no responsable no lo mueve); y que `atendida` lo invoca solo el responsable. **Residual:** si enviar una respuesta implica `atendida` o si es una acción explícita aparte. Se confirma con Mensajería antes de implementar el Requirement 4.8.
+1. **`transferirConversacion` sigue exigiendo destino.** En `bff.yaml` (`tracer.33`) y en el handler de `mensajeria`, `TransferenciaEntrada` requiere `responsable_destino_id` ("miembro del pool"), y la respuesta se describe como "reclamo nuevo del responsable destino". DEC-119 dice que en V1 la transferencia devuelve al pool y que "el Ejecutivo libera y otro la toma", sin aclarar si existe una operación de transferir sin destino. El spec asume que el gesto de la UI es solo `liberarReclamo` (Requirement 7) y no invoca `transferirConversacion`. **Confirmar con el dueño del `bff`.**
+2. **PR #41 de `mensajeria` por mergearse** (rama `fix/reclamo-version-y-responsable`, `0007_reclamo_version_por_conversacion.sql`): hace monótona la `version_reclamo` y exige al responsable para liberar, transferir y marcar atendida (`403`). Sin él, reclamar desde el pool puede exigir un `0` y el `403` puede no darse. Reverificar al mergearse.
+3. **`listarClientes` para `ejecutivo`.** DEC-118 lo asume. El adaptador de core que lo sirve no muestra guarda de rol, pero el contrato lo describe con las guardas del `jefe_operativo` (E8-T11). Solo devuelve clientes activos; la conversación de un cliente inactivo no resolvería el nombre.
+4. **Historia técnica E8-T15 en el repo de contexto sigue desactualizada:** título con "override", contrato `GET /api/v1/bandejas/{id}/trabajo`, transporte SSE y "Cubre" con alerta y override. Lo mismo para E3-HU-016 y las historias E3-T2/T3. Las DEC prevalecen; falta corregir las fuentes. DEC-097 #1/#3 y DEC-098 frente a DEC-103 siguen sin enmienda explícita.
+5. **Productos pendientes:** textos aprobados (conflicto de reclamo, reclamo perdido, solo lectura, autorización insuficiente) y cadencia del polling (configuración del cliente).
+6. **La respuesta de Plataforma menciona "mensajeria #31 pendiente de promover a `-m`"**; verificado: la bandeja sin `{id}` ya está en `pf-msg-m` y `pf-msg-d`. El pendiente real es el PR #41.
