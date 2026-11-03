@@ -1,5 +1,59 @@
 # CHANGELOG
 
+## 2026:11:03 12:55
+
+**Resumen:** Se cerró el lado frontend de **E8-T15** (bandeja de conversaciones), con las 14 tareas del spec hechas. `/conversaciones` deja de ser un stub y el Ejecutivo trabaja una bandeja compartida de cola única (`GET /api/v1/bandeja/trabajo`, sin `{id}`): ve las conversaciones del pool, reclama con la `version_reclamo` recibida, responde con `client_message_id` idempotente, marca la conversación como atendida con una acción explícita y la devuelve al pool (en V1 "transferir" es liberar, DEC-119). Perder el reclamo deshabilita el envío pero conserva el historial y el borrador. La bandeja se mantiene al día por **polling HTTP** (bootstrap y catch-up con `desde_revision`), con cadencia configurable en `VITE_CONVERSACIONES_POLLING_MS` y aviso de vista desactualizada; el SSE queda como deuda (DT-01). Quedan fuera de V1, por decisión, el override de supervisor (DEC-107), la alerta de mensaje pendiente (DEC-108), la vista previa y el conteo de no leídos (DEC-118), el selector de destino con nombres (DEC-119, DT-04) y el mando sobre conversaciones ajenas (DEC-118). Se adoptó `@ai27-tech/contracts@0.1.0-tracer.33` (la superficie interna de bandeja entró en `tracer.30`; `tracer.30` y `tracer.31` no existen para TS, DEC-120). `typecheck`, `lint`, la suite completa (48 archivos, 295 pruebas) y `build:mock` pasan.
+
+**Cambios:**
+
+- `src/lib/contracts/conversaciones.ts` y `src/lib/api/conversaciones.ts`: re-export de los tipos generados de `openapi/bff` y wrappers de las operaciones de bandeja, conversación, mensajes, reclamo, liberar, atendida y recibos, con clasificación de errores (401, 403, 404, 409 `conflicto_version_reclamo` / `conversacion_solo_lectura` / `stream_resync_required`, 5xx y red). No expone `transferirConversacion`.
+- `src/lib/api/conversacionesTextos.ts`: textos de error centralizados, marcados como provisionales hasta que Producto los apruebe.
+- `src/features/conversaciones/*`: `BandejaConversaciones`, `ListaTrabajo`, `PanelConversacion`, `BannerEstado`, hooks `useTrabajoBandeja`, `useConversacion` y `useNombresCliente`, funciones puras `afordancias` y `aplicarCambios`, e interfaz de actualización `actualizacion` (hoy polling, sustituible por SSE).
+- `src/routes/_private/conversaciones.tsx`: monta la feature real en lugar del stub de E8-T4.
+- `src/lib/constants.ts` y `.env.example`: cadencia del polling configurable (`VITE_CONVERSACIONES_POLLING_MS`, 15 000 ms por defecto).
+- `src/mocks/data.ts` / `src/mocks/handlers.ts`: handlers MSW deterministas de la bandeja y fixtures con `version_reclamo` monótona, 403/409 según el PR #41 de `mensajeria`, y fallos forzables.
+- `tests/conversaciones/*`: pruebas de integración (incluidas las dos de la definición de terminado: perder el reclamo conserva la lectura, y devolver al pool y reclamar por otro usuario sin perder historia), clasificación de errores, polling, cadencia y propiedades.
+- `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`: pin de `@ai27-tech/contracts` de `tracer.24` a `tracer.33` y su exclusión de `minimumReleaseAge`.
+- `.kiro/specs/e8-t15-bandeja-conversaciones/*`: spec alineado a DEC-103, 107, 108 y 116 a 122, brechas y brief cerrado.
+  **Señalado:** la bandeja se verifica contra mocks, no de punta a punta. Quedan cuatro confirmaciones con backend: el `404` de bandeja que `bff.yaml` no declara; que "devolver al pool" sea solo `liberarReclamo` (el contrato aún exige destino en `transferirConversacion`); que el rol `ejecutivo` pueda llamar `listarClientes`; y un ejemplo real de `atendida_en` vacío tras un mensaje del cliente (DEC-122). El PR #41 de `mensajeria` ya está mergeado (`pf-msg-m`, tag `v0.1.4`). Los textos de error son provisionales y falta que Producto los apruebe. Defectos de `@ai27-tech/ui` sin tocar: `MessagePanel` anida un `<button>` en otro y las burbujas propias no muestran autor. La historia técnica de E8-T15 en `ai27-platform-context` sigue mencionando override, alerta y SSE; las DEC prevalecen.
+  **Archivos modificados:**
+- `.env.example`
+- `package.json`
+- `pnpm-lock.yaml`
+- `pnpm-workspace.yaml`
+- `src/lib/constants.ts`
+- `src/lib/api/conversaciones.ts`
+- `src/lib/api/conversacionesTextos.ts`
+- `src/lib/contracts/conversaciones.ts`
+- `src/features/conversaciones/BandejaConversaciones.tsx`
+- `src/features/conversaciones/BannerEstado.tsx`
+- `src/features/conversaciones/ListaTrabajo.tsx`
+- `src/features/conversaciones/PanelConversacion.tsx`
+- `src/features/conversaciones/actualizacion.ts`
+- `src/features/conversaciones/afordancias.ts`
+- `src/features/conversaciones/afordancias.test.ts`
+- `src/features/conversaciones/aplicarCambios.ts`
+- `src/features/conversaciones/aplicarCambios.test.ts`
+- `src/features/conversaciones/useConversacion.ts`
+- `src/features/conversaciones/useNombresCliente.ts`
+- `src/features/conversaciones/useTrabajoBandeja.ts`
+- `src/routes/_private/conversaciones.tsx`
+- `src/mocks/data.ts`
+- `src/mocks/handlers.ts`
+- `tests/conversaciones/BandejaConversaciones.test.tsx`
+- `tests/conversaciones/actualizacion.test.ts`
+- `tests/conversaciones/afordancias.property.test.ts`
+- `tests/conversaciones/aplicarCambios.property.test.ts`
+- `tests/conversaciones/cadenciaPolling.test.ts`
+- `tests/conversaciones/clasificacionErrores.test.ts`
+- `.kiro/specs/e8-t15-bandeja-conversaciones/.config.kiro`
+- `.kiro/specs/e8-t15-bandeja-conversaciones/BRECHAS.md`
+- `.kiro/specs/e8-t15-bandeja-conversaciones/BRIEF-BRECHAS.md`
+- `.kiro/specs/e8-t15-bandeja-conversaciones/design.md`
+- `.kiro/specs/e8-t15-bandeja-conversaciones/requirements.md`
+- `.kiro/specs/e8-t15-bandeja-conversaciones/tasks.md`
+- `CHANGELOG.md`
+
 ## 2026:10:30 16:54
 
 **Resumen:** Se cerró el lado frontend de **E8-T14** (cierre del servicio). El detalle del viaje ofrece la acción "Cerrar servicio" al `jefe_operativo` y al `administrador` (los demás roles no la ven) y reemplaza el botón genérico "Transicionar a: CERRADO", que enviaba el cierre sin motivo. El cierre exige un motivo del enum generado `MotivoCierre` (`normal` o `por_incidencia`; `bitacora` se retiró por DEC-113) y se envía en `motivo_cierre`. El cierre anticipado (desde `EN_TRANSITO`) solo permite `por_incidencia` y se bloquea con la razón visible si `condiciones_activas` no trae una `INCIDENCIA`. La pantalla comunica la ventana de escritura de la conversación (3 días más con `normal`, 6 meses con `por_incidencia`, luego sólo lectura) sin calcular fechas (deuda técnica DT-02). Se adoptó `@ai27-tech/contracts@0.1.0-tracer.24`, que tipa `motivo_cierre` y declara los códigos de `409` del cierre. Textos aprobados por Producto el 2026-10-30. `typecheck`, `lint`, la suite completa (40 archivos, 202 pruebas) y `build:mock` pasan.
