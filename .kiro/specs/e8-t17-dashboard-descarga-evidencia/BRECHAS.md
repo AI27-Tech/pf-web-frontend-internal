@@ -145,3 +145,31 @@ Detalle y dueños en `requirements.md` §Preguntas abiertas.
 | 8   | Frescura sin `stale`                            | **Resuelta**                                                                                 |
 | 9   | Conteos por estado en la vista por defecto      | **Abierta**, Producto                                                                        |
 | 10  | Adjuntos `pendiente` mientras no exista escáner | **Abierta**, Producto y Seguridad/Legal                                                      |
+
+## Verificación de desbloqueo y ejecución (2026-11-04)
+
+**Pin.** `@ai27-tech/contracts` pasa de `0.1.0-tracer.33` a `0.1.0-tracer.36` (instalado y verificado en `bff.gen.ts`: `reporteViajes`, `reporteEstados`, `listarAdjuntos`, `crearIntencionSubidaAdjunto` y `descargarAdjunto`). Al subirlo, pnpm agregó `tracer.36` a `minimumReleaseAgeExclude` en `pnpm-workspace.yaml`. Se revirtió ese cambio: la excepción salta la política de edad mínima de paquetes y debe aprobarla quien mantiene la política. La instalación con el lockfile pasa sin la excepción.
+
+**Bloque B (dashboard): NO desbloqueado.** Condiciones de la tarea 15:
+
+1. Operaciones en `bff.gen.ts`: cumplida.
+2. Pin subido a `tracer.36`: cumplida en esta ejecución.
+3. Pregunta 9 respondida y Pregunta 1 confirmada explícitamente: NO cumplida. Según este documento, la 9 sigue abierta y la 1 sin confirmación explícita de Producto.
+4. Despliegue de `core v0.1.2` verificado en el entorno: NO cumplido. No se verificó desde esta sesión.
+
+Por la regla de la tarea 15, las tareas 16 a 21 siguen con `*` y no se implementaron. `/monitoreo/dashboard` conserva el stub sin cifras.
+
+**Bloque C (evidencia): desbloqueado y construido contra el contrato.** Tareas 22 a 29 hechas y verificadas con MSW. Las pruebas de la tarea 29 están en `tests/viajes/evidenciaFunciones.property.test.ts`, `tests/viajes/EvidenciaViaje.test.tsx` y `tests/viajes/evidenciaNoBloqueaCierre.render.test.tsx`. La última es un archivo `.tsx` aparte porque la prueba de render necesita JSX; la verificación estática sigue en `evidenciaNoBloqueaCierre.test.ts`.
+
+**Lo que solo la verificación real puede confirmar** (no se da por funcional de punta a punta, Requirement 5.16):
+
+- **Pregunta 10 sin resolver.** Con el backend de V1 todo adjunto queda `pendiente` porque el almacén es un marcador y no hay escáner. Con `pendiente` permanente, el sondeo nunca se detiene y la descarga nunca se habilita. `esDescargable` y `hayEscaneoPendiente` están aisladas para cambiarse cuando Producto decida.
+- **Adjuntos huérfanos.** Si el `PUT` falla después de la intención, el adjunto queda `pendiente` en el servidor y el sondeo sigue. La UI invalida la lista también en error para mostrarlo.
+- **CORS y CSP (Plataforma).** El `PUT` y la descarga van a otro origen. Hay que confirmar CORS del almacén para el origen del panel y `connect-src` de la CSP.
+- **Cabeceras del `PUT` firmado.** El contrato no las documenta. El cliente no fija `Content-Type` y el navegador toma el `type` del `File`, que coincide con `tipo_medio`. Si el almacén firma otra cabecera, el `PUT` fallará con `403` del almacén.
+- **Apertura de la descarga.** La URL se abre con un ancla temporal con `target="_blank"` después de un `await`. Un bloqueador de ventanas emergentes puede impedirlo. Verificar en navegador real.
+- **Límites de tamaño.** `calcularSha256` carga el archivo completo en memoria. No hay límite de tamaño en el cliente; el de formato y tamaño depende de Seguridad y Legal (Pregunta 4).
+- **Rechazos.** El contrato solo define `400` genérico. La UI muestra un mensaje genérico y no aplica límites propios.
+- **Mock de escaneo.** En `src/mocks/data.ts`, un adjunto pasa a `limpio` tras dos lecturas de la lista. Es comportamiento simulado, no del backend.
+
+**Intervalo de sondeo.** `INTERVALO_SONDEO_ESCANEO_MS` vale 5 000 ms. Es un valor de trabajo, pendiente de confirmar.

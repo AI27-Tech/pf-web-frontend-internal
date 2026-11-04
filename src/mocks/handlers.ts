@@ -26,6 +26,10 @@ import {
   guardarFichaMock,
   listarGpsMock,
   descargarViajeMock,
+  listarAdjuntosMock,
+  crearIntencionSubidaMock,
+  descargarAdjuntoMock,
+  ALMACEN_MOCK,
   UNIDADES_DEMO,
   UNIDADES_SIN_DISPONIBLES_DEMO,
   listarBitacoraMock,
@@ -58,6 +62,7 @@ import type {
   IncidenciaEntrada,
 } from '@/lib/contracts/historicoViaje';
 import type { FichaTecnicaEntrada } from '@/lib/contracts/fichaTecnica';
+import type { IntencionSubidaAdjuntoEntrada } from '@/lib/contracts/adjuntos';
 
 const path = (segment: string) => `${API_PREFIX}${segment}`;
 
@@ -496,6 +501,56 @@ export const handlers = [
       return HttpResponse.json({ mensaje: 'El viaje no existe.' }, { status: 404 });
     }
     return HttpResponse.json(expediente, { status: 200 });
+  }),
+
+  // --- E8-T17 · Bloque C: evidencia (adjuntos del bff; los bytes van al almacén simulado) ---
+
+  // GET /viajes/{id}/adjuntos — lista de metadatos. Sin bytes.
+  http.get(path('/viajes/:id/adjuntos'), ({ params, request }) => {
+    const { id } = params as { id: string };
+    if (request.headers.get('x-mock-adjuntos') === 'prohibido') {
+      return HttpResponse.json({ mensaje: 'Sin autorización.' }, { status: 403 });
+    }
+    return HttpResponse.json(listarAdjuntosMock(id), { status: 200 });
+  }),
+
+  // POST /viajes/{id}/adjuntos/intenciones-subida — intención con URL de vida corta.
+  http.post(path('/viajes/:id/adjuntos/intenciones-subida'), async ({ params, request }) => {
+    const { id } = params as { id: string };
+    if (request.headers.get('x-mock-adjuntos') === 'prohibido') {
+      return HttpResponse.json({ mensaje: 'Sin autorización.' }, { status: 403 });
+    }
+    const rechazo = request.headers.get('x-mock-adjunto-rechazo');
+    if (rechazo === 'formato' || rechazo === 'tamano') {
+      // El contrato no define códigos de máquina para estos rechazos: solo `400` genérico.
+      return HttpResponse.json(
+        { codigo: 'solicitud_invalida', mensaje: 'Solicitud inválida.' },
+        { status: 400 },
+      );
+    }
+    const entrada = (await request.json()) as IntencionSubidaAdjuntoEntrada;
+    return HttpResponse.json(crearIntencionSubidaMock(id, entrada), { status: 201 });
+  }),
+
+  // GET /viajes/{id}/adjuntos/{aid}/descarga — URL de vida corta para abrir el archivo.
+  http.get(path('/viajes/:id/adjuntos/:aid/descarga'), ({ params, request }) => {
+    const { id, aid } = params as { id: string; aid: string };
+    if (request.headers.get('x-mock-adjuntos') === 'prohibido') {
+      return HttpResponse.json({ mensaje: 'Sin autorización.' }, { status: 403 });
+    }
+    const autorizacion = descargarAdjuntoMock(id, aid);
+    if (autorizacion === null) {
+      return HttpResponse.json({ mensaje: 'No existe.' }, { status: 404 });
+    }
+    return HttpResponse.json(autorizacion, { status: 200 });
+  }),
+
+  // PUT al almacén simulado — acepta los bytes salvo que se fuerce el fallo.
+  http.put(`${ALMACEN_MOCK}/adjuntos/:aid`, ({ request }) => {
+    if (request.headers.get('x-mock-almacen') === 'fallo') {
+      return new HttpResponse(null, { status: 500 });
+    }
+    return new HttpResponse(null, { status: 200 });
   }),
 
   // --- E8-T13: histórico append-only (bitácora, incidencias, estadías) ---

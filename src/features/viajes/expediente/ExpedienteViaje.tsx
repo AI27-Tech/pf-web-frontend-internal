@@ -22,6 +22,8 @@ import { useNavigate } from '@tanstack/react-router';
 import { useSession } from '@/context/SessionContext';
 import { puedeUsarMonitoreo } from '@/features/monitoreo/puedeUsarMonitoreo';
 
+import { EvidenciaViaje } from '@/features/viajes/evidencia/EvidenciaViaje';
+
 import { BotonDescargarExpediente } from './BotonDescargarExpediente';
 import { useDescargaExpediente } from './useDescargaExpediente';
 
@@ -106,6 +108,8 @@ function DescargaExpediente({
           <BotonDescargarExpediente preparando={d.preparando} onDescargar={onDescargar} />
         </CardFooter>
       </Card>
+
+      <EvidenciaViaje id={id} />
 
       <ToastContainer position="top-right">
         {d.exito && !avisoCerrado && (

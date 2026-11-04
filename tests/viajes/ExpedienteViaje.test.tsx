@@ -41,6 +41,8 @@ beforeAll(() => {
   URL.revokeObjectURL = vi.fn();
 });
 beforeEach(() => {
+  // La pantalla monta también la evidencia, que lee la lista de adjuntos.
+  server.use(http.get(path('/viajes/:id/adjuntos'), () => HttpResponse.json({ items: [] })));
   vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
     this: HTMLAnchorElement,
   ) {

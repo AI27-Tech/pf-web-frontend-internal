@@ -15,6 +15,13 @@ import type { Cliente, PaginaClientes } from '@/lib/contracts/clientes';
 import type { ViajeDetalle } from '@/lib/contracts/viajeDetalle';
 import type { FichaTecnica } from '@/lib/contracts/fichaTecnica';
 import type { DescargaViaje } from '@/lib/contracts/expediente';
+import type {
+  Adjunto,
+  DescargaAdjunto,
+  IntencionSubidaAdjunto,
+  IntencionSubidaAdjuntoEntrada,
+  PaginaAdjuntos,
+} from '@/lib/contracts/adjuntos';
 import type { FichaTecnicaEntrada, DispositivoGps } from '@/lib/contracts/fichaTecnica';
 import type { Asignacion, AptitudRecurso } from '@/lib/contracts/viajeDetalle';
 import type { Unidad } from '@/lib/contracts/unidades';
@@ -585,6 +592,69 @@ export function descargarViajeMock(viajeId: string): DescargaViaje | null {
       },
     ],
     generado_en: new Date().toISOString(),
+  };
+}
+
+/** Origen simulado del almacenamiento de objetos. El `PUT` y la descarga van a este origen. */
+export const ALMACEN_MOCK = 'https://almacenamiento.mock.ai27.local';
+
+interface AdjuntoDemo {
+  readonly viajeId: string;
+  adjunto: Adjunto;
+  lecturas: number;
+}
+const ADJUNTOS_DEMO: AdjuntoDemo[] = [];
+let siguienteAdjuntoDemo = 1;
+
+/**
+ * Adjuntos demo (E8-T17, Bloque C). Simula el escáner: un adjunto pasa de `pendiente` a
+ * `limpio` después de dos lecturas de la lista. Es comportamiento de mock, no del backend.
+ */
+export function listarAdjuntosMock(viajeId: string): PaginaAdjuntos {
+  const items = ADJUNTOS_DEMO.filter((registro) => registro.viajeId === viajeId).map((registro) => {
+    registro.lecturas += 1;
+    if (registro.adjunto.estado_escaneo === 'pendiente' && registro.lecturas >= 2) {
+      registro.adjunto = { ...registro.adjunto, estado_escaneo: 'limpio' };
+    }
+    return registro.adjunto;
+  });
+  return { items };
+}
+
+export function crearIntencionSubidaMock(
+  viajeId: string,
+  entrada: IntencionSubidaAdjuntoEntrada,
+): IntencionSubidaAdjunto {
+  const adjuntoId = `ADJ-${siguienteAdjuntoDemo++}`;
+  ADJUNTOS_DEMO.push({
+    viajeId,
+    lecturas: 0,
+    adjunto: {
+      id: adjuntoId,
+      viaje_id: viajeId,
+      nombre: entrada.nombre,
+      tipo_medio: entrada.tipo_medio,
+      tamano_bytes: entrada.tamano_bytes,
+      checksum_sha256: entrada.checksum_sha256,
+      estado_escaneo: 'pendiente',
+      creado_en: new Date().toISOString(),
+    },
+  });
+  return {
+    adjunto_id: adjuntoId,
+    url_subida: `${ALMACEN_MOCK}/adjuntos/${adjuntoId}?firma=mock`,
+    expira_en: new Date(Date.now() + 10 * 60_000).toISOString(),
+  };
+}
+
+export function descargarAdjuntoMock(viajeId: string, adjuntoId: string): DescargaAdjunto | null {
+  const registro = ADJUNTOS_DEMO.find(
+    (candidato) => candidato.viajeId === viajeId && candidato.adjunto.id === adjuntoId,
+  );
+  if (!registro) return null;
+  return {
+    url_descarga: `${ALMACEN_MOCK}/descarga/${adjuntoId}?firma=mock`,
+    expira_en: new Date(Date.now() + 5 * 60_000).toISOString(),
   };
 }
 
