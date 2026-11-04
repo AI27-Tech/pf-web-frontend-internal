@@ -2,156 +2,146 @@
 
 Documento de brechas del spec. Cada brecha indica qué pide la tarea, qué existe hoy, qué falta, el impacto en el spec y la propuesta de resolución. **No** se rellena nada con una alternativa local: una operación ausente se solicita al repo de contratos; un componente ausente se compone con primitivas de la librería o se solicita a la librería.
 
-## Estado (actualizado 2026-11-03, tras la publicación de `tracer.35`)
+## Estado (actualizado 2026-11-03, tras el mensaje de backend sobre `tracer.36`)
 
-- **Descarga del expediente: sin brecha.** `descargarViaje` está en el `bff` y en el pin (`tracer.33`); es idéntica en `tracer.35`. Se implementa ya (Bloque A de `tasks.md`).
-- **Dashboard: brecha de contrato CERRADA en `tracer.35`; quedan residuos** (Brecha 1). Tareas 15 a 21.
-- **Evidencia: brecha de contrato CERRADA en `tracer.35`; quedan residuos** (Brecha 2). Tareas 22 a 29.
-- **El pin del frontend sigue en `tracer.33`** y no se sube sin que el usuario lo pida. Mientras tanto el paquete instalado no trae las operaciones nuevas.
-- **El backend real no sirve todavía lo nuevo:** `pf-svc-bff` no tiene las rutas y `pf-svc-operacion` no implementa adjuntos.
+- **Descarga del expediente: sin brecha.** `descargarViaje` está en el `bff` y en el pin (`tracer.33`). Formato de V1 confirmado: JSON, nombre `expediente-<viaje_id>.json` (CSV/XLSX en V2).
+- **Dashboard: contrato cerrado en `tracer.36`; backend terminado y taggeado; falta el despliegue de `core v0.1.2`.** Se puede cerrar completo contra el contrato (Brecha 1).
+- **Evidencia: contrato cerrado en `tracer.35` (cubierto por `tracer.36`); servicio implementado con almacén de marcador.** Se construye contra el contrato y **no** se da por funcional de punta a punta (Brecha 2).
+- **El pin del frontend sigue en `tracer.33`.** El backend pidió subirlo a `tracer.36`; no se hace sin que el usuario lo pida.
+- **Taggeado no es desplegado.** Se verificó que el código llegó a ramas y tags, no que corra en el entorno del usuario. Fabricio Fuentes confirma cuándo `core v0.1.2` queda desplegado.
 
 ## Fuentes y versiones verificadas
 
-- **Contexto:** `repos/ai27-platform-context` al día con `origin/main`, commit `ad3290c` (2026-11-03). Historia técnica en `docs/historias-tecnicas/E8-panel-admin.md` §E8-T17 y en `E6-reportes-y-evidencia.md` §E6-T2, §E6-T3, §E6-T4. HU `E6-HU-025`, `E6-HU-026`, `E6-HU-027`. Decisiones DEC-009, DEC-022 #7 y #9, DEC-023, DEC-033, DEC-039, DEC-040, DEC-045, DEC-060, DEC-129 y **DEC-132** (Interno sin permiso: 403; Cliente de otra empresa: 404; inexistente: 404). Deuda **DT-07** (el alcance por unidad no lo aplica ningún servicio).
-- **Contrato publicado:** `pf-pkg-contracts` `v0.1.0-tracer.35` (último tag; incluye `tracer.34`, aditivo de emergencias). Superficie leída con `git show v0.1.0-tracer.35:contracts/openapi/bff.yaml` y su `CHANGELOG.md`.
-- **Contrato adoptado:** `repos/pf-web-frontend-internal/package.json` fija `@ai27-tech/contracts@0.1.0-tracer.33` y `@ai27-tech/ui@0.2.0-beta.6`. Lo de `tracer.35` **no** está en `node_modules`.
-- **Subir el pin (cuando el usuario lo pida):** `tracer.34` es aditivo (en Go renombra constantes de `EstadoEmergencia`; no afecta a TypeScript). `tracer.35` es aditivo en `bff.yaml` y trae una ruptura declarada solo en `operacion.yaml` (`nombre` obligatorio en la intención de subida), que el frontend no consume. Tras subirlo hay que correr `typecheck` y `test`.
-- **Estado del backend (remoto):** `pf-svc-bff` `origin/pf-bff-d` (`d10fc83`) fija `tracer.31` y no tiene rutas de reportes ni de adjuntos. `pf-svc-operacion` `origin/pf-op-d` (`19377f1`) no implementa adjuntos. `pf-svc-reportes` `origin/pf-rep-d` (`b4bfc73`) **ya implementa DEC-129** (PR #22) y rechaza al cliente con 403 (PR #23); envía `stale` siempre.
-- **Gobierno:** el changelog de `tracer.35` cita **DT-08**, **DT-10**, **DT-11** y una **"Decisión de Producto P5 (E8-T17)"**. Ninguna está registrada en `ai27-platform-context`. Son citas del contrato pendientes de registro; no se tratan como decididas.
+- **Contexto:** `repos/ai27-platform-context` al día con `origin/main`, commit `ad3290c` (sin commits nuevos desde la verificación anterior). Decisiones DEC-009, DEC-022 #7 y #9, DEC-023, DEC-033, DEC-039, DEC-040, DEC-045, DEC-060, DEC-129 y DEC-132. Deuda DT-07 (alcance por unidad no aplicado).
+- **Contrato:** `pf-pkg-contracts` `v0.1.0-tracer.36` (último tag). `tracer.36` solo cambia `reporteViajes`: parámetro `en_curso` y `desde`/`hasta` opcionales. Compatible en el cable para TypeScript; rompe la compilación de consumidores Go, no del frontend.
+- **Pin adoptado:** `@ai27-tech/contracts@0.1.0-tracer.33` y `@ai27-tech/ui@0.2.0-beta.6`. Subir de `33` a `36` incluye `34` (aditivo, emergencias), `35` (ruptura declarada solo en `operacion.yaml`, que el frontend no consume) y `36`. Tras subirlo hay que correr `typecheck` y `test`.
+- **Backend (remoto, sin comprobar que corra):**
+  - `pf-svc-reportes` `origin/pf-rep-d` (`b73456c`, pin `tracer.36`): filtro `en_curso` (PR #25), sin tenant para internos (DEC-129, PR #22), 403 al cliente (PR #23).
+  - `pf-svc-operacion` `origin/pf-op-d` (`3d38c9e`, PR #78, pin `tracer.36`): adjuntos implementados con `AlmacenStub`.
+  - `pf-svc-bff` `origin/pf-bff-d` (`9fd7e3a`, pin `tracer.36`): rutas de dashboard y evidencia mergeadas (PR #62 y #63).
+  - `pf-svc-core` tag `v0.1.2` (PR #50): cablea reportes y adjuntos en el `bff`.
+- **Gobierno:** el changelog de `tracer.35` cita **DT-08**, **DT-10**, **DT-11** y una "Decisión de Producto P5". Ninguna está registrada en `ai27-platform-context`. Las decisiones que comunicó el backend (vista por defecto "en curso", entrada "Reportes" oculta, JSON y nombre del expediente, `nombre` del adjunto) tampoco. Se tratan como "comunicadas por Fabricio Fuentes, pendientes de registro como DEC".
 
 ---
 
-## Brecha 1 — Operaciones del dashboard en el `bff` (CERRADA EN CONTRATO; residuos abiertos)
+## Brecha 1 — Operaciones del dashboard en el `bff` (CERRADA EN CONTRATO; backend terminado; residuos abiertos)
 
-**Qué pedía la tarea.** `GET /api/v1/reportes/viajes` y el dashboard de `E6-HU-025`: panel con **viajes, incidencias, alertas y estatus**, acotado por rol y alcance. La DoD exige probar que una proyección atrasada se muestra como stale.
+**Qué pedía la tarea.** `GET /api/v1/reportes/viajes` y el dashboard de `E6-HU-025`: viajes, incidencias, alertas y estatus, acotado por rol y alcance. La DoD exige probar que una proyección atrasada se muestra como stale.
 
-**Qué cambió en `tracer.35`.** `bff.yaml` incluye:
+**Qué existe hoy.**
 
-- `reporteViajes` (`GET /api/v1/reportes/viajes`, `desde` y `hasta` obligatorios; 200, 400, 401, 403) y `reporteEstados` (`GET /api/v1/reportes/estados`; 200, 401, 403).
-- Schemas `FilaViaje`, `ReporteViajes`, `ConteoEstado` y `ReporteEstados`, idénticos a `reportes.yaml`.
-- Autorización: 200 para `monitorista`, `supervisor`, `coordinador` y `administrador`; 403 para `jefe_operativo`, `ejecutivo`, `reaccion` y `cliente`.
-- `proyeccion_al` y `stale` conservados. Si `stale` falta, el consumidor lo trata como frescura no informada, nunca como fresca (coincide con el Requirement 3.6).
+- `bff.yaml` (`tracer.36`): `reporteViajes` con `en_curso` opcional y `desde`/`hasta` requeridos salvo con `en_curso=true` (sin ninguno: 400), y `reporteEstados` con rango obligatorio. 200 para monitorista, supervisor, coordinador y administrador; 403 para jefe_operativo, ejecutivo, reaccion y cliente.
+- `proyeccion_al` y `stale` se conservan. Si `stale` falta: frescura no informada, nunca fresca.
+- Los estados terminales los deriva el servicio; la interfaz no los copia.
 
-**Qué sigue abierto (residuos).**
+**Cerrado desde la versión anterior.**
 
-| Residuo                                | Detalle                                                                                                                    | Dueño                              |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| Incidencias y alertas                  | `FilaViaje` y `ConteoEstado` no cambiaron: no existen en el contrato. `E6-HU-025` las exige y deja pendiente su definición | Producto decide; Contratos publica |
-| Unidad en la fila / alcance por unidad | `FilaViaje` no trae unidad. El alcance está solo declarado en las descripciones y ningún servicio lo aplica (DT-07)        | Backend (identidad, reportes)      |
-| `bff` real                             | `pf-svc-bff` fija `tracer.31` y no tiene las rutas                                                                         | Dueño de `pf-svc-bff`              |
-| Periodo por omisión                    | `desde` y `hasta` son obligatorios; la interfaz no inventa un periodo (Pregunta abierta 2)                                 | Producto                           |
-| Filtro "viajes en curso" (DT-10)       | Lo cita el changelog como urgente en `reportes`; no está en el contexto                                                    | Producto / `reportes`              |
+| Residuo anterior                 | Resultado                                                     |
+| -------------------------------- | ------------------------------------------------------------- |
+| Filtro "viajes en curso" (DT-10) | Cerrado en contrato (`tracer.36`) y en `reportes`             |
+| DEC-129 en `reportes`            | Implementado (PR #22)                                         |
+| Periodo por omisión              | Resuelto: `en_curso=true` por defecto; rango "últimos 7 días" |
+| `bff` sin rutas                  | Rutas mergeadas y cableadas en `core v0.1.2` (taggeado)       |
 
-**Efecto de DEC-129.** `pf-svc-reportes` ya no acota por tenant a la audiencia Interno (PR #22 mergeado). Antes el dashboard interno habría salido vacío. La interfaz no filtra por tenant.
+**Qué sigue abierto.**
 
-**Impacto en el spec.** Los Requirements 2 y 3 pasan de "bloqueados por contrato" a "contrato disponible; pendientes de adoptar el pin y de backend". Las tareas 15 a 21 conservan el marcador `*` hasta cumplir las cuatro condiciones de desbloqueo. `/monitoreo/dashboard` conserva el stub sin cifras. La prueba de la DoD "proyección atrasada se muestra como stale" queda en la tarea 21.
+| Residuo                     | Detalle                                                                                                                                                                                            | Dueño            |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| Despliegue de `core v0.1.2` | Hasta entonces las rutas no responden con datos y el dashboard queda vacío (esperado, no es un error de la interfaz)                                                                               | Fabricio Fuentes |
+| Incidencias y alertas       | No existen en el schema. El mensaje de backend dice que el dashboard se puede cerrar completo con el contrato; eso implica "V1 = viajes y estatus", pero falta confirmación explícita (Pregunta 1) | Producto         |
+| Conteos por estado          | `reporteEstados` exige `desde`/`hasta` y `en_curso` no los necesita (Pregunta 9)                                                                                                                   | Producto         |
+| Unidad / alcance            | `FilaViaje` no trae unidad; el filtro por unidad no se aplica (DT-07)                                                                                                                              | Backend          |
 
-**Propuesta de resolución.** Contratos ya cerró lo suyo. Quedan: (a) decisión de Producto sobre el alcance del dashboard de V1 (¿solo viajes y estatus, o incidencias y alertas con una ola adicional?); (b) `pf-svc-bff` sube pin a `tracer.35` y cablea `reporteViajes` y `reporteEstados`; (c) Producto responde las preguntas 1 y 2.
+**Efecto de DEC-129.** Con datos reales, un usuario interno ve los viajes de todos los clientes. Es correcto; la interfaz no filtra por tenant.
 
----
-
-## Brecha 2 — Operaciones de evidencia (adjuntos) en el `bff` (CERRADA EN CONTRATO; residuos abiertos)
-
-**Qué pedía la tarea.** La "superficie de adjuntos" de E8-T17 y `E6-HU-027`: adjuntar evidencia asociada al viaje y consultarla según el alcance, con acceso auditado.
-
-**Qué cambió en `tracer.35`.**
-
-| Operación                     | Método y ruta                                          | Entrada                                                                           | Salida                                                    |
-| ----------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| `listarAdjuntos`              | `GET /api/v1/viajes/{id}/adjuntos`                     | —                                                                                 | `PaginaAdjuntos { items: Adjunto[] }` (sin paginar en V1) |
-| `crearIntencionSubidaAdjunto` | `POST /api/v1/viajes/{id}/adjuntos/intenciones-subida` | `{ nombre, tipo_medio, tamano_bytes, checksum_sha256 }` (los cuatro obligatorios) | `201 { adjunto_id, url_subida, expira_en }`               |
-| `descargarAdjunto`            | `GET /api/v1/viajes/{id}/adjuntos/{aid}/descarga`      | —                                                                                 | `{ url_descarga, expira_en }`                             |
-
-Respuestas 200 o 201, 400, 401, 403 y 404. `Adjunto { id, viaje_id, nombre, tipo_medio, tamano_bytes, checksum_sha256?, estado_escaneo, creado_en }`: **`nombre` ahora es obligatorio**; el autor queda fuera de V1. El `estado_escaneo` se refresca releyendo `listarAdjuntos` (sondeo; sin evento de empuje). 403 para `jefe_operativo`, `ejecutivo`, `reaccion` y `cliente`, y para un usuario fuera de alcance antes de emitir ninguna URL.
-
-**Qué sigue abierto (residuos).**
-
-| Residuo                                       | Detalle                                                                             | Dueño                         |
-| --------------------------------------------- | ----------------------------------------------------------------------------------- | ----------------------------- |
-| `operacion` no implementa adjuntos            | El changelog lo dice; `origin/pf-op-d` no tiene la implementación                   | Dueño de `pf-svc-operacion`   |
-| `bff` real                                    | `pf-svc-bff` no tiene las rutas                                                     | Dueño de `pf-svc-bff`         |
-| Códigos de rechazo de la subida               | Solo hay un 400 genérico; no hay códigos de máquina para formato, tamaño o cantidad | Contratos / Seguridad y Legal |
-| Cabeceras del `PUT` firmado                   | No documentadas (por ejemplo `Content-Type`)                                        | Contratos / Plataforma        |
-| Límites de evidencia                          | Formatos, tamaño, cantidad, retención y legal hold (Pregunta abierta 4)             | Seguridad y Legal             |
-| CORS y CSP del object storage                 | Origen del panel en `connect-src` y permiso `PUT`/`GET`                             | Plataforma                    |
-| Registro de la decisión del nombre y el autor | El changelog cita "P5" y DT-11, no registradas en contexto                          | Producto                      |
-
-**Impacto en el spec.** El Requirement 5 pasa de "bloqueado por contrato" a "contrato disponible; pendiente de adoptar el pin y de backend". Se añadieron `nombre` (lista e intención) y el sondeo de escaneo (Requirement 5.15). Las tareas 22 a 29 conservan el marcador `*`.
-
-**Prerrequisito de infraestructura (no es brecha de contrato).** La subida y la descarga de bytes van al object storage on-premise (MinIO, propuesta ADR 32) con URL firmada. Hay que verificar con Plataforma el CORS y la CSP.
+**Impacto en el spec.** Requirements 2 y 3: "contrato disponible; backend terminado; pendiente de pin y del despliegue". Tareas 15 a 21 con `*` hasta que el usuario pida adoptar el pin. `/monitoreo/dashboard` conserva el stub sin cifras mientras tanto.
 
 ---
 
-## Brecha 3 — Formato final de la descarga (DECISIÓN DE PRODUCTO, no de contrato)
+## Brecha 2 — Operaciones de evidencia en el `bff` (CERRADA EN CONTRATO; servicio con almacén de marcador; NO funcional de punta a punta)
 
-**Qué pedía la tarea.** `E6-HU-026` deja el formato (PDF u otro) "por confirmar".
+**Qué pedía la tarea.** Adjuntar evidencia asociada al viaje y consultarla según el alcance, con acceso auditado (`E6-HU-027`).
 
-**Qué existe hoy.** `descargarViaje` devuelve JSON (`DescargaViaje`), sin cambios en `tracer.35`. No hay generación de PDF en el `bff`.
+**Qué existe hoy.**
 
-**Resolución en el spec.** Entrega **provisional** como archivo JSON con el payload exacto y nombre de trabajo `expediente-<viaje_id>.json`. Producto decide el formato final (Pregunta abierta 3). Si el formato final es PDF, probablemente el `bff` debe generarlo y se vuelve solicitud de contrato.
+| Operación                     | Método y ruta                                          | Entrada                                                 | Salida                                              |
+| ----------------------------- | ------------------------------------------------------ | ------------------------------------------------------- | --------------------------------------------------- |
+| `listarAdjuntos`              | `GET /api/v1/viajes/{id}/adjuntos`                     | —                                                       | `PaginaAdjuntos { items: Adjunto[] }` (sin paginar) |
+| `crearIntencionSubidaAdjunto` | `POST /api/v1/viajes/{id}/adjuntos/intenciones-subida` | `{ nombre, tipo_medio, tamano_bytes, checksum_sha256 }` | `201 { adjunto_id, url_subida, expira_en }`         |
+| `descargarAdjunto`            | `GET /api/v1/viajes/{id}/adjuntos/{aid}/descarga`      | —                                                       | `{ url_descarga, expira_en }`                       |
 
-**Impacto en el spec.** Requirements 4.4 y 4.13. No bloquea el Bloque A.
+`Adjunto` trae `nombre` (obligatorio); el autor queda fuera de V1. Respuestas 200 o 201, 400, 401, 403 y 404. `pf-svc-operacion` ya implementa las tres, con metadata, auditoría y contrato completos.
+
+**Lo que NO es real todavía.**
+
+- `operacion` usa `AlmacenStub`: la URL de subida y de descarga es de marcador (`https://almacen.local/viajes/{id}/adjuntos/{aid}?op=...`). **No llega a un archivo.**
+- MinIO (ADR 32) y el escaneo antivirus son deuda fuera de V1.
+- El backend avisará cuándo se desbloquee. Hasta entonces la evidencia no se da por funcional de punta a punta.
+
+**Alcance de "preparada": RESUELTO.** Se construye la UI de evidencia contra el contrato (probada con MSW), sin afirmar que funciona contra el backend.
+
+**Qué sigue abierto.**
+
+| Residuo                                           | Detalle                                                                                                                                                                                                                                                                                                                                                                       | Dueño                                                   |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| **Pregunta 10: adjuntos `pendiente` sin escáner** | En `operacion` todo adjunto nace `pendiente` y nada lo mueve. `Descargar` no bloquea por escaneo (shortcut declarado). El contrato dice que un adjunto no `limpio` no autoriza descarga, y los Requirements 5.8 y 5.15 piden no ofrecer descarga y sondear mientras haya `pendiente`. Aplicados tal cual, la interfaz nunca ofrecería descarga y el sondeo nunca se detendría | Producto y Seguridad/Legal, con Contratos y `operacion` |
+| Límites de evidencia                              | Formatos, tamaño, cantidad, retención (Pregunta 4). Ya no bloquea construir; la interfaz comunica el rechazo del backend sin inventar límites                                                                                                                                                                                                                                 | Seguridad y Legal                                       |
+| CORS y CSP del almacén                            | Origen del panel en `connect-src` y permiso `PUT`/`GET`                                                                                                                                                                                                                                                                                                                       | Plataforma                                              |
+| Códigos de rechazo de la subida                   | Solo hay un 400 genérico                                                                                                                                                                                                                                                                                                                                                      | Contratos                                               |
+| Cabeceras del `PUT` firmado                       | No documentadas                                                                                                                                                                                                                                                                                                                                                               | Contratos / Plataforma                                  |
+| Despliegue de `core v0.1.2`                       | Sin él las rutas no responden                                                                                                                                                                                                                                                                                                                                                 | Fabricio Fuentes                                        |
+
+**Impacto en el spec.** Requirement 5: "contrato disponible; servicio con almacén de marcador; no funcional de punta a punta" (criterio nuevo 5.16). `adjuntoDescargable` y `sondeoEscaneo` quedan aisladas como funciones puras sujetas a la Pregunta 10. Tareas 22 a 29 con `*` hasta adoptar el pin.
+
+---
+
+## Brecha 3 — Formato final de la descarga (CERRADA)
+
+**Antes.** `E6-HU-026` dejaba el formato "por confirmar" y la entrega era provisional.
+
+**Ahora.** El backend confirmó: V1 en JSON, CSV/XLSX para V2, nombre `expediente-<viaje_id>.json`. Decisión comunicada por Fabricio Fuentes, pendiente de registro como DEC.
+
+**Impacto en el spec.** Requirements 4.4 y 4.13. El código del Bloque A (ya implementado) todavía usa `nombreProvisionalExpediente` en `entregarArchivo.ts` y `useDescargaExpediente.ts`: hay que renombrarlo a `nombreExpediente` y verificar el nombre entregado en la prueba de la tarea 10.
 
 ---
 
 ## Brecha 4 — Componentes de `@ai27-tech/ui` (VERIFICADA: se compone, sin componente de librería local)
 
-**Qué pide la tarea.** Tarjetas de indicadores, tabla de viajes y de adjuntos, marca de proyección atrasada, selector de archivo y consulta de documentos.
+`@ai27-tech/ui@0.2.0-beta.6` (última publicada). Sin cambios.
 
-**Qué existe hoy (`@ai27-tech/ui@0.2.0-beta.6`, última publicada).** `Card`, `Table`, `Badge`, `Button`, `Modal`, `Toast`/`ToastContainer`, `Form`/`FormField`, `Input` (acepta `type="file"`), `Visor` (solo IMAGE y AUDIO).
+| Necesidad                                            | Resolución en el spec                                       | Solicitud a la librería                                 |
+| ---------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------- |
+| Indicador de proyección atrasada (`stale`) con fecha | Componente de feature `IndicadorFrescura` (`Badge` + texto) | Indicador de frescura                                   |
+| Tarjeta de métrica                                   | `Card`                                                      | Componente de métrica                                   |
+| Selector y subida de archivos con progreso           | `Input type="file"` en `FormField`                          | Componente de subida                                    |
+| Vista previa de documentos                           | Apertura o descarga por `url_descarga`, sin vista previa    | Visor de documentos (`Visor` solo cubre imagen y audio) |
+| Alternar "En curso" / "Últimos 7 días"               | `Button` o `Select`                                         | Ninguna                                                 |
 
-| Necesidad                                            | Resolución en el spec                                                     | Solicitud a la librería                           |
-| ---------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------- |
-| Indicador de proyección atrasada (`stale`) con fecha | Componente de **feature** `IndicadorFrescura` que compone `Badge` + texto | Indicador de frescura                             |
-| Tarjeta de métrica                                   | `Card`                                                                    | Componente de métrica                             |
-| Selector y subida de archivos con progreso           | `Input type="file"` en `FormField`                                        | Componente de subida (verificar al desbloquear C) |
-| Vista previa de documentos (PDF, etc.)               | Apertura o descarga por `url_descarga`, sin vista previa                  | Visor de documentos                               |
-
-**Impacto en el spec.** No bloquea el Bloque A.
-
----
-
-## Brecha 5 — Entrada "Reportes" del AppShell frente al acceso por rol (DECISIÓN DE PRODUCTO / E8-T4)
-
-**Qué pide la tarea.** Jefe Operativo, Ejecutivo y Reacción no acceden al dashboard, la descarga ni la evidencia (DEC-022 #9, DEC-060).
-
-**Qué existe hoy.** `navigationConfig.ts` solo oculta "Reportes" a `reaccion`.
-
-**Resolución en el spec.** E8-T17 no toca `reportes.tsx` ni `navigationConfig.ts`. Oculta sus tres capacidades con `puedeUsarMonitoreo(rol)` en sus propios puntos de entrada. La entrada de navegación y su destino se deciden con Producto y E8-T4 (Pregunta abierta 6).
+No bloquea el Bloque A.
 
 ---
 
-## Cambios de semántica que ya están aplicados en el spec
+## Brecha 5 — Entrada "Reportes" del AppShell (PARCIALMENTE CERRADA)
 
-- **DEC-132:** `403` = sin permiso o fuera de alcance (usuario Interno); `404` = viaje inexistente. La clase de error es `ErrorViajeInexistente`.
-- **`nombre` del adjunto:** obligatorio en la intención y visible en la lista.
-- **`stale` ausente:** frescura no informada, ya respaldado por el contrato.
-- **Sondeo del escaneo:** solo mientras haya un adjunto `pendiente`.
+**Resuelto.** La entrada "Reportes" se oculta a `reaccion`, `jefe_operativo` y `ejecutivo` (coordinado con E8-T4). Cambio en `navigationConfig.ts`: tarea 30, no depende del pin.
+
+**Abierto.** A dónde lleva la entrada para monitorista, supervisor, coordinador y administrador. Hoy apunta al stub `/reportes`, y el dashboard vive en `/monitoreo/dashboard` (Pregunta 6, parte pendiente; Producto y E8-T4).
+
+---
 
 ## Preguntas abiertas que condicionan el spec
 
 Detalle y dueños en `requirements.md` §Preguntas abiertas.
 
-| #   | Tema                                                                        | Estado                                                                                |
-| --- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| 1   | Indicadores del dashboard (incidencias y alertas no existen en el contrato) | **Abierta**, Producto                                                                 |
-| 2   | Periodo por omisión                                                         | **Abierta**, Producto                                                                 |
-| 3   | Formato final de la descarga                                                | **Abierta**, Producto                                                                 |
-| 4   | Formatos y límites de evidencia, retención                                  | **Abierta**, Seguridad y Legal                                                        |
-| 5   | Nombre y autor del adjunto                                                  | **Resuelta por contrato** (nombre sí, autor fuera de V1); falta registrar la decisión |
-| 6   | Entrada "Reportes" del menú                                                 | **Abierta**, Producto y E8-T4                                                         |
-| 7   | Vínculo Monitorista–unidades                                                | **Abierta**, ligada a DT-07                                                           |
-| 8   | Frescura sin `stale`                                                        | **Resuelta por contrato**; falta confirmar el texto con Producto                      |
-
-## Residuos de la ejecución del Bloque A (2026-11-04)
-
-Superficies que el Bloque A no puede demostrar, o que quedan fuera de la prueba automatizada:
-
-- **Tarea 11 (pruebas de propiedades, opcional `*`): no implementada.** Las Properties 1, 2 y 4 quedan cubiertas solo por pruebas de ejemplo (`tests/viajes/ExpedienteViaje.test.tsx`, `tests/viajes/expedienteEntrega.unit.test.ts`, `tests/layout/puedeUsarMonitoreo.unit.test.ts`).
-- **Tarea 12: el enlace de `DetalleViaje` para roles sin acceso no tiene prueba de render.** La regla está aplicada en código (`usuario && puedeUsarMonitoreo(usuario.rol)`), pero no se probó renderizando `DetalleViaje`.
-- **Tarea 12: el Escenario 6 (la bandeja no ofrece descarga en lote) no tiene prueba.** Tampoco se verificó por inspección de la bandeja.
-- **Tarea 12: el `401` se delega al flujo de sesión.** La pantalla no renderiza nada en ese caso. La prueba confirma que no aparece error genérico, pero no que el `AppShell` redirija a login.
-- **Mensajes de la pantalla y nombre `expediente-<viaje_id>.json`:** de trabajo, pendientes de aprobación de Producto (Brecha 3 y Pregunta abierta 3).
-- **Desviación menor del contrato de la tarea 6:** `useDescargaExpediente` también devuelve `exito`, necesario para el aviso de éxito.
-- **Formato:** `DetalleViaje.tsx`, `src/mocks/handlers.ts` y `src/mocks/data.ts` ya incumplían Prettier en `HEAD`. No se reformatearon completos.
-- **Pin del contrato:** sigue en `@ai27-tech/contracts@0.1.0-tracer.33`, sin cambios.
+| #   | Tema                                            | Estado                                                                                       |
+| --- | ----------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 1   | Incidencias y alertas del dashboard             | **Probablemente resuelta** (V1 = viajes y estatus); falta confirmación explícita de Producto |
+| 2   | Periodo por omisión                             | **Resuelta**: `en_curso=true` por defecto; rango "últimos 7 días"                            |
+| 3   | Formato de la descarga                          | **Resuelta**: JSON, `expediente-<viaje_id>.json`                                             |
+| 4   | Formatos y límites de evidencia, retención      | **Abierta**, Seguridad y Legal. Ya no bloquea construir                                      |
+| 5   | Nombre y autor del adjunto                      | **Resuelta**: `nombre` obligatorio; autor fuera de V1                                        |
+| 6   | Entrada "Reportes"                              | **Parcial**: se oculta a tres roles; destino abierto                                         |
+| 7   | Vínculo Monitorista–unidades (DT-07)            | **Abierta**                                                                                  |
+| 8   | Frescura sin `stale`                            | **Resuelta**                                                                                 |
+| 9   | Conteos por estado en la vista por defecto      | **Abierta**, Producto                                                                        |
+| 10  | Adjuntos `pendiente` mientras no exista escáner | **Abierta**, Producto y Seguridad/Legal                                                      |
