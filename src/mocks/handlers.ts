@@ -26,6 +26,9 @@ import {
   guardarFichaMock,
   listarGpsMock,
   descargarViajeMock,
+  reporteViajesMock,
+  reporteEstadosMock,
+  type VarianteFrescuraMock,
   listarAdjuntosMock,
   crearIntencionSubidaMock,
   descargarAdjuntoMock,
@@ -65,6 +68,13 @@ import type { FichaTecnicaEntrada } from '@/lib/contracts/fichaTecnica';
 import type { IntencionSubidaAdjuntoEntrada } from '@/lib/contracts/adjuntos';
 
 const path = (segment: string) => `${API_PREFIX}${segment}`;
+
+/** Variante de frescura pedida por cabecera; `fresca` por omisión. */
+function varianteFrescuraMock(request: Request): VarianteFrescuraMock {
+  const valor = request.headers.get('x-mock-frescura');
+  if (valor === 'atrasada' || valor === 'no_informada' || valor === 'sin_datos') return valor;
+  return 'fresca';
+}
 
 /*
  * E8-T15 — superficie interna de bandeja del bff (tracer.33).
@@ -501,6 +511,44 @@ export const handlers = [
       return HttpResponse.json({ mensaje: 'El viaje no existe.' }, { status: 404 });
     }
     return HttpResponse.json(expediente, { status: 200 });
+  }),
+
+  // --- E8-T17 · Bloque B: dashboard (reportes del bff, datos demo) ---
+  // Variantes por cabecera: `x-mock-frescura` (fresca | atrasada | no_informada | sin_datos)
+  // y `x-mock-reportes: prohibido` para el 403.
+
+  // GET /reportes/viajes — `en_curso=true` sin rango, o `desde` + `hasta` sin `en_curso`.
+  http.get(path('/reportes/viajes'), ({ request }) => {
+    if (request.headers.get('x-mock-reportes') === 'prohibido') {
+      return HttpResponse.json({ mensaje: 'Sin autorización.' }, { status: 403 });
+    }
+    const url = new URL(request.url);
+    const enCurso = url.searchParams.get('en_curso') === 'true';
+    const tieneRango = url.searchParams.has('desde') && url.searchParams.has('hasta');
+    if (!enCurso && !tieneRango) {
+      return HttpResponse.json(
+        { codigo: 'solicitud_invalida', mensaje: 'Solicitud inválida.' },
+        { status: 400 },
+      );
+    }
+    return HttpResponse.json(reporteViajesMock({ enCurso }, varianteFrescuraMock(request)), {
+      status: 200,
+    });
+  }),
+
+  // GET /reportes/estados — exige `desde` y `hasta`.
+  http.get(path('/reportes/estados'), ({ request }) => {
+    if (request.headers.get('x-mock-reportes') === 'prohibido') {
+      return HttpResponse.json({ mensaje: 'Sin autorización.' }, { status: 403 });
+    }
+    const url = new URL(request.url);
+    if (!url.searchParams.has('desde') || !url.searchParams.has('hasta')) {
+      return HttpResponse.json(
+        { codigo: 'solicitud_invalida', mensaje: 'Solicitud inválida.' },
+        { status: 400 },
+      );
+    }
+    return HttpResponse.json(reporteEstadosMock(varianteFrescuraMock(request)), { status: 200 });
   }),
 
   // --- E8-T17 · Bloque C: evidencia (adjuntos del bff; los bytes van al almacén simulado) ---

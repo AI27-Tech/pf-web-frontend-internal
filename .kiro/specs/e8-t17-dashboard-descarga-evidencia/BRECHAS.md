@@ -173,3 +173,60 @@ Por la regla de la tarea 15, las tareas 16 a 21 siguen con `*` y no se implement
 - **Mock de escaneo.** En `src/mocks/data.ts`, un adjunto pasa a `limpio` tras dos lecturas de la lista. Es comportamiento simulado, no del backend.
 
 **Intervalo de sondeo.** `INTERVALO_SONDEO_ESCANEO_MS` vale 5 000 ms. Es un valor de trabajo, pendiente de confirmar.
+
+## Bloque B desbloqueado (2026-11-04)
+
+**Condiciones de la tarea 15:**
+
+1. Operaciones en `bff.gen.ts` de `tracer.36`: cumplida.
+2. Pin subido a `tracer.36`: cumplida.
+3. Preguntas 1 y 9 respondidas por Producto (DEC-136): cumplida. Pregunta 1: el dashboard de V1 se limita a viajes y estatus (DT-09). Pregunta 9: en la vista «En curso» los conteos por estado salen de agrupar las filas de `reporteViajes?en_curso=true`; en «Últimos 7 días» `reporteEstados` se presenta como «Cambios de estado en el periodo» y no se muestra `permanencia_promedio_seg`.
+4. Despliegue de `core v0.1.2`: **pendiente de verificación**. Producto indicó que no bloquea. Sin ese despliegue, el dashboard real cargará vacío, lo que el spec ya trata como esperado.
+
+**Lo construido:** `reportes` (contrato, API y consulta exclusiva por vista), `estadoFrescura` e `IndicadorFrescura`, `rangoUltimosSiete`, `conteosEnCurso`, `useDashboardMonitoreo`, `DashboardMonitoreo` (reemplaza el stub de `/monitoreo/dashboard`), mocks de reportes con las variantes de frescura y los `400`/`403`, y pruebas de las propiedades 3 y 9.
+
+**Riesgos y pendientes para la verificación real:**
+
+- Los rótulos («Viajes en curso por estado», «Cambios de estado en el periodo», «Datos atrasados», «Sin viajes para mostrar.») son de trabajo, pendientes de aprobación de Producto.
+- La vista «En curso» depende de que `reporteViajes` devuelva la lista completa. Con paginación en el servidor, la suma por estado no cuadraría con el total.
+- Sin `core v0.1.2` desplegado, el dashboard vacío es el estado esperado y no un error.
+- Las cifras de los mocks son ficticias y solo se usan en modo mock.
+
+## Revisión de `core` (2026-11-04)
+
+**Código y tags (verificado en `repos/pf-svc-core`, `pf-svc-bff`, `pf-svc-operacion` y `pf-svc-reportes`):**
+
+- `pf-svc-core` tag `v0.1.2` (2026-11-04) cablea adjuntos y el dashboard del `bff`. Fija `pf-pkg-contracts` `tracer.36`, `pf-svc-bff` `v0.1.14`, `pf-svc-operacion` `v0.1.15` y `pf-svc-reportes` `v0.1.4`.
+- `bff v0.1.14` ya lee `en_curso` y lo reenvía a `reportes`. Las rutas de adjuntos de `operacion v0.1.15` están montadas.
+- Existe un tag posterior, `pf-svc-core` `v0.1.3` (2026-11-04 16:09). Repite ese cableado y suma las emergencias de E8-T18. Sube `bff` a `v0.1.16`, `operacion` a `v0.1.16` y `contracts` a `tracer.37`. El frontend sigue en `tracer.36`; no verifiqué la compatibilidad de `tracer.37` con el frontend.
+- La clonación local de `pf-svc-core` va 7 commits atrás de `origin/pf-core-m`.
+
+**Despliegue: no verificado.** No pude comprobarlo desde los repos:
+
+- `repos/deploy` no tiene manifiestos de `core` (el único contenido es una carpeta `keycloak`).
+- `VITE_API_BASE_URL` no está configurada en el frontend (`.env` no existe y `.env.example` la deja vacía), así que no hay URL para probar el servicio.
+
+**Cómo verificarlo** (lo debe confirmar quien opera el entorno, como indica la tarea 15): con la URL del entorno, una `GET /api/v1/reportes/viajes?en_curso=true` sin token debe responder `401`. Un `404` indica que el `bff` desplegado no monta la ruta. Falta decidir si se confirma `v0.1.2` o `v0.1.3`.
+
+## Cierre de lo que el repo puede cerrar (2026-11-04)
+
+**Cerrado en esta ejecución:**
+
+- Tarea 12: el enlace «Expediente y evidencia» se oculta a los roles sin acceso (`tests/viajes/DetalleViajeExpediente.test.tsx`), y la bandeja no ofrece descarga ni exportación (`tests/viajes/bandejaSinDescarga.test.tsx`). Estos dos residuos de la sección anterior quedan cerrados.
+- Tarea 11 (opcional): Property 1, una pulsación equivale a una solicitud (`tests/viajes/descargaExpediente.property.test.tsx`); Property 2, fidelidad del archivo (`tests/viajes/expedienteFidelidad.property.test.ts`); Property 4, afordancia y clasificación 403/404 (`tests/layout/puedeUsarMonitoreo.property.test.ts`). Los tres corren con 100 iteraciones.
+- `requirements.md`: preguntas 1 y 9 marcadas como resueltas por DEC-136; encabezados de los Requirements 2 y 3 actualizados; lista de abiertas corregida.
+- `tasks.md`: estado de avance actualizado y tarea 11 marcada como hecha.
+- Validaciones: typecheck, lint, 387 pruebas y build de mock pasan.
+
+**Pendiente, y no se puede cerrar desde el repo:**
+
+| Pendiente                                                                                                                                                                             | Quién                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Preguntas 4 (límites de evidencia), 6 (destino de «Reportes» para monitorista, supervisor, coordinador y administrador), 7 (vínculo monitorista–unidades) y 10 (adjuntos `pendiente`) | Producto, Seguridad, Legal, identidad                                                 |
+| Despliegue de `core` y verificación E2E (`v0.1.2` o `v0.1.3`)                                                                                                                         | Fabricio Fuentes / quien opera el entorno                                             |
+| CORS y CSP del almacén, cabeceras del `PUT` firmado, almacén real y escáner                                                                                                           | Plataforma y backend                                                                  |
+| Registro como DEC en `ai27-platform-context` de las respuestas que aún no lo tienen: 2, 3, 5, 6 y 8, y la decisión de evidencia «preparada»                                           | Product Management (el repo de contexto es compartido; no se escribió en él)          |
+| Aprobación de los textos de la interfaz (rótulos, mensajes de error, «en preparación», «sin evidencia»)                                                                               | Producto                                                                              |
+| Decisión sobre `minimumReleaseAgeExclude` para `tracer.36`                                                                                                                            | Quien mantiene la política de supply-chain (la instalación funciona sin la excepción) |
+
+**Riesgos conocidos, sin cambio en esta ejecución:** con el backend de V1 todos los adjuntos quedan `pendiente`, así que la descarga de evidencia nunca se habilita y el sondeo no se detiene hasta resolver la Pregunta 10. Los adjuntos de un `PUT` fallido quedan en `pendiente`.

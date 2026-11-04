@@ -1,4 +1,4 @@
-# Requirements Document
+﻿# Requirements Document
 
 ## Introduction
 
@@ -91,7 +91,7 @@ Este documento define el comportamiento funcional del frontend interno. El front
 7. THE Panel_UI SHALL NOT ofrecer ninguna de las tres capacidades al rol `cliente` (el portal del cliente es otra aplicación; el cliente no descarga en V1, DEC-022 #7).
 8. WHERE el rol efectivo es `reaccion`, `jefe_operativo` o `ejecutivo`, THE AppShell SHALL NOT mostrar la entrada «Reportes» en la navegación (afordancia coordinada con E8-T4; la negación real sigue siendo el `403` del `bff`). Decisión comunicada por Fabricio Fuentes, pendiente de registro como DEC. El destino de la entrada para `monitorista`, `supervisor`, `coordinador` y `administrador` sigue abierto, sin definir (Pregunta abierta 6, parte pendiente); este criterio solo fija quién no ve la entrada, no a dónde lleva.
 
-### Requirement 2: Dashboard de monitoreo [Contrato disponible; backend terminado; pendiente de pin y del despliegue de core v0.1.2]
+### Requirement 2: Dashboard de monitoreo [Contrato `tracer.36` adoptado; V1 = viajes y estatus (DEC-136); pendiente de verificación E2E con el despliegue de core]
 
 **User Story:** Como Monitorista, quiero un tablero con viajes, incidencias, alertas y estatus de mis unidades, para monitorear los servicios en curso y tomar decisiones.
 
@@ -114,7 +114,7 @@ Este documento define el comportamiento funcional del frontend interno. El front
 15. THE Dashboard_UI SHALL NOT copiar ni derivar la lista de estados terminales; qué viaje está «en curso» lo decide el servicio.
 16. IF el `bff` aún no sirve la ruta del dashboard o responde vacío por no estar desplegado, THEN THE Dashboard_UI SHALL mostrar el estado «sin viajes» como ante cualquier respuesta vacía, sin presentarlo como falla (el vacío esperado antes del despliegue no es un error de la interfaz).
 
-### Requirement 3: Frescura de la proyección del dashboard [Contrato disponible; backend terminado; pendiente de pin y del despliegue de core v0.1.2]
+### Requirement 3: Frescura de la proyección del dashboard [Contrato `tracer.36` adoptado; pendiente de verificación E2E con el despliegue de core]
 
 **User Story:** Como Monitorista, quiero saber cuándo la información del tablero va atrasada, para no tomar decisiones con datos viejos creyendo que son actuales.
 
@@ -301,9 +301,9 @@ Estas notas son prerrequisitos de verificación y no preguntas que redefinan el 
 
 No se supone ninguna respuesta; cada una se resuelve antes de cerrar el comportamiento que toca.
 
-**Abiertas hoy: 1 (confirmar), 4, 6 (destino), 7, 9, 10.** Resueltas: 2, 3, 5, 8.
+**Abiertas hoy: 4, 6 (destino), 7, 10.** Resueltas: 1, 2, 3, 5, 8 y 9 (1 y 9 por DEC-136).
 
-1. **(PROBABLEMENTE RESUELTA: V1 = viajes y estatus; falta confirmación explícita de Producto)** **Detalle de cada indicador del dashboard** (viajes, incidencias, alertas, estatus): qué es una "alerta" y cuál es el desglose de cada indicador. `E6-HU-025` lo deja pendiente. **ACTUALIZADA (`tracer.35`, sin cambio en `tracer.36`):** el schema publicado solo entrega viajes y estatus (estado y conteos); incidencias y alertas no existen en el contrato, así que Producto debe decidir si el dashboard de V1 se limita a viajes y estatus o si se pide una ola adicional a Contratos. **ACTUALIZADA (2026-11-03):** el mensaje de backend dice que el dashboard se puede cerrar completo con el contrato publicado, que no trae incidencias ni alertas; por eso se considera probablemente resuelta (V1 = viajes y estatus), pero Producto aún no lo confirma de forma explícita. El texto del Requirement 2.3 no cambia. _Dueño sugerido: Product Management._
+1. **(RESUELTA; DEC-136)** **Detalle de cada indicador del dashboard.** Producto confirmó que el dashboard de V1 se limita a viajes y estatus. Incidencias y alertas quedan fuera de V1 (DT-09); no hace falta pedir una ola a Contratos. _Dueño: Product Management._
 2. **(RESUELTA; comunicada por Fabricio Fuentes, 2026-11-03; falta registrar como DEC)** **Periodo `desde`/`hasta` por omisión del dashboard.** Por defecto el dashboard usa `en_curso=true` sin `desde`/`hasta` (`tracer.36`); la vista por rango usa «últimos 7 días» (Requirement 2.12 y 2.13). _Dueño sugerido: Product Management (registro como DEC)._
 3. **(RESUELTA; comunicada por el backend/Producto, 2026-11-03; falta registrar como DEC)** **Formato de la descarga y nombre de archivo.** V1 en JSON; CSV/XLSX quedan para V2; nombre de archivo `expediente-<viaje_id>.json` (Requirement 4.13). El nombre ya no es provisional. _Dueño sugerido: Product Management (registro como DEC)._
 4. **(ABIERTA; ya no bloquea construir, solo la evidencia real)** **Formatos permitidos, tamaño y cantidad máximos de evidencia, retención y legal hold.** Hasta que Seguridad/Legal respondan, la interfaz comunica el rechazo del backend sin inventar límites. El contrato `tracer.35` no documenta códigos de rechazo por formato, tamaño o cantidad (solo un `400` genérico) ni las cabeceras exigidas del `PUT` firmado. _Dueño sugerido: Seguridad y Legal._
@@ -311,7 +311,7 @@ No se supone ninguna respuesta; cada una se resuelve antes de cerrar el comporta
 6. **(PARCIALMENTE RESUELTA)** **Navegación:** ¿la entrada "Reportes" del AppShell se oculta también a `jefe_operativo` y `ejecutivo`? **Resuelta (comunicada por Fabricio Fuentes, 2026-11-03; falta registro como DEC):** se oculta a `reaccion`, `jefe_operativo` y `ejecutivo` (Requirement 1.8, coordinado con E8-T4). **Sigue abierto:** a dónde lleva la entrada para `monitorista`, `supervisor`, `coordinador` y `administrador` (¿al dashboard?). _Dueño sugerido: Product Management y el spec de E8-T4._
 7. **Vínculo Monitorista–unidades:** cómo y cuándo se vincula un Monitorista con sus unidades (pendiente heredado de DEC-045). Sigue abierta y se liga a DT-07 (el alcance por unidad no lo aplica todavía ningún servicio). Afecta lo que el dashboard y la descarga muestran; lo resuelve el backend y aquí solo se registra como dependencia. _Dueño sugerido: Product Management y backend de identidad._
 8. **(RESUELTA; confirmada por Fabricio Fuentes, 2026-11-03; falta registro como DEC)** **Frescura sin `stale`:** `stale` es opcional en el contrato. Si el `bff` no lo entrega, el dashboard muestra «frescura no informada» y nunca fresco. Resuelta por contrato (`tracer.35`, Requirement 3.6) y confirmada por Producto. _Dueño sugerido: Product Management (registro como DEC)._
-9. **(ABIERTA)** **Conteos por estado en la vista por defecto:** `reporteEstados` exige `desde`/`hasta` y `en_curso` no los necesita. ¿Se muestra el conteo por estado con «últimos 7 días» junto a la vista en curso, solo en la vista por rango, o no se muestra en V1? _Dueño: Product Management._
+9. **(RESUELTA; DEC-136)** **Conteos por estado en la vista por defecto.** En «En curso», los conteos salen de agrupar las filas de `reporteViajes?en_curso=true`. En «Últimos 7 días», `reporteEstados` se presenta como «cambios de estado en el periodo», no como viajes por estado, y no se muestra `permanencia_promedio_seg` (llega null en V1). Los rótulos finales siguen pendientes de aprobación. _Dueño: Product Management._
 10. **(ABIERTA; NO se decide aquí)** **Adjuntos `pendiente` mientras no exista escáner.** En `operacion` (`internal/adjuntos/servicio.go`) todo adjunto nace con `estado_escaneo = 'pendiente'`, nada lo mueve (no hay escáner) y `Descargar` no bloquea por estado de escaneo (shortcut declarado: una guarda sin escáner bloquearía todo). El contrato, en cambio, dice que un adjunto no `limpio` no autoriza descarga. Aplicados tal cual, el Requirement 5.8 (no ofrecer descarga si no es `limpio`) implicaría que la interfaz nunca ofrece descarga, y el 5.15 (sondeo mientras haya `pendiente`) que el sondeo nunca se detiene; ambos quedan **PENDIENTES DE CONFIRMAR** frente a esta pregunta, sin cambiar su texto. Pregunta: mientras no exista escáner, ¿qué debe hacer la interfaz con los adjuntos `pendiente`: ofrecer la descarga (como permite el backend), no ofrecerla (como dice el contrato), y cuándo detener el sondeo? _Dueños sugeridos: Product Management y Seguridad/Legal, con Contratos y `operacion`._
 
 ## Trazabilidad

@@ -15,6 +15,7 @@ import type { Cliente, PaginaClientes } from '@/lib/contracts/clientes';
 import type { ViajeDetalle } from '@/lib/contracts/viajeDetalle';
 import type { FichaTecnica } from '@/lib/contracts/fichaTecnica';
 import type { DescargaViaje } from '@/lib/contracts/expediente';
+import type { FilaViaje, ReporteEstados, ReporteViajes } from '@/lib/contracts/reportes';
 import type {
   Adjunto,
   DescargaAdjunto,
@@ -655,6 +656,65 @@ export function descargarAdjuntoMock(viajeId: string, adjuntoId: string): Descar
   return {
     url_descarga: `${ALMACEN_MOCK}/descarga/${adjuntoId}?firma=mock`,
     expira_en: new Date(Date.now() + 5 * 60_000).toISOString(),
+  };
+}
+
+/**
+ * Reportes demo del dashboard (E8-T17, Bloque B). Datos ficticios para desarrollo en modo
+ * mock; no son cifras reales. Respetan la forma de `ReporteViajes` y `ReporteEstados`.
+ */
+export type VarianteFrescuraMock = 'fresca' | 'atrasada' | 'no_informada' | 'sin_datos';
+
+const FILAS_REPORTE_DEMO: FilaViaje[] = [
+  { viaje_id: 'VJ-R1', estado: 'ASIGNADO', creado_en: '2026-11-04T06:00:00.000Z' },
+  { viaje_id: 'VJ-R2', estado: 'EN_EMBARQUE', creado_en: '2026-11-04T07:30:00.000Z' },
+  { viaje_id: 'VJ-R3', estado: 'ASIGNADO', creado_en: '2026-11-03T18:00:00.000Z' },
+  {
+    viaje_id: 'VJ-R4',
+    estado: 'COMPLETADO',
+    creado_en: '2026-10-30T09:00:00.000Z',
+    cerrado_en: '2026-10-30T15:00:00.000Z',
+  },
+];
+
+/** Frescura del reporte según la variante. `stale` se omite cuando el contrato lo omitiría. */
+function frescuraMock(variante: VarianteFrescuraMock): {
+  proyeccion_al: string | null;
+  stale?: boolean;
+} {
+  const ahora = new Date().toISOString();
+  switch (variante) {
+    case 'atrasada':
+      return { proyeccion_al: new Date(Date.now() - 3 * 3_600_000).toISOString(), stale: true };
+    case 'fresca':
+      return { proyeccion_al: ahora, stale: false };
+    case 'no_informada':
+      return { proyeccion_al: ahora };
+    case 'sin_datos':
+      return { proyeccion_al: null };
+  }
+}
+
+/** Reporte de viajes. `en_curso` filtra a las filas sin `cerrado_en`; el rango no filtra. */
+export function reporteViajesMock(
+  consulta: { readonly enCurso: boolean },
+  variante: VarianteFrescuraMock,
+): ReporteViajes {
+  const filas = consulta.enCurso
+    ? FILAS_REPORTE_DEMO.filter((fila) => fila.cerrado_en === undefined)
+    : FILAS_REPORTE_DEMO;
+  return { filas: [...filas], total: filas.length, ...frescuraMock(variante) };
+}
+
+/** Distribución por estado del periodo: cambios de estado, no viajes actuales (Pregunta 9). */
+export function reporteEstadosMock(variante: VarianteFrescuraMock): ReporteEstados {
+  return {
+    conteos: [
+      { estado: 'ASIGNADO', conteo: 2, permanencia_promedio_seg: null },
+      { estado: 'EN_EMBARQUE', conteo: 1, permanencia_promedio_seg: null },
+      { estado: 'COMPLETADO', conteo: 1, permanencia_promedio_seg: null },
+    ],
+    ...frescuraMock(variante),
   };
 }
 
