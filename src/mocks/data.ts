@@ -14,6 +14,15 @@ import type { ViajeResumen, PaginaViajesResumen, CrearViajeEntrada } from '@/lib
 import type { Cliente, PaginaClientes } from '@/lib/contracts/clientes';
 import type { ViajeDetalle } from '@/lib/contracts/viajeDetalle';
 import type { FichaTecnica } from '@/lib/contracts/fichaTecnica';
+import type { DescargaViaje } from '@/lib/contracts/expediente';
+import type { FilaViaje, ReporteEstados, ReporteViajes } from '@/lib/contracts/reportes';
+import type {
+  Adjunto,
+  DescargaAdjunto,
+  IntencionSubidaAdjunto,
+  IntencionSubidaAdjuntoEntrada,
+  PaginaAdjuntos,
+} from '@/lib/contracts/adjuntos';
 import type { FichaTecnicaEntrada, DispositivoGps } from '@/lib/contracts/fichaTecnica';
 import type { Asignacion, AptitudRecurso } from '@/lib/contracts/viajeDetalle';
 import type { Unidad } from '@/lib/contracts/unidades';
@@ -553,6 +562,160 @@ export function registrarEntradaBitacoraMock(
   };
   BITACORA_DEMO.push(registrada);
   return registrada;
+}
+
+/**
+ * Expediente demo del viaje (E8-T17). Respeta `DescargaViaje` y su
+ * `additionalProperties: false`: no incluye `cuenta_espejo` ni `clave_amago`.
+ * Devuelve `null` si el viaje no existe.
+ */
+export function descargarViajeMock(viajeId: string): DescargaViaje | null {
+  if (obtenerDetalleViajeMock(viajeId) === null) return null;
+  return {
+    viaje_id: viajeId,
+    ficha: {
+      estado: 'en_curso',
+      origen: 'Centro de distribución demo',
+      destinos: [{ nombre: 'Destino demo', numero_envio: 'ENV-0001' }],
+      fecha_hora_servicio: null,
+      tipo_servicio: 'escolta',
+    },
+    bitacora: BITACORA_DEMO.filter((entrada) => entrada.viaje_id === viajeId).map((entrada) => ({
+      texto: entrada.texto,
+      autor: entrada.autor,
+      ts: entrada.ts,
+    })),
+    auditoria: [
+      {
+        entidad: 'viaje',
+        actor: 'Operador demo',
+        ts: new Date(Date.now() - 3_600_000).toISOString(),
+      },
+    ],
+    generado_en: new Date().toISOString(),
+  };
+}
+
+/** Origen simulado del almacenamiento de objetos. El `PUT` y la descarga van a este origen. */
+export const ALMACEN_MOCK = 'https://almacenamiento.mock.ai27.local';
+
+interface AdjuntoDemo {
+  readonly viajeId: string;
+  adjunto: Adjunto;
+  lecturas: number;
+}
+const ADJUNTOS_DEMO: AdjuntoDemo[] = [];
+let siguienteAdjuntoDemo = 1;
+
+/**
+ * Adjuntos demo (E8-T17, Bloque C). Simula el escáner: un adjunto pasa de `pendiente` a
+ * `limpio` después de dos lecturas de la lista. Es comportamiento de mock, no del backend.
+ */
+export function listarAdjuntosMock(viajeId: string): PaginaAdjuntos {
+  const items = ADJUNTOS_DEMO.filter((registro) => registro.viajeId === viajeId).map((registro) => {
+    registro.lecturas += 1;
+    if (registro.adjunto.estado_escaneo === 'pendiente' && registro.lecturas >= 2) {
+      registro.adjunto = { ...registro.adjunto, estado_escaneo: 'limpio' };
+    }
+    return registro.adjunto;
+  });
+  return { items };
+}
+
+export function crearIntencionSubidaMock(
+  viajeId: string,
+  entrada: IntencionSubidaAdjuntoEntrada,
+): IntencionSubidaAdjunto {
+  const adjuntoId = `ADJ-${siguienteAdjuntoDemo++}`;
+  ADJUNTOS_DEMO.push({
+    viajeId,
+    lecturas: 0,
+    adjunto: {
+      id: adjuntoId,
+      viaje_id: viajeId,
+      nombre: entrada.nombre,
+      tipo_medio: entrada.tipo_medio,
+      tamano_bytes: entrada.tamano_bytes,
+      checksum_sha256: entrada.checksum_sha256,
+      estado_escaneo: 'pendiente',
+      creado_en: new Date().toISOString(),
+    },
+  });
+  return {
+    adjunto_id: adjuntoId,
+    url_subida: `${ALMACEN_MOCK}/adjuntos/${adjuntoId}?firma=mock`,
+    expira_en: new Date(Date.now() + 10 * 60_000).toISOString(),
+  };
+}
+
+export function descargarAdjuntoMock(viajeId: string, adjuntoId: string): DescargaAdjunto | null {
+  const registro = ADJUNTOS_DEMO.find(
+    (candidato) => candidato.viajeId === viajeId && candidato.adjunto.id === adjuntoId,
+  );
+  if (!registro) return null;
+  return {
+    url_descarga: `${ALMACEN_MOCK}/descarga/${adjuntoId}?firma=mock`,
+    expira_en: new Date(Date.now() + 5 * 60_000).toISOString(),
+  };
+}
+
+/**
+ * Reportes demo del dashboard (E8-T17, Bloque B). Datos ficticios para desarrollo en modo
+ * mock; no son cifras reales. Respetan la forma de `ReporteViajes` y `ReporteEstados`.
+ */
+export type VarianteFrescuraMock = 'fresca' | 'atrasada' | 'no_informada' | 'sin_datos';
+
+const FILAS_REPORTE_DEMO: FilaViaje[] = [
+  { viaje_id: 'VJ-R1', estado: 'ASIGNADO', creado_en: '2026-11-04T06:00:00.000Z' },
+  { viaje_id: 'VJ-R2', estado: 'EN_EMBARQUE', creado_en: '2026-11-04T07:30:00.000Z' },
+  { viaje_id: 'VJ-R3', estado: 'ASIGNADO', creado_en: '2026-11-03T18:00:00.000Z' },
+  {
+    viaje_id: 'VJ-R4',
+    estado: 'COMPLETADO',
+    creado_en: '2026-10-30T09:00:00.000Z',
+    cerrado_en: '2026-10-30T15:00:00.000Z',
+  },
+];
+
+/** Frescura del reporte según la variante. `stale` se omite cuando el contrato lo omitiría. */
+function frescuraMock(variante: VarianteFrescuraMock): {
+  proyeccion_al: string | null;
+  stale?: boolean;
+} {
+  const ahora = new Date().toISOString();
+  switch (variante) {
+    case 'atrasada':
+      return { proyeccion_al: new Date(Date.now() - 3 * 3_600_000).toISOString(), stale: true };
+    case 'fresca':
+      return { proyeccion_al: ahora, stale: false };
+    case 'no_informada':
+      return { proyeccion_al: ahora };
+    case 'sin_datos':
+      return { proyeccion_al: null };
+  }
+}
+
+/** Reporte de viajes. `en_curso` filtra a las filas sin `cerrado_en`; el rango no filtra. */
+export function reporteViajesMock(
+  consulta: { readonly enCurso: boolean },
+  variante: VarianteFrescuraMock,
+): ReporteViajes {
+  const filas = consulta.enCurso
+    ? FILAS_REPORTE_DEMO.filter((fila) => fila.cerrado_en === undefined)
+    : FILAS_REPORTE_DEMO;
+  return { filas: [...filas], total: filas.length, ...frescuraMock(variante) };
+}
+
+/** Distribución por estado del periodo: cambios de estado, no viajes actuales (Pregunta 9). */
+export function reporteEstadosMock(variante: VarianteFrescuraMock): ReporteEstados {
+  return {
+    conteos: [
+      { estado: 'ASIGNADO', conteo: 2, permanencia_promedio_seg: null },
+      { estado: 'EN_EMBARQUE', conteo: 1, permanencia_promedio_seg: null },
+      { estado: 'COMPLETADO', conteo: 1, permanencia_promedio_seg: null },
+    ],
+    ...frescuraMock(variante),
+  };
 }
 
 export function listarIncidenciasMock(viajeId: string, cursor: string | null): PaginaIncidencias {
