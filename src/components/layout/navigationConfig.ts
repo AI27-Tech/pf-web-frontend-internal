@@ -71,8 +71,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Reportes',
     icon: BarChart3,
     path: '/reportes',
-    // DEC-022 #9: Reacción no ve reportes.
-    ocultarPara: ['reaccion'],
+    // DEC-022 #9: Reacción no ve reportes. E8-T17 (tarea 30): Jefe operativo y Ejecutivo tampoco.
+    ocultarPara: ['reaccion', 'jefe_operativo', 'ejecutivo'],
   },
   {
     id: 'administracion',

@@ -10,11 +10,7 @@ import {
   ErrorViajeInexistente,
 } from '@/lib/api/expediente';
 
-import {
-  entregarArchivo,
-  nombreProvisionalExpediente,
-  serializarExpediente,
-} from './entregarArchivo';
+import { entregarArchivo, nombreExpediente, serializarExpediente } from './entregarArchivo';
 
 export interface DescargaExpedienteHook {
   readonly descargar: () => void;
@@ -44,7 +40,7 @@ export function useDescargaExpediente(viajeId: string): DescargaExpedienteHook {
     mutationFn: () => descargarViaje(viajeId, accessToken),
     retry: false,
     onSuccess: (payload) => {
-      entregarArchivo(serializarExpediente(payload), nombreProvisionalExpediente(viajeId));
+      entregarArchivo(serializarExpediente(payload), nombreExpediente(viajeId));
     },
     onSettled: () => {
       enCurso.current = false;

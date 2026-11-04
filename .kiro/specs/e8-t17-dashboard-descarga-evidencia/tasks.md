@@ -107,7 +107,7 @@ Criterio de desbloqueo (las cuatro condiciones): (1) `listarAdjuntos`, `crearInt
 
 ## Navegación (coordinada con E8-T4)
 
-- [ ] 30. Ocultar la entrada «Reportes» del AppShell a `reaccion`, `jefe_operativo` y `ejecutivo` (implementable ya, sin pin). En `src/components/layout/navigationConfig.ts`, el campo `ocultarPara` de la entrada `reportes` pasa a `['reaccion', 'jefe_operativo', 'ejecutivo']`. Ajustar o añadir la prueba en `tests/layout/`: la entrada no aparece para esos tres roles y sí para `monitorista`, `supervisor`, `coordinador` y `administrador`. No cambia el destino de la entrada ni `reportes.tsx` (Pregunta abierta 6, parte pendiente: a dónde lleva la entrada). _Requirements: 1.8_
+- [x] 30. Ocultar la entrada «Reportes» del AppShell a `reaccion`, `jefe_operativo` y `ejecutivo` (implementable ya, sin pin). En `src/components/layout/navigationConfig.ts`, el campo `ocultarPara` de la entrada `reportes` pasa a `['reaccion', 'jefe_operativo', 'ejecutivo']`. Ajustar o añadir la prueba en `tests/layout/`: la entrada no aparece para esos tres roles y sí para `monitorista`, `supervisor`, `coordinador` y `administrador`. No cambia el destino de la entrada ni `reportes.tsx` (Pregunta abierta 6, parte pendiente: a dónde lleva la entrada). _Requirements: 1.8_
 
 ## Notes
 

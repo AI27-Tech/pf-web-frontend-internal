@@ -1,8 +1,8 @@
 /**
  * Entrega del expediente descargado (E8-T17).
  *
- * El formato final y el nombre definitivo del archivo siguen pendientes de
- * Producto (Pregunta abierta 3). Por eso el nombre es provisional.
+ * Formato de V1: JSON, con nombre `expediente-<viaje_id>.json` (Pregunta abierta 3
+ * resuelta; CSV/XLSX quedan para V2).
  */
 
 /** Serializa el expediente tal cual llega del `bff`: sin filtrar, renombrar ni agregar claves. */
@@ -10,8 +10,8 @@ export function serializarExpediente(payload: unknown): string {
   return JSON.stringify(payload, null, 2);
 }
 
-/** Nombre provisional del archivo del expediente. No es un contrato. */
-export function nombreProvisionalExpediente(viajeId: string): string {
+/** Nombre del archivo del expediente: `expediente-<viaje_id>.json`. */
+export function nombreExpediente(viajeId: string): string {
   return `expediente-${viajeId}.json`;
 }
 

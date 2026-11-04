@@ -7,7 +7,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import {
   entregarArchivo,
-  nombreProvisionalExpediente,
+  nombreExpediente,
   serializarExpediente,
 } from '@/features/viajes/expediente/entregarArchivo';
 import { descargarViajeMock } from '@/mocks/data';
@@ -62,9 +62,10 @@ describe('serializarExpediente', () => {
   });
 });
 
-describe('nombreProvisionalExpediente', () => {
-  it('usa el patrón expediente-<viaje_id>.json', () => {
-    expect(nombreProvisionalExpediente('VJ-1001')).toBe('expediente-VJ-1001.json');
+describe('nombreExpediente', () => {
+  it('devuelve siempre expediente-<viaje_id>.json', () => {
+    expect(nombreExpediente('VJ-1001')).toBe('expediente-VJ-1001.json');
+    expect(nombreExpediente('abc-123')).toBe('expediente-abc-123.json');
   });
 });
 
@@ -91,7 +92,7 @@ describe('entregarArchivo', () => {
       clicks.push({ href: this.href, download: this.download });
     });
 
-    entregarArchivo('{}', nombreProvisionalExpediente('VJ-9'));
+    entregarArchivo('{}', nombreExpediente('VJ-9'));
 
     expect(createObjectURL).toHaveBeenCalledTimes(1);
     expect(clicks).toEqual([{ href: 'blob:expediente-demo', download: 'expediente-VJ-9.json' }]);
