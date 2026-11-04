@@ -25,6 +25,14 @@ import {
   obtenerFichaMock,
   guardarFichaMock,
   listarGpsMock,
+  descargarViajeMock,
+  reporteViajesMock,
+  reporteEstadosMock,
+  type VarianteFrescuraMock,
+  listarAdjuntosMock,
+  crearIntencionSubidaMock,
+  descargarAdjuntoMock,
+  ALMACEN_MOCK,
   UNIDADES_DEMO,
   UNIDADES_SIN_DISPONIBLES_DEMO,
   listarBitacoraMock,
@@ -57,8 +65,16 @@ import type {
   IncidenciaEntrada,
 } from '@/lib/contracts/historicoViaje';
 import type { FichaTecnicaEntrada } from '@/lib/contracts/fichaTecnica';
+import type { IntencionSubidaAdjuntoEntrada } from '@/lib/contracts/adjuntos';
 
 const path = (segment: string) => `${API_PREFIX}${segment}`;
+
+/** Variante de frescura pedida por cabecera; `fresca` por omisión. */
+function varianteFrescuraMock(request: Request): VarianteFrescuraMock {
+  const valor = request.headers.get('x-mock-frescura');
+  if (valor === 'atrasada' || valor === 'no_informada' || valor === 'sin_datos') return valor;
+  return 'fresca';
+}
 
 /*
  * E8-T15 — superficie interna de bandeja del bff (tracer.33).
@@ -476,6 +492,113 @@ export const handlers = [
 
     const asignacion = asignarEscoltaMock(id, unidades_ids);
     return HttpResponse.json(asignacion, { status: 200 });
+  }),
+
+  // --- E8-T17: descarga del expediente (solo lo que publica el bff) ---
+
+  // GET /viajes/{id}/descarga — expediente del viaje. Sin 401: se ejerce en pruebas con server.use.
+  http.get(path('/viajes/:id/descarga'), ({ params, request }) => {
+    const { id } = params as { id: string };
+    if (request.headers.get('x-mock-expediente') === 'prohibido') {
+      return HttpResponse.json(
+        { mensaje: 'No tienes autorización para descargar este expediente.' },
+        { status: 403 },
+      );
+    }
+    const expediente =
+      request.headers.get('x-mock-expediente') === 'inexistente' ? null : descargarViajeMock(id);
+    if (expediente === null) {
+      return HttpResponse.json({ mensaje: 'El viaje no existe.' }, { status: 404 });
+    }
+    return HttpResponse.json(expediente, { status: 200 });
+  }),
+
+  // --- E8-T17 · Bloque B: dashboard (reportes del bff, datos demo) ---
+  // Variantes por cabecera: `x-mock-frescura` (fresca | atrasada | no_informada | sin_datos)
+  // y `x-mock-reportes: prohibido` para el 403.
+
+  // GET /reportes/viajes — `en_curso=true` sin rango, o `desde` + `hasta` sin `en_curso`.
+  http.get(path('/reportes/viajes'), ({ request }) => {
+    if (request.headers.get('x-mock-reportes') === 'prohibido') {
+      return HttpResponse.json({ mensaje: 'Sin autorización.' }, { status: 403 });
+    }
+    const url = new URL(request.url);
+    const enCurso = url.searchParams.get('en_curso') === 'true';
+    const tieneRango = url.searchParams.has('desde') && url.searchParams.has('hasta');
+    if (!enCurso && !tieneRango) {
+      return HttpResponse.json(
+        { codigo: 'solicitud_invalida', mensaje: 'Solicitud inválida.' },
+        { status: 400 },
+      );
+    }
+    return HttpResponse.json(reporteViajesMock({ enCurso }, varianteFrescuraMock(request)), {
+      status: 200,
+    });
+  }),
+
+  // GET /reportes/estados — exige `desde` y `hasta`.
+  http.get(path('/reportes/estados'), ({ request }) => {
+    if (request.headers.get('x-mock-reportes') === 'prohibido') {
+      return HttpResponse.json({ mensaje: 'Sin autorización.' }, { status: 403 });
+    }
+    const url = new URL(request.url);
+    if (!url.searchParams.has('desde') || !url.searchParams.has('hasta')) {
+      return HttpResponse.json(
+        { codigo: 'solicitud_invalida', mensaje: 'Solicitud inválida.' },
+        { status: 400 },
+      );
+    }
+    return HttpResponse.json(reporteEstadosMock(varianteFrescuraMock(request)), { status: 200 });
+  }),
+
+  // --- E8-T17 · Bloque C: evidencia (adjuntos del bff; los bytes van al almacén simulado) ---
+
+  // GET /viajes/{id}/adjuntos — lista de metadatos. Sin bytes.
+  http.get(path('/viajes/:id/adjuntos'), ({ params, request }) => {
+    const { id } = params as { id: string };
+    if (request.headers.get('x-mock-adjuntos') === 'prohibido') {
+      return HttpResponse.json({ mensaje: 'Sin autorización.' }, { status: 403 });
+    }
+    return HttpResponse.json(listarAdjuntosMock(id), { status: 200 });
+  }),
+
+  // POST /viajes/{id}/adjuntos/intenciones-subida — intención con URL de vida corta.
+  http.post(path('/viajes/:id/adjuntos/intenciones-subida'), async ({ params, request }) => {
+    const { id } = params as { id: string };
+    if (request.headers.get('x-mock-adjuntos') === 'prohibido') {
+      return HttpResponse.json({ mensaje: 'Sin autorización.' }, { status: 403 });
+    }
+    const rechazo = request.headers.get('x-mock-adjunto-rechazo');
+    if (rechazo === 'formato' || rechazo === 'tamano') {
+      // El contrato no define códigos de máquina para estos rechazos: solo `400` genérico.
+      return HttpResponse.json(
+        { codigo: 'solicitud_invalida', mensaje: 'Solicitud inválida.' },
+        { status: 400 },
+      );
+    }
+    const entrada = (await request.json()) as IntencionSubidaAdjuntoEntrada;
+    return HttpResponse.json(crearIntencionSubidaMock(id, entrada), { status: 201 });
+  }),
+
+  // GET /viajes/{id}/adjuntos/{aid}/descarga — URL de vida corta para abrir el archivo.
+  http.get(path('/viajes/:id/adjuntos/:aid/descarga'), ({ params, request }) => {
+    const { id, aid } = params as { id: string; aid: string };
+    if (request.headers.get('x-mock-adjuntos') === 'prohibido') {
+      return HttpResponse.json({ mensaje: 'Sin autorización.' }, { status: 403 });
+    }
+    const autorizacion = descargarAdjuntoMock(id, aid);
+    if (autorizacion === null) {
+      return HttpResponse.json({ mensaje: 'No existe.' }, { status: 404 });
+    }
+    return HttpResponse.json(autorizacion, { status: 200 });
+  }),
+
+  // PUT al almacén simulado — acepta los bytes salvo que se fuerce el fallo.
+  http.put(`${ALMACEN_MOCK}/adjuntos/:aid`, ({ request }) => {
+    if (request.headers.get('x-mock-almacen') === 'fallo') {
+      return new HttpResponse(null, { status: 500 });
+    }
+    return new HttpResponse(null, { status: 200 });
   }),
 
   // --- E8-T13: histórico append-only (bitácora, incidencias, estadías) ---

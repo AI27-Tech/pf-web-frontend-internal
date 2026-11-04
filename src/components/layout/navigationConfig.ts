@@ -8,7 +8,17 @@
 
 import type { Rol } from '@ai27-tech/contracts/roles';
 import type React from 'react';
-import { Truck, MessageSquare, AlertTriangle, Settings, BarChart3, Package } from 'lucide-react';
+import {
+  Truck,
+  MessageSquare,
+  AlertTriangle,
+  Settings,
+  BarChart3,
+  LayoutDashboard,
+  Package,
+} from 'lucide-react';
+
+import { ROLES_CON_MONITOREO } from '@/features/monitoreo/puedeUsarMonitoreo';
 
 /**
  * Definición de una entrada de navegación.
@@ -30,6 +40,11 @@ export interface NavItem {
    * `reaccion` no ve Reportes ni Catálogos (DEC-022 #9).
    */
   readonly ocultarPara: readonly Rol[];
+  /**
+   * Si existe, la entrada solo se muestra a estos roles (E8-T17: el dashboard
+   * lo usan los roles de `puedeUsarMonitoreo`). Se aplica además de `ocultarPara`.
+   */
+  readonly visiblePara?: readonly Rol[];
 }
 
 /**
@@ -37,6 +52,15 @@ export interface NavItem {
  * (Viajes · Conversaciones · Emergencias · Catálogos · Reportes · Administración).
  */
 export const NAV_ITEMS: readonly NavItem[] = [
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    path: '/monitoreo/dashboard',
+    ocultarPara: [],
+    // E8-T17: solo los roles con monitoreo (monitorista, supervisor, coordinador, administrador).
+    visiblePara: ROLES_CON_MONITOREO,
+  },
   {
     id: 'viajes',
     label: 'Viajes',
@@ -71,8 +95,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Reportes',
     icon: BarChart3,
     path: '/reportes',
-    // DEC-022 #9: Reacción no ve reportes.
-    ocultarPara: ['reaccion'],
+    // DEC-022 #9: Reacción no ve reportes. E8-T17 (tarea 30): Jefe operativo y Ejecutivo tampoco.
+    ocultarPara: ['reaccion', 'jefe_operativo', 'ejecutivo'],
   },
   {
     id: 'administracion',
@@ -89,5 +113,9 @@ export const NAV_ITEMS: readonly NavItem[] = [
  * la hace el bff). Exportada para poder probarla de forma aislada.
  */
 export function entradasVisiblesPara(rol: Rol): readonly NavItem[] {
-  return NAV_ITEMS.filter((item) => !item.ocultarPara.includes(rol));
+  return NAV_ITEMS.filter(
+    (item) =>
+      !item.ocultarPara.includes(rol) &&
+      (item.visiblePara === undefined || item.visiblePara.includes(rol)),
+  );
 }

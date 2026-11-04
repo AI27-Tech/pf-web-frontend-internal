@@ -1,10 +1,10 @@
-/*
+﻿/*
  * E8-T4 — Definición de terminado: "la navegación compuesta para un rol Reacción
  * no incluye Reportes ni Catálogos".
  *
  * Verifica la afordancia de UI que compone las entradas según el rol. La regla
  * explícita de la tarea es la de Reacción (DEC-022 #9); se comprueba además que
- * el resto de roles internos sí ve las seis áreas, porque la negación real la
+ * el resto de roles internos sí ve sus áreas, porque la negación real la
  * hace el bff, no esta lista.
  */
 
@@ -32,8 +32,9 @@ describe('E8-T4 · visibilidad de navegación por rol', () => {
     expect(visibles).toEqual(['Viajes', 'Conversaciones', 'Emergencias', 'Administración']);
   });
 
-  it('el administrador ve las seis áreas', () => {
+  it('el administrador ve las siete entradas, con Dashboard', () => {
     expect(labels(Rol.Administrador)).toEqual([
+      'Dashboard',
       'Viajes',
       'Conversaciones',
       'Emergencias',
@@ -43,8 +44,9 @@ describe('E8-T4 · visibilidad de navegación por rol', () => {
     ]);
   });
 
-  it('un rol interno sin restricción (monitorista) ve las seis áreas', () => {
+  it('un rol interno sin restricción (monitorista) ve las siete entradas, con Dashboard', () => {
     expect(labels(Rol.Monitorista)).toEqual([
+      'Dashboard',
       'Viajes',
       'Conversaciones',
       'Emergencias',
