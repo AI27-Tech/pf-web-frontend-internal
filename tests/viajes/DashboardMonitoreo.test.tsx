@@ -13,10 +13,12 @@ import type { ReactNode } from 'react';
 import { DashboardMonitoreo } from '@/features/monitoreo/dashboard/DashboardMonitoreo';
 import { API_PREFIX } from '@/lib/constants';
 
+const sesionFalsa = vi.hoisted(() => ({ rol: 'monitorista' as string }));
+
 vi.mock('@/context/SessionContext', () => ({
   useSession: () => ({
     sesion: { accessToken: 'token-de-prueba' },
-    usuario: { rol: 'monitorista' },
+    usuario: { rol: sesionFalsa.rol },
   }),
 }));
 
@@ -32,6 +34,7 @@ const FILAS = [
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 beforeEach(() => {
+  sesionFalsa.rol = 'monitorista';
   solicitudes.length = 0;
   server.use(
     http.get(path('/reportes/viajes'), ({ request }) => {
@@ -76,6 +79,19 @@ function renderDashboard() {
   );
   return render(<DashboardMonitoreo />, { wrapper: Wrapper });
 }
+
+describe('DashboardMonitoreo · acceso por rol', () => {
+  it('un rol sin monitoreo ve el título y el mensaje, sin consultar el reporte', async () => {
+    sesionFalsa.rol = 'jefe_operativo';
+    renderDashboard();
+
+    expect(
+      await screen.findByRole('heading', { name: 'Dashboard de Monitoreo', level: 1 }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Este dashboard no está disponible para tu rol.')).toBeInTheDocument();
+    expect(solicitudes).toEqual([]);
+  });
+});
 
 describe('DashboardMonitoreo · vista en curso (por defecto)', () => {
   it('pide solo reporteViajes en_curso=true, agrupa en curso por estado y no consulta reporteEstados', async () => {

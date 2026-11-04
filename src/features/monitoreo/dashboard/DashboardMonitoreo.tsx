@@ -42,14 +42,26 @@ function esVistaSeleccionable(valor: string): valor is VistaSeleccionable {
   return valor === 'en_curso' || valor === 'rango';
 }
 
+/**
+ * El título siempre se muestra, también a roles sin acceso. Solo el contenido se bloquea: así
+ * la ruta se puede verificar sin mostrar datos. Sin acceso, no hay consultas al `bff`.
+ */
 export function DashboardMonitoreo() {
   const { usuario } = useSession();
+  const autorizado = !!usuario && puedeUsarMonitoreo(usuario.rol);
 
-  if (!usuario || !puedeUsarMonitoreo(usuario.rol)) {
-    return <Mensaje>Este dashboard no está disponible para tu rol.</Mensaje>;
-  }
-
-  return <DashboardAutorizado />;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+      <h1 className="ui-text-headline-lg" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
+        Dashboard de Monitoreo
+      </h1>
+      {autorizado ? (
+        <DashboardAutorizado />
+      ) : (
+        <Mensaje>Este dashboard no está disponible para tu rol.</Mensaje>
+      )}
+    </div>
+  );
 }
 
 function DashboardAutorizado() {
@@ -57,10 +69,6 @@ function DashboardAutorizado() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-      <h1 className="ui-text-headline-lg" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-        Dashboard de monitoreo
-      </h1>
-
       <FilterBar
         filters={[FILTRO_VISTA]}
         filterValues={{ vista: d.vista }}

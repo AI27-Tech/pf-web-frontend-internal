@@ -1,5 +1,14 @@
 ﻿# CHANGELOG
 
+## 2026:11:04 17:41
+
+**Resumen:** Corrección de CI en el dashboard de monitoreo. El e2e de login (`e2e/login.spec.ts`) espera el encabezado «Dashboard de Monitoreo» tras entrar con la cuenta demo, que tiene rol `jefe_operativo`. Ese rol no puede usar el dashboard, así que el título no se renderizaba y el test fallaba. Ahora el título se muestra a todos los roles y solo el contenido se bloquea. A un rol sin acceso no se le hace ninguna consulta al `bff`. `typecheck`, `lint`, `build:mock`, la suite completa (66 archivos, 397 pruebas) y `test:e2e` (4 pruebas) pasan.
+
+**Cambios:**
+
+- `src/features/monitoreo/dashboard/DashboardMonitoreo.tsx`: el encabezado «Dashboard de Monitoreo» se renderiza siempre. Solo el contenido queda bloqueado a roles sin acceso.
+- `tests/viajes/DashboardMonitoreo.test.tsx`: caso de rol sin acceso (título visible, mensaje visible y sin consultas al reporte).
+
 ## 2026:11:04 17:27
 
 **Resumen:** Dos ajustes al dashboard de monitoreo (E8-T17) tras revisar su uso. El selector de vista usa el `FilterBar` de `@ai27-tech/ui` con su `Select`, en lugar de botones propios. El dashboard tiene entrada propia en la navegación lateral, visible solo para los roles de monitoreo (monitorista, supervisor, coordinador y administrador); antes solo se llegaba a él desde la pantalla de inicio de sesión. La entrada nueva no cambia el destino de «Reportes», que sigue abierto (Pregunta 6). `typecheck`, `lint`, la suite completa (66 archivos, 396 pruebas) y `build:mock` pasan.
