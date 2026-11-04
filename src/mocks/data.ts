@@ -14,6 +14,7 @@ import type { ViajeResumen, PaginaViajesResumen, CrearViajeEntrada } from '@/lib
 import type { Cliente, PaginaClientes } from '@/lib/contracts/clientes';
 import type { ViajeDetalle } from '@/lib/contracts/viajeDetalle';
 import type { FichaTecnica } from '@/lib/contracts/fichaTecnica';
+import type { DescargaViaje } from '@/lib/contracts/expediente';
 import type { FichaTecnicaEntrada, DispositivoGps } from '@/lib/contracts/fichaTecnica';
 import type { Asignacion, AptitudRecurso } from '@/lib/contracts/viajeDetalle';
 import type { Unidad } from '@/lib/contracts/unidades';
@@ -553,6 +554,38 @@ export function registrarEntradaBitacoraMock(
   };
   BITACORA_DEMO.push(registrada);
   return registrada;
+}
+
+/**
+ * Expediente demo del viaje (E8-T17). Respeta `DescargaViaje` y su
+ * `additionalProperties: false`: no incluye `cuenta_espejo` ni `clave_amago`.
+ * Devuelve `null` si el viaje no existe.
+ */
+export function descargarViajeMock(viajeId: string): DescargaViaje | null {
+  if (obtenerDetalleViajeMock(viajeId) === null) return null;
+  return {
+    viaje_id: viajeId,
+    ficha: {
+      estado: 'en_curso',
+      origen: 'Centro de distribución demo',
+      destinos: [{ nombre: 'Destino demo', numero_envio: 'ENV-0001' }],
+      fecha_hora_servicio: null,
+      tipo_servicio: 'escolta',
+    },
+    bitacora: BITACORA_DEMO.filter((entrada) => entrada.viaje_id === viajeId).map((entrada) => ({
+      texto: entrada.texto,
+      autor: entrada.autor,
+      ts: entrada.ts,
+    })),
+    auditoria: [
+      {
+        entidad: 'viaje',
+        actor: 'Operador demo',
+        ts: new Date(Date.now() - 3_600_000).toISOString(),
+      },
+    ],
+    generado_en: new Date().toISOString(),
+  };
 }
 
 export function listarIncidenciasMock(viajeId: string, cursor: string | null): PaginaIncidencias {

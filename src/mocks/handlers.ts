@@ -25,6 +25,7 @@ import {
   obtenerFichaMock,
   guardarFichaMock,
   listarGpsMock,
+  descargarViajeMock,
   UNIDADES_DEMO,
   UNIDADES_SIN_DISPONIBLES_DEMO,
   listarBitacoraMock,
@@ -476,6 +477,25 @@ export const handlers = [
 
     const asignacion = asignarEscoltaMock(id, unidades_ids);
     return HttpResponse.json(asignacion, { status: 200 });
+  }),
+
+  // --- E8-T17: descarga del expediente (solo lo que publica el bff) ---
+
+  // GET /viajes/{id}/descarga — expediente del viaje. Sin 401: se ejerce en pruebas con server.use.
+  http.get(path('/viajes/:id/descarga'), ({ params, request }) => {
+    const { id } = params as { id: string };
+    if (request.headers.get('x-mock-expediente') === 'prohibido') {
+      return HttpResponse.json(
+        { mensaje: 'No tienes autorización para descargar este expediente.' },
+        { status: 403 },
+      );
+    }
+    const expediente =
+      request.headers.get('x-mock-expediente') === 'inexistente' ? null : descargarViajeMock(id);
+    if (expediente === null) {
+      return HttpResponse.json({ mensaje: 'El viaje no existe.' }, { status: 404 });
+    }
+    return HttpResponse.json(expediente, { status: 200 });
   }),
 
   // --- E8-T13: histórico append-only (bitácora, incidencias, estadías) ---

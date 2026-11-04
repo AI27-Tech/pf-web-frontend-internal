@@ -27,6 +27,7 @@ import {
   ToastContainer,
 } from '@ai27-tech/ui';
 import { useSession } from '@/context/SessionContext';
+import { puedeUsarMonitoreo } from '@/features/monitoreo/puedeUsarMonitoreo';
 import { ApiError } from '@/lib/api/errors';
 import { ErrorAsignacion, ErrorTransicion } from '@/lib/api/viajeDetalle';
 import type { CondicionAbierta, ViajeInterno } from '@/lib/contracts/viajeDetalle';
@@ -340,6 +341,16 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
       >
         Ver histórico del viaje
       </Button>
+
+      {usuario && puedeUsarMonitoreo(usuario.rol) && (
+        <Button
+          variant="secondary"
+          type="button"
+          onClick={() => void navigate({ to: '/viajes/$id/expediente', params: { id } })}
+        >
+          Expediente y evidencia
+        </Button>
+      )}
 
       {/* Cabecera: estado y condiciones en columnas separadas (P15, Req 1.2, 1.3) */}
       <Card>

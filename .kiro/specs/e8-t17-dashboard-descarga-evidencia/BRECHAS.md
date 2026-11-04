@@ -142,3 +142,16 @@ Detalle y dueños en `requirements.md` §Preguntas abiertas.
 | 6   | Entrada "Reportes" del menú                                                 | **Abierta**, Producto y E8-T4                                                         |
 | 7   | Vínculo Monitorista–unidades                                                | **Abierta**, ligada a DT-07                                                           |
 | 8   | Frescura sin `stale`                                                        | **Resuelta por contrato**; falta confirmar el texto con Producto                      |
+
+## Residuos de la ejecución del Bloque A (2026-11-04)
+
+Superficies que el Bloque A no puede demostrar, o que quedan fuera de la prueba automatizada:
+
+- **Tarea 11 (pruebas de propiedades, opcional `*`): no implementada.** Las Properties 1, 2 y 4 quedan cubiertas solo por pruebas de ejemplo (`tests/viajes/ExpedienteViaje.test.tsx`, `tests/viajes/expedienteEntrega.unit.test.ts`, `tests/layout/puedeUsarMonitoreo.unit.test.ts`).
+- **Tarea 12: el enlace de `DetalleViaje` para roles sin acceso no tiene prueba de render.** La regla está aplicada en código (`usuario && puedeUsarMonitoreo(usuario.rol)`), pero no se probó renderizando `DetalleViaje`.
+- **Tarea 12: el Escenario 6 (la bandeja no ofrece descarga en lote) no tiene prueba.** Tampoco se verificó por inspección de la bandeja.
+- **Tarea 12: el `401` se delega al flujo de sesión.** La pantalla no renderiza nada en ese caso. La prueba confirma que no aparece error genérico, pero no que el `AppShell` redirija a login.
+- **Mensajes de la pantalla y nombre `expediente-<viaje_id>.json`:** de trabajo, pendientes de aprobación de Producto (Brecha 3 y Pregunta abierta 3).
+- **Desviación menor del contrato de la tarea 6:** `useDescargaExpediente` también devuelve `exito`, necesario para el aviso de éxito.
+- **Formato:** `DetalleViaje.tsx`, `src/mocks/handlers.ts` y `src/mocks/data.ts` ya incumplían Prettier en `HEAD`. No se reformatearon completos.
+- **Pin del contrato:** sigue en `@ai27-tech/contracts@0.1.0-tracer.33`, sin cambios.
