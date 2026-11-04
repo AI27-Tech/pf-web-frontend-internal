@@ -1,5 +1,32 @@
 # CHANGELOG
 
+## 2026:11:04 17:13
+
+**Resumen:** Se ejecutó el spec de **E8-T17** (dashboard de monitoreo, descarga del expediente y evidencia) en tres bloques. **Bloque A:** descarga del expediente de UN viaje desde su detalle (`GET /api/v1/viajes/{id}/descarga`); el archivo es el JSON que entrega el `bff` sin transformar, con nombre `expediente-<viaje_id>.json`. `403` y `404` se clasifican como `ErrorDescargaProhibida` y `ErrorViajeInexistente`; un doble clic genera una sola solicitud y no hay reintento automático, porque reintentar duplicaría la auditoría de `operacion`. **Bloque B:** dashboard en `/monitoreo/dashboard`, con vista «En curso» por defecto y «Últimos 7 días». Muestra la frescura de la proyección (`stale` y `proyeccion_al`) y no trata una frescura no informada como fresca. Los conteos siguen DEC-136: en curso se agrupan desde las filas de `reporteViajes`; en el rango se presentan como «cambios de estado en el periodo». **Bloque C:** evidencia del viaje (lista con sondeo del escaneo, subida en tres pasos con checksum SHA-256, descarga con URL de vida corta que no se persiste). Se construyó contra el contrato y **no es funcional de punta a punta**: el almacén del backend de V1 es un marcador. La navegación oculta «Reportes» a `reaccion`, `jefe_operativo` y `ejecutivo`. Se adoptó `@ai27-tech/contracts@0.1.0-tracer.36`, sin la excepción de `minimumReleaseAgeExclude` que agrega pnpm. `typecheck`, `lint`, la suite completa (65 archivos, 387 pruebas) y `build:mock` pasan.
+
+**Pendiente, no cerrado en esta entrada:**
+
+- Preguntas abiertas: 4 (límites de evidencia), 6 (destino de «Reportes» para monitorista, supervisor, coordinador y administrador), 7 (vínculo monitorista–unidades) y 10 (adjuntos `pendiente`; hoy la descarga de evidencia nunca se habilita).
+- Despliegue de `core` (`v0.1.2` o `v0.1.3`) y verificación de extremo a extremo; no se pudo confirmar desde el repo.
+- CORS y CSP del almacén, cabeceras del `PUT` firmado y almacén real con escáner (Plataforma y backend).
+- Registro como DEC de las respuestas de Producto que aún no lo tienen, y aprobación de los textos de la interfaz (son provisionales).
+- Decisión sobre la excepción de `minimumReleaseAgeExclude` para `tracer.36`.
+
+**Cambios:**
+
+- `src/features/viajes/expediente/*` y `src/lib/api/expediente.ts`, `src/lib/contracts/expediente.ts`: descarga del expediente (hook con `useMutation`, `retry: false`, bloqueo de doble envío y entrega del archivo).
+- `src/features/viajes/detalle/DetalleViaje.tsx`: botón «Expediente y evidencia», visible solo para los roles con acceso.
+- `src/features/monitoreo/*` y `src/features/monitoreo/dashboard/*`: `puedeUsarMonitoreo`, `estadoFrescura`, `IndicadorFrescura`, `rangoUltimosSiete`, `conteos`, `useDashboardMonitoreo` y `DashboardMonitoreo`.
+- `src/lib/api/reportes.ts`, `src/lib/contracts/reportes.ts`: consulta de `reporteViajes` (vista en curso o por rango, sin combinar) y de `reporteEstados` (siempre con rango).
+- `src/routes/_private/monitoreo/dashboard.tsx`: reemplaza el stub.
+- `src/features/viajes/evidencia/*`, `src/lib/api/adjuntos.ts`, `src/lib/contracts/adjuntos.ts`: lista, subida en tres pasos, descarga, sondeo y funciones puras de evidencia.
+- `src/routes/_private/viajes/$id/expediente.tsx`: ruta de la descarga.
+- `src/components/layout/navigationConfig.ts`: «Reportes» oculto a `reaccion`, `jefe_operativo` y `ejecutivo`.
+- `src/mocks/data.ts`, `src/mocks/handlers.ts`: mocks de expediente, reportes y adjuntos (datos ficticios, solo en modo mock).
+- `tests/viajes/*`, `tests/layout/*`: pruebas de integración, propiedades (fast-check) y verificaciones estáticas de los tres bloques.
+- `package.json`, `pnpm-lock.yaml`: pin de `@ai27-tech/contracts` a `tracer.36`.
+- `.kiro/specs/e8-t17-dashboard-descarga-evidencia/*`: `tasks.md`, `requirements.md` y `BRECHAS.md` actualizados con el estado y las brechas.
+
 ## 2026:11:03 12:55
 
 **Resumen:** Se cerró el lado frontend de **E8-T15** (bandeja de conversaciones), con las 14 tareas del spec hechas. `/conversaciones` deja de ser un stub y el Ejecutivo trabaja una bandeja compartida de cola única (`GET /api/v1/bandeja/trabajo`, sin `{id}`): ve las conversaciones del pool, reclama con la `version_reclamo` recibida, responde con `client_message_id` idempotente, marca la conversación como atendida con una acción explícita y la devuelve al pool (en V1 "transferir" es liberar, DEC-119). Perder el reclamo deshabilita el envío pero conserva el historial y el borrador. La bandeja se mantiene al día por **polling HTTP** (bootstrap y catch-up con `desde_revision`), con cadencia configurable en `VITE_CONVERSACIONES_POLLING_MS` y aviso de vista desactualizada; el SSE queda como deuda (DT-01). Quedan fuera de V1, por decisión, el override de supervisor (DEC-107), la alerta de mensaje pendiente (DEC-108), la vista previa y el conteo de no leídos (DEC-118), el selector de destino con nombres (DEC-119, DT-04) y el mando sobre conversaciones ajenas (DEC-118). Se adoptó `@ai27-tech/contracts@0.1.0-tracer.33` (la superficie interna de bandeja entró en `tracer.30`; `tracer.30` y `tracer.31` no existen para TS, DEC-120). `typecheck`, `lint`, la suite completa (48 archivos, 295 pruebas) y `build:mock` pasan.
