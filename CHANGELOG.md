@@ -1,4 +1,17 @@
-# CHANGELOG
+﻿# CHANGELOG
+
+## 2026:11:04 17:27
+
+**Resumen:** Dos ajustes al dashboard de monitoreo (E8-T17) tras revisar su uso. El selector de vista usa el `FilterBar` de `@ai27-tech/ui` con su `Select`, en lugar de botones propios. El dashboard tiene entrada propia en la navegación lateral, visible solo para los roles de monitoreo (monitorista, supervisor, coordinador y administrador); antes solo se llegaba a él desde la pantalla de inicio de sesión. La entrada nueva no cambia el destino de «Reportes», que sigue abierto (Pregunta 6). `typecheck`, `lint`, la suite completa (66 archivos, 396 pruebas) y `build:mock` pasan.
+
+**Cambios:**
+
+- `src/features/monitoreo/dashboard/DashboardMonitoreo.tsx`: selector de vista con `FilterBar` y `FilterDefinition` de `@ai27-tech/ui`.
+- `src/components/layout/navigationConfig.ts`: entrada «Dashboard» al inicio de la lista, hacia `/monitoreo/dashboard`. Nuevo campo opcional `visiblePara`: la entrada se muestra solo a esos roles.
+- `src/features/monitoreo/puedeUsarMonitoreo.ts`: exporta `ROLES_CON_MONITOREO`, fuente única de la lista de roles.
+- `tests/viajes/DashboardMonitoreo.test.tsx`: la vista se elige con el `FilterBar`.
+- `tests/layout/navegacion-dashboard.test.ts` (nuevo): visibilidad de la entrada por rol y su destino.
+- `tests/layout/navigation-visibility.test.ts`: listas de navegación de monitorista y administrador con «Dashboard».
 
 ## 2026:11:04 17:13
 

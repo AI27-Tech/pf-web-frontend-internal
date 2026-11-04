@@ -56,6 +56,19 @@ beforeEach(() => {
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
+/** El trigger del Select de vista dentro del FilterBar de la librería. */
+function triggerVista(): HTMLElement {
+  const trigger = screen.getAllByRole('button').find((b) => b.className.includes('_trigger_'));
+  if (!trigger) throw new Error('no se encontró el trigger del filtro de vista');
+  return trigger;
+}
+
+/** Elige una vista abriendo el Select del FilterBar y clicando la opción por su texto. */
+async function elegirVista(user: ReturnType<typeof userEvent.setup>, etiqueta: string) {
+  await user.click(triggerVista());
+  await user.click(screen.getByRole('button', { name: etiqueta }));
+}
+
 function renderDashboard() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const Wrapper = ({ children }: { children: ReactNode }) => (
@@ -76,10 +89,7 @@ describe('DashboardMonitoreo · vista en curso (por defecto)', () => {
     expect(within(conteos).getByText('1')).toBeInTheDocument();
 
     expect(solicitudes).toEqual(['?en_curso=true']);
-    expect(screen.getByRole('button', { name: 'En curso' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(triggerVista()).toHaveTextContent('En curso');
   });
 });
 
@@ -89,7 +99,7 @@ describe('DashboardMonitoreo · vista por rango', () => {
     await screen.findByRole('table', { name: 'Viajes del reporte' });
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole('button', { name: 'Últimos 7 días' }));
+    await elegirVista(user, 'Últimos 7 días');
 
     expect(await screen.findByText('Cambios de estado en el periodo')).toBeInTheDocument();
     const viajes = solicitudes.find((s) => s.startsWith('?desde'));

@@ -5,7 +5,15 @@
 
 import type { ReactNode } from 'react';
 
-import { Button, Card, CardBody, CardHeader, Table } from '@ai27-tech/ui';
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  FilterBar,
+  Table,
+  type FilterDefinition,
+} from '@ai27-tech/ui';
 
 import { useSession } from '@/context/SessionContext';
 import { puedeUsarMonitoreo } from '@/features/monitoreo/puedeUsarMonitoreo';
@@ -19,6 +27,20 @@ const ETIQUETA_VISTA: Record<VistaSeleccionable, string> = {
   en_curso: 'En curso',
   rango: 'Últimos 7 días',
 };
+
+/** Filtro de vista para el `FilterBar` de la librería. Siempre hay una vista seleccionada. */
+const FILTRO_VISTA: FilterDefinition = {
+  key: 'vista',
+  label: 'Vista',
+  options: [
+    { value: 'en_curso', label: ETIQUETA_VISTA.en_curso },
+    { value: 'rango', label: ETIQUETA_VISTA.rango },
+  ],
+};
+
+function esVistaSeleccionable(valor: string): valor is VistaSeleccionable {
+  return valor === 'en_curso' || valor === 'rango';
+}
 
 export function DashboardMonitoreo() {
   const { usuario } = useSession();
@@ -39,19 +61,16 @@ function DashboardAutorizado() {
         Dashboard de monitoreo
       </h1>
 
-      <div style={{ display: 'flex', gap: 'var(--ui-space-2)' }} role="group" aria-label="Vista">
-        {(Object.keys(ETIQUETA_VISTA) as VistaSeleccionable[]).map((vista) => (
-          <Button
-            key={vista}
-            variant={d.vista === vista ? 'primary' : 'secondary'}
-            type="button"
-            aria-pressed={d.vista === vista}
-            onClick={() => d.cambiarVista(vista)}
-          >
-            {ETIQUETA_VISTA[vista]}
-          </Button>
-        ))}
-      </div>
+      <FilterBar
+        filters={[FILTRO_VISTA]}
+        filterValues={{ vista: d.vista }}
+        onFilterChange={(_clave, valor) => {
+          if (esVistaSeleccionable(valor)) d.cambiarVista(valor);
+        }}
+        onClear={() => d.cambiarVista('en_curso')}
+        showClear={false}
+        showActiveFilterChips={false}
+      />
 
       {d.esProhibido && <Mensaje>No tienes autorización para ver este reporte.</Mensaje>}
 
