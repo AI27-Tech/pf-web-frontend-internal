@@ -1,5 +1,20 @@
 ﻿# CHANGELOG
 
+## 2026:11:05 14:00
+
+**Resumen:** Implementación de E8-T18 (emergencia y bandeja de Reacción), salvo la transferencia dirigida, que queda fuera de V1 (DEC-134). Incluye la bandeja de Reacción en `/emergencias` (lista, detalle, reclamar, devolver, resolver con nota y cerrar) y el carril de emergencias del monitoreo en el detalle del viaje (activar, anotar, seleccionar caso y cerrar). Sube `@ai27-tech/contracts` de `tracer.36` a `tracer.37`, que publica el carril del monitoreo (DEC-135). El wrapper clasifica los `409` por su código de contrato (`emergencia_cerrada`, `conflicto_version_reclamo`, `viaje_en_estado_terminal`). `typecheck`, `lint`, `build:mock` y la suite completa (73 archivos, 457 pruebas) pasan. **La tarea no está cerrada:** faltan decisiones de Producto (textos aprobados, dónde ve el `administrador` el selector de casos, visibilidad de Emergencias para `jefe_operativo`) y la revisión manual final.
+**Cambios:**
+
+- `src/features/emergencias/`: afordancias, actualización por polling, bandeja, detalle del caso, acciones, resolución y carril del viaje (`activacion/`).
+- `src/lib/api/emergencias.ts`, `src/lib/contracts/emergencias.ts`: wrapper y tipos re-exportados del contrato.
+- `src/routes/_private/emergencias.tsx`: reemplaza el stub por la bandeja real.
+- `src/features/viajes/detalle/DetalleViaje.tsx`: monta la sección de emergencias para los roles de monitoreo.
+- `src/mocks/emergencias.ts`, `src/mocks/handlers.ts`: handlers MSW de emergencias.
+- `src/lib/constants.ts`: `EMERGENCIAS_POLLING_MS` (`VITE_EMERGENCIAS_POLLING_MS`).
+- `tests/emergencias/`, `src/features/emergencias/*.test.ts`: pruebas de wrapper, bandeja, carril, polling, sesión y propiedades.
+- `package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml`: pin de `@ai27-tech/contracts@0.1.0-tracer.37`.
+- `.kiro/specs/e8-t18-emergencia-reaccion/`: `tasks.md` y `BRECHAS.md` con el estado del cierre.
+
 ## 2026:11:04 17:41
 
 **Resumen:** Corrección de CI en el dashboard de monitoreo. El e2e de login (`e2e/login.spec.ts`) espera el encabezado «Dashboard de Monitoreo» tras entrar con la cuenta demo, que tiene rol `jefe_operativo`. Ese rol no puede usar el dashboard, así que el título no se renderizaba y el test fallaba. Ahora el título se muestra a todos los roles y solo el contenido se bloquea. A un rol sin acceso no se le hace ninguna consulta al `bff`. `typecheck`, `lint`, `build:mock`, la suite completa (66 archivos, 397 pruebas) y `test:e2e` (4 pruebas) pasan.
