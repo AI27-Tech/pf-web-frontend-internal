@@ -37,3 +37,8 @@ export const API_PREFIX = '/api/v1';
  * punto donde bff reevalúa los claims; refrescar con holgura acota la ventana.
  */
 export const SESSION_REFRESH_MARGIN_MS = 60_000;
+
+/** Cadencia del polling de la bandeja y del caso de emergencias (VITE_EMERGENCIAS_POLLING_MS). */
+export const EMERGENCIAS_POLLING_MS: number = leerCadenciaPolling(
+  import.meta.env.VITE_EMERGENCIAS_POLLING_MS,
+);

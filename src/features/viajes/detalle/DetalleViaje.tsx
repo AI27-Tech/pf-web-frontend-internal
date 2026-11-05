@@ -43,6 +43,7 @@ import { AsignacionForm } from './asignacionForm';
 import { EtaForm } from './etaForm';
 import { FechaHoraForm } from './fechaHoraForm';
 import { useDetalleViaje } from './useDetalleViaje';
+import { SeccionEmergenciasViaje } from '@/features/emergencias/activacion/SeccionEmergenciasViaje';
 
 export interface DetalleViajeProps {
   readonly id: string;
@@ -341,6 +342,14 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
       >
         Ver histórico del viaje
       </Button>
+      {usuario && (
+        <SeccionEmergenciasViaje
+          viajeId={id}
+          estadoViaje={viajeInterno.estado}
+          rol={usuario.rol}
+          onViajeCambio={() => void d.reintentar()}
+        />
+      )}
 
       {usuario && puedeUsarMonitoreo(usuario.rol) && (
         <Button

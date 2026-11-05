@@ -765,11 +765,16 @@ describe('Sesión, resincronización y polling (Requirements 11 y 12)', () => {
     });
     await dispararPolling();
 
-    expect(await within(lista()).findByRole('alert')).toHaveTextContent(
-      TEXTO_ERROR.servicioNoDisponible,
+    // `lista()` captura el nodo `section` vigente en cada intento: el re-render
+    // del estado de error puede remontar la sección y dejar huérfano un nodo
+    // capturado una sola vez, de ahí que se reconsulte dentro del `waitFor`.
+    await waitFor(() =>
+      expect(within(lista()).getByRole('alert')).toHaveTextContent(
+        TEXTO_ERROR.servicioNoDisponible,
+      ),
     );
     // Req 11.5: la desactualización se avisa también a nivel de lista, con la hora de la última actualización.
-    expect(await within(lista()).findByText(TEXTO_BANNER.desactualizada)).toBeInTheDocument();
+    expect(within(lista()).getByText(TEXTO_BANNER.desactualizada)).toBeInTheDocument();
     expect(within(lista()).getByText(/Actualizado:/)).toBeInTheDocument();
     expect(filas()).toHaveLength(5);
 

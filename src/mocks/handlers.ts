@@ -58,6 +58,7 @@ import {
 } from './data';
 import type { TransicionEntrada, EtaEntrada, FechaHoraEntrada } from '@/lib/contracts/viajeDetalle';
 import { EstadoViaje } from '@/lib/contracts/viajeDetalle';
+import { handlersEmergencias } from './emergencias';
 import type { CrearViajeEntrada } from '@/lib/contracts/viajes';
 import type {
   EntradaBitacoraEntrada,
@@ -235,6 +236,7 @@ export const handlersConversaciones = [
 ];
 
 export const handlers = [
+  ...handlersEmergencias,
   ...handlersConversaciones,
   // GET /clientes ÔÇö cat├ílogo proyectado por el BFF (tracer.20). El mock devuelve
   // ├║nicamente clientes activos dentro del alcance del operador demo.
