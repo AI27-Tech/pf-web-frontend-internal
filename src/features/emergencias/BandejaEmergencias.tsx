@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { Toast } from '@ai27-tech/ui';
+import { Button, Toast } from '@ai27-tech/ui';
 import { ErrorEmergenciaNoDisponible, ErrorSinAccesoEmergencias } from '@/lib/api/emergencias';
 import { ListaCasos } from './ListaCasos';
 import { PanelCaso } from './PanelCaso';
@@ -33,18 +33,26 @@ export function BandejaEmergencias({ casoAbierto }: { casoAbierto?: string | und
     void navegar({ to: '/emergencias', search: { caso: id } });
   };
 
-  const onCerrar = async () => {
-    const ok = await acciones.cerrar();
-    if (ok) {
-      setAviso('Emergencia cerrada.');
-      void navegar({ to: '/emergencias', search: {} });
-    }
+  const onReclamar = async () => {
+    if (await acciones.reclamar()) setAviso('Caso reclamado. Ya eres su responsable.');
+  };
+
+  const onDevolver = async () => {
+    if (await acciones.devolver()) setAviso('Caso devuelto al pool.');
   };
 
   const onResolver = async (nota: string) => {
     const ok = await acciones.resolver(nota);
     if (ok) setAviso('Emergencia resuelta.');
     return ok;
+  };
+
+  const onCerrar = async () => {
+    const ok = await acciones.cerrar();
+    if (ok) {
+      setAviso('Emergencia cerrada.');
+      void navegar({ to: '/emergencias', search: {} });
+    }
   };
 
   const sinAcceso =
@@ -61,6 +69,10 @@ export function BandejaEmergencias({ casoAbierto }: { casoAbierto?: string | und
           Los cambios ya están aplicados.
         </Toast>
       )}
+      {/* Región accesible: anuncia cambios de estado o responsable del caso abierto (Req 10.8). */}
+      <p role="status" aria-live="polite" style={{ margin: 0 }}>
+        {caso.anuncio}
+      </p>
       <div
         style={{
           display: 'grid',
@@ -88,7 +100,12 @@ export function BandejaEmergencias({ casoAbierto }: { casoAbierto?: string | und
             <p role="alert">La emergencia no está disponible para ti.</p>
           )}
           {casoAbierto && caso.error && !sinAcceso && !caso.detalle && (
-            <p role="alert">{caso.error.message}</p>
+            <div style={{ display: 'grid', gap: 'var(--ui-space-2)' }}>
+              <p role="alert">{caso.error.message}</p>
+              <Button variant="outline" onClick={() => void caso.recargar()}>
+                Reintentar
+              </Button>
+            </div>
           )}
           {caso.detalle && (
             <PanelCaso
@@ -101,8 +118,8 @@ export function BandejaEmergencias({ casoAbierto }: { casoAbierto?: string | und
               actualizadoEn={caso.actualizadoEn}
               enCurso={acciones.enCurso}
               errorAccion={acciones.error}
-              onReclamar={() => void acciones.reclamar()}
-              onDevolver={() => void acciones.devolver()}
+              onReclamar={() => void onReclamar()}
+              onDevolver={() => void onDevolver()}
               onResolver={onResolver}
               onCerrar={() => void onCerrar()}
             />

@@ -1,6 +1,6 @@
 # Brechas de E8-T18 — Emergencia: activación por usuario de monitoreo y bandeja de Reacción
 
-**Verificado el 2026-11-04 (segunda pasada, tras la respuesta del equipo de backend).** Contexto: `ai27-platform-context` en `86e20c5` (al día con `origin/main`; registra DEC-134, DEC-135 y DT-15/DT-16). Contrato: último tag publicado `v0.1.0-tracer.37`, leído con `git show v0.1.0-tracer.37:contracts/openapi/bff.yaml` (el checkout local de `pf-pkg-contracts` sigue en la rama `feat/ficha-tecnica-e-historico-tracer21`). `package.json` del frontend fija `@ai27-tech/contracts@0.1.0-tracer.36`. Librería: `@ai27-tech/ui@0.2.0-beta.6`.
+**Verificado el 2026-11-04 (segunda pasada, tras la respuesta del equipo de backend).** Contexto: `ai27-platform-context` en `86e20c5` (al día con `origin/main`; registra DEC-134, DEC-135 y DT-15/DT-16). Contrato: último tag publicado `v0.1.0-tracer.37`, leído con `git show v0.1.0-tracer.37:contracts/openapi/bff.yaml` (el checkout local de `pf-pkg-contracts` sigue en la rama `feat/ficha-tecnica-e-historico-tracer21`). `package.json` del frontend fija `@ai27-tech/contracts@0.1.0-tracer.37` (el pin de la tarea 1 ya se aplicó; `pnpm-workspace.yaml` lo incluye en `minimumReleaseAgeExclude`). Librería: `@ai27-tech/ui@0.2.0-beta.6`.
 
 **Superficie contratada en `tracer.37` (BFF, audiencia Interno):**
 
@@ -17,7 +17,7 @@
 | 4   | Listar integrantes de Reacción para transferir    | **Diferida a V2** (DEC-134, DT-15). El panel no ofrece transferir            |
 | 5   | Indicador de viaje terminal para decidir el botón | **Resuelta**: `esTerminal`/`ESTADOS_TERMINALES` en el paquete generado       |
 | 6   | Código `404` vs `403` en la bandeja               | **Resuelta**: era error de redacción; interno `403`, cliente `404` (DEC-132) |
-| 7   | Pin del contrato                                  | **Pendiente de aprobación**: subir a `tracer.37` (hoy `tracer.36`)           |
+| 7   | Pin del contrato                                  | **Aplicado**: `@ai27-tech/contracts@0.1.0-tracer.37` fijado (tarea 1)        |
 | 8   | Componentes de librería por confirmar             | **Abierta** (tarea 1)                                                        |
 
 ## Brecha 1 — Activación por usuario de monitoreo (resuelta)
@@ -60,11 +60,11 @@ Nota de limpieza: `src/mocks/data.ts` y `src/mocks/handlers.ts` ya duplican los 
 
 Era un error de redacción del contrato. Interno sin acceso: `403` (DEC-132). Cliente: `404`. Corregido en `bff` y `mensajeria`. La UI sigue tratando `403` y `404` de la bandeja como acceso no autorizado, por defensa.
 
-## Prerrequisito 7 — Pin del contrato (pendiente de aprobación)
+## Prerrequisito 7 — Pin del contrato (aplicado)
 
-Subir `@ai27-tech/contracts` de `tracer.36` a `tracer.37` y agregar `|| 0.1.0-tracer.37` a su entrada en `minimumReleaseAgeExclude` de `pnpm-workspace.yaml`. `tracer.36` solo añadió el filtro `en_curso` del dashboard; `tracer.37` añade el carril de emergencias del monitoreo.
+`@ai27-tech/contracts` se subió de `tracer.36` a `tracer.37` en `package.json`, y `pnpm-workspace.yaml` ya incluye `|| 0.1.0-tracer.37` en `minimumReleaseAgeExclude`. `tracer.36` solo añadió el filtro `en_curso` del dashboard; `tracer.37` añade el carril de emergencias del monitoreo.
 
-La ruptura de `tracer.35` (`nombre` obligatorio en `crearIntencionSubidaAdjunto`) **no afecta**: `useEvidenciaViaje.ts` ya envía `nombre: archivo.name`. **Requiere aprobación explícita.**
+La ruptura de `tracer.35` (`nombre` obligatorio en `crearIntencionSubidaAdjunto`) **no afecta**: `useEvidenciaViaje.ts` ya envía `nombre: archivo.name`.
 
 ## Cambio de comportamiento a probar: códigos `409` de mensajería
 
@@ -87,16 +87,18 @@ Verificar en `@ai27-tech/ui@0.2.0-beta.6` la API exacta de `Modal` (confirmació
 
 ## Cierre de implementación (tareas 1 a 15)
 
-Estado al cierre: tareas 1 a 13 y 15 implementadas; 14 descartada de V1 (DEC-134). Verificación: `typecheck`, `lint`, `test` (72 archivos, 451 pruebas) y `build:mock` pasan.
+Estado al cierre: tareas 1 a 13 y 15 implementadas; 14 descartada de V1 (DEC-134). Verificación (reejecutada el 2026-11-05): `typecheck`, `lint`, `test` (73 archivos, 457 pruebas) y `build:mock` pasan.
+
+> Actualización 2026-11-05: el conteo subió de 456 a 457 al incorporar `tests/emergencias/sesion.test.tsx` (401 delegado al AppShell, Req 11.3), que no estaba en el cierre anterior. Durante la corrida de la suite completa afloró un fallo intermitente en `tests/conversaciones/BandejaConversaciones.test.tsx` (E8-T15, fuera del alcance de E8-T18): el escenario "con solo la lista abierta, una falla de polling conserva las filas y muestra un aviso" capturaba el nodo `section` una sola vez con `within(lista())`, y el remontaje de la sección por el re-render del estado de error lo dejaba huérfano. Se estabilizó reconsultando `lista()` dentro de un `waitFor`. La suite completa pasa de forma estable (dos corridas seguidas, 457/457).
 
 Brechas y desviaciones que siguen abiertas:
 
 1. **Textos de UI provisionales.** Conflicto de reclamo, resolución, cierre, acceso no autorizado y activación están marcados como provisionales hasta que Producto los apruebe (pendiente de producto, punto 1 de arriba).
 2. **Cadencia del polling.** `VITE_EMERGENCIAS_POLLING_MS` usa 15 s por defecto. Producto debe confirmar la cadencia.
 3. **Confirmación antes de activar.** El diálogo de confirmación de la activación lo agregó la implementación; el spec no lo pide. Producto debe confirmarlo o quitarlo.
-4. **Pruebas no cubiertas.** Quedan sin prueba de integración: 401 delegado al flujo de sesión (lo cubre `client.ts` y sus pruebas existentes), y el fallo de polling combinado con una acción operativa.
+4. **Cubierto en esta ronda:** 401 delegado al AppShell (sin error en la vista), reintento del detalle, avisos de éxito (reclamar, devolver, guardar nota, resolver, cerrar), destinos con cita y arribo, y anuncio de cambios del caso abierto. Con el polling caído, reclamar sigue funcionando (prueba en `tests/emergencias/polling.test.tsx`).
 5. **Dependencia faltante en el contrato.** El índice raíz de `@ai27-tech/contracts@0.1.0-tracer.37` importa `@bufbuild/protobuf`, que este repo no declara. Por eso `esTerminal` se importa desde el subpath `estados`. Reportar al equipo de contratos.
 6. **Mocks.** Un caso activado desde el viaje en `src/mocks/emergencias.ts` no aparece en la bandeja mock. Solo afecta a desarrollo con mocks.
 7. **Transferencia dirigida** (DEC-134, DT-15): fuera de V1; el wrapper no la expone.
 8. **Deuda del backend** sin acción en este repo: DT-07 (alcance por unidad) y DT-16 (carrera de activación frente a viaje terminal).
-9. **Pendiente de la verificación visual.** No se revisó la UI en navegador; las pruebas cubren comportamiento y roles, no maquetación.
+9. **Verificación manual pendiente.** No se revisó la UI en navegador: maquetación, orden de foco y uso solo con teclado (Req 11.5). Las pruebas cubren comportamiento y roles.

@@ -41,7 +41,7 @@ La tarea 1 sube el contrato y verifica la librería. La tarea 2 fija tipos y API
 - [x] 6. Implementar `useCasoEmergencia.ts` y `PanelCaso.tsx`: detalle con bloque de viaje (cliente, estado, origen, destinos, tipo de servicio, fecha, ETA), escolta con teléfonos cuando exista y texto neutro si no, notas en orden con paginación y marca de resolución, polling del detalle y de las notas. Sin ubicación, `viaje_id` ni enlaces al viaje.
 - [x] 7. Implementar `useAccionesCaso.ts`: reclamar (con `caso.version_reclamo`), devolver al pool con confirmación (con la versión del `reclamo_activo`), cierre con confirmación; bloqueo de doble envío, recarga ante `403`/`409` y sin reintento silencioso. No se implementa transferir (DEC-134).
 - [x] 8. Implementar `DialogoResolucion.tsx` y la acción de resolver: nota de 1 a 1.000 caracteres con recorte y contador, confirmación deshabilitada mientras sea inválida, conservación de la nota ante `400`, mensaje específico ante `403` y recarga ante `409`.
-- [x] 9. Reemplazar el stub `routes/_private/emergencias.tsx` por la feature real `BandejaEmergencias` (caso abierto por parámetro de búsqueda `caso`), con modo de consulta para `supervisor`/`coordinador` (sin reclamar ni resolver), delegación de `401` al AppShell, avisos con `Toast`, anuncios accesibles de cambios de estado y reclamo, y etiquetas/foco de los componentes compartidos. Verificar que `reaccion` no ve entradas al viaje, bitácora, incidencias ni conversación.
+- [x] 9. Reemplazar el stub `routes/_private/emergencias.tsx` por la feature real `BandejaEmergencias` (caso abierto por parámetro de búsqueda `caso`), con modo de consulta para `supervisor`/`coordinador` (sin reclamar ni resolver), delegación de `401` al AppShell, avisos con `Toast`, anuncios accesibles de cambios de estado y reclamo, y etiquetas/foco de los componentes compartidos. Verificar que `reaccion` no ve entradas al viaje, bitácora, incidencias ni conversación. La delegación de `401` se cubre con `tests/emergencias/sesion.test.tsx` (Req 11.3).
 
 ## Verificación
 
@@ -63,7 +63,8 @@ La tarea 1 sube el contrato y verifica la librería. La tarea 2 fija tipos y API
 - **Brecha 4:** transferencia dirigida diferida a V2 (DEC-134, DT-15). Tarea 14 descartada; devolver al pool cubre el mínimo.
 - **Brecha 5:** resuelta con `esTerminal`/`ESTADOS_TERMINALES` del paquete generado; confirmar la exportación en la tarea 1.
 - **Discrepancia 6:** resuelta (error de redacción). Interno sin acceso: `403`; la UI sigue tratando `403` y `404` igual.
-- **Pin del contrato:** `tracer.37` requiere aprobación; `crearIntencionSubidaAdjunto` ya envía `nombre`.
-- **Deuda del backend (sin acción aquí):** alcance por unidad del monitoreo (DT-07) y carrera de activación frente a viaje terminal (DT-16).- **Historia técnica E8-T18 en contexto:** desactualizada ("contrato por congelar", SSE). Las DEC y el contrato prevalecen.
+- **Pin del contrato:** aplicado a `tracer.37` (tarea 1); `crearIntencionSubidaAdjunto` ya envía `nombre`.
+- **Deuda del backend (sin acción aquí):** alcance por unidad del monitoreo (DT-07) y carrera de activación frente a viaje terminal (DT-16).
+- **Historia técnica E8-T18 en contexto:** desactualizada ("contrato por congelar", SSE). Las DEC y el contrato prevalecen.
 - **Pendientes de producto:** textos aprobados y cadencia del polling; dónde ve el `administrador` el selector de casos (lista, anota y cierra, pero no activa).
 - **Fuera de alcance:** activación por cliente (E9), ubicación, escalamiento automático (V2), relación de mando (DT-06), incidencia desde emergencia (E8-T13), SSE (DT-01).

@@ -86,6 +86,10 @@ export class ErrorEmergenciaNoDisponible extends ApiError {
   }
 }
 /** 400 al resolver o anotar: la nota no cumple las validaciones. */
+/** Sesión finalizada o 401: el flujo de sesión del AppShell lo resuelve, no la vista. */
+export function esSesionFinalizada(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 401 || error.kind === 'sesionFinalizada');
+}
 export class ErrorNotaInvalida extends ApiError {
   constructor() {
     super('red', 'La nota no es válida. Revisa el texto e inténtalo de nuevo.', 400);

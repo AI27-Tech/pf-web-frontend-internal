@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from '@/context/SessionContext';
-import { listarBandejaEmergencias } from '@/lib/api/emergencias';
+import { esSesionFinalizada, listarBandejaEmergencias } from '@/lib/api/emergencias';
 import type { EmergenciaReaccion } from '@/lib/contracts/emergencias';
 import { crearPollingEmergencias } from './actualizacion';
 
@@ -44,6 +44,7 @@ export function useBandejaEmergencias() {
       setDesactualizada(false);
       setError(null);
     } catch (e) {
+      if (esSesionFinalizada(e)) return;
       setDesactualizada(true);
       setError(e instanceof Error ? e : new Error('No se pudo cargar la bandeja'));
     }

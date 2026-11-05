@@ -252,7 +252,7 @@ Dado que la sesión expira durante una acción, cuando el `bff` responde `401`, 
 - E8-T8: detalle del viaje (lugar del botón de emergencia).
 - E8-T15: patrón de bandeja con reclamo, versión de concurrencia y polling que esta tarea reutiliza (su SSE es deuda, DT-01).
 - DEC-001, DEC-027, DEC-028, DEC-034, DEC-045 #9, DEC-099, DEC-121, DEC-125, DEC-126, DEC-130, DEC-131, DEC-132, DEC-133.
-- Contrato generado `@ai27-tech/contracts`: la bandeja y el caso entran en `tracer.34`/`tracer.35` y el carril del monitoreo por viaje en `tracer.37`; el `package.json` fija hoy `tracer.36` y hay que subirlo (tarea 1). Componentes de `@ai27-tech/ui`.
+- Contrato generado `@ai27-tech/contracts`: la bandeja y el caso entran en `tracer.34`/`tracer.35` y el carril del monitoreo por viaje en `tracer.37`; el `package.json` ya fija `tracer.37` (pin aplicado en la tarea 1). Componentes de `@ai27-tech/ui`.
 
 ## Fuera de alcance
 
@@ -273,7 +273,7 @@ Estas notas son prerrequisitos de verificación y no reglas. El detalle está en
 - **Brecha 4:** la transferencia dirigida se difirió a V2 (DEC-134, DT-15). Requirement 6.4 la excluye.
 - **Brecha 5:** resuelta; los estados terminales se derivan de `esTerminal`/`ESTADOS_TERMINALES` del paquete generado.
 - **Discrepancia 6:** resuelta; era un error de redacción. Interno sin acceso: `403` (DEC-132). La interfaz mantiene el tratamiento común de `403` y `404`.
-- **Pin del contrato:** hay que subir `@ai27-tech/contracts` de `tracer.36` a `tracer.37` y agregarlo a `minimumReleaseAgeExclude`. No se hace sin aprobación explícita.
+- **Pin del contrato:** aplicado. `@ai27-tech/contracts` se subió de `tracer.36` a `tracer.37` y está en `minimumReleaseAgeExclude` (tarea 1).
 - **Códigos `409` de `mensajeria`:** ahora llegan con el código del contrato (`emergencia_cerrada`, `conflicto_version_reclamo`, `transicion_invalida`, etc.) y no como `conflicto`; el wrapper clasifica por ellos.
 - **Deuda del backend, sin acción aquí:** alcance por unidad del monitoreo (DT-07) y carrera de la activación frente a un viaje que pasa a terminal (DT-16).
 - **Historia técnica E8-T18:** sigue diciendo "contrato por congelar" y SSE; las DEC y el contrato `tracer.37` prevalecen. Falta corregirla en el repo de contexto.- **Textos y cadencia:** textos aprobados (conflicto de reclamo, resolución, cierre, acceso no autorizado) y cadencia del polling (configuración del cliente).

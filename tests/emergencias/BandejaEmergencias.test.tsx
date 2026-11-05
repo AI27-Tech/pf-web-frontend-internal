@@ -372,3 +372,66 @@ describe('bandeja de emergencias: vacía, detalle y gestos de devolución', () =
     expect(navegar).not.toHaveBeenCalled();
   });
 });
+
+describe('cierre de criterios: destinos, avisos y reintento', () => {
+  beforeEach(() => usuario('reaccion', 'sujeto-reaccion'));
+
+  it('muestra fecha de cita y arribo de cada destino (4.2)', async () => {
+    const c = caso();
+    servirCaso(c);
+    server.use(
+      http.get(path('/panel/emergencias/:eid'), () =>
+        HttpResponse.json({
+          caso: c,
+          viaje: {
+            cliente_nombre: 'Cliente',
+            estado: 'EN_TRANSITO',
+            origen: 'O',
+            destinos: [
+              { nombre: 'Saltillo', fecha_cita: '2026-11-04T10:00:00Z', arribo: true },
+              { nombre: 'Monterrey' },
+            ],
+            escolta: [],
+          },
+        }),
+      ),
+    );
+    render(<BandejaEmergencias casoAbierto="em-1" />);
+    expect(await screen.findByText(/Saltillo · Cita/)).toHaveTextContent('Arribó');
+    expect(screen.getByText(/Monterrey · Sin fecha de cita/)).toHaveTextContent('Sin arribo');
+  });
+
+  it('reclamar con éxito muestra aviso de éxito (11.4)', async () => {
+    servirCaso(caso());
+    server.use(
+      http.post(path('/panel/emergencias/:eid/reclamos'), () =>
+        HttpResponse.json({ id: 'rc', version: 2 }, { status: 201 }),
+      ),
+    );
+    render(<BandejaEmergencias casoAbierto="em-1" />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Reclamar' }));
+    expect(await screen.findByText('Caso reclamado. Ya eres su responsable.')).toBeInTheDocument();
+  });
+
+  it('un error al cargar el detalle ofrece Reintentar (11.2)', async () => {
+    const c = caso();
+    let lecturas = 0;
+    server.use(
+      http.get(path('/panel/emergencias'), () =>
+        HttpResponse.json({ items: [c], cursor_siguiente: null }),
+      ),
+      http.get(path('/panel/emergencias/:eid/notas'), () =>
+        HttpResponse.json({ items: [], cursor_siguiente: null }),
+      ),
+      http.get(path('/panel/emergencias/:eid'), () => {
+        lecturas += 1;
+        // Primer intento falla; el reintento responde bien.
+        if (lecturas === 1) return HttpResponse.json({}, { status: 500 });
+        return HttpResponse.json(detalle(c));
+      }),
+    );
+    render(<BandejaEmergencias casoAbierto="em-1" />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Reintentar' }));
+    expect(await screen.findByRole('button', { name: 'Reclamar' })).toBeInTheDocument();
+  });
+});

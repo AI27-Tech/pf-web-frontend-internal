@@ -120,7 +120,22 @@ export function PanelCaso({
           <p>Cliente: {viaje.cliente_nombre}</p>
           <p>Estado del viaje: {viaje.estado}</p>
           <p>Origen: {viaje.origen}</p>
-          <p>Destinos: {viaje.destinos.map((d) => d.nombre).join(', ') || 'Sin destinos'}</p>
+          <h3 className="ui-text-body-sm" style={{ margin: 0 }}>
+            Destinos
+          </h3>
+          {viaje.destinos.length === 0 && <p>Sin destinos.</p>}
+          <ul style={{ margin: 0 }}>
+            {viaje.destinos.map((destino, indice) => (
+              <li key={indice}>
+                {destino.nombre}
+                {destino.fecha_cita
+                  ? ` · Cita ${new Date(destino.fecha_cita).toLocaleString()}`
+                  : ' · Sin fecha de cita'}
+                {' · '}
+                {destino.arribo ? 'Arribó' : 'Sin arribo'}
+              </li>
+            ))}
+          </ul>
           {viaje.tipo_servicio && <p>Tipo de servicio: {viaje.tipo_servicio}</p>}
           {viaje.fecha_hora_servicio && (
             <p>Fecha y hora: {new Date(viaje.fecha_hora_servicio).toLocaleString()}</p>

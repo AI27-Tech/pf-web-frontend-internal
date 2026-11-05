@@ -40,6 +40,7 @@ export function SeccionEmergenciasViaje({
   const [enviandoNota, setEnviandoNota] = useState(false);
   const [errorNota, setErrorNota] = useState<Error | null>(null);
   const [errorCierre, setErrorCierre] = useState<Error | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
 
   const alActivar = useCallback(
     (caso: EmergenciaViaje) => {
@@ -60,6 +61,7 @@ export function SeccionEmergenciasViaje({
     setErrorNota(null);
     try {
       await emergencias.agregarNota(seleccionado, cuerpo);
+      setAviso('Nota guardada.');
       return true;
     } catch (e) {
       const error = e instanceof Error ? e : new Error('No se pudo agregar la nota');
@@ -79,6 +81,7 @@ export function SeccionEmergenciasViaje({
     try {
       await emergencias.cerrar(seleccionado);
       setSeleccionado(undefined);
+      setAviso('Emergencia cerrada.');
       await emergencias.recargar();
     } catch (e) {
       setErrorCierre(e instanceof Error ? e : new Error('No se pudo cerrar la emergencia'));
@@ -101,6 +104,7 @@ export function SeccionEmergenciasViaje({
           onViajeTerminal={onViajeCambio}
         />
       )}
+      {aviso && <p role="status">{aviso}</p>}
       {emergencias.error && <p role="alert">{emergencias.error.message}</p>}
       {emergencias.cargando ? (
         <p role="status">Cargando emergencias...</p>
