@@ -84,3 +84,19 @@ Verificar en `@ai27-tech/ui@0.2.0-beta.6` la API exacta de `Modal` (confirmació
 3. **Frontend:** componentes de `@ai27-tech/ui` (brecha 8).
 4. **Arquitectura:** actualizar la historia técnica E8-T18 en el repo de contexto ("contrato por congelar", SSE).
 5. **Deuda registrada, sin acción aquí:** alcance por unidad del monitoreo (DT-07), carrera en la activación (DT-16), transferencia dirigida (DT-15).
+
+## Cierre de implementación (tareas 1 a 15)
+
+Estado al cierre: tareas 1 a 13 y 15 implementadas; 14 descartada de V1 (DEC-134). Verificación: `typecheck`, `lint`, `test` (72 archivos, 451 pruebas) y `build:mock` pasan.
+
+Brechas y desviaciones que siguen abiertas:
+
+1. **Textos de UI provisionales.** Conflicto de reclamo, resolución, cierre, acceso no autorizado y activación están marcados como provisionales hasta que Producto los apruebe (pendiente de producto, punto 1 de arriba).
+2. **Cadencia del polling.** `VITE_EMERGENCIAS_POLLING_MS` usa 15 s por defecto. Producto debe confirmar la cadencia.
+3. **Confirmación antes de activar.** El diálogo de confirmación de la activación lo agregó la implementación; el spec no lo pide. Producto debe confirmarlo o quitarlo.
+4. **Pruebas no cubiertas.** Quedan sin prueba de integración: 401 delegado al flujo de sesión (lo cubre `client.ts` y sus pruebas existentes), y el fallo de polling combinado con una acción operativa.
+5. **Dependencia faltante en el contrato.** El índice raíz de `@ai27-tech/contracts@0.1.0-tracer.37` importa `@bufbuild/protobuf`, que este repo no declara. Por eso `esTerminal` se importa desde el subpath `estados`. Reportar al equipo de contratos.
+6. **Mocks.** Un caso activado desde el viaje en `src/mocks/emergencias.ts` no aparece en la bandeja mock. Solo afecta a desarrollo con mocks.
+7. **Transferencia dirigida** (DEC-134, DT-15): fuera de V1; el wrapper no la expone.
+8. **Deuda del backend** sin acción en este repo: DT-07 (alcance por unidad) y DT-16 (carrera de activación frente a viaje terminal).
+9. **Pendiente de la verificación visual.** No se revisó la UI en navegador; las pruebas cubren comportamiento y roles, no maquetación.
