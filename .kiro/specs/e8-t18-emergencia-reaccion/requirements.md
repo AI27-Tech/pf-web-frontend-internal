@@ -15,7 +15,7 @@
 - **Sin ubicación** en el caso (DEC-001). La activación no crea incidencia ni condición.
 - **Sin escalamiento automático** de casos no reclamados: es V2 (DEC-099).
 
-**Sobre el contrato (`tracer.35`):** la mitad de Reacción y el cierre están contratados. La **activación por usuario interno, las notas internas y el listado de casos por viaje no existen en el `bff`** (BRECHAS.md, brechas 1 a 3), por lo que los Requirements 1 y 2 y el cierre desde el viaje (Requirement 8, parte B) están **condicionados** a esas brechas y no se construyen con alternativas locales.
+**Sobre el contrato (`tracer.37`):** la bandeja de Reacción, el cierre y el carril del monitoreo por viaje (activar, anotar y listar casos, DEC-135) están contratados y el backend los sirve. Los Requirements 1 y 2 y el cierre desde el viaje (Requirement 8, parte B) ya no están condicionados; su construcción solo espera la subida del pin a `tracer.37` (BRECHAS.md, prerrequisito 7). **La transferencia dirigida queda fuera de V1** (DEC-134, DT-15): el panel no la ofrece y "Devolver al pool" es el único modo de soltar un caso.
 
 Este documento define el comportamiento funcional del frontend interno. El frontend no inventa endpoints, payloads, campos ni componentes compartidos. Autorización, alcance, membresía, ventana de notas, atomicidad, idempotencia y auditoría los resuelve el `bff`/`mensajeria`; la interfaz consume resultados y clasifica respuestas.
 
@@ -35,7 +35,7 @@ Este documento define el comportamiento funcional del frontend interno. El front
 
 ## Requirements
 
-### Requirement 1: Activar una emergencia desde el viaje (condicionado a brecha 1)
+### Requirement 1: Activar una emergencia desde el viaje
 
 **User Story:** Como Usuario_de_monitoreo, quiero activar una emergencia sobre un viaje de mi alcance con un solo gesto, para que Reacción la reciba de inmediato.
 
@@ -52,16 +52,16 @@ Este documento define el comportamiento funcional del frontend interno. El front
 9. IF el `bff` responde `403`, THEN THE Emergencia_UI SHALL informar que la acción no está autorizada para el viaje y SHALL NOT crear ni mostrar un caso.
 10. THE Emergencia_UI SHALL NOT crear incidencia ni condición del viaje al activar, ni enviar ubicación.
 
-### Requirement 2: Notas del caso por el usuario interno (condicionado a brechas 2 y 3)
+### Requirement 2: Notas del caso por el usuario interno
 
-**User Story:** Como Usuario_de_monitoreo, quiero agregar notas a un caso de emergencia, para dar contexto a Reacción.
+**User Story:** Como Usuario_de_monitoreo o Administrador, quiero agregar notas a un caso de emergencia, para dar contexto a Reacción.
 
 #### Acceptance Criteria
 
-1. WHILE un caso del viaje está `abierta`, `en_atencion` o `resuelta`, THE Emergencia_UI SHALL permitir agregarle notas opcionales y multilínea.
+1. WHILE un caso del viaje está `abierta`, `en_atencion` o `resuelta`, THE Emergencia_UI SHALL permitir a `monitorista`, `supervisor`, `coordinador` y `administrador` agregarle notas opcionales y multilínea, y SHALL NOT ofrecerlas a `reaccion`, `ejecutivo` ni `jefe_operativo`.
 2. THE Emergencia_UI SHALL recortar espacios al inicio y al final, SHALL NOT guardar una nota vacía o solo de espacios, y SHALL limitar la captura a 1.000 caracteres con contador visible.
-3. WHERE el viaje tiene más de un caso que admite notas, THE Emergencia_UI SHALL ofrecer un selector del caso destino que muestre únicamente fecha y hora de activación, sin notas ni personal.
-4. WHERE el caso está `cerrada`, THE Emergencia_UI SHALL NOT ofrecer nota ni listarlo en el selector.
+3. WHERE el viaje tiene más de un caso que admite notas, THE Emergencia_UI SHALL ofrecer un selector del caso destino, obtenido con `listarEmergenciasViaje`, que muestre únicamente fecha y hora de activación, sin notas ni personal.
+4. WHERE el caso está `cerrada`, THE Emergencia_UI SHALL NOT ofrecer nota ni listarlo en el selector, aunque `listarEmergenciasViaje` lo devuelva.
 5. IF el `bff` responde `409 emergencia_cerrada`, THEN THE Emergencia_UI SHALL informar que el caso ya no admite notas, conservar el texto capturado y recargar el selector.
 6. WHEN la nota se guarda, THE Emergencia_UI SHALL mostrar un aviso de éxito; la copia al histórico interno del viaje la hace el backend y la interfaz SHALL NOT afirmarla.
 
@@ -107,16 +107,16 @@ Este documento define el comportamiento funcional del frontend interno. El front
 4. IF el `bff` responde `409` (`conflicto_version_reclamo` o caso ya tomado), THEN THE Emergencia_UI SHALL informar que otra persona lo tiene, recargar el caso y SHALL NOT reintentar en silencio.
 5. WHERE el rol es `supervisor` o `coordinador`, THE Emergencia_UI SHALL NOT ofrecer "Reclamar".
 
-### Requirement 6: Liberar y transferir (transferir condicionado a brecha 4)
+### Requirement 6: Liberar el caso (la transferencia dirigida es V2)
 
-**User Story:** Como responsable del caso, Supervisor o Coordinador, quiero devolver el caso al pool o pasarlo a otra persona de Reacción, sin perder el expediente.
+**User Story:** Como responsable del caso, Supervisor o Coordinador, quiero devolver el caso al pool, sin perder el expediente.
 
 #### Acceptance Criteria
 
 1. WHERE el usuario es el responsable vigente, o el rol es `supervisor` o `coordinador`, y el caso está `en_atencion`, THE Emergencia_UI SHALL ofrecer "Devolver al pool".
 2. WHEN el usuario devuelve el caso, THE Emergencia_UI SHALL pedir confirmación, enviar la versión vigente del reclamo y, al confirmarse, mostrar el caso `abierta` sin reclamar con su historial intacto.
 3. THE Emergencia_UI SHALL NOT ofrecer "Devolver al pool" a un integrante de Reacción que no es el responsable vigente.
-4. WHERE el usuario puede transferir y el `bff` expone el listado de integrantes de Reacción, THE Emergencia_UI SHALL permitir elegir el destino, transferir con la versión vigente y conservar el estado del caso; mientras esa lista no exista, SHALL NOT ofrecer transferir (BRECHAS.md, brecha 4).
+4. THE Emergencia_UI SHALL NOT ofrecer "Transferir" en V1: la transferencia dirigida se difirió a V2 porque no existe lectura de integrantes de Reacción (DEC-134, DT-15), aunque `transferirEmergenciaPorId` siga en el contrato.
 5. IF el `bff` responde `403` o `409`, THEN THE Emergencia_UI SHALL informar el motivo, recargar el caso y SHALL NOT dar el cambio por hecho.
 
 ### Requirement 7: Resolver con nota obligatoria
@@ -143,7 +143,7 @@ Este documento define el comportamiento funcional del frontend interno. El front
 2. THE Emergencia_UI SHALL NOT ofrecer "Cerrar caso" a `reaccion` ni a `ejecutivo`, ni en un estado distinto de `resuelta`.
 3. WHEN el cierre se confirma, THE Emergencia_UI SHALL mostrar el caso `cerrada`, sin notas nuevas y fuera de la bandeja.
 4. IF el `bff` responde `403` (fuera de alcance o rol no autorizado) o `409`, THEN THE Emergencia_UI SHALL informar el motivo, recargar el caso y SHALL NOT dar el cierre por hecho.
-5. **Parte B (condicionada a brechas 2 y 3):** WHERE el usuario cierra desde el detalle del viaje, THE Emergencia_UI SHALL ofrecer "Cerrar caso" sobre los casos `resuelta` del selector del viaje; mientras no exista el listado de casos por viaje, SHALL NOT ofrecer ese camino.
+5. **Parte B (desde el viaje):** WHERE el usuario cierra desde el detalle del viaje, THE Emergencia_UI SHALL ofrecer "Cerrar caso" sobre los casos `resuelta` devueltos por `listarEmergenciasViaje`. El `monitorista` y el `administrador` obtienen el `eid` de esa lista y cierran con `cerrarEmergenciaPorId`; no necesitan la bandeja.
 
 ### Requirement 9: Reacción sin acceso general al viaje
 
@@ -186,10 +186,10 @@ Este documento define el comportamiento funcional del frontend interno. El front
 
 ### Escenarios positivos
 
-**Escenario 1. Activación por usuario de monitoreo** (condicionado a brecha 1)  
+**Escenario 1. Activación por usuario de monitoreo**  
 Dado un viaje no terminal de mi alcance, cuando pulso el botón de emergencia, entonces se crea un caso independiente de inmediato, sin nota, y veo el aviso de éxito.
 
-**Escenario 2. Activación sin nota** (condicionado a brecha 1)  
+**Escenario 2. Activación sin nota**  
 Dado que acabo de activar, cuando cierro el panel de nota sin escribir, entonces el caso sigue creado y no se crea incidencia ni condición.
 
 **Escenario 3. Reclamar y resolver**  
@@ -204,15 +204,15 @@ Dado que soy el responsable, cuando devuelvo el caso, entonces vuelve a `abierta
 **Escenario 6. Detalle con escolta**  
 Dado un caso con viaje asignado, cuando lo abro, entonces veo cliente, estado, origen, destinos, escolta y teléfonos de custodios, sin ubicación.
 
-**Escenario 7. Nueva información después de resolver** (condicionado a brechas 2 y 3)  
+**Escenario 7. Nueva información después de resolver**  
 Dado un caso `resuelta`, cuando el usuario de monitoreo agrega una nota, entonces complementa el expediente sin reabrirlo.
 
 ### Escenarios negativos y de borde
 
-**Escenario 8. Reintento técnico vs. dos pulsaciones** (condicionado a brecha 1)  
+**Escenario 8. Reintento técnico vs. dos pulsaciones**  
 Dado que la activación falló por red, cuando reintento, entonces se reutiliza el mismo `activacion_id` y queda un solo caso; y cuando pulso de nuevo después de una confirmación, entonces se crea otro caso con otro `activacion_id`.
 
-**Escenario 9. Viaje terminal** (condicionado a brecha 1)  
+**Escenario 9. Viaje terminal**  
 Dado un viaje cerrado, cancelado o rechazado, cuando abro su detalle, entonces no hay botón de emergencia; y si el `bff` responde `409 viaje_en_estado_terminal`, el viaje se recarga.
 
 **Escenario 10. El Ejecutivo no activa**  
@@ -239,7 +239,7 @@ Dado un usuario `reaccion`, cuando intenta una acción general del viaje, entonc
 **Escenario 17. Falla de actualización**  
 Dado que una consulta periódica falla, cuando el `bff` no responde, entonces se conserva lo mostrado, se avisa que puede estar desactualizado y se reintenta; las acciones siguen operando.
 
-**Escenario 18. Varios casos en un viaje** (condicionado a brechas 2 y 3)  
+**Escenario 18. Varios casos en un viaje**  
 Dado un viaje con dos casos que admiten notas, cuando agrego una nota, entonces elijo el caso por fecha y hora sin ver notas ni personal.
 
 **Escenario 19. Sesión expirada**  
@@ -252,7 +252,7 @@ Dado que la sesión expira durante una acción, cuando el `bff` responde `401`, 
 - E8-T8: detalle del viaje (lugar del botón de emergencia).
 - E8-T15: patrón de bandeja con reclamo, versión de concurrencia y polling que esta tarea reutiliza (su SSE es deuda, DT-01).
 - DEC-001, DEC-027, DEC-028, DEC-034, DEC-045 #9, DEC-099, DEC-121, DEC-125, DEC-126, DEC-130, DEC-131, DEC-132, DEC-133.
-- Contrato generado `@ai27-tech/contracts`: la superficie de bandeja y caso entra en `tracer.34`/`tracer.35`; el `package.json` fija hoy `tracer.33` y hay que subirlo (tarea 1). Componentes de `@ai27-tech/ui`.
+- Contrato generado `@ai27-tech/contracts`: la bandeja y el caso entran en `tracer.34`/`tracer.35` y el carril del monitoreo por viaje en `tracer.37`; el `package.json` fija hoy `tracer.36` y hay que subirlo (tarea 1). Componentes de `@ai27-tech/ui`.
 
 ## Fuera de alcance
 
@@ -269,16 +269,16 @@ Dado que la sesión expira durante una acción, cuando el `bff` responde `401`, 
 
 Estas notas son prerrequisitos de verificación y no reglas. El detalle está en `BRECHAS.md`.
 
-- **Brecha 1:** no existe en el `bff` la activación por usuario interno (solo `activarEmergenciaCliente`). Condiciona el Requirement 1.
-- **Brecha 2:** no existe en el `bff` la escritura de notas por usuario interno (solo `agregarNotaEmergenciaCliente`). Condiciona el Requirement 2.
-- **Brecha 3:** no existe en el `bff` el listado de casos de un viaje para audiencia interna; sin él no hay selector ni `eid` para cerrar o anotar desde el viaje. Condiciona los Requirements 2 y 8 (parte B).
-- **Brecha 4:** `transferirEmergenciaPorId` exige `responsable_destino_id`, y no hay forma de listar integrantes de Reacción. Condiciona la transferencia (Requirement 6.4).
-- **Brecha 5:** no hay un campo de contrato que diga si un viaje está en estado terminal para decidir el botón; se usa el token `estado` de `ViajeInterno` contra el enum generado de estados.
-- **Discrepancia 6:** `listarBandejaEmergencias` documenta `404` para otro rol, mientras DEC-132 fija `403` para la audiencia interna. La interfaz trata ambos como acceso no autorizado.
-- **Pin del contrato:** hay que subir `@ai27-tech/contracts` de `tracer.33` a `tracer.35` y agregarlo a `minimumReleaseAgeExclude`. No se hace sin aprobación explícita.
-- **Historia técnica E8-T18:** sigue diciendo "contrato por congelar" y SSE; las DEC y el contrato `tracer.35` prevalecen. Falta corregirla en el repo de contexto.
-- **Textos y cadencia:** textos aprobados (conflicto de reclamo, resolución, cierre, acceso no autorizado) y cadencia del polling (configuración del cliente).
+- **Brechas 1, 2 y 3:** resueltas en `tracer.37` (`activarEmergenciaInterno`, `agregarNotaEmergenciaInterno`, `listarEmergenciasViaje`, DEC-135). Los Requirements 1, 2 y 8 (parte B) se construyen sobre ellas.
+- **Brecha 4:** la transferencia dirigida se difirió a V2 (DEC-134, DT-15). Requirement 6.4 la excluye.
+- **Brecha 5:** resuelta; los estados terminales se derivan de `esTerminal`/`ESTADOS_TERMINALES` del paquete generado.
+- **Discrepancia 6:** resuelta; era un error de redacción. Interno sin acceso: `403` (DEC-132). La interfaz mantiene el tratamiento común de `403` y `404`.
+- **Pin del contrato:** hay que subir `@ai27-tech/contracts` de `tracer.36` a `tracer.37` y agregarlo a `minimumReleaseAgeExclude`. No se hace sin aprobación explícita.
+- **Códigos `409` de `mensajeria`:** ahora llegan con el código del contrato (`emergencia_cerrada`, `conflicto_version_reclamo`, `transicion_invalida`, etc.) y no como `conflicto`; el wrapper clasifica por ellos.
+- **Deuda del backend, sin acción aquí:** alcance por unidad del monitoreo (DT-07) y carrera de la activación frente a un viaje que pasa a terminal (DT-16).
+- **Historia técnica E8-T18:** sigue diciendo "contrato por congelar" y SSE; las DEC y el contrato `tracer.37` prevalecen. Falta corregirla en el repo de contexto.- **Textos y cadencia:** textos aprobados (conflicto de reclamo, resolución, cierre, acceso no autorizado) y cadencia del polling (configuración del cliente).
 - **Componentes de `@ai27-tech/ui`:** verificar la API exacta de `Modal`, `FilterTable`, `Textarea`, `Badge` y `Toast`.
+- **Administrador:** lista, anota y cierra casos pero no activa (DEC-045 #9); falta que Producto defina dónde ve el selector de casos.
 
 ## Trazabilidad
 

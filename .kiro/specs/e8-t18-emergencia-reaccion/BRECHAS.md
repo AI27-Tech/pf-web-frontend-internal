@@ -1,76 +1,86 @@
 # Brechas de E8-T18 — Emergencia: activación por usuario de monitoreo y bandeja de Reacción
 
-**Verificado el 2026-11-04.** Contexto: `ai27-platform-context` en `ad3290c` (al día con `origin/main`). Contrato: último tag publicado `v0.1.0-tracer.35`; `package.json` del frontend fija `@ai27-tech/contracts@0.1.0-tracer.33`; el checkout local de `pf-pkg-contracts` está en la rama `feat/ficha-tecnica-e-historico-tracer21`, no en un tag, así que se leyó el contrato con `git show v0.1.0-tracer.35:contracts/openapi/bff.yaml`. Librería: `@ai27-tech/ui@0.2.0-beta.6`.
+**Verificado el 2026-11-04 (segunda pasada, tras la respuesta del equipo de backend).** Contexto: `ai27-platform-context` en `86e20c5` (al día con `origin/main`; registra DEC-134, DEC-135 y DT-15/DT-16). Contrato: último tag publicado `v0.1.0-tracer.37`, leído con `git show v0.1.0-tracer.37:contracts/openapi/bff.yaml` (el checkout local de `pf-pkg-contracts` sigue en la rama `feat/ficha-tecnica-e-historico-tracer21`). `package.json` del frontend fija `@ai27-tech/contracts@0.1.0-tracer.36`. Librería: `@ai27-tech/ui@0.2.0-beta.6`.
 
-**Superficie contratada en `tracer.35` (BFF, audiencia Interno):** `listarBandejaEmergencias`, `obtenerEmergencia`, `listarNotasEmergenciaPorId`, `reclamarEmergenciaPorId`, `liberarReclamoEmergenciaPorId`, `transferirEmergenciaPorId`, `resolverEmergenciaPorId`, `cerrarEmergenciaPorId`. Con `tracer.33` (el pin actual) solo existen las tres operaciones de cliente (`listarEmergenciasCliente`, `activarEmergenciaCliente`, `agregarNotaEmergenciaCliente`).
+**Superficie contratada en `tracer.37` (BFF, audiencia Interno):**
+
+- Bandeja de Reacción (`tracer.34`/`.35`): `listarBandejaEmergencias`, `obtenerEmergencia`, `listarNotasEmergenciaPorId`, `reclamarEmergenciaPorId`, `liberarReclamoEmergenciaPorId`, `transferirEmergenciaPorId`, `resolverEmergenciaPorId`, `cerrarEmergenciaPorId`. El backend ya las sirve.
+- Carril del monitoreo por viaje (`tracer.37`, DEC-135): `listarEmergenciasViaje` (`GET /api/v1/panel/viajes/{id}/emergencias`), `activarEmergenciaInterno` (`POST` en la misma ruta) y `agregarNotaEmergenciaInterno` (`POST /api/v1/panel/viajes/{id}/emergencias/{eid}/notas`).
 
 ## Resumen
 
-| #   | Brecha                                            | Tipo             | Bloquea                                             |
-| --- | ------------------------------------------------- | ---------------- | --------------------------------------------------- |
-| 1   | Activar emergencia como usuario de monitoreo      | Contrato         | Requirement 1, escenarios 1, 2, 8 y 9               |
-| 2   | Agregar nota como usuario interno                 | Contrato         | Requirement 2, escenarios 7 y 18                    |
-| 3   | Listar los casos de un viaje (audiencia interna)  | Contrato         | Requirement 2.3, Requirement 8.5, escenarios 7 y 18 |
-| 4   | Listar integrantes de Reacción para transferir    | Contrato         | Requirement 6.4                                     |
-| 5   | Indicador de viaje terminal para decidir el botón | Contrato (menor) | Requirement 1.1 y 1.2                               |
-| 6   | Código `404` vs `403` en la bandeja               | Discrepancia     | Ninguno (se trata igual)                            |
-| 7   | Pin del contrato en `tracer.33`                   | Prerrequisito    | Todo el spec                                        |
-| 8   | Componentes de librería por confirmar             | UI               | Diseño de vistas                                    |
+| #   | Brecha                                            | Estado                                                                       |
+| --- | ------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 1   | Activar emergencia como usuario de monitoreo      | **Resuelta** en `tracer.37` (`activarEmergenciaInterno`)                     |
+| 2   | Agregar nota como usuario interno                 | **Resuelta** en `tracer.37` (`agregarNotaEmergenciaInterno`)                 |
+| 3   | Listar los casos de un viaje (audiencia interna)  | **Resuelta** en `tracer.37` (`listarEmergenciasViaje`)                       |
+| 4   | Listar integrantes de Reacción para transferir    | **Diferida a V2** (DEC-134, DT-15). El panel no ofrece transferir            |
+| 5   | Indicador de viaje terminal para decidir el botón | **Resuelta**: `esTerminal`/`ESTADOS_TERMINALES` en el paquete generado       |
+| 6   | Código `404` vs `403` en la bandeja               | **Resuelta**: era error de redacción; interno `403`, cliente `404` (DEC-132) |
+| 7   | Pin del contrato                                  | **Pendiente de aprobación**: subir a `tracer.37` (hoy `tracer.36`)           |
+| 8   | Componentes de librería por confirmar             | **Abierta** (tarea 1)                                                        |
 
-## Brecha 1 — Activación por usuario de monitoreo
+## Brecha 1 — Activación por usuario de monitoreo (resuelta)
 
-- **Qué pide la tarea:** E8-T18 y `E7-HU-029` (Escenario 1): un Monitorista, Supervisor o Coordinador presiona el botón y se crea de inmediato un caso con origen `operacion`, idempotente por reentrega.
-- **Qué existe:** `POST /api/v1/viajes/{id}/emergencias` (`activarEmergenciaCliente`, entrada `{activacion_id}`), pensada para el portal de cliente. `mensajeria.yaml` tiene `activarEmergencia` y `OrigenActivacion` ya incluye `operacion`, pero el BFF no expone la ruta interna.
-- **Qué falta:** una operación del BFF para audiencia Interno que reenvíe a `mensajeria.activarEmergencia` con origen `operacion`, con guarda de rol (`monitorista`/`supervisor`/`coordinador`) y de alcance por unidad, `activacion_id` idempotente, respuestas `201` (nuevo) y `200` (reentrega), y `409 viaje_en_estado_terminal`.
-- **Impacto:** el Requirement 1 queda condicionado; no se construye el botón con wire. No se reutiliza `activarEmergenciaCliente` (otra audiencia y otro origen).
-- **Propuesta:** solicitud al repo de contratos y al dueño de `bff` (E7-T1 declara el endpoint como pendiente técnico).
+`POST /api/v1/panel/viajes/{id}/emergencias`, `activarEmergenciaInterno`, entrada `{activacion_id}`.
 
-## Brecha 2 — Notas del usuario interno
+- Activan `monitorista`, `supervisor` y `coordinador`; otro rol interno recibe `403`.
+- `201` si el caso es nuevo, `200` si es reentrega con el mismo `activacion_id`. Ambos devuelven `EmergenciaViaje` (`id`, `estado`, `activada_en`).
+- `409 viaje_en_estado_terminal` en `CERRADO`, `CANCELADO`, `RECHAZADO_POR_AI27` y `RECHAZADO_POR_CLIENTE`. Hay `404` si el viaje no existe.
+- El caso queda bajo la empresa del viaje, así que el cliente lo ve en su portal (DEC-133).
+- **Deuda conocida (DT-16):** si el viaje pasa a terminal entre la lectura y la activación, el caso se crea; queda visible y se cierra normal.
+- **Deuda conocida (DT-07):** el alcance por unidad no se aplica; el límite es el rol.
 
-- **Qué pide la tarea:** `E7-HU-029`: notas opcionales de 1 a 1.000 caracteres en `abierta`, `en_atencion` y `resuelta`; `cerrada` no admite.
-- **Qué existe:** `POST /api/v1/viajes/{id}/emergencias/{eid}/notas` (`agregarNotaEmergenciaCliente`, `{cuerpo}`). Por id solo existe lectura (`listarNotasEmergenciaPorId`); `DEC-121 #4` fija que Reacción no escribe.
-- **Qué falta:** operación de BFF para audiencia Interno (monitoreo) que reenvíe a `mensajeria.agregarNotaEmergencia`, con `409 emergencia_cerrada`.
-- **Impacto:** Requirement 2 condicionado.
-- **Propuesta:** solicitud de contrato junto con la brecha 1.
+## Brecha 2 — Notas del usuario interno (resuelta)
 
-## Brecha 3 — Casos de un viaje (audiencia interna)
+`POST /api/v1/panel/viajes/{id}/emergencias/{eid}/notas`, `agregarNotaEmergenciaInterno`, entrada `{cuerpo}` de 1 a 1.000 caracteres; responde `201`.
 
-- **Qué pide la tarea:** selector mínimo por fecha y hora cuando hay varios casos abiertos; el usuario de monitoreo necesita el `eid` para anotar y cerrar.
-- **Qué existe:** `listarEmergenciasCliente` (vista mínima de cliente, sin `eid` utilizable por el panel). `obtenerEmergencia` y la bandeja son de `reaccion`/`supervisor`/`coordinador` y no cubren al `monitorista` ni al `administrador`; `cerrarEmergenciaPorId` sí admite Monitorista y Administrador pero necesita el `eid`.
-- **Qué falta:** una lectura de BFF para audiencia Interno con los casos del viaje (id, estado, `activada_en`) filtrada por alcance de monitoreo, sin notas ni personal en la fila del selector.
-- **Impacto:** sin ella, el cierre y las notas desde el viaje no tienen de dónde tomar el `eid`. Requirements 2.3 y 8.5 condicionados. El cierre desde la bandeja (Supervisor/Coordinador) sí es viable.
-- **Propuesta:** solicitud de contrato. Pregunta abierta para el dueño del `bff`: ¿cómo cierra un `monitorista` o `administrador` si no ve la bandeja (DEC-131 le da bandeja solo a supervisor y coordinador)?
+- Anotan `monitorista`, `supervisor`, `coordinador` y `administrador`. `reaccion` y `ejecutivo` reciben `403`.
+- `409 emergencia_cerrada` en un caso `cerrada`. Texto vacío tras recortar: `400`.
+- Admitida en `abierta`, `en_atencion` y `resuelta`.
 
-## Brecha 4 — Destino de la transferencia
+## Brecha 3 — Casos del viaje (resuelta)
 
-- **Qué pide la tarea:** `E7-HU-030` y DEC-126: el responsable, un Supervisor o un Coordinador transfieren el caso a otro miembro de Reacción.
-- **Qué existe:** `transferirEmergenciaPorId` con `responsable_destino_id` obligatorio ("miembro de Reacción", DEC-130). No existe lectura de miembros de Reacción. T15 resolvió algo similar diferiendo la transferencia dirigida a V2 (DEC-119, DT-04), pero para emergencias DEC-126 la mantiene en V1.
-- **Qué falta:** una lectura de BFF con los integrantes de Reacción (id y nombre mostrable).
-- **Impacto:** Requirement 6.4 condicionado; "Devolver al pool" (`liberarReclamoEmergenciaPorId`) funciona sin la brecha y cubre el mínimo.
-- **Propuesta:** solicitud de contrato o decisión de Producto de diferir como en DEC-119.
+`GET /api/v1/panel/viajes/{id}/emergencias`, `listarEmergenciasViaje`. Responde `{items: EmergenciaViaje[]}` sin paginación, del más antiguo al más reciente por `activada_en`, **incluyendo `cerrada`**. La ven `monitorista`, `supervisor`, `coordinador` y `administrador`.
 
-## Brecha 5 — Viaje terminal
+- La UI filtra: el selector de notas solo ofrece casos `abierta`, `en_atencion` y `resuelta`; el cierre solo `resuelta`.
+- Respuesta a la pregunta abierta: el `monitorista` y el `administrador` sacan el `eid` de esta lista y cierran con `cerrarEmergenciaPorId`. No necesitan la bandeja.
 
-- **Qué pide la tarea:** botón ausente en los cuatro estados terminales.
-- **Qué existe:** `ViajeInterno.estado` como token canónico (ADR 19) y el enum generado de estados de viaje.
-- **Qué falta:** confirmar en el paquete instalado (tarea 1) que el enum permite derivar los estados terminales sin duplicarlos a mano. Si no, es solicitud de contrato.
-- **Impacto:** Requirement 1.1 y 1.2; el `409 viaje_en_estado_terminal` del `bff` es la autoridad final.
+## Brecha 4 — Transferencia (diferida a V2)
 
-## Discrepancia 6 — `404` vs `403`
+DEC-134 y DT-15: el nombre de un miembro de Reacción solo vive en el IdP (misma raíz que DEC-119/DT-04), así que no hay lectura de destinos. `transferirEmergenciaPorId` sigue en el contrato y responde, pero **el panel no ofrece el botón**. Para soltar un caso detenido en V1 se usa "Devolver al pool" (`liberarReclamoEmergenciaPorId`). DEC-134 enmienda DEC-126 en este punto.
 
-`listarBandejaEmergencias` dice que "otro rol responde `404`"; DEC-132 fija `403` para audiencia Interno. La interfaz clasifica ambos como acceso no autorizado. Confirmar con el dueño del `bff`.
+## Brecha 5 — Viaje terminal (resuelta)
 
-## Prerrequisito 7 — Pin del contrato
+El paquete generado exporta `esTerminal` y `ESTADOS_TERMINALES` (`estados` en `@ai27-tech/contracts`; en Go, `EstadoViaje.EsTerminal()`). El botón se deriva de ahí, sin copiar la lista. El `409 viaje_en_estado_terminal` del `bff` es la autoridad final.
 
-El pin `tracer.33` no trae la bandeja. Subir a `tracer.35` y agregar `|| 0.1.0-tracer.35` a la entrada de `@ai27-tech/contracts` en `minimumReleaseAgeExclude` de `pnpm-workspace.yaml`. `tracer.35` también hace obligatorio `nombre` en `crearIntencionSubidaAdjunto` (ruptura declarada en `rompimientos/v0.1.0-tracer.35.yaml`): verificar que ningún código del frontend la use antes de subir. **Requiere aprobación explícita.**
+Nota de limpieza: `src/mocks/data.ts` y `src/mocks/handlers.ts` ya duplican los cuatro terminales a mano. Al tocar esos archivos para el handler de activación, usar `esTerminal`.
+
+## Discrepancia 6 — `404` vs `403` (resuelta)
+
+Era un error de redacción del contrato. Interno sin acceso: `403` (DEC-132). Cliente: `404`. Corregido en `bff` y `mensajeria`. La UI sigue tratando `403` y `404` de la bandeja como acceso no autorizado, por defensa.
+
+## Prerrequisito 7 — Pin del contrato (pendiente de aprobación)
+
+Subir `@ai27-tech/contracts` de `tracer.36` a `tracer.37` y agregar `|| 0.1.0-tracer.37` a su entrada en `minimumReleaseAgeExclude` de `pnpm-workspace.yaml`. `tracer.36` solo añadió el filtro `en_curso` del dashboard; `tracer.37` añade el carril de emergencias del monitoreo.
+
+La ruptura de `tracer.35` (`nombre` obligatorio en `crearIntencionSubidaAdjunto`) **no afecta**: `useEvidenciaViaje.ts` ya envía `nombre: archivo.name`. **Requiere aprobación explícita.**
+
+## Cambio de comportamiento a probar: códigos `409` de mensajería
+
+El backend corrigió que todo `409` de `mensajeria` llegaba con `codigo: "conflicto"`. Ahora llega el código del contrato: `emergencia_cerrada`, `conflicto_version_reclamo`, `conversacion_solo_lectura`, `stream_resync_required` y `transicion_invalida`. Efecto en este repo:
+
+- El wrapper de emergencias debe clasificar por esos códigos (tarea 2).
+- `useTrabajoBandeja.ts` y `conversaciones.ts` (E8-T15) comparaban contra esos códigos y esas ramas no se cumplían. Verificar que ahora se ejecutan; no es alcance de E8-T18, pero conviene probarlo.
 
 ## Brecha de UI 8 — Componentes
 
 Verificar en `@ai27-tech/ui@0.2.0-beta.6` la API exacta de `Modal` (confirmación), `Textarea`, `Badge`, `Toast`, `FilterTable`/`Table`, `Select` y `Button`. No se detectó en el índice un componente de estado vacío, de banner ni de skeleton: si faltan, se componen con primitivas (`Card`, texto) como en `BannerEstado.tsx` de T15 y se registra la solicitud a la librería, sin copiar componentes localmente.
 
-## Pendientes que quedan como pregunta abierta
+## Pendientes que siguen abiertos
 
-1. Producto: textos aprobados de conflicto de reclamo, resolución, cierre y acceso no autorizado; cadencia del polling.
-2. Dueño de `bff`: brechas 1, 2, 3 y 4; discrepancia 6; cierre por `monitorista`/`administrador`.
-3. Arquitectura: actualizar la historia técnica E8-T18 ("contrato por congelar", SSE) con DEC-121 y `tracer.35`.
-4. Producto: dónde se ve el botón para `administrador`, que puede cerrar casos pero no figura entre quienes activan (DEC-045 #9).
+1. **Producto:** textos aprobados de conflicto de reclamo, resolución, cierre y acceso no autorizado; cadencia del polling.
+2. **Producto:** dónde ve el `administrador` el selector de casos. Lista, anota y cierra, pero no activa (DEC-045 #9), así que no ve el botón.
+3. **Frontend:** componentes de `@ai27-tech/ui` (brecha 8).
+4. **Arquitectura:** actualizar la historia técnica E8-T18 en el repo de contexto ("contrato por congelar", SSE).
+5. **Deuda registrada, sin acción aquí:** alcance por unidad del monitoreo (DT-07), carrera en la activación (DT-16), transferencia dirigida (DT-15).
