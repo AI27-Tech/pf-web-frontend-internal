@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+
+# Formato y lint sobre lo staged, y typecheck del proyecto completo.
+#
+# El typecheck va completo a proposito: un cambio de tipo en lib/ rompe consumidores
+# que no estan en el commit, y lint-staged no los veria.
+#
+# NO se invoca ningun gestor de paquetes aqui. Husky pone node_modules/.bin al frente
+# del PATH, asi que los binarios locales se resuelven solos. Es lo que hace que el hook
+# funcione igual desde la terminal que desde un cliente grafico —GitHub Desktop, Tower,
+# el panel de git del editor— que arranca con un PATH minimo y sin pnpm.
+
+if [ ! -d node_modules ]; then
+  echo "pre-commit: falta node_modules. Instala las dependencias antes de commitear." >&2
+  exit 1
+fi
+
+lint-staged || exit 1
+tsc --build --force || exit 1
