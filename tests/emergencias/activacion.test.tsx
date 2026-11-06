@@ -82,6 +82,27 @@ describe('carril de emergencias del viaje: visibilidad por rol', () => {
     expect(screen.getByRole('button', { name: 'Agregar nota' })).toBeInTheDocument();
   });
 
+  it('jefe_operativo no ve el carril ni pide la lista (el bff le responde 403)', async () => {
+    let pedidas = 0;
+    server.use(
+      http.get(path(`/panel/viajes/${VIAJE}/emergencias`), () => {
+        pedidas += 1;
+        return HttpResponse.json({ codigo: 'prohibido', mensaje: 'prohibido' }, { status: 403 });
+      }),
+    );
+    const { container } = render(
+      <SeccionEmergenciasViaje
+        viajeId={VIAJE}
+        estadoViaje="EN_TRANSITO"
+        rol="jefe_operativo"
+        onViajeCambio={vi.fn()}
+      />,
+    );
+    await new Promise((r) => setTimeout(r, 50));
+    expect(container).toBeEmptyDOMElement();
+    expect(pedidas).toBe(0);
+  });
+
   it('reaccion no ve el carril', async () => {
     sesion.value = { id: 'sujeto-reaccion', rol: 'reaccion' };
     servirCasos([]);

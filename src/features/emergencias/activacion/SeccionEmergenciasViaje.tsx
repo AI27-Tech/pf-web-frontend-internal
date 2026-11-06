@@ -29,12 +29,18 @@ interface SeccionEmergenciasViajeProps {
  * Carril de emergencias del detalle del viaje: activar, seleccionar caso, anotar y cerrar
  * casos `resuelta`. No se monta para roles sin carril (p. ej. Reacción o ejecutivo).
  */
-export function SeccionEmergenciasViaje({
+export function SeccionEmergenciasViaje(props: SeccionEmergenciasViajeProps) {
+  // Sin carril no se monta CarrilEmergencias: el bff responde 403 a la lista para otros roles.
+  if (props.rol === null || !ROLES_CON_CARRIL.includes(props.rol)) return null;
+  return <CarrilEmergencias {...props} rol={props.rol} />;
+}
+
+function CarrilEmergencias({
   viajeId,
   estadoViaje,
   rol,
   onViajeCambio,
-}: SeccionEmergenciasViajeProps) {
+}: SeccionEmergenciasViajeProps & { rol: Rol }) {
   const emergencias = useEmergenciasViaje(viajeId);
   const [seleccionado, setSeleccionado] = useState<string | undefined>(undefined);
   const [enviandoNota, setEnviandoNota] = useState(false);
@@ -49,8 +55,6 @@ export function SeccionEmergenciasViaje({
     },
     [emergencias],
   );
-
-  if (rol === null || !ROLES_CON_CARRIL.includes(rol)) return null;
 
   const casoActual = emergencias.casos.find((c) => c.id === seleccionado);
   const sujetoPuedeCerrar = casoActual !== undefined && puedeCerrar(rol, casoActual);
