@@ -1,0 +1,92 @@
+/*
+ * Textos de la administración (E8-T19).
+ *
+ * Son textos de trabajo (PA-4): viven aquí para revisarlos en un solo lugar
+ * cuando Product Management los fije. Solo afirman lo que el contrato garantiza:
+ * no mencionan auditoría, notificación, corte inmediato ni que la sesión "ya
+ * dejó de funcionar".
+ */
+
+import type { Rol } from '@ai27-tech/contracts/roles';
+
+export const TEXTOS_ADMINISTRACION = {
+  accesoNoAutorizado:
+    'No tiene acceso a la administración. Esta sección es solo para el rol administrador.',
+  seccionNoPublicada: 'Esta sección aún no está disponible: el servicio no publica esta capacidad.',
+
+  // Afordancias (afordancias.ts)
+  propioRolAlcance: 'No se puede modificar el propio rol ni el propio alcance.',
+  sinIdentificarSesion:
+    'No se pudo identificar la sesión: el rol y el alcance están deshabilitados.',
+  usuarioInactivo: 'El usuario está desactivado: reactívelo para modificar su rol o alcance.',
+  solicitudEnCurso: 'Hay una solicitud en curso para este usuario.',
+  propioRevocacion: 'Para cerrar su propia sesión, use el cierre de sesión.',
+
+  // Consultas (estadoConsulta / RegionConsulta)
+  cargando: 'Cargando…',
+  vacio: 'No hay resultados.',
+  errorConsulta: 'No se pudo cargar la información.',
+  reintentar: 'Reintentar',
+  sinAccesoConsulta: 'No tiene acceso a esta información.',
+  datosDesactualizados:
+    'Estos datos son de una consulta anterior. La consulta falló; esta lista no es la vigente.',
+
+  // Errores clasificados (clasificarError.ts)
+  autorizacionInsuficiente:
+    'No tiene permiso para realizar esta acción. El servidor rechazó la solicitud.',
+  autoescaladaBloqueada:
+    'El servidor rechazó el cambio sobre su propio usuario. El rol y el alcance no cambiaron.',
+  usuarioNoDisponible: 'El usuario no está disponible. Puede que ya no exista.',
+  conflictoRolGenerico:
+    'No se pudo cambiar el rol por un conflicto con el estado actual del usuario. Recargue e intente de nuevo.',
+  conflictoGenerico:
+    'La solicitud entró en conflicto con el estado actual. Recargue e intente de nuevo.',
+  conflictoRolUsuarioDesactivado: 'No se puede cambiar el rol de un usuario desactivado.',
+  conflictoRolIgual: 'El usuario ya tiene ese rol.',
+  conflictoRolUltimoAdministrador:
+    'No se puede quitar el rol de administrador al último administrador activo.',
+  ultimoAdministrador:
+    'No se puede desactivar al último administrador activo. El usuario sigue activo.',
+  identificadorDuplicado: 'Ya existe un usuario con ese identificador de usuario.',
+  validacion: 'Revise los datos capturados.',
+  organizacionInvalida: 'La organización seleccionada ya no es válida. Seleccione otra.',
+  nombreOrganizacionDuplicado: 'Ya existe una organización con ese nombre.',
+  servicioNoDisponibleAccion:
+    'El servicio no está disponible. La acción no se aplicó; intente de nuevo más tarde.',
+  resultadoNoConfirmado:
+    'Resultado no confirmado: no se pudo confirmar la respuesta del servidor. No se pudo confirmar si la acción se aplicó.',
+  superficieNoPublicada: 'Esta función aún no está disponible en el servicio.',
+} as const;
+
+/** Textos de éxito. Solo afirman plazos que el contrato o el PO fijaron (PA-4, PA-8, PA-9). */
+export const TEXTOS_EXITO = {
+  altaUsuario: 'Usuario creado.',
+  cambioRol:
+    'Rol actualizado. El cambio surte efecto en el siguiente refresco de la sesión del usuario.',
+  desactivarUsuario: 'Usuario desactivado. El corte de su acceso ocurre en máximo 30 segundos.',
+  reactivarUsuario: 'Usuario reactivado.',
+  alcance: 'Alcance actualizado.',
+  guardarOrganizacion: 'Organización guardada.',
+  desactivarOrganizacion:
+    'Organización desactivada. Sus usuarios pierden el acceso en su siguiente refresco.',
+  revocarSesiones: 'Revocación aplicada. El corte de las sesiones ocurre en máximo 30 segundos.',
+} as const;
+
+export type AccionExito = keyof typeof TEXTOS_EXITO;
+
+/** Texto de éxito de una acción. Limitado a lo que el contrato garantiza. */
+export function mensajesDeExito(accion: AccionExito): string {
+  return TEXTOS_EXITO[accion];
+}
+
+/** Etiqueta visible de cada rol del enum. Texto de trabajo. */
+export const ETIQUETAS_ROL: Record<Rol, string> = {
+  cliente: 'Cliente',
+  jefe_operativo: 'Jefe operativo',
+  monitorista: 'Monitorista',
+  supervisor: 'Supervisor',
+  coordinador: 'Coordinador',
+  ejecutivo: 'Ejecutivo',
+  reaccion: 'Reacción',
+  administrador: 'Administrador',
+};

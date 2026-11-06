@@ -1,22 +1,37 @@
 /*
- * Administración del sistema — E4 / gobierno
- * Stub temporal: la pestaña debe aterrizar en una pantalla real, no en Not Found.
+ * Administración del sistema — E8-T19.
+ *
+ * La pantalla decide el acceso con el rol de la sesión (afordancia de interfaz;
+ * la autoridad real la aplica el `bff`). La sección y el usuario viajan en la URL:
+ * `?seccion=usuarios|organizaciones` y `?usuario=<id>`.
  */
 
 import { createFileRoute } from '@tanstack/react-router';
 
-import { StubPage } from '@/components/layout/StubPage';
+import { Administracion } from '@/features/administracion/Administracion';
+import type { SeccionAdministracion } from '@/features/administracion/AdministracionAutorizada';
 
 export const Route = createFileRoute('/_private/administracion')({
-  component: AdministracionPage,
+  validateSearch: (busqueda: Record<string, unknown>) => ({
+    seccion: (busqueda.seccion === 'organizaciones'
+      ? 'organizaciones'
+      : 'usuarios') as SeccionAdministracion,
+    usuario: typeof busqueda.usuario === 'string' ? busqueda.usuario : undefined,
+  }),
+  component: AdministracionRoute,
 });
 
-function AdministracionPage() {
+function AdministracionRoute() {
+  const { seccion, usuario } = Route.useSearch();
+  const navigate = Route.useNavigate();
+
   return (
-    <StubPage
-      titulo="Administración"
-      historia="E4"
-      descripcion="Aquí irá la administración del sistema: usuarios, roles, membresías y la revocación de sesiones."
+    <Administracion
+      seccion={seccion}
+      usuarioId={usuario ?? null}
+      onCambiarSeccion={(nueva) => {
+        void navigate({ search: { seccion: nueva, usuario: undefined } });
+      }}
     />
   );
 }

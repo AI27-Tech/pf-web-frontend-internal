@@ -11,7 +11,7 @@ La tarea 19 (reverificación al publicarse el contrato) está **bloqueada y fuer
 
 ## Estado de avance
 
-**Sin iniciar.** Spec de requisitos, diseño y brechas aprobados; actualizados con DEC-139 y la respuesta de Lead (2026-11-05). Brechas de contrato (B-1, B-2, B-3, B-5, B-15, B-16) esperan la ola de B-9; B-4 espera PA-3. El pin efectivo de `@ai27-tech/contracts` en `package.json` es `0.1.0-tracer.36` (B-9); no se sube en este ciclo.
+**Bloque A ejecutado** (tareas 1 a 7), salvo la 4.6 y las pruebas opcionales (`*`) no escritas: la 4.6 necesita tocar `src/mocks/handlers.ts`, que este plan excluye. Verificado: `tsc --build`, `eslint .`, `vite build --mode mock` y `vitest run` (479 pruebas). El Bloque B sigue sin iniciar, bloqueado por contrato. Spec de requisitos, diseño y brechas aprobados; actualizados con DEC-139 y la respuesta de Lead (2026-11-05). Brechas de contrato (B-1, B-2, B-3, B-5, B-15, B-16) esperan la ola de B-9; B-4 espera PA-3. El pin efectivo de `@ai27-tech/contracts` en `package.json` es `0.1.0-tracer.36` (B-9); no se sube en este ciclo.
 
 ## Task Dependency Graph
 
@@ -63,29 +63,29 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
 
 ### Bloque A: construible hoy (sin contrato nuevo)
 
-- [ ] 1. Guarda de rol y navegación
-  - [ ] 1.1 Crear `src/features/administracion/puedeAdministrar.ts` con `ROLES_ADMINISTRACION = [Rol.Administrador]` y `puedeAdministrar(rol)` (mismo patrón que `puedeUsarMonitoreo`). En `src/components/layout/navigationConfig.ts` cambiar la entrada `administracion` a `visiblePara: ROLES_ADMINISTRACION` (conservar `ocultarPara: []`). No tocar la guarda `_private.tsx`.
+- [x] 1. Guarda de rol y navegación
+  - [x] 1.1 Crear `src/features/administracion/puedeAdministrar.ts` con `ROLES_ADMINISTRACION = [Rol.Administrador]` y `puedeAdministrar(rol)` (mismo patrón que `puedeUsarMonitoreo`). En `src/components/layout/navigationConfig.ts` cambiar la entrada `administracion` a `visiblePara: ROLES_ADMINISTRACION` (conservar `ocultarPara: []`). No tocar la guarda `_private.tsx`.
     - _Requirements: 1.1, 1.2, 1.3 (B-12)_
-  - [ ] 1.2 Actualizar `tests/layout/navigation-visibility.test.ts`: hoy espera "Administración" para Reacción y otros roles; debe afirmar que solo `administrador` la ve y que los otros siete roles no.
+  - [x] 1.2 Actualizar `tests/layout/navigation-visibility.test.ts`: hoy espera "Administración" para Reacción y otros roles; debe afirmar que solo `administrador` la ve y que los otros siete roles no.
     - _Requirements: 1.1, 1.3; escenario 9_
   - [ ]* 1.3 Escribir prueba de propiedades para la visibilidad por rol
     - **Property 1: Visibilidad por rol**
     - **Validates: Requirements 1.1, 1.3**
 
-- [ ] 2. Tipos y funciones puras
-  - [ ] 2.1 Crear `src/lib/contracts/administracion.ts` (re-exporta `Rol` de `@ai27-tech/contracts/roles` y el tipo `Unidad`; ningún tipo de wire a mano) y la lista de opciones de rol derivada de los valores del enum `Rol` (ocho valores, sin Auditor, sin lista local).
+- [x] 2. Tipos y funciones puras
+  - [x] 2.1 Crear `src/lib/contracts/administracion.ts` (re-exporta `Rol` de `@ai27-tech/contracts/roles` y el tipo `Unidad`; ningún tipo de wire a mano) y la lista de opciones de rol derivada de los valores del enum `Rol` (ocho valores, sin Auditor, sin lista local).
     - _Requirements: 1.6, 3.1, 5.1, 12.3, 13.8_
-  - [ ] 2.2 Implementar `relacionConSesion.ts`: `propio | ajeno | indeterminado` comparando **identificadores** (nunca nombres); `indeterminado` si falta el identificador de la sesión o el del IdP del objetivo (punto de extensión B-14).
+  - [x] 2.2 Implementar `relacionConSesion.ts`: `propio | ajeno | indeterminado` comparando **identificadores** (nunca nombres); `indeterminado` si falta el identificador de la sesión o el del IdP del objetivo (punto de extensión B-14).
     - _Requirements: 7.7_
-  - [ ] 2.3 Implementar `afordancias.ts`: `capacidades(objetivo, relacion, enCurso)` con `puedeCambiarRol`, `puedeEditarAlcance`, `puedeDesactivar`, `puedeReactivar`, `puedeRevocarSesiones` y `motivoBloqueo` según la tabla del diseño (falla cerrada en `indeterminado`; PA-7: desactivar no depende de la relación). Incluir `controlesDeAlcance(rol)`: solo `monitorista`, `supervisor` y `coordinador`; nunca clientes para `ejecutivo`; monitoreo y conversación sin control compartido.
+  - [x] 2.3 Implementar `afordancias.ts`: `capacidades(objetivo, relacion, enCurso)` con `puedeCambiarRol`, `puedeEditarAlcance`, `puedeDesactivar`, `puedeReactivar`, `puedeRevocarSesiones` y `motivoBloqueo` según la tabla del diseño (falla cerrada en `indeterminado`; PA-7: desactivar no depende de la relación). Incluir `controlesDeAlcance(rol)`: solo `monitorista`, `supervisor` y `coordinador`; nunca clientes para `ejecutivo`; monitoreo y conversación sin control compartido.
     - _Requirements: 6.5, 6.6, 6.8, 7.1, 7.5, 8.8, 8.10, 11.11_
-  - [ ] 2.4 Implementar `validacion.ts`: `validarAlta` (nombre e identificador recortados no vacíos, rol del enum, organización activa única solo si el rol es `cliente`; el comando descarta la organización y nunca lleva `tenant_id` si el rol no es `cliente`), `validarOrganizacion` (nombre, correo con `@` y teléfono obligatorios, sin formato de teléfono; PA-2), `validarMotivo` (motivo de revocación obligatorio, no vacío tras recortar; PA-1) y `organizacionesOfrecibles` (solo activas).
+  - [x] 2.4 Implementar `validacion.ts`: `validarAlta` (nombre e identificador recortados no vacíos, rol del enum, organización activa única solo si el rol es `cliente`; el comando descarta la organización y nunca lleva `tenant_id` si el rol no es `cliente`), `validarOrganizacion` (nombre, correo con `@` y teléfono obligatorios, sin formato de teléfono; PA-2), `validarMotivo` (motivo de revocación obligatorio, no vacío tras recortar; PA-1) y `organizacionesOfrecibles` (solo activas).
     - _Requirements: 3.2, 3.3, 3.4, 3.5, 4.1, 4.2, 4.3, 4.4, 4.6, 9.11_
-  - [ ] 2.5 Implementar `estadoConsulta.ts`: función pura que deriva `EstadoConsulta` (`cargando`, `vacio`, `error`, `sin_acceso`, `datos`, `datos_desactualizado`) de `isLoading`, `isError`, el `status` y `data`; ver nota sobre el nombre del estado en Notes.
+  - [x] 2.5 Implementar `estadoConsulta.ts`: función pura que deriva `EstadoConsulta` (`cargando`, `vacio`, `error`, `sin_acceso`, `datos`, `datos_desactualizado`) de `isLoading`, `isError`, el `status` y `data`; ver nota sobre el nombre del estado en Notes.
     - _Requirements: 2.5, 2.7, 2.8, 9.13, 13.1, 13.2_
-  - [ ] 2.6 Implementar `clasificarError.ts` y `mensajes.ts`: clases que extienden `ApiError` (autorización insuficiente, auto-escalada bloqueada, usuario no disponible, conflicto de rol con motivo, último administrador, identificador duplicado, validación, organización inválida, nombre de organización duplicado, servicio no disponible, superficie no publicada); `clasificarError(operación, status, codigo)` total; `401` y sesión finalizada pasan sin transformar; `409` con `codigo` desconocido produce conflicto genérico sin afirmar motivo. `mensajesDeExito(acción)` limitado a lo que el contrato garantiza ("siguiente refresco", "máximo 30 segundos") y textos centralizados marcados como de trabajo (PA-4).
+  - [x] 2.6 Implementar `clasificarError.ts` y `mensajes.ts`: clases que extienden `ApiError` (autorización insuficiente, auto-escalada bloqueada, usuario no disponible, conflicto de rol con motivo, último administrador, identificador duplicado, validación, organización inválida, nombre de organización duplicado, servicio no disponible, superficie no publicada); `clasificarError(operación, status, codigo)` total; `401` y sesión finalizada pasan sin transformar; `409` con `codigo` desconocido produce conflicto genérico sin afirmar motivo. `mensajesDeExito(acción)` limitado a lo que el contrato garantiza ("siguiente refresco", "máximo 30 segundos") y textos centralizados marcados como de trabajo (PA-4).
     - _Requirements: 4.5, 5.4, 5.6, 5.10, 6.10, 8.3, 10.6, 11.4, 11.5, 12.1, 12.6, 13.3_
-  - [ ] 2.7 Implementar `usarEnvioUnico.ts`: cerrojo en `useRef` combinado con `isPending`, clave `(acción, objetivo)`, liberado al terminar con éxito o error; sin reintento automático.
+  - [x] 2.7 Implementar `usarEnvioUnico.ts` (nombre final: `useEnvioUnico.ts`, por la regla react-hooks): cerrojo en `useRef` combinado con `isPending`, clave `(acción, objetivo)`, liberado al terminar con éxito o error; sin reintento automático.
     - _Requirements: 3.10, 5.2, 8.5, 8.6, 9.10, 10.11, 11.3, 13.4_
   - [ ]* 2.8 Escribir prueba de propiedades para `relacionConSesion`
     - **Property 7: El sujeto de la sesión se identifica por identificador, no por nombre**
@@ -115,26 +115,26 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
     - **Property 19: Los textos de éxito se limitan a lo que el contrato garantiza**
     - **Validates: Requirements 4.5, 5.4, 5.10, 6.10, 8.3, 10.6, 11.4, 11.5, 12.1, 12.6**
 
-- [ ] 3. Puerto de administración, implementación "no publicada" y provider
-  - [ ] 3.1 Crear `src/lib/api/administracion.ts`: interfaz `AdministracionPort` con `capacidades` y los métodos del diseño (usuarios, organizaciones, alcance, sesiones), `ErrorSuperficieNoPublicada` y la implementación "no publicada" (`capacidades` en `false`; cada método lanza `ErrorSuperficieNoPublicada`). Los nombres son de trabajo, no `operationId`; el puerto no incluye revocar por `sesion_id`, enumerar sesiones, auditoría, historial, edición de tenant, clientes de un Ejecutivo, organización padre ni transferencia. Cada método recibe `accessToken`. No agregar handlers MSW.
+- [x] 3. Puerto de administración, implementación "no publicada" y provider
+  - [x] 3.1 Crear `src/lib/api/administracion.ts`: interfaz `AdministracionPort` con `capacidades` y los métodos del diseño (usuarios, organizaciones, alcance, sesiones), `ErrorSuperficieNoPublicada` y la implementación "no publicada" (`capacidades` en `false`; cada método lanza `ErrorSuperficieNoPublicada`). Los nombres son de trabajo, no `operationId`; el puerto no incluye revocar por `sesion_id`, enumerar sesiones, auditoría, historial, edición de tenant, clientes de un Ejecutivo, organización padre ni transferencia. Cada método recibe `accessToken`. No agregar handlers MSW.
     - _Requirements: 6.5, 9.5, 9.6, 11.9, 12.2, 12.4, 12.5, 13.4, 13.8_
-  - [ ] 3.2 Crear `AdministracionProvider` (contexto React) y `useAdministracionPort()`; el valor por defecto es la implementación "no publicada". Los hooks no importan el adaptador directamente.
+  - [x] 3.2 Crear `AdministracionProvider` (contexto React) y `useAdministracionPort()`; el valor por defecto es la implementación "no publicada". Los hooks no importan el adaptador directamente.
     - _Requirements: 13.4_
-  - [ ] 3.3 Crear el puerto falso de pruebas `tests/administracion/puertoFalso.ts`: dobles configurables por método con espías, para inyectar vía `AdministracionProvider` (apoyo a las pruebas de ambos bloques; no es un handler MSW).
+  - [x] 3.3 Crear el puerto falso de pruebas `tests/administracion/puertoFalso.ts`: dobles configurables por método con espías, para inyectar vía `AdministracionProvider` (apoyo a las pruebas de ambos bloques; no es un handler MSW).
     - _Requirements: 13.4_
   - [ ]* 3.4 Escribir prueba estructural del puerto: el conjunto de métodos es el declarado y no incluye los excluidos
     - _Requirements: 6.5, 9.5, 9.6, 11.9, 12.2, 12.4, 12.5_
 
 - [ ] 4. Pantalla base, estados y accesibilidad
-  - [ ] 4.1 Implementar `Administracion.tsx` y `AdministracionAutorizada.tsx` y reemplazar el stub `src/routes/_private/administracion.tsx`: título "Administración" siempre visible; sin sesión o rol distinto de `administrador` se muestra el aviso de acceso no autorizado y **no se monta** `AdministracionAutorizada` (sin hooks de red, sin controles). Dentro de la pantalla autorizada, secciones `usuarios` / `organizaciones` por parámetros de búsqueda (`?seccion=`, `?usuario=`) alternadas con `Button`; mientras la capacidad del puerto no esté publicada cada sección muestra el estado `brecha`. Ninguna acción consulta el rol local para decidir su resultado.
+  - [x] 4.1 Implementar `Administracion.tsx` y `AdministracionAutorizada.tsx` y reemplazar el stub `src/routes/_private/administracion.tsx`: título "Administración" siempre visible; sin sesión o rol distinto de `administrador` se muestra el aviso de acceso no autorizado y **no se monta** `AdministracionAutorizada` (sin hooks de red, sin controles). Dentro de la pantalla autorizada, secciones `usuarios` / `organizaciones` por parámetros de búsqueda (`?seccion=`, `?usuario=`) alternadas con `Button`; mientras la capacidad del puerto no esté publicada cada sección muestra el estado `brecha`. Ninguna acción consulta el rol local para decidir su resultado.
     - _Requirements: 1.2, 1.3, 1.5, 13.1, 13.5_
-  - [ ] 4.2 Crear `SelectorRol.tsx` (`Radio` dentro de `FormSection` con leyenda; ocho opciones desde el enum; marca visible del rol actual cuando se indica) y `EstadoBadge.tsx` (`Badge` con texto activo / inactivo; sin estado "bloqueado").
+  - [x] 4.2 Crear `SelectorRol.tsx` (`Radio` dentro de `FormSection` con leyenda; ocho opciones desde el enum; marca visible del rol actual cuando se indica) y `EstadoBadge.tsx` (`Badge` con texto activo / inactivo; sin estado "bloqueado").
     - _Requirements: 1.6, 3.1, 5.1, 12.3, 13.5, 13.6, 13.9_
-  - [ ] 4.3 Crear el componente de región de consulta (`Card` + texto con `role="status"` / `role="alert"`) para los estados `brecha`, `cargando`, `vacio`, `error` con reintento manual, `sin_acceso` y `datos_desactualizado` (datos previos visibles y atenuados con aviso persistente; nunca vacío sin datos que conservar).
+  - [x] 4.3 Crear el componente de región de consulta (`Card` + texto con `role="status"` / `role="alert"`) para los estados `brecha`, `cargando`, `vacio`, `error` con reintento manual, `sin_acceso` y `datos_desactualizado` (datos previos visibles y atenuados con aviso persistente; nunca vacío sin datos que conservar).
     - _Requirements: 2.5, 2.7, 2.8, 9.9, 9.13, 13.1, 13.2_
-  - [ ] 4.4 Implementar el estado y el foco de los diálogos: reducer puro de diálogo de formulario (`cerrado`, `editando`, `enviando`, `error_general`, `error_de_campo`) y de confirmación (`cerrado`, `confirmando`, `enviando`, `error`, más `consultando_consecuencia` / `error_consecuencia` / `listo` para organización); configuración común de `Modal` que bloquea `closeOnEsc`, `closeOnOverlayClick` y `showCloseButton` mientras haya solicitud pendiente; devolución del foco al elemento que abrió o, si ya no existe, al encabezado de la sección. Sin duplicar `Modal`.
+  - [x] 4.4 Implementar el estado y el foco de los diálogos: reducer puro de diálogo de formulario (`cerrado`, `editando`, `enviando`, `error_general`, `error_de_campo`) y de confirmación (`cerrado`, `confirmando`, `enviando`, `error`, más `consultando_consecuencia` / `error_consecuencia` / `listo` para organización); configuración común de `Modal` que bloquea `closeOnEsc`, `closeOnOverlayClick` y `showCloseButton` mientras haya solicitud pendiente; devolución del foco al elemento que abrió o, si ya no existe, al encabezado de la sección. Sin duplicar `Modal`.
     - _Requirements: 13.4, 13.10, 13.11_
-  - [ ] 4.5 Ajustar `src/lib/api/unidades.ts` con `listarTodasUnidades` que recorre todas las páginas (como `listarTodosClientes`) y crear la lista de opciones de unidades para el selector de alcance. La etiqueta es el identificador devuelto, sin inventar nombre o placa (B-16). No guarda alcance (eso es B-4).
+  - [x] 4.5 Ajustar `src/lib/api/unidades.ts` con `listarTodasUnidades` que recorre todas las páginas (como `listarTodosClientes`) y crear la lista de opciones de unidades para el selector de alcance. La etiqueta es el identificador devuelto, sin inventar nombre o placa (B-16). No guarda alcance (eso es B-4).
     - _Requirements: 6.1 (solo opciones)_
   - [ ] 4.6 Agregar en `src/mocks/data.ts` una credencial demo con rol `administrador` (contrato de sesión existente) para ver la pantalla en `dev:mock`; no agregar handlers de sujetos, organizaciones, alcance ni revocación.
     - _Requirements: 1.1_
@@ -145,24 +145,24 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
     - **Property 3: Las opciones de rol son exactamente el enum**
     - **Validates: Requirements 1.6, 3.1, 5.1, 12.3**
 
-- [ ] 5. Controles de usuario con bloqueo de auto-escalada
-  - [ ] 5.1 Crear `AccionesUsuario.tsx` y `AvisoBloqueo`: recibe un modelo de vista de usuario y la relación con la sesión y renderiza cambio de rol, alcance, desactivar, reactivar y revocar a partir de `capacidades`; los bloqueados quedan deshabilitados con el motivo visible ("no se puede modificar el propio rol ni el propio alcance", "no se pudo identificar la sesión") y ningún medio de disparo (clic, Enter, reenvío) emite una solicitud. Revocación sobre uno mismo no se ofrece y remite al cierre de sesión. Cambiar al rol que ya tiene **no** se bloquea en el cliente.
+- [x] 5. Controles de usuario con bloqueo de auto-escalada
+  - [x] 5.1 Crear `AccionesUsuario.tsx` y `AvisoBloqueo`: recibe un modelo de vista de usuario y la relación con la sesión y renderiza cambio de rol, alcance, desactivar, reactivar y revocar a partir de `capacidades`; los bloqueados quedan deshabilitados con el motivo visible ("no se puede modificar el propio rol ni el propio alcance", "no se pudo identificar la sesión") y ningún medio de disparo (clic, Enter, reenvío) emite una solicitud. Revocación sobre uno mismo no se ofrece y remite al cierre de sesión. Cambiar al rol que ya tiene **no** se bloquea en el cliente.
     - _Requirements: 7.1, 7.2, 7.5, 7.6, 7.7, 8.8, 8.10, 11.11, 13.5_
   - [ ]* 5.2 Escribir prueba de propiedades para objetivos bloqueados
     - **Property 9: Ninguna solicitud sobre un objetivo bloqueado**
     - **Validates: Requirements 7.2, 7.5, 8.8**
 
-- [ ] 6. Pruebas de la definición de terminado (Bloque A)
-  - [ ] 6.1 DoD 1: probar para cada uno de los siete roles distintos de `administrador` y para "sin sesión" que la navegación no muestra "Administración", que `/administracion` por URL muestra el aviso de acceso no autorizado y que no hay controles de asignación de roles ni de alcance ni llamadas al puerto.
+- [x] 6. Pruebas de la definición de terminado (Bloque A)
+  - [x] 6.1 DoD 1: probar para cada uno de los siete roles distintos de `administrador` y para "sin sesión" que la navegación no muestra "Administración", que `/administracion` por URL muestra el aviso de acceso no autorizado y que no hay controles de asignación de roles ni de alcance ni llamadas al puerto.
     - _Requirements: 1.1, 1.2, 1.3; escenario 9_
-  - [ ] 6.2 DoD 2 (parte de interfaz): con la sesión simulada como el propio objetivo, probar que cambio de rol y de alcance están deshabilitados con el motivo visible y que no se envía solicitud por ningún medio; y que con identificador no comparable (`indeterminado`) ocurre lo mismo con el aviso de sesión no identificable. La prueba de que el servidor rechaza con `403` queda en la tarea 17.6 y en la 19.4.
+  - [x] 6.2 DoD 2 (parte de interfaz): con la sesión simulada como el propio objetivo, probar que cambio de rol y de alcance están deshabilitados con el motivo visible y que no se envía solicitud por ningún medio; y que con identificador no comparable (`indeterminado`) ocurre lo mismo con el aviso de sesión no identificable. La prueba de que el servidor rechaza con `403` queda en la tarea 17.6 y en la 19.4.
     - _Requirements: 7.1, 7.2, 7.5; escenario 10_
   - [ ]* 6.3 Pruebas de accesibilidad de ejemplo: nombre accesible no vacío en cada control, `Radio` de rol con leyenda, `Badge` con texto, foco inicial dentro del diálogo, Tab atrapado, foco devuelto y respaldo al encabezado, operación completa con teclado.
     - _Requirements: 13.5, 13.6, 13.10, 13.11_
   - [ ]* 6.4 Pruebas de exclusiones de V1: no existen controles de auditoría, rol Auditor, break-glass, transferencia, edición de tenant, organización padre, reactivación de organizaciones, edición del identificador de usuario ni revocación por `sesion_id`.
     - _Requirements: 9.5, 9.6, 9.7, 11.9, 11.10, 12.2, 12.3, 12.4, 12.5_
 
-- [ ] 7. Checkpoint - Bloque A completo
+- [x] 7. Checkpoint - Bloque A completo
   - Ensure all tests pass, ask the user if questions arise.
 
 ### Bloque B: condicionado a contrato (contra el puerto falso; no inventar `operationId`, rutas ni campos)

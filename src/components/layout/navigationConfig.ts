@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 
 import { ROLES_CON_MONITOREO } from '@/features/monitoreo/puedeUsarMonitoreo';
+import { ROLES_ADMINISTRACION } from '@/features/administracion/puedeAdministrar';
 
 /**
  * Definición de una entrada de navegación.
@@ -104,6 +105,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
     icon: Settings,
     path: '/administracion',
     ocultarPara: [],
+    // E8-T19: solo el administrador ve la administración.
+    visiblePara: ROLES_ADMINISTRACION,
   },
 ];
 
