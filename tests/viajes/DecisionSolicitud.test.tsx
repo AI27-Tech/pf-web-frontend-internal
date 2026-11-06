@@ -99,7 +99,8 @@ describe('E8-T9 · guard de aprobación (fecha/hora obligatoria)', () => {
       ),
       http.patch(path('/viajes/:id/fecha-hora'), async ({ request }) => {
         const body = (await request.json()) as { fecha_hora_servicio?: string };
-        if (!body.fecha_hora_servicio) {
+        // Como el bff: exige RFC3339 con zona. El input datetime-local da hora local sin zona.
+        if (body.fecha_hora_servicio !== new Date('2026-10-21T10:00').toISOString()) {
           return HttpResponse.json({ error: { codigo: 'fecha_hora_invalida' } }, { status: 400 });
         }
         tieneFecha = true;
@@ -123,6 +124,29 @@ describe('E8-T9 · guard de aprobación (fecha/hora obligatoria)', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: /Transicionar a: APROBADO/i })).toBeEnabled(),
     );
+  });
+});
+
+describe('ETA: el valor del input local viaja en RFC3339', () => {
+  it('Editar ETA manda la hora con zona, como la exige el bff', async () => {
+    let recibido: string | undefined;
+    server.use(
+      http.get(path('/viajes/:id/detalle'), () => HttpResponse.json(solicitud(null))),
+      http.patch(path('/viajes/:id/eta'), async ({ request }) => {
+        recibido = ((await request.json()) as { eta_estimado?: string }).eta_estimado;
+        return HttpResponse.json(solicitud(null).viaje);
+      }),
+    );
+    renderDetalle();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Editar ETA' }));
+    await userEvent.type(
+      await screen.findByPlaceholderText('DD/MM/YYYY HH:MM'),
+      '2026-10-21T18:30',
+    );
+    await userEvent.click(screen.getByRole('button', { name: /^Confirmar$/i }));
+
+    await waitFor(() => expect(recibido).toBe(new Date('2026-10-21T18:30').toISOString()));
   });
 });
 

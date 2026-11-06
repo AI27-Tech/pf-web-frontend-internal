@@ -1,5 +1,15 @@
 ﻿# CHANGELOG
 
+## 2026:11:06 10:12
+
+**Resumen:** Defectos del recorrido final del demo en el detalle del viaje.
+
+- **Fecha/hora del servicio y ETA se guardan.** El campo de fecha del navegador da hora local sin zona (`2026-11-06T18:09`) y el bff exige RFC3339, así que los dos formularios respondían 400 y ninguna solicitud del cliente se podía aprobar desde la UI. `useDetalleViaje.ts` convierte los dos valores con `fechaHoraAISO`, el mismo helper del alta de viajes.
+- **El jefe operativo ya no pide las emergencias del viaje.** `SeccionEmergenciasViaje` ocultaba el carril, pero cargaba la lista antes de revisar el rol, y el bff respondía 403. El hook ahora vive en `CarrilEmergencias`, que solo se monta para monitorista, supervisor, coordinador y administrador (DEC-135).
+- **Pruebas:** el mock de `fecha-hora` de `DecisionSolicitud.test.tsx` exige RFC3339 como el bff, hay una prueba nueva de ETA y otra de que el jefe operativo no hace la petición. Las tres fallan sin el cambio.
+
+**Verificación:** `vite build --mode mock`, `lint`, `typecheck` y `test` (459) en verde. Recorrido en navegador contra core `v0.1.5` y el portal del cliente de `-m`, con Keycloak real: 29/29 pasos OK, incluidos fijar fecha/hora, aprobar y registrar ETA desde la UI.
+
 ## 2026:11:05 14:00
 
 **Resumen:** Implementación de E8-T18 (emergencia y bandeja de Reacción), salvo la transferencia dirigida, que queda fuera de V1 (DEC-134). Incluye la bandeja de Reacción en `/emergencias` (lista, detalle, reclamar, devolver, resolver con nota y cerrar) y el carril de emergencias del monitoreo en el detalle del viaje (activar, anotar, seleccionar caso y cerrar). Sube `@ai27-tech/contracts` de `tracer.36` a `tracer.37`, que publica el carril del monitoreo (DEC-135). El wrapper clasifica los `409` por su código de contrato (`emergencia_cerrada`, `conflicto_version_reclamo`, `viaje_en_estado_terminal`). `typecheck`, `lint`, `build:mock` y la suite completa (73 archivos, 457 pruebas) pasan. **La tarea no está cerrada:** faltan decisiones de Producto (textos aprobados, dónde ve el `administrador` el selector de casos, visibilidad de Emergencias para `jefe_operativo`) y la revisión manual final.
