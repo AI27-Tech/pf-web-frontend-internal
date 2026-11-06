@@ -1,5 +1,19 @@
 ﻿# CHANGELOG
 
+## 2026:11:06 14:30
+
+**Resumen:** Las unidades del roster se muestran por económico, placas y nombre de custodios en lugar de UUID (DT-19). Sube `@ai27-tech/contracts` de `tracer.37` a `tracer.38`, donde `Unidad` del `bff` trae `vehiculo` y `custodios` legibles. Aplica en "Asignar escolta", en el alta de viaje y en la ficha técnica. Si un vehículo o custodio ya no está en el catálogo, se muestra su id.
+
+**Cambios:**
+
+- `src/features/viajes/unidadLegible.ts` (nuevo): `vehiculoLegible` y `custodiosLegibles`, con el id como respaldo.
+- `src/features/viajes/detalle/asignacionForm.tsx`, `src/features/viajes/crear/CrearViaje.tsx`, `src/features/viajes/ficha/FichaTecnicaViaje.tsx`: usan esos helpers.
+- `src/mocks/data.ts`: el roster demo trae vehículo y custodios legibles.
+- `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`: pin `tracer.38` y su excepción de antigüedad.
+- Pruebas: `AsignacionForm.test.tsx` (nombres y respaldo al id) y `FichaTecnicaViaje.test.tsx` (texto nuevo de la escolta).
+
+**Verificación:** `vite build --mode mock`, `lint`, `typecheck` y `test` (460) en verde. Recorrido en navegador contra core con el `bff` de esta ola y Keycloak real: 29/29.
+
 ## 2026:11:06 10:12
 
 **Resumen:** Defectos del recorrido final del demo en el detalle del viaje.

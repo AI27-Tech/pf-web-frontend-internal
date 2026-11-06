@@ -14,6 +14,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { useSession } from '@/context/SessionContext';
 import type { FichaTecnica } from '@/lib/contracts/fichaTecnica';
 import type { Unidad } from '@/lib/contracts/unidades';
+import { custodiosLegibles, vehiculoLegible } from '../unidadLegible';
 import type { ViajeInterno } from '@/lib/contracts/viajeDetalle';
 
 import { FichaEditor } from './FichaEditor';
@@ -214,8 +215,7 @@ function Escolta({
                 <span>Unidad {unidad.id}</span>
                 <span style={{ color: 'var(--ui-color-text-muted)' }}>
                   {' '}
-                  — {unidad.tipo} · vehículo {unidad.vehiculo_id} · {unidad.custodios_ids.length}{' '}
-                  custodio(s)
+                  — {unidad.tipo} · {vehiculoLegible(unidad)} · {custodiosLegibles(unidad)}
                 </span>
               </li>
             ))}
