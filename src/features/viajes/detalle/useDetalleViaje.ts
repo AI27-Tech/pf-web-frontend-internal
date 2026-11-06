@@ -25,6 +25,7 @@ import {
 import type { Unidad } from '@/lib/contracts/unidades';
 import type { EstadoViaje, ViajeDetalle, ViajeInterno } from '@/lib/contracts/viajeDetalle';
 
+import { fechaHoraAISO } from '../crear/adaptadorCrearViaje';
 import { accionesDesde } from './accionesTransicion';
 
 export interface UseDetalleViajeOptions {
@@ -129,7 +130,7 @@ export function useDetalleViaje(
 
   const mutacionEta = useMutation({
     mutationFn: async ({ eta_estimado }: { eta_estimado: string }) =>
-      fijarEta(id, { eta_estimado }, accessToken),
+      fijarEta(id, { eta_estimado: fechaHoraAISO(eta_estimado) }, accessToken),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['viaje', id] });
     },
@@ -137,7 +138,11 @@ export function useDetalleViaje(
 
   const mutacionFechaHora = useMutation({
     mutationFn: async ({ fecha_hora_servicio }: { fecha_hora_servicio: string }) =>
-      completarFechaHora(id, { fecha_hora_servicio }, accessToken),
+      completarFechaHora(
+        id,
+        { fecha_hora_servicio: fechaHoraAISO(fecha_hora_servicio) },
+        accessToken,
+      ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['viaje', id] });
     },
