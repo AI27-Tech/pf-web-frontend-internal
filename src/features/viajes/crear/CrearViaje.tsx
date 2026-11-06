@@ -37,13 +37,14 @@ import {
   type ResultadoCrearViaje,
 } from './adaptadorCrearViaje';
 import { useCrearViaje } from './useCrearViaje';
+import { custodiosLegibles, vehiculoLegible } from '../unidadLegible';
 
 const columnasUnidades = [
-  { key: 'vehiculo_id', header: 'Vehículo', accessor: 'vehiculo_id' as const },
+  { key: 'vehiculo_id', header: 'Vehículo', cell: (unidad: Unidad) => vehiculoLegible(unidad) },
   {
     key: 'custodios_ids',
     header: 'Custodios',
-    cell: (unidad: Unidad) => unidad.custodios_ids.join(', '),
+    cell: (unidad: Unidad) => custodiosLegibles(unidad),
   },
   { key: 'tipo', header: 'Tipo', accessor: 'tipo' as const },
 ];
