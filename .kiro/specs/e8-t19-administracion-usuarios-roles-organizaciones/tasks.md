@@ -7,11 +7,11 @@ Las tareas implementan el comportamiento funcional de E8-T19 en `/administracion
 - **Bloque A (tareas 1 a 7): construible hoy, sin contrato nuevo.** Guarda de rol y navegación (B-12), funciones puras, puerto `AdministracionPort` con implementación "no publicada", pantalla base con estados, bloqueo de auto-escalada en la interfaz y las pruebas de la definición de terminado (DoD) que no dependen del servidor.
 - **Bloque B (tareas 8 a 17): condicionado a contrato.** Cada tarea indica "**Bloqueada por B-n**" y se implementa **contra el puerto falso** inyectado por `AdministracionProvider`. Los nombres del puerto son de trabajo del frontend: **no** son `operationId` del `bff`. No se inventan rutas, campos ni handlers MSW (`src/mocks/handlers.ts` no se toca).
 
-La tarea 19 (reverificación al publicarse el contrato) está **bloqueada y fuera de este ciclo**. Las exclusiones de V1 (auditoría, rol Auditor, break-glass, transferencia, edición de tenant, organización padre, datos de contacto, motivo de revocación, revocación por `sesion_id`, asignación de clientes a un Ejecutivo) no se construyen.
+La tarea 19 (reverificación al publicarse el contrato) está **bloqueada y fuera de este ciclo**. Las exclusiones de V1 (auditoría, rol Auditor, break-glass, transferencia, edición de tenant, organización padre, reactivación de organizaciones, edición del identificador de usuario, revocación por `sesion_id`, asignación de clientes a un Ejecutivo) no se construyen.
 
 ## Estado de avance
 
-**Sin iniciar.** Spec de requisitos, diseño y brechas aprobados. El pin efectivo de `@ai27-tech/contracts` en `package.json` es `0.1.0-tracer.36` (B-9); no se sube en este ciclo.
+**Sin iniciar.** Spec de requisitos, diseño y brechas aprobados; actualizados con DEC-139 y la respuesta de Lead (2026-11-05). Brechas de contrato (B-1, B-2, B-3, B-5, B-15, B-16) esperan la ola de B-9; B-4 espera PA-3. El pin efectivo de `@ai27-tech/contracts` en `package.json` es `0.1.0-tracer.36` (B-9); no se sube en este ciclo.
 
 ## Task Dependency Graph
 
@@ -79,7 +79,7 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
     - _Requirements: 7.7_
   - [ ] 2.3 Implementar `afordancias.ts`: `capacidades(objetivo, relacion, enCurso)` con `puedeCambiarRol`, `puedeEditarAlcance`, `puedeDesactivar`, `puedeReactivar`, `puedeRevocarSesiones` y `motivoBloqueo` según la tabla del diseño (falla cerrada en `indeterminado`; PA-7: desactivar no depende de la relación). Incluir `controlesDeAlcance(rol)`: solo `monitorista`, `supervisor` y `coordinador`; nunca clientes para `ejecutivo`; monitoreo y conversación sin control compartido.
     - _Requirements: 6.5, 6.6, 6.8, 7.1, 7.5, 8.8, 8.10, 11.11_
-  - [ ] 2.4 Implementar `validacion.ts`: `validarAlta` (nombre e identificador recortados no vacíos, rol del enum, organización activa única solo si el rol es `cliente`; el comando descarta la organización y nunca lleva `tenant_id` si el rol no es `cliente`), `validarNombreOrganizacion` y `organizacionesOfrecibles` (solo activas).
+  - [ ] 2.4 Implementar `validacion.ts`: `validarAlta` (nombre e identificador recortados no vacíos, rol del enum, organización activa única solo si el rol es `cliente`; el comando descarta la organización y nunca lleva `tenant_id` si el rol no es `cliente`), `validarOrganizacion` (nombre, correo con `@` y teléfono obligatorios, sin formato de teléfono; PA-2), `validarMotivo` (motivo de revocación obligatorio, no vacío tras recortar; PA-1) y `organizacionesOfrecibles` (solo activas).
     - _Requirements: 3.2, 3.3, 3.4, 3.5, 4.1, 4.2, 4.3, 4.4, 4.6, 9.11_
   - [ ] 2.5 Implementar `estadoConsulta.ts`: función pura que deriva `EstadoConsulta` (`cargando`, `vacio`, `error`, `sin_acceso`, `datos`, `datos_desactualizado`) de `isLoading`, `isError`, el `status` y `data`; ver nota sobre el nombre del estado en Notes.
     - _Requirements: 2.5, 2.7, 2.8, 9.13, 13.1, 13.2_
@@ -102,8 +102,8 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
   - [ ]* 2.12 Escribir prueba de propiedades para `organizacionesOfrecibles`
     - **Property 5: Organizaciones ofrecibles**
     - **Validates: Requirements 4.1, 4.2, 10.7** (se revalida al cerrar B-3)
-  - [ ]* 2.13 Escribir prueba de propiedades para `validarNombreOrganizacion`
-    - **Property 6: Nombre de organización obligatorio**
+  - [ ]* 2.13 Escribir prueba de propiedades para `validarOrganizacion` y `validarMotivo`
+    - **Property 6: Datos de organización obligatorios**
     - **Validates: Requirements 9.11**
   - [ ]* 2.14 Escribir prueba de propiedades para `estadoConsulta`
     - **Property 12: Estados de consulta excluyentes**
@@ -159,7 +159,7 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
     - _Requirements: 7.1, 7.2, 7.5; escenario 10_
   - [ ]* 6.3 Pruebas de accesibilidad de ejemplo: nombre accesible no vacío en cada control, `Radio` de rol con leyenda, `Badge` con texto, foco inicial dentro del diálogo, Tab atrapado, foco devuelto y respaldo al encabezado, operación completa con teclado.
     - _Requirements: 13.5, 13.6, 13.10, 13.11_
-  - [ ]* 6.4 Pruebas de exclusiones de V1: no existen controles de auditoría, rol Auditor, break-glass, transferencia, edición de tenant, organización padre, datos de contacto, motivo de revocación ni revocación por `sesion_id`.
+  - [ ]* 6.4 Pruebas de exclusiones de V1: no existen controles de auditoría, rol Auditor, break-glass, transferencia, edición de tenant, organización padre, reactivación de organizaciones, edición del identificador de usuario ni revocación por `sesion_id`.
     - _Requirements: 9.5, 9.6, 9.7, 11.9, 11.10, 12.2, 12.3, 12.4, 12.5_
 
 - [ ] 7. Checkpoint - Bloque A completo
@@ -201,13 +201,13 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
     - **Validates: Requirements 6.1, 6.2, 6.3, 6.11** (se revalida al cerrar B-2 y B-4)
 
 - [ ] 14. Organizaciones
-  - [ ] 14.1 **Bloqueada por B-3.** Implementar `useAccionOrganizacion()`, `SeccionOrganizaciones.tsx` (lista plana con `Table`, `EstadoBadge`, tenant solo lectura, estado vacío con "crear la primera") y `OrganizacionFormDialog.tsx` (crear y editar solo el nombre, nombre obligatorio, conflicto de nombre conserva el formulario). Sin organización padre ni datos de contacto.
+  - [ ] 14.1 **Bloqueada por B-3.** Implementar `useAccionOrganizacion()`, `SeccionOrganizaciones.tsx` (lista plana con `Table`, `EstadoBadge`, tenant solo lectura, estado vacío con "crear la primera") y `OrganizacionFormDialog.tsx` (crear y editar nombre, correo y teléfono, los tres obligatorios; correo con `@`, teléfono sin formato; conflicto de nombre conserva el formulario). Sin organización padre y sin acción de reactivar: la desactivación es terminal (PA-8).
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.8, 9.9, 9.10, 9.11, 9.12, 9.13_
   - [ ] 14.2 **Bloqueada por B-2, B-3.** Implementar `DesactivarOrganizacionDialog.tsx`: consulta la consecuencia (número de usuarios activos que pierden el acceso, tal cual lo devuelve el `bff`), `confirmar` solo en el estado `listo`, error de consecuencia con reintento, conteo cero con mensaje propio, sin afirmar plazos ni revocación de sesiones (PA-8).
     - _Requirements: 10.2, 10.3, 10.4, 10.5, 10.6, 10.8, 10.10, 10.11_
 
 - [ ] 15. Revocación masiva de sesiones
-  - [ ] 15.1 **Bloqueada por B-5.** Implementar `RevocarSesionesDialog.tsx`: confirmación previa, estado "revocación en curso" por usuario que sobrevive a cerrar el diálogo, resultado informativo tal cual (incluido "sin sesiones"), aviso "máximo 30 segundos", "no se pudo confirmar" ante falta de respuesta sin asumir que no se aplicó, sin motivo (PA-1), sin revocación por `sesion_id` y sin ofrecerla sobre uno mismo. Sin afirmar auditoría ni "la sesión ya dejó de funcionar".
+  - [ ] 15.1 **Bloqueada por B-5.** Implementar `RevocarSesionesDialog.tsx`: confirmación previa, estado "revocación en curso" por usuario que sobrevive a cerrar el diálogo, resultado informativo tal cual (incluido "sin sesiones"), aviso "máximo 30 segundos", "no se pudo confirmar" ante falta de respuesta sin asumir que no se aplicó, campo de motivo obligatorio de texto libre con confirmar deshabilitado si está vacío (PA-1), sin revocación por `sesion_id` y sin ofrecerla sobre uno mismo. Sin afirmar auditoría ni "la sesión ya dejó de funcionar".
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 11.7, 11.8, 11.11_
 
 - [ ] 16. Integración del Bloque B
@@ -247,7 +247,7 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
     - _Requirements: 2, 3, 4, 5, 6, 7.7, 8, 9, 10, 11, 13.8_
   - [ ] 19.3 Revalidar cada criterio `[CONDICIONADO a B-n]` y las propiedades marcadas condicionadas (4, 5, 11, 13, 16) contra los tipos y respuestas reales; actualizar `BRECHAS.md` con lo que cambie.
     - _Requirements: 2 a 11_
-  - [ ] 19.4 Pruebas que dependen del servidor: (a) DoD 2, el `bff` rechaza con `403` el cambio del propio rol o alcance (B-1); (b) DoD 3, e2e de revocación masiva con dos sesiones abiertas, ambas fuera de acceso por HTTP y SSE en máximo 30 segundos (**bloqueada por B-5 y PA-5**: DEC-138 contradice "dos sesiones vivas" y el modelo debe aclararse antes de armarlo).
+  - [ ] 19.4 Pruebas que dependen del servidor: (a) DoD 2, el `bff` rechaza con `403` el cambio del propio rol o alcance (B-1); (b) DoD 3, e2e de revocación masiva sobre dos usuarios, ambos fuera de acceso por HTTP y SSE en máximo 30 segundos (**bloqueada por B-5**; PA-5 resuelto: se arma con dos sujetos distintos, cada uno con su sesión viva, porque DEC-138 no permite dos sesiones del mismo sujeto).
     - _Requirements: 7.3, 11.4; escenarios 10 y 20_
 
 ## Notes
@@ -259,15 +259,15 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
 - **B-12 se resuelve en la tarea 1** sin contrato. **B-11** (sin `Tabs`, `Select` sin nombre accesible, sin multi-select, textos en inglés en `Modal` y `Table`, `Pagination` numérica) se resuelve componiendo con primitivas de la librería y registrando la brecha; no se duplica nada.
 - **B-18 (`PUT` y tiempo de espera en `client.ts`)** es un cambio en archivo compartido que se coordina al escribir el adaptador real (tarea 19.2). No se ejecuta en este ciclo.
 - **B-13 (reautenticación en acciones sensibles)** está sin verificar y no se asume.
-- **B-6 y B-8** quedan fuera de este plan (consulta de auditoría; edición de nombre e identificador, PA-10).
-- **Pendientes de Producto** que no se fijan: PA-1 a PA-10 (textos de PA-4 centralizados en `mensajes.ts`).
+- **B-6** queda fuera de este plan (consulta de auditoría; sin respuesta de Lead). **B-8/PA-10** está decidida: el identificador de usuario es inmutable y editar usuario cambia solo el nombre (`editarUsuario` en el puerto); queda bloqueada por la ola de contrato de B-9.
+- **Decididas en DEC-139:** PA-1, PA-2, PA-5, PA-7, PA-8, PA-9 y PA-10, ya incorporadas. **Siguen pendientes y no se fijan:** PA-3 (bloquea B-4), PA-6 y PA-4 (textos provisionales centralizados en `mensajes.ts`). Abiertas con Identidad: B-17 y B-13.
 
 ### Inconsistencias detectadas en los documentos
 
 - El diseño nombra el estado de datos previos con fallo como `datos_desactualizados` (Estados de la interfaz, `EstadoConsulta` de Data Models) y como `datos_desactualizado` (Property 12, Decisiones de diseño, `BRECHAS.md`). Las tareas usan `datos_desactualizado`; alinear al implementar la tarea 2.5.
 - El diseño ubica "Estados y foco de los diálogos" en el Bloque A aunque los diálogos son del Bloque B. Se construye el estado y la configuración de `Modal` en la tarea 4.4 y los diálogos en las tareas 10 a 15.
 - Las Correctness Properties 4, 5, 11, 13 y 16 están marcadas como condicionadas pero las funciones puras (4, 5, 16) se pueden probar hoy; se escriben en el Bloque A y se revalidan en la tarea 19.3.
-- La definición de terminado pide un e2e con dos sesiones abiertas y DEC-138 dice que un login nuevo revoca la sesión viva (PA-5); el e2e no se arma en este ciclo.
+- El e2e de revocación masiva (DoD 3) se arma con dos sujetos distintos (PA-5 resuelto); sigue sin armarse en este ciclo porque depende de B-5.
 - R13.6 menciona el estado "bloqueado", que el contrato no tiene (solo `activo`); se muestran solo activo e inactivo.
 
 ### Notas generales

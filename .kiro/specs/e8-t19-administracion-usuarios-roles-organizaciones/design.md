@@ -50,20 +50,20 @@ Tres consecuencias de esa referencia que el diseño absorbe como **puntos abiert
 
 ### Qué se puede construir hoy y qué está condicionado
 
-| Bloque                 | Qué incluye                                                                                                                                                       | Requisitos                                                   | Estado                                                             |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------ |
-| **A. Construible hoy** | `puedeAdministrar` + `visiblePara` en la entrada "Administración" + guarda de la ruta con aviso de acceso no autorizado                                           | R1.1 a R1.3                                                  | Sin contrato nuevo (B-12)                                          |
-|                        | Selector de roles desde el enum `Rol` (8 valores, sin Auditor)                                                                                                    | R1.6, R3.1 (parte de UI), R5.1, R12.3                        | Sin contrato nuevo                                                 |
-|                        | Funciones puras: `relacionConSesion`, `capacidades`, `validarAlta`, `validarNombreOrganizacion`, `organizacionesOfrecibles`, `clasificarError`, `mensajesDeExito` | R3.2 a R3.5, R4.1 a R4.4, R7, R8.8, R8.9, R9.11, R11.11, R12 | Sin contrato nuevo                                                 |
-|                        | Esqueleto de secciones con estados `brecha` · `cargando` · `vacio` · `error` · `datos` y reintento                                                                | R2.5, R2.7, R2.8, R9.9, R9.13, R13.1, R13.2                  | Sin contrato nuevo; la forma `datos` se prueba con puerto falso    |
-|                        | Estados y foco de los diálogos (alta, rol, desactivar, revocar, organización)                                                                                     | R13.4, R13.10, R13.11                                        | Sin contrato nuevo                                                 |
-|                        | Bloqueo de auto-escalada en la interfaz y sus exclusiones                                                                                                         | R7.1, R7.2, R7.5 a R7.7, R6.5, R12                           | Sin contrato nuevo; la identificación del objetivo depende de B-14 |
-|                        | Selector de unidades alimentado por `listarUnidades` (lectura)                                                                                                    | R6.1 (solo opciones)                                         | Existe; guardar el alcance depende de B-4                          |
-| **B. Condicionado**    | Listar, buscar y paginar usuarios                                                                                                                                 | R2.1, R2.2, R2.8                                             | B-2                                                                |
-|                        | Detalle, alta, cambio de rol, desactivar y reactivar                                                                                                              | R2.3, R2.6, R2.9, R3, R5, R7.3, R7.4, R8                     | B-1 (+ B-7, B-15, B-17)                                            |
-|                        | Alcance de monitoreo                                                                                                                                              | R2.4, R6                                                     | B-4 (bloqueada por PA-3) y B-2                                     |
-|                        | Organizaciones y su desactivación con consecuencia                                                                                                                | R4, R9, R10                                                  | B-3 (+ B-2)                                                        |
-|                        | Revocación masiva de sesiones                                                                                                                                     | R11                                                          | B-5 (y PA-5 para el e2e)                                           |
+| Bloque                 | Qué incluye                                                                                                                                                 | Requisitos                                                   | Estado                                                             |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------ |
+| **A. Construible hoy** | `puedeAdministrar` + `visiblePara` en la entrada "Administración" + guarda de la ruta con aviso de acceso no autorizado                                     | R1.1 a R1.3                                                  | Sin contrato nuevo (B-12)                                          |
+|                        | Selector de roles desde el enum `Rol` (8 valores, sin Auditor)                                                                                              | R1.6, R3.1 (parte de UI), R5.1, R12.3                        | Sin contrato nuevo                                                 |
+|                        | Funciones puras: `relacionConSesion`, `capacidades`, `validarAlta`, `validarOrganizacion`, `organizacionesOfrecibles`, `clasificarError`, `mensajesDeExito` | R3.2 a R3.5, R4.1 a R4.4, R7, R8.8, R8.9, R9.11, R11.11, R12 | Sin contrato nuevo                                                 |
+|                        | Esqueleto de secciones con estados `brecha` · `cargando` · `vacio` · `error` · `datos` y reintento                                                          | R2.5, R2.7, R2.8, R9.9, R9.13, R13.1, R13.2                  | Sin contrato nuevo; la forma `datos` se prueba con puerto falso    |
+|                        | Estados y foco de los diálogos (alta, rol, desactivar, revocar, organización)                                                                               | R13.4, R13.10, R13.11                                        | Sin contrato nuevo                                                 |
+|                        | Bloqueo de auto-escalada en la interfaz y sus exclusiones                                                                                                   | R7.1, R7.2, R7.5 a R7.7, R6.5, R12                           | Sin contrato nuevo; la identificación del objetivo depende de B-14 |
+|                        | Selector de unidades alimentado por `listarUnidades` (lectura)                                                                                              | R6.1 (solo opciones)                                         | Existe; guardar el alcance depende de B-4                          |
+| **B. Condicionado**    | Listar, buscar y paginar usuarios                                                                                                                           | R2.1, R2.2, R2.8                                             | B-2                                                                |
+|                        | Detalle, alta, cambio de rol, desactivar y reactivar                                                                                                        | R2.3, R2.6, R2.9, R3, R5, R7.3, R7.4, R8                     | B-1 (+ B-7, B-15, B-17)                                            |
+|                        | Alcance de monitoreo                                                                                                                                        | R2.4, R6                                                     | B-4 (bloqueada por PA-3) y B-2                                     |
+|                        | Organizaciones y su desactivación con consecuencia                                                                                                          | R4, R9, R10                                                  | B-3 (+ B-2)                                                        |
+|                        | Revocación masiva de sesiones                                                                                                                               | R11                                                          | B-5 (y PA-5 para el e2e)                                           |
 
 ### Vista de capas
 
@@ -82,7 +82,7 @@ features/administracion/
   DesactivarUsuarioDialog.tsx   confirmación                                    [cond. B-1]
   RevocarSesionesDialog.tsx     confirmación + estado "en curso"                [cond. B-5]
   SeccionOrganizaciones.tsx     lista + estados                                 [cond. B-3]
-  OrganizacionFormDialog.tsx    crear / editar nombre                           [cond. B-3]
+  OrganizacionFormDialog.tsx    crear / editar nombre, correo y teléfono        [cond. B-3]
   DesactivarOrganizacionDialog.tsx  consecuencia visible                        [cond. B-2, B-3]
   SelectorRol.tsx               8 opciones desde ROLES                          [hoy]
   SelectorOrganizacion.tsx      una organización activa                         [cond. B-3]
@@ -90,7 +90,7 @@ features/administracion/
   puedeAdministrar.ts           guarda por rol (patrón de puedeUsarMonitoreo)   [hoy]
   relacionConSesion.ts          propio | ajeno | indeterminado                  [hoy]
   afordancias.ts                capacidades(objetivo, relación, enCurso)        [hoy]
-  validacion.ts                 validarAlta, validarNombreOrganizacion          [hoy]
+  validacion.ts                 validarAlta, validarOrganizacion, validarMotivo [hoy]
   clasificarError.ts            (operación, status, codigo) → clase de UI       [hoy]
   mensajes.ts                   textos de trabajo centralizados (PA-4)          [hoy]
   usarEnvioUnico.ts             cerrojo de un solo envío por acción y objetivo  [hoy]
@@ -151,13 +151,13 @@ Dentro de `AdministracionAutorizada` **ninguna acción consulta el rol local** p
 
 `capacidades(objetivo, relacion, enCurso)` devuelve `{ puedeCambiarRol, puedeEditarAlcance, puedeDesactivar, puedeReactivar, puedeRevocarSesiones, motivoBloqueo }`:
 
-| Condición del objetivo            | Rol y alcance                                                                           | Desactivar                               | Reactivar | Revocar sesiones                                  |
-| --------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------- | --------- | ------------------------------------------------- |
-| `propio`                          | bloqueados, con texto "no se puede modificar el propio rol ni el propio alcance" (R7.1) | permitida; decide el `bff` (PA-7, R8.10) | no aplica | no se ofrece; remite al cierre de sesión (R11.11) |
-| `indeterminado`                   | bloqueados con aviso (R7.5)                                                             | permitida                                | no aplica | bloqueada (decisión de diseño)                    |
-| `ajeno` y activo                  | permitidos si tiene rol                                                                 | permitida                                | no aplica | permitida                                         |
-| `ajeno` e inactivo                | bloqueados (R8.8)                                                                       | no aplica                                | permitida | no regulado: el `bff` decide                      |
-| acción en curso para ese objetivo | esa acción se bloquea (R8.6, R11.3)                                                     |                                          |           |                                                   |
+| Condición del objetivo            | Rol y alcance                                                                           | Desactivar                                                                    | Reactivar | Revocar sesiones                                  |
+| --------------------------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | --------- | ------------------------------------------------- |
+| `propio`                          | bloqueados, con texto "no se puede modificar el propio rol ni el propio alcance" (R7.1) | permitida; el `bff` rechaza solo al último administrador activo (PA-7, R8.10) | no aplica | no se ofrece; remite al cierre de sesión (R11.11) |
+| `indeterminado`                   | bloqueados con aviso (R7.5)                                                             | permitida                                                                     | no aplica | bloqueada (decisión de diseño)                    |
+| `ajeno` y activo                  | permitidos si tiene rol                                                                 | permitida                                                                     | no aplica | permitida                                         |
+| `ajeno` e inactivo                | bloqueados (R8.8)                                                                       | no aplica                                                                     | permitida | no regulado: el `bff` decide                      |
+| acción en curso para ese objetivo | esa acción se bloquea (R8.6, R11.3)                                                     |                                                                               |           |                                                   |
 
 Reglas de alcance: los controles de alcance de monitoreo solo existen para `monitorista`, `supervisor` y `coordinador` (R6.6); jamás hay control de clientes para `ejecutivo` (R6.5, DEC-103); monitoreo y conversación nunca comparten control (R6.8). Cambiar a un rol que ya tiene el usuario **no se bloquea en el cliente**: se envía y el `bff` responde `409` (R5.6, escenario 11). Un usuario con `tiene_rol = false` se muestra como "sin rol" y solo permite asignar uno; los requisitos no lo cubren y se anota como punto a aclarar.
 
@@ -202,11 +202,12 @@ interface AdministracionPort {
   fijarRol(id, rol, token): Promise<void>                              // B-1, B-17
   desactivarUsuario(id, token): Promise<void>                          // B-1
   reactivarUsuario(id, token): Promise<void>                           // B-1
+  editarUsuario(id, nombre, token): Promise<void>                      // B-8 (solo nombre; PA-10)
 
   // Organizaciones
   listarOrganizaciones(token): Promise<Organizacion[]>                 // B-3
-  crearOrganizacion(nombre, token): Promise<Organizacion>              // B-3
-  editarOrganizacion(id, nombre, token): Promise<Organizacion>         // B-3
+  crearOrganizacion(datos, token): Promise<Organizacion>               // B-3 (nombre, correo, teléfono; PA-2)
+  editarOrganizacion(id, datos, token): Promise<Organizacion>          // B-3
   consultarConsecuencia(id, token): Promise<ConsecuenciaDesactivacion> // B-2, B-3
   desactivarOrganizacion(id, token): Promise<void>                     // B-3
 
@@ -215,7 +216,7 @@ interface AdministracionPort {
   fijarAlcance(id, cambio, token): Promise<AlcanceEfectivo>            // B-4
 
   // Sesiones
-  revocarSesiones(id, token): Promise<ResultadoRevocacion>             // B-5
+  revocarSesiones(id, motivo, token): Promise<ResultadoRevocacion>     // B-5 (motivo obligatorio; PA-1)
 }
 ```
 
@@ -252,7 +253,7 @@ Los modelos de wire serán los generados del contrato cuando existan; no se rede
 ```
 UsuarioResumen { id, nombre, identificadorUsuario, rol | null, activo, organizacion? }        // organizacion solo si rol = cliente
 UsuarioDetalle = UsuarioResumen + { alcance?: AlcanceEfectivo, idpSubject? }                   // idpSubject: ver B-14
-Organizacion { id, nombre, tenant, activa }                                                    // tenant solo lectura (R9.4)
+Organizacion { id, nombre, correo, telefono, tenant, activa }                                // tenant solo lectura (R9.4); sin reactivar (PA-8)
 ConsecuenciaDesactivacion { usuariosActivos: number, usuarios: { nombre, identificadorUsuario }[] }
 AltaUsuario { nombre, identificadorUsuario, rol, organizacionId? }                             // sin tenant_id: la UI nunca lo captura (R3.5)
 AlcanceEfectivo / CambioAlcance / ResultadoRevocacion                                           // forma por definir en B-4 y B-5
@@ -302,9 +303,9 @@ _For any_ lista de organizaciones, el selector ofrece exactamente las que tienen
 
 **Validates: Requirements 4.1, 4.2, 10.7** [cond. B-3]
 
-### Property 6: Nombre de organización obligatorio
+### Property 6: Datos de organización obligatorios
 
-_For any_ cadena compuesta solo por espacios o vacía, crear o guardar una organización no emite solicitud, conserva el formulario abierto e indica que el nombre es obligatorio; _for any_ cadena con al menos un carácter no blanco, la validación local la acepta.
+_For any_ nombre, correo o teléfono vacío o compuesto solo por espacios, o correo sin `@`, crear o guardar una organización no emite solicitud, conserva el formulario abierto e indica el campo obligatorio o inválido; _for any_ nombre y teléfono con al menos un carácter no blanco y correo que contiene `@`, la validación local los acepta. El teléfono no tiene regla de formato (PA-2).
 
 **Validates: Requirements 9.11**
 
@@ -421,7 +422,7 @@ Reglas transversales: ninguna actualización optimista; el reintento de una cons
 - Guarda: navegación y ruta por rol; actualizar `tests/layout/navigation-visibility.test.ts`, que hoy espera "Administración" para Reacción y otros roles.
 - Diálogos: foco inicial dentro, Tab atrapado y foco devuelto al elemento que abrió; respaldo al encabezado de la sección cuando el elemento ya no existe (R13.10, R13.11).
 - Accesibilidad: nombre accesible no vacío en cada control, `Radio` de rol y organización con leyenda, columna `Checkbox` del alcance con `aria-label` por fila, `Badge` con texto, operación completa con teclado (R13.5, R13.6).
-- Exclusiones de V1: no existen controles de auditoría, break-glass, transferencia, edición de tenant, organización padre, datos de contacto, motivo de revocación ni revocación por `sesion_id` (R9.5 a R9.7, R11.9, R11.10, R12.2 a R12.5).
+- Exclusiones de V1: no existen controles de auditoría, break-glass, transferencia, edición de tenant, organización padre, reactivación de organizaciones, edición del identificador de usuario ni revocación por `sesion_id` (R9.5 a R9.7, R11.9, R11.10, R12.2 a R12.5).
 - Escenarios 9, 10 y 13: DoD 1 completo y la parte de interfaz de DoD 2 con el sujeto de la sesión simulado.
 - Verificación estructural del puerto: el conjunto de métodos de `AdministracionPort` es el declarado y no incluye los excluidos.
 
@@ -446,15 +447,15 @@ Reglas transversales: ninguna actualización optimista; el reintento de una cons
 
 ### Puntos de extensión (preguntas abiertas que el diseño no resuelve)
 
-| Pregunta                                      | Dónde queda el punto de extensión                                                                       |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| PA-1 motivo de revocación                     | `RevocarSesionesDialog` admite un campo opcional adicional sin cambiar el puerto más allá del parámetro |
-| PA-2 contacto de organización                 | `OrganizacionFormDialog` y `Organizacion` admiten campos adicionales                                    |
-| PA-3 vínculo Monitorista↔unidad               | `fijarAlcance` y `AlcanceEditor`; no se define cuándo ni cómo se establece                              |
-| PA-4 textos                                   | `mensajes.ts`                                                                                           |
-| PA-5 sesiones simultáneas frente a DEC-138    | Solo afecta al e2e y a `ResultadoRevocacion`; la vista muestra lo que devuelva el `bff`                 |
-| PA-6 alcance al cambiar de rol                | Sin texto afirmativo; `CambioRolDialog` puede añadir una advertencia                                    |
-| PA-7 auto-desactivación                       | `capacidades` no la bloquea; decide el `bff`                                                            |
-| PA-8 reactivar organizaciones y sesiones      | `capacidades` de organización y `mensajesDeExito` sin afirmaciones                                      |
-| PA-9 objetivo de aplicación del cambio de rol | Texto de "siguiente refresco" sin plazo                                                                 |
-| PA-10 edición de nombre e identificador       | El puerto no tiene `editarUsuario`; se agrega si se publica (B-8)                                       |
+| Pregunta                                 | Dónde queda el punto de extensión                                                                                         |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| PA-1 motivo de revocación (decidida)     | `RevocarSesionesDialog` exige un motivo de texto libre; confirmar deshabilitado si está vacío; el puerto recibe `motivo`  |
+| PA-2 contacto de organización (decidida) | `OrganizacionFormDialog` y `Organizacion` llevan nombre, correo (con `@`) y teléfono (sin formato), los tres obligatorios |
+| PA-3 vínculo Monitorista↔unidad          | `fijarAlcance` y `AlcanceEditor`; no se define cuándo ni cómo se establece                                                |
+| PA-4 textos                              | `mensajes.ts`                                                                                                             |
+| PA-5 sesiones simultáneas (decidida)     | El e2e usa dos sujetos distintos (DEC-138); la vista muestra lo que devuelva el `bff`                                     |
+| PA-6 alcance al cambiar de rol           | Sin texto afirmativo; `CambioRolDialog` puede añadir una advertencia                                                      |
+| PA-7 auto-desactivación (decidida)       | Permitida salvo al último administrador activo; `capacidades` no la bloquea y el `bff` responde `409`                     |
+| PA-8 organizaciones (decidida)           | Desactivar es terminal: sin acción de reactivar; el texto dice "en su siguiente refresco", sin 30 s                       |
+| PA-9 cambio de rol (decidida, DEC-091)   | Texto de "siguiente refresco" sin plazo                                                                                   |
+| PA-10 edición de usuario (decidida)      | `editarUsuario` edita solo el nombre; el identificador de usuario es inmutable (B-8)                                      |

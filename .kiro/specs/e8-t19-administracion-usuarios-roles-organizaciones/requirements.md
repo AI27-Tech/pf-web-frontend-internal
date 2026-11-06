@@ -163,7 +163,7 @@ Este documento define el comportamiento funcional del frontend interno. El front
 7. IF la desactivación o la reactivación falla por un motivo distinto del `409` del último administrador (error de red, falta de respuesta o rechazo del `bff`), THEN THE Administracion_UI SHALL mostrar un error que indique que la acción no se aplicó, conservar el estado previo del usuario y permitir reintentar. [CONDICIONADO a B-1]
 8. WHILE un usuario está inactivo, THE Administracion_UI SHALL deshabilitar el cambio de rol y el cambio de alcance sobre ese usuario, SHALL NOT enviar solicitudes de cambio de rol ni de alcance para él, y SHALL ofrecer la reactivación.
 9. THE Administracion_UI SHALL presentar la desactivación y la revocación masiva como dos acciones separadas, cada una con un texto que describa su efecto: la desactivación deja al usuario inactivo; la revocación masiva lo deja activo y le exige iniciar sesión de nuevo.
-10. THE Administracion_UI SHALL NOT aplicar en el cliente ninguna regla que permita o impida que el Administrador se desactive a sí mismo cuando existe otro administrador (PA-7, pregunta abierta), y SHALL mostrar el resultado que devuelva el `bff`; la regla del último administrador la aplica el servidor (criterio 4).
+10. THE Administracion_UI SHALL permitir que el Administrador se desactive a sí mismo y SHALL NOT aplicar en el cliente la regla del último administrador. La regla de producto (PA-7, DEC-139) es que un administrador puede desactivarse mientras exista otro administrador activo; desactivar al último se rechaza en el servidor con `409` (criterio 4), y la interfaz muestra el resultado que devuelva el `bff`.
 
 ### Requirement 9: Administrar organizaciones cliente
 
@@ -172,16 +172,16 @@ Este documento define el comportamiento funcional del frontend interno. El front
 #### Acceptance Criteria
 
 1. WHEN el Administrador abre la sección de organizaciones, THE Administracion_UI SHALL listar todas las organizaciones, activas e inactivas, mostrando por cada una su nombre, su identificador de tenant y su estado (activa o inactiva). [CONDICIONADO a B-3]
-2. WHEN el Administrador crea una organización, THE Administracion_UI SHALL pedir únicamente el nombre y SHALL NOT pedir el identificador de tenant; el identificador lo genera el sistema. [CONDICIONADO a B-3]
+2. WHEN el Administrador crea una organización, THE Administracion_UI SHALL pedir nombre, correo de contacto y teléfono de contacto, los tres obligatorios (PA-2, DEC-139), y SHALL NOT pedir el identificador de tenant; el identificador lo genera el sistema y es inmutable. [CONDICIONADO a B-3]
 3. WHEN el `bff` confirma la creación, THE Administracion_UI SHALL mostrar la organización en la lista con su identificador de tenant y su estado activa, y SHALL ofrecerla como opción seleccionable al asociar un usuario Cliente (Requirement 4). [CONDICIONADO a B-3]
-4. WHEN el Administrador edita una organización, THE Administracion_UI SHALL permitir modificar únicamente su nombre, por ser el único dato de la organización que la interfaz captura mientras PA-2 siga abierta, y SHALL mostrar el identificador de tenant como valor de solo lectura. [CONDICIONADO a B-3]
+4. WHEN el Administrador edita una organización, THE Administracion_UI SHALL permitir modificar su nombre, correo de contacto y teléfono de contacto, y SHALL mostrar el identificador de tenant como valor de solo lectura. [CONDICIONADO a B-3]
 5. THE Administracion_UI SHALL NOT ofrecer ninguna acción que modifique el identificador de tenant de una organización existente.
 6. THE Administracion_UI SHALL tratar las organizaciones como planas y SHALL NOT ofrecer organización padre, subordinadas ni agrupación de organizaciones (DEC-022).
-7. THE Administracion_UI SHALL NOT pedir ni mostrar datos de contacto de la organización mientras Producto no defina si forman parte de V1 (PA-2).
+7. THE Administracion_UI SHALL validar los datos de contacto así (PA-2, DEC-139): nombre, correo y teléfono obligatorios; el correo con validación mínima (contiene `@`); el teléfono sin regla de formato.
 8. IF el `bff` rechaza la creación o la edición porque ya existe otra organización con el mismo nombre, THEN THE Administracion_UI SHALL conservar lo capturado en el formulario abierto, SHALL NOT modificar la lista y SHALL mostrar un mensaje que indique el conflicto de nombre. [CONDICIONADO a B-3]
 9. WHERE la lista de organizaciones no tiene ningún elemento, THE Administracion_UI SHALL mostrar un estado vacío con la opción de crear la primera.
 10. WHILE una solicitud de creación o de edición de organización está en curso, THE Administracion_UI SHALL deshabilitar la acción de envío del formulario correspondiente, de modo que se emita una sola solicitud por acción del Administrador, y SHALL volver a habilitarla cuando la solicitud termine.
-11. IF el Administrador intenta crear o guardar una organización con el nombre vacío o compuesto solo por espacios, THEN THE Administracion_UI SHALL NOT enviar la solicitud al `bff`, SHALL conservar el formulario abierto y SHALL indicar que el nombre es obligatorio.
+11. IF el Administrador intenta crear o guardar una organización con el nombre, el correo o el teléfono vacíos o compuestos solo por espacios, o con un correo sin `@`, THEN THE Administracion_UI SHALL NOT enviar la solicitud al `bff`, SHALL conservar el formulario abierto y SHALL indicar qué campo es obligatorio o inválido.
 12. IF la solicitud de creación o de edición falla por una causa distinta del conflicto de nombre (error del `bff` o falta de conexión), THEN THE Administracion_UI SHALL conservar lo capturado, SHALL NOT modificar la lista, SHALL mostrar un mensaje que indique que la operación no se completó y SHALL permitir reintentar sin recapturar. [CONDICIONADO a B-3]
 13. IF la carga de la lista de organizaciones falla, THEN THE Administracion_UI SHALL mostrar un estado de error que indique que la lista no pudo obtenerse, SHALL NOT mostrar el estado vacío del criterio 9 y SHALL ofrecer una acción para reintentar la carga. [CONDICIONADO a B-3]
 
@@ -196,10 +196,10 @@ Este documento define el comportamiento funcional del frontend interno. El front
 3. WHERE la organización no tiene usuarios activos, THE Administracion_UI SHALL indicar en la confirmación que ningún usuario activo pierde el acceso. [CONDICIONADO a B-2, B-3]
 4. THE Administracion_UI SHALL NOT enviar la desactivación hasta que el Administrador active la acción de confirmar después de haber visto la consecuencia en la confirmación. [CONDICIONADO a B-3]
 5. WHEN el Administrador cancela la confirmación o la cierra sin confirmar, THE Administracion_UI SHALL NOT enviar la desactivación y SHALL mantener la organización como activa. [CONDICIONADO a B-3]
-6. WHEN el `bff` confirma la desactivación, THE Administracion_UI SHALL mostrar la organización como inactiva con el estado que devuelve el `bff` y SHALL NOT afirmar ni negar plazos de corte de sesiones, ni que las sesiones vivas se hayan revocado, porque el contrato no los define. [CONDICIONADO a B-3]
+6. WHEN el `bff` confirma la desactivación, THE Administracion_UI SHALL mostrar la organización como inactiva con el estado que devuelve el `bff` y SHALL indicar que el acceso de sus usuarios se retira en su siguiente refresco (PA-8) y SHALL NOT afirmar que las sesiones vivas se hayan revocado ni prometer el plazo de 30 segundos. [CONDICIONADO a B-3]
 7. WHILE una organización está inactiva, THE Administracion_UI SHALL NOT ofrecerla en el selector de organización del alta de usuarios Cliente ni en el cambio de rol de un usuario hacia `cliente`. [CONDICIONADO a B-3]
 8. IF el `bff` rechaza la desactivación o la solicitud falla sin respuesta del `bff`, THEN THE Administracion_UI SHALL mostrar un aviso de error que indique el motivo cuando el `bff` lo devuelva, SHALL NOT presentar la desactivación como realizada y SHALL volver a mostrar la organización con el estado vigente que devuelva el `bff`. [CONDICIONADO a B-3]
-9. THE Administracion_UI SHALL NOT resolver si una organización inactiva puede reactivarse ni si la desactivación revoca las sesiones vivas de sus usuarios; ambas decisiones son preguntas abiertas (PA-8).
+9. THE Administracion_UI SHALL tratar la desactivación de una organización como terminal y SHALL NOT ofrecer reactivarla (PA-8, DEC-139). El retiro de acceso de sus usuarios llega en el siguiente refresco, acotado a la vida del token (DEC-091), y la interfaz SHALL NOT presentarlo como una revocación en vivo ni prometer el máximo de 30 segundos.
 10. IF no es posible obtener el número de usuarios activos afectados o su lista al mostrar la confirmación, THEN THE Administracion_UI SHALL mostrar un aviso de error, SHALL ofrecer reintentar la consulta y SHALL NOT permitir confirmar la desactivación. [CONDICIONADO a B-2, B-3]
 11. WHILE la solicitud de desactivación está en curso, THE Administracion_UI SHALL bloquear la acción de confirmar para impedir un segundo envío. [CONDICIONADO a B-3]
 
@@ -209,7 +209,7 @@ Este documento define el comportamiento funcional del frontend interno. El front
 
 #### Acceptance Criteria
 
-1. WHEN el Administrador elige revocar las sesiones de un usuario, THE Administracion_UI SHALL mostrar una confirmación explícita que contenga el nombre y el identificador de usuario del usuario objetivo, y el texto de que perderá el acceso en todas sus sesiones, con una acción para confirmar y una para cancelar. [CONDICIONADO a B-5]
+1. WHEN el Administrador elige revocar las sesiones de un usuario, THE Administracion_UI SHALL mostrar una confirmación explícita que contenga el nombre y el identificador de usuario del usuario objetivo, el texto de que perderá el acceso en todas sus sesiones, un campo de motivo obligatorio de texto libre (PA-1, DEC-139) y una acción para confirmar y una para cancelar. La acción de confirmar permanece deshabilitada mientras el motivo esté vacío o compuesto solo por espacios. [CONDICIONADO a B-5]
 2. WHEN el Administrador cancela la confirmación o la cierra sin confirmar, THE Administracion_UI SHALL NOT enviar ninguna solicitud de revocación y SHALL conservar sin cambios el detalle del usuario. [CONDICIONADO a B-5]
 3. WHILE la revocación masiva de un usuario está en curso (desde el envío hasta la respuesta del `bff` o el agotamiento del tiempo de espera de la solicitud), THE Administracion_UI SHALL mostrar el estado "revocación en curso" para ese usuario, deshabilitar la acción de revocar para ese usuario y SHALL NOT enviar una segunda solicitud para ese mismo usuario. [CONDICIONADO a B-5]
 4. WHEN el `bff` confirma la revocación, THE Administracion_UI SHALL mostrar un aviso de éxito que presente el resultado que el `bff` devuelva, sin agregar ni calcular datos que el `bff` no devuelva, e indicar que el acceso HTTP y las conexiones SSE terminan en un máximo de 30 segundos (ADR 26). [CONDICIONADO a B-5]
@@ -218,7 +218,7 @@ Este documento define el comportamiento funcional del frontend interno. El front
 7. IF el `bff` responde `403` a la revocación, THEN THE Administracion_UI SHALL mostrar el aviso de autorización insuficiente del Requirement 1 y SHALL NOT presentar la revocación como realizada. [CONDICIONADO a B-5]
 8. WHERE el usuario objetivo no tiene sesiones activas, THE Administracion_UI SHALL mostrar el resultado que devuelva el `bff` como informativo y SHALL NOT presentarlo como error. [CONDICIONADO a B-5]
 9. THE Administracion_UI SHALL NOT ofrecer la revocación de una sola sesión por `sesion_id` ni enumerar las sesiones de un usuario; esa superficie no existe (B-5).
-10. THE Administracion_UI SHALL NOT exigir ni omitir un motivo de revocación mientras Producto no defina si es obligatorio (PA-1).
+10. THE Administracion_UI SHALL capturar el motivo de revocación como texto libre, sin catálogo (PA-1, DEC-139), y SHALL enviarlo en la solicitud de revocación. El motivo queda en la auditoría local de identidad y no cambia el evento `sesion.revocada`.
 11. WHEN el usuario objetivo es el sujeto de la sesión, THE Administracion_UI SHALL NOT ofrecer la revocación masiva sobre sí mismo, SHALL NOT enviar solicitud de revocación sobre ese usuario y SHALL remitir al cierre de sesión propio.
 
 ### Requirement 12: Auditoría y exclusiones de V1
@@ -292,6 +292,9 @@ Dado que soy Administrador y abro mi propio detalle, cuando intento cambiar mi r
 **Escenario 11. Cambio de rol a un rol que ya tiene** _(CONDICIONADO a B-1)_  
 Dado que un usuario ya es `ejecutivo`, cuando confirmo el mismo rol y el `bff` responde `409`, entonces veo el motivo y no se presenta ningún cambio.
 
+**Escenario 12b. Autodesactivación con otro administrador** _(CONDICIONADO a B-1)_
+Dado que existe otro administrador activo, cuando me desactivo y confirmo, entonces la desactivación se aplica; si soy el último administrador activo y el `bff` responde `409`, entonces veo el motivo y sigo activo.
+
 **Escenario 12. Último administrador** _(CONDICIONADO a B-1)_  
 Dado que solo existe un `administrador` activo, cuando intento desactivarlo o cambiarle el rol y el `bff` responde `409`, entonces veo que el sistema quedaría sin administrador y el usuario sigue como estaba.
 
@@ -316,23 +319,30 @@ Dado que una organización está inactiva, cuando doy de alta un usuario `client
 **Escenario 19. Sesión expirada durante una acción**  
 Dado que mi sesión expira al confirmar una acción, cuando el `bff` responde `401`, entonces la interfaz delega al flujo de sesión del AppShell y no presenta la acción como realizada.
 
-**Escenario 20. Revocación masiva con dos sesiones abiertas** _(prueba e2e de DoD; CONDICIONADO a B-5; ver PA-5)_  
-Dado que un usuario tiene dos sesiones abiertas, cuando el Administrador revoca todas sus sesiones, entonces ambas dejan de acceder por HTTP y SSE dentro del máximo contractual de 30 segundos. Este escenario se contradice con DEC-138 (un login nuevo revoca la sesión viva del sujeto) y no puede ejecutarse hasta que PA-5 se resuelva.
+**Escenario 20. Revocación masiva con dos usuarios con sesión viva** _(prueba e2e de DoD; CONDICIONADO a B-5; PA-5 resuelto)_  
+Dado que dos usuarios distintos tienen cada uno su sesión viva, cuando el Administrador revoca las sesiones de cada uno con su motivo, entonces ambos dejan de acceder por HTTP y SSE dentro del máximo contractual de 30 segundos. En V1 un sujeto tiene a lo sumo una sesión viva y un login nuevo revoca la anterior (DEC-138), por lo que el e2e usa dos sujetos.
 
 ## Preguntas abiertas
 
 Estos puntos no se fijan en este spec. Son decisiones de Producto o de Plataforma y no reglas.
 
-- **PA-1. Motivo de revocación (E4-HU-020):** si el motivo es obligatorio, opcional o no se captura en V1.
-- **PA-2. Datos de contacto de la organización (E4-HU-019):** qué datos, si alguno, se capturan en V1.
-- **PA-3. Vínculo Monitorista↔unidad (E4-HU-018, DEC-045):** cómo y cuándo se establece. Bloquea el modelo de alcance (B-4).
-- **PA-4. Textos de mensajes:** textos exactos de confirmación, error, auto-escalada bloqueada, consecuencia de desactivar una organización, revocación en curso y aviso del corte de 30 segundos.
-- **PA-5. "Dos sesiones abiertas" frente a DEC-138:** la definición de terminado pide un e2e con dos sesiones abiertas, pero DEC-138 dice que un login nuevo revoca y reemplaza la sesión viva del sujeto, y E4-HU-020 habla de "una o varias sesiones activas". Hay que aclarar cuántas sesiones vivas admite un usuario y cómo se arma ese e2e.
-- **PA-6. Cambio de rol con alcance previo:** qué pasa con las unidades, Monitoristas o Supervisores asignados cuando el usuario cambia a un rol que no los usa.
-- **PA-7. Auto-desactivación del Administrador:** si puede desactivarse a sí mismo cuando existe otro administrador.
-- **PA-8. Reactivar organizaciones y sesiones de sus usuarios:** si una organización inactiva puede reactivarse y si su desactivación revoca las sesiones vivas de sus usuarios.
-- **PA-9. Objetivo de aplicación de cambios de rol (DEC-091):** el objetivo medible de latencia sigue por definir (DEC-022 #3). Se prueba el máximo contractual de 30 segundos de la revocación de sesión (ADR 26); la quita de rol surte efecto en el siguiente refresco.
-- **PA-10. Edición de datos del usuario:** E4-HU-018 dice "crear, editar y desactivar usuarios", pero el contrato de `identidad` solo permite fijar el rol. Hay que definir si editar nombre o identificador de usuario es V1 (B-8).
+Estado tras DEC-139 y la respuesta de Lead (2026-11-05). Lo decidido ya está incorporado en los requisitos; lo pendiente no se fija.
+
+**Decididas**
+
+- **PA-1.** Motivo de revocación obligatorio, texto libre, sin catálogo (Requirement 11).
+- **PA-2.** Contacto de la organización: nombre, correo y teléfono obligatorios; correo con validación mínima de `@`, teléfono sin formato (Requirement 9).
+- **PA-5.** El e2e de revocación masiva usa dos sujetos distintos (DEC-138; escenario 20).
+- **PA-7.** Un administrador puede desactivarse si existe otro activo; desactivar al último se rechaza (Requirement 8.10).
+- **PA-8.** Desactivar una organización es terminal, sin reactivar; el acceso de sus usuarios se retira en el siguiente refresco (Requirement 10).
+- **PA-9.** El cambio de rol surte efecto en el siguiente refresco (DEC-091); el máximo de 30 s es solo de la revocación de sesión.
+- **PA-10.** El identificador de usuario es inmutable en V1; editar un usuario cambia el nombre.
+
+**Pendientes**
+
+- **PA-3.** Vínculo Monitorista↔unidad (E4-HU-018, DEC-045). Owner: Operación/Producto. Bloquea el modelo de alcance (B-4).
+- **PA-4.** Textos exactos de mensajes. Se usan los provisionales marcados, centralizados en `mensajes.ts`.
+- **PA-6.** Qué pasa con el alcance previo al cambiar de rol. Ligado a PA-3.
 
 ## Dependencias
 
@@ -366,14 +376,14 @@ Estas notas son prerrequisitos de verificación y no reglas. El detalle, las fue
 - **B-3. No existe la superficie de organizaciones** en ningún OpenAPI.
 - **B-4. No existe el modelo ni las operaciones de alcance** (unidades del Monitorista, Monitoristas del Supervisor, Supervisores del Coordinador). Depende de PA-3.
 - **B-5. No existe "revocar todas las sesiones de un sujeto".** `revocarSesion` es por `sesion_id` y no hay forma de enumerar las sesiones de un sujeto. Solo `desactivarSujeto` revoca la sesión viva.
-- **B-6. No existe consulta de auditoría de revocaciones.**
-- **B-7. `tenant_id` para usuarios internos.** `AltaSujetoEntrada` exige `tenant_id` para todo rol; E4-HU-018 solo liga la organización al rol `cliente`. No está definido qué valor lleva un usuario interno.
-- **B-8. No existe edición de datos del usuario** (nombre, identificador de usuario) en el contrato.
+- **B-6. No existe consulta de auditoría de revocaciones.** La respuesta de Lead (2026-11-05) no la menciona; el motivo queda en la auditoría local de identidad (PA-1). Pendiente de confirmar si habrá vista.
+- **B-7 (decidida, DEC-112/DEC-129). `tenant_id` para usuarios internos.** Hay un tenant interno único de AI27 para los siete roles internos y un tenant tipo cliente por organización. La interfaz no captura ni deriva el tenant de un interno; lo pone el servidor. Para `cliente` va la organización. Texto original de la brecha: `AltaSujetoEntrada` exige `tenant_id` para todo rol; E4-HU-018 solo liga la organización al rol `cliente`. No está definido qué valor lleva un usuario interno.
+- **B-8 (decidida, PA-10).** El identificador de usuario es inmutable en V1; editar usuario cambia el nombre. Falta la operación en el contrato (ola de B-9).
 - **B-9. Pin del contrato.** `package.json` fija `@ai27-tech/contracts@0.1.0-tracer.36`; el último publicado es `v0.1.0-tracer.37`. Para esta superficie `tracer.36` y `tracer.37` son idénticos. No se sube el pin sin aprobación explícita.
 - **B-10. Contradicciones del repo de contexto.** La historia técnica E8-T19 dice "un Ejecutivo puede tener varios clientes" y cita `/api/v1/roles/...`; E4-HU-018 y DEC-103 la superan en lo primero, y el contrato de `identidad` no tiene rutas de roles aparte (el rol se fija con `PUT /sujetos/{id}/rol`). La historia técnica y la línea equivalente de E4-HU-018 (matriz del Ejecutivo) quedan por corregir.
 - **B-11. Brechas de UI.** `@ai27-tech/ui@0.2.0-beta.6` no tiene un multi-select dedicado para varias unidades, Monitoristas o Supervisores. Se compone con `Table`/`Card` + `Checkbox` (mismo criterio que E8-T11). Verificar la API de `Modal`, `Table`, `FilterTable`, `Select`, `Badge` y `Toast`.
 - **B-12. Navegación.** `navigationConfig.ts` muestra "Administración" a todos los roles internos. Cumplir el Requirement 1 exige restringirla a `administrador` (campo `visiblePara`). Es un cambio de E8-T4 que se hace al implementar, no antes.
-- **B-13. Segundo factor.** No se revisó si las acciones sensibles (desactivar, revocar) exigen reautenticación; no se asume.
+- **B-13 (pendiente, Identidad/Seguridad).** Ninguna fuente exige reautenticación. **Segundo factor.** No se revisó si las acciones sensibles (desactivar, revocar) exigen reautenticación; no se asume.
 
 ## Trazabilidad
 

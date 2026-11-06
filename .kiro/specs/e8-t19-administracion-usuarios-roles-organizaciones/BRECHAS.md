@@ -6,6 +6,28 @@ Documento de brechas del spec. Cada brecha indica qué pide la tarea, qué exist
 
 **Solo spec de requisitos; sin implementación.** La mayor parte de la tarea está bloqueada por contrato: el `bff` no expone sujetos, roles, organizaciones ni revocación administrativa de sesiones. Lo único construible hoy sin contrato nuevo es el control de acceso por rol (Requirement 1), el bloqueo de auto-escalada en la interfaz (Requirement 7.1 y 7.2), las exclusiones de V1 (Requirement 12) y los estados de carga y error (Requirement 13).
 
+## Estado tras la respuesta de Lead (2026-11-05, DEC-139)
+
+Fuente: respuesta de Lead al brief de brechas; las decisiones de Producto quedaron en DEC-139 y las correcciones de contexto en la historia técnica E8-T19 y DEC-103. Verificado el 2026-11-06 contra `ai27-platform-context` en `7573de3` (commit `da266a4`): DEC-139 está DECIDIDA (owner Fabricio Fuentes) y cubre PA-1, PA-2, PA-7, PA-8 y PA-10. PA-5 se apoya en DEC-138 y la historia técnica E8-T19 corregida; PA-9 en DEC-091; B-7 en DEC-112 y DEC-129. Contrato: sigue `v0.1.0-tracer.37` como último tag, sin la ola de B-9. PA-3 sigue pendiente en DEC-045. **No se cierran todas las brechas.** La tabla de abajo manda sobre el texto de cada fila de "Resolución por brecha", que describe el hallazgo original.
+
+| Estado                           | Brechas                                                                                                            | Qué sigue                                                                                                                                                                                                                                                                                   |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Resuelta por decisión            | B-7, B-8, B-10, PA-1, PA-2, PA-5, PA-7, PA-8, PA-9, PA-10                                                          | Ya incorporadas en `requirements.md`, `design.md` y `tasks.md`. B-7: tenant interno único, el servidor lo pone (DEC-112, DEC-129). B-8/PA-10: identificador inmutable, se edita el nombre.                                                                                                  |
+| Accionable hoy (Bloque A)        | B-11, B-12, B-18                                                                                                   | Implementar sin contrato nuevo.                                                                                                                                                                                                                                                             |
+| Decidida, espera ola de contrato | B-1, B-2, B-3, B-5, B-15, B-16                                                                                     | Salen en una sola ola, en el siguiente tracer libre (B-9). Lead confirmará el número. No subir el pin de `@ai27-tech/contracts` hasta esa confirmación (DEC-102); tras el bump correr typecheck y build. B-1 depende además de confirmar con Identidad que distingue cada causa de 403/409. |
+| Decidida, sin operación aún      | B-14                                                                                                               | Se resuelve con un indicador "es el propio sujeto" o el `idp_subject` del objetivo, resuelto en servidor, no con un claim `sujeto_id` (DEC-072). Hasta entonces, falla cerrada.                                                                                                             |
+| Abierta                          | B-4 (PA-3), PA-6 (ligada a PA-3), B-17 (Identidad), B-13 (Identidad/Seguridad), PA-4 (textos), B-6 (no respondida) | PA-3, PA-6 y PA-4 con Producto/Operación. B-17: `fijarRolSujeto` puede ser un nombre tentativo; no se infiere. B-13: no se asume reautenticación. B-6: preguntar si habrá vista de auditoría.                                                                                               |
+| Cerrada como regla               | B-9 (pin)                                                                                                          | Sin cambio de pin hasta aprobación.                                                                                                                                                                                                                                                         |
+
+Reglas de producto que cambian el spec:
+
+- **PA-1:** motivo de revocación obligatorio, texto libre, sin catálogo; no cambia `sesion.revocada`.
+- **PA-2:** organización con nombre, correo y teléfono, los tres obligatorios; correo con `@`, teléfono sin formato.
+- **PA-7:** un administrador puede desactivarse si existe otro activo; al último se le rechaza con `409`.
+- **PA-8:** desactivar una organización es terminal (sin reactivar); el retiro de acceso llega en el siguiente refresco (DEC-091), no por revocación en vivo.
+- **PA-9:** el cambio de rol surte efecto en el siguiente refresco; los 30 s son solo de la revocación de sesión.
+- **#24 / B-10:** la interfaz no asigna clientes a un Ejecutivo; el vínculo nace por auto-asignación pegajosa (DEC-103, DEC-128).
+
 ## Fuentes y versiones verificadas
 
 - **Contexto:** `repos/ai27-platform-context` en **`a55713c`**. Historia técnica `docs/historias-tecnicas/E8-panel-admin.md` (sección E8-T19); HU `E4-HU-018`, `E4-HU-019`, `E4-HU-020`; DEC-022, DEC-036, DEC-045, DEC-053/054, DEC-091, DEC-103, DEC-137 y DEC-138.
@@ -58,7 +80,7 @@ Documento de brechas del spec. Cada brecha indica qué pide la tarea, qué exist
 
 ## Contradicciones y puntos a aclarar
 
-1. **"Dos sesiones abiertas" frente a DEC-138 (PA-5).** La definición de terminado pide un e2e de revocación masiva con dos sesiones abiertas. DEC-138 dice que un login nuevo revoca y reemplaza la sesión viva del sujeto. Con esa regla un usuario no puede tener dos sesiones vivas por login normal. E4-HU-020 e ADR 26 hablan de "una o varias sesiones activas". Hay que aclarar el modelo antes de armar el e2e; el spec no elige una interpretación.
+1. **"Dos sesiones abiertas" frente a DEC-138 (PA-5). Resuelta.** En V1 un sujeto tiene a lo sumo una sesión viva y un login nuevo revoca la anterior (DEC-138); el e2e de revocación masiva usa dos sujetos distintos. La definición de terminado de E8-T19 ya está corregida.
 2. **Quita de rol y sesiones vivas (DEC-091).** Quitar un rol no revoca sesiones vivas; surte efecto en el siguiente refresco. La interfaz lo avisa y no revoca por su cuenta. Si Producto quiere que un cambio de rol corte el acceso, es otra decisión.
 3. **Plazos distintos.** El máximo de 30 s (ADR 26) es de la revocación de sesión. El objetivo medible de latencia sigue por definir (DEC-022 #3). Se prueba el máximo contractual.
 4. **Requirements 2.8 y 13.2.** 2.8 pide no mostrar como vigente una lista cargada antes; 13.2 pide conservar visibles los datos de la última consulta exitosa. El diseño los concilia con un estado `datos_desactualizado` (datos visibles, marcados como no vigentes, con reintento). Confirmar que es la lectura buscada.
@@ -69,18 +91,10 @@ Documento de brechas del spec. Cada brecha indica qué pide la tarea, qué exist
 
 ## Pendientes de Producto (no se fijan en el spec)
 
-- **PA-1** Motivo de revocación obligatorio (E4-HU-020).
-- **PA-2** Datos de contacto de la organización en V1 (E4-HU-019).
-- **PA-3** Mecánica del vínculo Monitorista↔unidad (E4-HU-018, DEC-045).
-- **PA-4** Textos exactos de mensajes.
-- **PA-5** Modelo de sesiones simultáneas frente a DEC-138.
-- **PA-6** Qué pasa con el alcance previo al cambiar de rol.
-- **PA-7** Auto-desactivación del Administrador cuando hay otro.
-- **PA-8** Reactivar organizaciones; si desactivar una organización revoca sesiones vivas.
-- **PA-9** Objetivo medible de aplicación de cambios de rol (DEC-091, DEC-022 #3).
-- **PA-10** Edición de nombre e identificador de usuario en V1 (B-8).
-
-## Qué se puede construir sin cerrar brechas
+- **PA-3** Mecánica del vínculo Monitorista↔unidad (E4-HU-018, DEC-045). Owner: Operación/Producto. Bloquea B-4.
+- **PA-4** Textos exactos de mensajes. Se usan los provisionales marcados.
+- **PA-6** Qué pasa con el alcance previo al cambiar de rol. Ligado a PA-3.
+- Decididas en DEC-139: PA-1, PA-2, PA-5, PA-7, PA-8, PA-9, PA-10 (ver "Estado tras la respuesta de Lead").## Qué se puede construir sin cerrar brechas
 
 - Diseño: `design.md` separa lo construible hoy de lo condicionado y declara la capa de acceso (`AdministracionPort`) como "condicionada a B-1 a B-5".
 - Guardas de rol: entrada de navegación y ruta `/administracion` solo para `administrador` (B-12) y aviso de acceso no autorizado.
