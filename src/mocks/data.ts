@@ -447,6 +447,11 @@ export const UNIDADES_DEMO: readonly Unidad[] = [
     custodios_ids: ['CUS-3001', 'CUS-3002'],
     tipo: 'patrulla',
     activa: true,
+    vehiculo: { economico: 'P-101', placas: 'ABC-1234' },
+    custodios: [
+      { id: 'CUS-3001', nombre: 'Juan Pérez' },
+      { id: 'CUS-3002', nombre: 'Ana López' },
+    ],
   },
   {
     id: 'UN-1002',
@@ -454,6 +459,8 @@ export const UNIDADES_DEMO: readonly Unidad[] = [
     custodios_ids: ['CUS-3003'],
     tipo: 'moto',
     activa: false,
+    vehiculo: { economico: 'M-07', placas: 'XYZ-987' },
+    custodios: [{ id: 'CUS-3003', nombre: 'Luis Ramírez' }],
   },
 ];
 

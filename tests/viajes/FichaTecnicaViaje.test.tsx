@@ -87,7 +87,7 @@ describe('FichaTecnicaViaje — lectura y escolta', () => {
 
     expect(await screen.findByText('Escolta (derivada de la asignación)')).toBeInTheDocument();
     expect(await screen.findByText(/Unidad UN-1/)).toBeInTheDocument();
-    expect(screen.getByText(/patrulla · vehículo VEH-1 · 2 custodio\(s\)/)).toBeInTheDocument();
+    expect(screen.getByText(/patrulla · VEH-1 · CUS-1, CUS-2/)).toBeInTheDocument();
     expect(screen.getByText(/no se recapturan custodios ni patrullas/i)).toBeInTheDocument();
 
     // No hay controles de edición de la escolta (solo lectura).
