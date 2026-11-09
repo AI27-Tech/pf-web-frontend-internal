@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useSession } from '@/context/SessionContext';
-import { ApiError } from '@/lib/api/errors';
+import { esProhibido, esSesionInvalida } from '@/lib/api/errors';
 import {
   abrirIncidencia,
   abrirEstadia,
@@ -57,14 +57,10 @@ export interface HistoricoViajeHook {
   readonly abriendoEstadia: boolean;
   readonly cerrandoEstadia: boolean;
   readonly errorMutacion: Error | null;
+  /** 401 o sesión cortada en cualquier lectura o acción. */
   readonly esNoAutorizado: boolean;
-}
-
-function esNoAutorizadoError(error: unknown): boolean {
-  return (
-    error instanceof ApiError &&
-    (error.kind === 'noAutorizado' || error.kind === 'sesionFinalizada')
-  );
+  /** 403 en una lectura del histórico: sin permiso; la sesión sigue. */
+  readonly esProhibido: boolean;
 }
 
 function toQueryState<T>(query: ReturnType<typeof useQuery<T, Error>>): HistoricoQueryState<T> {
@@ -73,7 +69,7 @@ function toQueryState<T>(query: ReturnType<typeof useQuery<T, Error>>): Historic
     cargando: query.isPending,
     vacio: query.isSuccess && query.data !== undefined,
     error: query.isError ? query.error : null,
-    esNoAutorizado: esNoAutorizadoError(query.error),
+    esNoAutorizado: esSesionInvalida(query.error),
     reintentar: () => void query.refetch(),
   };
 }
@@ -163,7 +159,13 @@ export function useHistoricoViaje(id: string): HistoricoViajeHook {
     incidenciasQuery.error,
     estadiasQuery.error,
     errorMutacion,
-  ].some(esNoAutorizadoError);
+  ].some(esSesionInvalida);
+  // Solo las lecturas bloquean la vista; un 403 de una acción se avisa con su toast.
+  const esProhibidoHistorico = [
+    bitacoraQuery.error,
+    incidenciasQuery.error,
+    estadiasQuery.error,
+  ].some(esProhibido);
 
   return {
     bitacora: toQueryState(bitacoraQuery),
@@ -181,5 +183,6 @@ export function useHistoricoViaje(id: string): HistoricoViajeHook {
     cerrandoEstadia: cierreMutation.isPending,
     errorMutacion,
     esNoAutorizado,
+    esProhibido: esProhibidoHistorico,
   };
 }

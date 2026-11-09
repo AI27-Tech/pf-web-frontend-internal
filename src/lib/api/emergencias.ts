@@ -67,14 +67,14 @@ export class ErrorVersionReclamoEmergencia extends ApiError {
 /** 403 en la lectura de la bandeja o del caso: sin acceso a la superficie. */
 export class ErrorSinAccesoEmergencias extends ApiError {
   constructor() {
-    super('noAutorizado', 'No tienes acceso a las emergencias.', 403);
+    super('prohibido', 'No tienes acceso a las emergencias.', 403);
     this.name = 'ErrorSinAccesoEmergencias';
   }
 }
 /** 403 en una acción: el gesto no te corresponde (p. ej. no eres el responsable). */
 export class ErrorAccionNoPermitida extends ApiError {
   constructor() {
-    super('noAutorizado', 'No puedes realizar esta acción sobre la emergencia.', 403);
+    super('prohibido', 'No puedes realizar esta acción sobre la emergencia.', 403);
     this.name = 'ErrorAccionNoPermitida';
   }
 }

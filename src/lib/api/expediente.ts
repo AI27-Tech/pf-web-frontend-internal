@@ -5,7 +5,7 @@ import { ApiError } from './errors';
 /** Error cuando la autorización no alcanza al expediente (sin permiso o fuera de alcance). */
 export class ErrorDescargaProhibida extends ApiError {
   constructor() {
-    super('noAutorizado', 'No tienes autorización para descargar este expediente.', 403);
+    super('prohibido', 'No tienes autorización para descargar este expediente.', 403);
     this.name = 'ErrorDescargaProhibida';
   }
 }

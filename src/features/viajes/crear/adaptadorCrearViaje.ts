@@ -122,7 +122,8 @@ function errorRespuestaInsuficiente(etapa: 'crearViaje' | 'asignarRecursos'): Er
  */
 export function mensajeErrorCrearViaje(error: unknown): string {
   if (error instanceof ApiError) {
-    if (error.kind === 'noAutorizado') return 'Tu sesión o autorización ya no es válida.';
+    if (error.kind === 'noAutorizado') return 'Tu sesión ya no es válida. Vuelve a iniciar sesión.';
+    if (error.kind === 'prohibido') return 'No tienes permiso para crear viajes.';
     if (error.kind === 'conflicto')
       return 'La escolta ya no está disponible. Revisa las unidades seleccionadas.';
     if (error.kind === 'degradado') return 'El servicio no está disponible. Reintenta más tarde.';

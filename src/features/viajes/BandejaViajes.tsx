@@ -56,11 +56,16 @@ export function BandejaViajes() {
   const navigate = useNavigate();
   const columnasViaje = obtenerColumnasViaje(navigate);
 
-  // Requirement 7.3: un 401/403 no pinta el error genÃ©rico del listado; se delega
-  // al flujo de sesiÃ³n del AppShell (logout limpia el TokenStore y la guarda
+  // Requirement 7.3: un 401 no pinta el error genérico del listado; se delega
+  // al flujo de sesión del AppShell (logout limpia el TokenStore y la guarda
   // _private redirige a /login conservando ?redirect=).
   if (b.esNoAutorizado) {
     return <DelegacionSesion />;
+  }
+
+  // Un 403 no es sesión vencida: se avisa la falta de permiso y la sesión sigue.
+  if (b.esProhibido) {
+    return <SinPermiso />;
   }
 
   // Requirement 7.1/7.2: cualquier otro fallo muestra error + reintento (filtro vigente).
@@ -178,6 +183,23 @@ function EstadoError({ onReintentar }: { readonly onReintentar: () => void }) {
           Reintentar
         </Button>
       </CardFooter>
+    </Card>
+  );
+}
+
+/** Sin permiso (403): la sesión es válida pero el rol no alcanza al listado. */
+function SinPermiso() {
+  return (
+    <Card variant="outlined">
+      <CardBody>
+        <p
+          role="alert"
+          className="ui-text-body-sm"
+          style={{ color: 'var(--ui-color-text)', margin: 0 }}
+        >
+          No tienes permiso para ver el listado de viajes.
+        </p>
+      </CardBody>
     </Card>
   );
 }
