@@ -12,23 +12,26 @@ interface SelectorRolProps {
   readonly leyenda: string;
   readonly valor: Rol | null;
   readonly onCambiar: (rol: Rol) => void;
+  /** Roles ofrecidos. Por defecto, los ocho del enum. */
+  readonly opciones?: readonly Rol[];
   /** Rol actual del usuario. Se marca en la lista cuando se indica. */
   readonly rolActual?: Rol | null;
   readonly disabled?: boolean;
 }
 
-/** Selector de rol con las ocho opciones del enum del contrato. */
+/** Selector de rol. Por defecto ofrece las ocho opciones del enum del contrato. */
 export function SelectorRol({
   nombre,
   leyenda,
   valor,
   onCambiar,
+  opciones = OPCIONES_ROL,
   rolActual,
   disabled,
 }: SelectorRolProps) {
   return (
     <FormSection title={leyenda}>
-      {OPCIONES_ROL.map((rol) => (
+      {opciones.map((rol) => (
         <Radio
           key={rol}
           name={nombre}
