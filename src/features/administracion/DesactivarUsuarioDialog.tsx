@@ -79,7 +79,7 @@ export function DesactivarUsuarioDialog({
           ? port.desactivarUsuario(usuario.id, token)
           : port.reactivarUsuario(usuario.id, token),
       );
-      if (resultado === undefined) return;
+      if (!resultado.enviado) return;
 
       despachar('exito');
       onCompletado(mensajesDeExito(desactivar ? 'desactivarUsuario' : 'reactivarUsuario'));

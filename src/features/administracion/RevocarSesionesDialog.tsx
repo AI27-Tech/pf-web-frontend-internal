@@ -77,11 +77,13 @@ export function RevocarSesionesDialog({
       const resultado = await envio.enviar(clave, () =>
         port.revocarSesiones(usuario.id, motivoValidado.motivo, token),
       );
-      if (resultado === undefined) return;
+      if (!resultado.enviado) return;
 
       despachar('exito');
       onResultado(
-        resultado.sinSesiones ? TEXTOS.revocacionSinSesiones : mensajesDeExito('revocarSesiones'),
+        resultado.valor.sinSesiones
+          ? TEXTOS.revocacionSinSesiones
+          : mensajesDeExito('revocarSesiones'),
       );
       onCerrar();
     } catch (fallo) {

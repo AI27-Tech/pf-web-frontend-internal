@@ -13,13 +13,20 @@
 
 import { useCallback, useRef, useState } from 'react';
 
+/**
+ * Resultado de un envío. `enviado: false` significa que la clave ya tenía una
+ * solicitud en curso y no se llamó a la operación. Es distinto de un `valor`
+ * `undefined` de una operación que no devuelve nada.
+ */
+export type ResultadoEnvio<T> =
+  { readonly enviado: false } | { readonly enviado: true; readonly valor: T };
+
 export interface EnvioUnico {
   /**
-   * Ejecuta `operacion` salvo que la misma clave ya tenga una en curso. En ese
-   * caso no llama a `operacion` y devuelve `undefined`. Los errores de la
-   * operación se propagan al llamador.
+   * Ejecuta `operacion` salvo que la misma clave ya tenga una en curso. Los
+   * errores de la operación se propagan al llamador.
    */
-  readonly enviar: <T>(clave: string, operacion: () => Promise<T>) => Promise<T | undefined>;
+  readonly enviar: <T>(clave: string, operacion: () => Promise<T>) => Promise<ResultadoEnvio<T>>;
   /** Verdadero mientras la clave tiene una solicitud en vuelo. */
   readonly enCurso: (clave: string) => boolean;
 }
@@ -32,18 +39,22 @@ export function useEnvioUnico(): EnvioUnico {
   const enVuelo = useRef(new Set<string>());
   const [claves, setClaves] = useState<ReadonlySet<string>>(() => new Set());
 
-  const enviar = useCallback(async <T>(clave: string, operacion: () => Promise<T>) => {
-    if (enVuelo.current.has(clave)) return undefined;
+  const enviar = useCallback(
+    async <T>(clave: string, operacion: () => Promise<T>): Promise<ResultadoEnvio<T>> => {
+      if (enVuelo.current.has(clave)) return { enviado: false };
 
-    enVuelo.current.add(clave);
-    setClaves(new Set(enVuelo.current));
-    try {
-      return await operacion();
-    } finally {
-      enVuelo.current.delete(clave);
+      enVuelo.current.add(clave);
       setClaves(new Set(enVuelo.current));
-    }
-  }, []);
+      try {
+        const valor = await operacion();
+        return { enviado: true, valor };
+      } finally {
+        enVuelo.current.delete(clave);
+        setClaves(new Set(enVuelo.current));
+      }
+    },
+    [],
+  );
 
   const enCurso = useCallback((clave: string) => claves.has(clave), [claves]);
 

@@ -82,7 +82,7 @@ export function CambioRolDialog({
         port.fijarRol(usuario.id, rolElegido, token),
       );
       // Una segunda confirmación que llega con el cerrojo tomado no emite nada.
-      if (resultado === undefined) return;
+      if (!resultado.enviado) return;
 
       despachar('exito');
       onCambiado(mensajesDeExito('cambioRol'));

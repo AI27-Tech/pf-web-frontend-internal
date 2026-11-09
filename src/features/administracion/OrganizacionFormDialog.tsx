@@ -88,7 +88,7 @@ export function OrganizacionFormDialog({
           ? port.editarOrganizacion(organizacion.id, datos, token)
           : port.crearOrganizacion(datos, token),
       );
-      if (resultado === undefined) return;
+      if (!resultado.enviado) return;
 
       despachar('exito');
       onGuardada(mensajesDeExito('guardarOrganizacion'));
