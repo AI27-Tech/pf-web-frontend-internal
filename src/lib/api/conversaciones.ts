@@ -45,20 +45,20 @@ export class ErrorSinBandeja extends ApiError {
 }
 export class ErrorSinAcceso extends ApiError {
   constructor() {
-    super('noAutorizado', TEXTOS.sinAcceso, 403);
+    super('prohibido', TEXTOS.sinAcceso, 403);
     this.name = 'ErrorSinAcceso';
   }
 }
 export class ErrorNoEsResponsable extends ApiError {
   constructor() {
-    super('noAutorizado', TEXTOS.soloResponsable, 403);
+    super('prohibido', TEXTOS.soloResponsable, 403);
     this.name = 'ErrorNoEsResponsable';
   }
 }
 /** 403 en envío, reclamo o lectura de una conversación (Req 4.6, 9.6). */
 export class ErrorAutorizacionInsuficiente extends ApiError {
   constructor() {
-    super('noAutorizado', TEXTOS.autorizacionInsuficiente, 403);
+    super('prohibido', TEXTOS.autorizacionInsuficiente, 403);
     this.name = 'ErrorAutorizacionInsuficiente';
   }
 }

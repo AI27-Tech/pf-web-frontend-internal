@@ -301,3 +301,51 @@ describe('HistoricoViaje — integración (E8-T13)', () => {
     expect(screen.queryByRole('button', { name: /borrar|eliminar/i })).not.toBeInTheDocument();
   });
 });
+
+describe('HistoricoViaje — un 403 no se trata como sesión vencida', () => {
+  const prohibido = () => HttpResponse.json({ codigo: 'prohibido' }, { status: 403 });
+
+  it('un 403 al leer la bitácora avisa la falta de permiso, no la sesión', async () => {
+    server.use(
+      http.get(path('/viajes/:id/bitacora'), prohibido),
+      http.get(path('/viajes/:id/estadias'), () => HttpResponse.json(estadiasVacias)),
+      http.get(path('/viajes/:id/incidencias'), () => HttpResponse.json(incidenciasVacias)),
+    );
+    renderHistorico();
+
+    expect(
+      await screen.findByText('No tienes permiso para ver el histórico de este viaje.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Tu sesión no está autorizada/)).not.toBeInTheDocument();
+  });
+
+  it('un 403 al registrar una nota deja la vista y avisa con un toast de permiso', async () => {
+    server.use(
+      http.get(path('/viajes/:id/bitacora'), () => HttpResponse.json(bitacoraVacia)),
+      http.get(path('/viajes/:id/estadias'), () => HttpResponse.json(estadiasVacias)),
+      http.get(path('/viajes/:id/incidencias'), () => HttpResponse.json(incidenciasVacias)),
+      http.post(path('/viajes/:id/bitacora'), prohibido),
+    );
+    renderHistorico();
+
+    await userEvent.type(await screen.findByPlaceholderText(/Describe la observación/i), 'Nota');
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar nota' }));
+
+    expect(
+      await screen.findByText('No tienes permiso para esta acción en este viaje.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Histórico del viaje: VJ-1')).toBeInTheDocument();
+    expect(screen.queryByText(/Tu sesión no está autorizada/)).not.toBeInTheDocument();
+  });
+
+  it('un 401 sigue delegando a la sesión', async () => {
+    server.use(
+      http.get(path('/viajes/:id/bitacora'), () => new HttpResponse(null, { status: 401 })),
+      http.get(path('/viajes/:id/estadias'), () => HttpResponse.json(estadiasVacias)),
+      http.get(path('/viajes/:id/incidencias'), () => HttpResponse.json(incidenciasVacias)),
+    );
+    renderHistorico();
+
+    expect(await screen.findByText(/Tu sesión no está autorizada/)).toBeInTheDocument();
+  });
+});

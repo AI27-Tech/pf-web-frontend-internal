@@ -63,11 +63,12 @@ function base64Url(valor: string): string {
 /**
  * Construye un access_token mock con forma de JWT (header.payload.firma). La
  * firma es de mentira —el mock no verifica nada—, pero el payload es un JSON de
- * claims real que la app puede decodificar.
+ * claims real que la app puede decodificar. Los handlers que aplican facultades
+ * leen el rol de aquí, como el `bff` real.
  */
-function mockAccessToken(): string {
+export function mockAccessToken(rol: Rol = DEMO_CLAIMS.rol): string {
   const header = base64Url(JSON.stringify({ alg: 'none', typ: 'JWT' }));
-  const payload = base64Url(JSON.stringify(DEMO_CLAIMS));
+  const payload = base64Url(JSON.stringify({ ...DEMO_CLAIMS, rol }));
   return `${header}.${payload}.firma-de-mentira`;
 }
 
@@ -439,7 +440,7 @@ export function completarFechaHoraMock(id: string, fecha_hora_servicio: string):
   return true;
 }
 
-/** Roster demo: incluye unidades activas e inactivas; ambas se pueden seleccionar. */
+/** Roster demo de la asignación: la aptitud de `asignarEscoltaMock` sale de aquí. */
 export const UNIDADES_DEMO: readonly Unidad[] = [
   {
     id: 'UN-1001',
@@ -447,6 +448,11 @@ export const UNIDADES_DEMO: readonly Unidad[] = [
     custodios_ids: ['CUS-3001', 'CUS-3002'],
     tipo: 'patrulla',
     activa: true,
+    vehiculo: { economico: 'P-101', placas: 'ABC-1234' },
+    custodios: [
+      { id: 'CUS-3001', nombre: 'Juan Pérez' },
+      { id: 'CUS-3002', nombre: 'Ana López' },
+    ],
   },
   {
     id: 'UN-1002',
@@ -454,16 +460,10 @@ export const UNIDADES_DEMO: readonly Unidad[] = [
     custodios_ids: ['CUS-3003'],
     tipo: 'moto',
     activa: false,
+    vehiculo: { economico: 'M-07', placas: 'XYZ-987' },
+    custodios: [{ id: 'CUS-3003', nombre: 'Luis Ramírez' }],
   },
 ];
-
-/** Escenario explícito del roster sin unidades disponibles para pruebas de UI. */
-export const UNIDADES_SIN_DISPONIBLES_DEMO: readonly Unidad[] = [];
-
-/** Devuelve una página del roster con la forma esperada por el BFF. */
-export function listarUnidadesMock(unidades: readonly Unidad[] = UNIDADES_DEMO) {
-  return { items: [...unidades], cursor_siguiente: null };
-}
 
 function aptitudDemo(recurso: AptitudRecurso['recurso'], recurso_id: string): AptitudRecurso {
   return { recurso, recurso_id, estado: 'apto' };

@@ -6,6 +6,7 @@
  *   POST /api/v1/viajes/{id}/transiciones → cambiar estado del viaje
  *   PATCH /api/v1/viajes/{id}/eta        → fijar ETA estimado manual
  *   PATCH /api/v1/viajes/{id}/fecha-hora → completar/editar la fecha/hora del servicio
+ *   GET /api/v1/viajes/{id}/asignacion   → escolta vigente del viaje (tracer.39)
  *
  * Clasifica los códigos de conflicto (409) en errores específicos,
  * emite peticiones contra el BFF y devuelve el resultado.
@@ -20,6 +21,7 @@ import type {
   TransicionEntrada,
   ViajeDetalle,
 } from '../contracts/viajeDetalle';
+import type { EscoltaVigente } from '../contracts/unidades';
 import { ApiError } from './errors';
 import { request } from './client';
 
@@ -245,4 +247,14 @@ export async function asignarEscolta(
     // El 409 contractual representa la carrera de exclusión del roster.
     clasificarConflictoAsignacion(err);
   }
+}
+
+/**
+ * Escolta vigente del viaje (`GET /viajes/{id}/asignacion`, tracer.39).
+ *
+ * La lee cualquier rol interno y trae las unidades legibles. `unidades` vacío
+ * significa que el viaje no tiene asignación vigente (DEC-142, E8-T12).
+ */
+export function obtenerAsignacion(id: string, accessToken: string): Promise<EscoltaVigente> {
+  return request<EscoltaVigente>(`/viajes/${id}/asignacion`, { accessToken });
 }

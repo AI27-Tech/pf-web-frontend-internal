@@ -1,5 +1,62 @@
 ﻿# CHANGELOG
 
+## 2026:11:09 13:11
+
+**Resumen:** Sección `/roster` del Jefe Operativo (E8-T21, DEC-142), vehículos y custodios en `/catalogos` (adelanto de E8-T16, DEC-142 #6) y escolta de la ficha técnica desde la asignación del viaje (E8-T12). Se desarrolló con los tipos de `tracer.39` puestos en `node_modules`; el pin sigue en `tracer.38` hasta subirlo.
+
+**Cambios:**
+
+- **`/roster`** (`src/features/roster/`, `src/routes/_private/roster.tsx`): solo `jefe_operativo` y `administrador`, con entrada de navegación propia y aviso de acceso para los demás roles. Lista paginada por cursor (vehículo legible, custodios por nombre, tipo, estado). Alta (`crearUnidad`): un vehículo activo y uno o dos custodios activos; una moto admite uno. El `tipo` no se captura. Edición (`modificarUnidad`): vehículo, custodios y activar/desactivar; solo envía lo que cambió. Mensajes propios para `409 vehiculo_en_otra_unidad`, `409 custodio_en_otra_unidad`, `409 unidad_con_reserva_vigente` (pide reasignar primero la escolta del viaje), `400` y `403` (sin cerrar la sesión). La asignación de "mis unidades" a cada Monitorista queda marcada como pendiente: llega con la ola de E8-T19.
+- **`/catalogos`** (`src/features/catalogos/`, `src/routes/_private/catalogos.tsx`): reemplaza el stub. Vehículos (tipo coche/moto, económico, placas, activa/inactiva, sin cliente por DEC-143) y custodios (nombre, teléfono, activo/inactivo). Leen `jefe_operativo` y `administrador`; dan de alta y editan solo `administrador`. Los demás catálogos de E8-T16 siguen pendientes.
+- **Ficha técnica** (`useFichaTecnica.ts`, `FichaTecnicaViaje.tsx`): la escolta sale de `obtenerAsignacion` (`GET /viajes/{id}/asignacion`) y ya no de `listarUnidades`, que responde `403` al monitorista. Sin asignación vigente dice "Este viaje no tiene escolta asignada.".
+- `src/lib/api/unidades.ts`, `src/lib/api/catalogos.ts` (nuevo), `src/lib/api/viajeDetalle.ts` (`obtenerAsignacion`); `src/lib/contracts/unidades.ts` y `src/lib/contracts/catalogos.ts` (nuevo) con los tipos generados de `tracer.39`.
+- `src/mocks/roster.ts` (nuevo): handlers MSW del roster, vehículos, custodios y escolta, con las reglas del servidor (rol leído del JWT del mock, exclusividad, reserva vigente, validación y forma `{codigo, mensaje}` de los errores). `handlers.ts` deja su `GET /unidades` fijo y la asignación registra la reserva. `mockAccessToken(rol)` se exporta para las pruebas.
+- Pruebas: `tests/roster/Roster.test.tsx` (14), `tests/catalogos/Catalogos.test.tsx` (10), `FichaTecnicaViaje.test.tsx` (con y sin escolta, sin pedir el roster), `navigation-visibility.test.ts` y `e2e/roster.spec.ts` (login del demo, navegación y alta de unidad en el bundle mock).
+
+**Verificación:** con los tipos de `tracer.39`: `vite build --mode mock`, `lint`, `typecheck`, `test` (497) y `test:e2e` (5) en verde.
+
+## 2026:11:09 12:56
+
+**Resumen:** Un `403` ya no cierra la sesión. `kindFromStatus` mapeaba `401` y `403` a `noAutorizado`, y las pantallas trataban ese kind como sesión vencida. En el recorrido real, el monitorista abría la ficha técnica, `GET /api/v1/unidades` respondía `403` y el panel hacía `DELETE /sesion` y lo mandaba a `/login`. Ahora el `403` tiene su propio kind, `prohibido`, y cada pantalla dice que falta permiso sin cerrar la sesión. Solo el `401` (o el corte de sesión) delega al flujo de sesión, como fija DT-03.
+
+**Cambios:**
+
+- `src/lib/api/errors.ts`: kind nuevo `prohibido` (`403`); `noAutorizado` queda solo para `401`. Predicados `esSesionInvalida` (`401` o `sesionFinalizada`) y `esProhibido`.
+- `src/lib/api/{historicoViaje,emergencias,conversaciones,reportes,adjuntos,expediente}.ts`: los errores de dominio del `403` nacen con kind `prohibido`.
+- Ficha técnica (`useFichaTecnica.ts`, `FichaTecnicaViaje.tsx`, `FichaEditor.tsx`, `adaptadorFichaTecnica.ts`): un `403` del detalle o de la ficha muestra "No tienes permiso para ver la ficha técnica de este viaje."; uno de la escolta o del catálogo GPS lo dice en su sección y la ficha sigue a la vista; uno del guardado da "No tienes permiso para guardar la ficha técnica.".
+- Detalle del viaje (`useDetalleViaje.ts`, `DetalleViaje.tsx`, `asignacionForm.tsx`): un `403` del detalle muestra un aviso de permiso; uno del roster o de la asignación lo dice en el formulario de escolta.
+- Bandeja de viajes (`useBandejaViajes.ts`, `BandejaViajes.tsx`): un `403` del listado muestra un aviso de permiso.
+- Histórico (`useHistoricoViaje.ts`, `HistoricoViaje.tsx`): un `403` de una lectura muestra un aviso de permiso en lugar de "Tu sesión no está autorizada"; uno de una acción da un toast de permiso y la vista sigue.
+- `src/features/viajes/crear/adaptadorCrearViaje.ts`: mensaje propio para el `403`.
+- `src/features/viajes/evidencia/useEvidenciaViaje.ts`: se quita `esNoAutorizado`, que agrupaba el `403` con la sesión cortada y ninguna pantalla consumía.
+- Pruebas: `FichaTecnicaViaje.test.tsx`, `Asignacion.test.tsx`, `BandejaViajes.test.tsx` y `HistoricoViaje.test.tsx` prueban que un `403` muestra su mensaje sin `logout` ni `/login`, y que un `401` sigue cerrando la sesión. Sin el cambio fallan once pruebas nuevas: las nueve de `403` y las de `401` de ficha y detalle, que antes no delegaban la sesión cortada. `historicoViaje.unit.test.ts` y `expedienteApi.test.ts` esperan el kind `prohibido`.
+
+**Verificación:** `vite build --mode mock`, `lint`, `typecheck`, `test` (472) y `test:e2e` (4) en verde.
+
+## 2026:11:06 14:30
+
+**Resumen:** Las unidades del roster se muestran por económico, placas y nombre de custodios en lugar de UUID (DT-19). Sube `@ai27-tech/contracts` de `tracer.37` a `tracer.38`, donde `Unidad` del `bff` trae `vehiculo` y `custodios` legibles. Aplica en "Asignar escolta", en el alta de viaje y en la ficha técnica. Si un vehículo o custodio ya no está en el catálogo, se muestra su id.
+
+**Cambios:**
+
+- `src/features/viajes/unidadLegible.ts` (nuevo): `vehiculoLegible` y `custodiosLegibles`, con el id como respaldo.
+- `src/features/viajes/detalle/asignacionForm.tsx`, `src/features/viajes/crear/CrearViaje.tsx`, `src/features/viajes/ficha/FichaTecnicaViaje.tsx`: usan esos helpers.
+- `src/mocks/data.ts`: el roster demo trae vehículo y custodios legibles.
+- `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`: pin `tracer.38` y su excepción de antigüedad.
+- Pruebas: `AsignacionForm.test.tsx` (nombres y respaldo al id) y `FichaTecnicaViaje.test.tsx` (texto nuevo de la escolta).
+
+**Verificación:** `vite build --mode mock`, `lint`, `typecheck` y `test` (460) en verde. Recorrido en navegador contra core con el `bff` de esta ola y Keycloak real: 29/29.
+
+## 2026:11:06 10:12
+
+**Resumen:** Defectos del recorrido final del demo en el detalle del viaje.
+
+- **Fecha/hora del servicio y ETA se guardan.** El campo de fecha del navegador da hora local sin zona (`2026-11-06T18:09`) y el bff exige RFC3339, así que los dos formularios respondían 400 y ninguna solicitud del cliente se podía aprobar desde la UI. `useDetalleViaje.ts` convierte los dos valores con `fechaHoraAISO`, el mismo helper del alta de viajes.
+- **El jefe operativo ya no pide las emergencias del viaje.** `SeccionEmergenciasViaje` ocultaba el carril, pero cargaba la lista antes de revisar el rol, y el bff respondía 403. El hook ahora vive en `CarrilEmergencias`, que solo se monta para monitorista, supervisor, coordinador y administrador (DEC-135).
+- **Pruebas:** el mock de `fecha-hora` de `DecisionSolicitud.test.tsx` exige RFC3339 como el bff, hay una prueba nueva de ETA y otra de que el jefe operativo no hace la petición. Las tres fallan sin el cambio.
+
+**Verificación:** `vite build --mode mock`, `lint`, `typecheck` y `test` (459) en verde. Recorrido en navegador contra core `v0.1.5` y el portal del cliente de `-m`, con Keycloak real: 29/29 pasos OK, incluidos fijar fecha/hora, aprobar y registrar ETA desde la UI.
+
 ## 2026:11:05 14:00
 
 **Resumen:** Implementación de E8-T18 (emergencia y bandeja de Reacción), salvo la transferencia dirigida, que queda fuera de V1 (DEC-134). Incluye la bandeja de Reacción en `/emergencias` (lista, detalle, reclamar, devolver, resolver con nota y cerrar) y el carril de emergencias del monitoreo en el detalle del viaje (activar, anotar, seleccionar caso y cerrar). Sube `@ai27-tech/contracts` de `tracer.36` a `tracer.37`, que publica el carril del monitoreo (DEC-135). El wrapper clasifica los `409` por su código de contrato (`emergencia_cerrada`, `conflicto_version_reclamo`, `viaje_en_estado_terminal`). `typecheck`, `lint`, `build:mock` y la suite completa (73 archivos, 457 pruebas) pasan. **La tarea no está cerrada:** faltan decisiones de Producto (textos aprobados, dónde ve el `administrador` el selector de casos, visibilidad de Emergencias para `jefe_operativo`) y la revisión manual final.

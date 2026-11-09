@@ -6,6 +6,9 @@ import { setupServer } from 'msw/node';
 import type { ReactNode } from 'react';
 
 import { FichaTecnicaViaje } from '@/features/viajes/ficha/FichaTecnicaViaje';
+import { mensajeErrorGuardarFicha } from '@/features/viajes/ficha/adaptadorFichaTecnica';
+import { ApiError } from '@/lib/api/errors';
+import { restablecerCorte } from '@/lib/api/sessionCut';
 import { API_PREFIX } from '@/lib/constants';
 
 const path = (segment: string) => `${API_PREFIX}${segment}`;
@@ -27,6 +30,8 @@ afterEach(() => {
   server.resetHandlers();
   logoutSpy.mockReset();
   navigateSpy.mockReset();
+  llamadasRoster.mockReset();
+  restablecerCorte();
 });
 afterAll(() => server.close());
 
@@ -47,19 +52,35 @@ function detalle() {
   };
 }
 
-function roster(
-  items = [
+/** Escolta vigente del viaje con la forma de `obtenerAsignacion` (tracer.39). */
+function escolta(
+  unidades = [
     {
       id: 'UN-1',
       vehiculo_id: 'VEH-1',
       custodios_ids: ['CUS-1', 'CUS-2'],
       tipo: 'patrulla',
       activa: true,
+      vehiculo: { economico: 'P-101', placas: 'ABC-1234' },
+      custodios: [
+        { id: 'CUS-1', nombre: 'Juan Pérez' },
+        { id: 'CUS-2', nombre: 'Ana López' },
+      ],
     },
   ],
 ) {
-  return { items, cursor_siguiente: null };
+  return { viaje_id: 'VJ-20', unidades };
 }
+
+/** El roster responde 403 al monitorista, como el `bff` real; la ficha no debe pedirlo. */
+const llamadasRoster = vi.fn();
+const rosterProhibido = http.get(path('/unidades'), () => {
+  llamadasRoster();
+  return HttpResponse.json(
+    { codigo: 'prohibido', mensaje: 'el rol monitorista no puede invocar listarUnidades' },
+    { status: 403 },
+  );
+});
 
 function handlersBase() {
   return [
@@ -68,7 +89,8 @@ function handlersBase() {
       HttpResponse.json({ viaje_id: 'VJ-20', contenedores: [], gps_ids: [] }),
     ),
     http.get(path('/gps'), () => HttpResponse.json({ items: [], cursor_siguiente: null })),
-    http.get(path('/unidades'), () => HttpResponse.json(roster())),
+    http.get(path('/viajes/:id/asignacion'), () => HttpResponse.json(escolta())),
+    rosterProhibido,
   ];
 }
 
@@ -87,7 +109,9 @@ describe('FichaTecnicaViaje — lectura y escolta', () => {
 
     expect(await screen.findByText('Escolta (derivada de la asignación)')).toBeInTheDocument();
     expect(await screen.findByText(/Unidad UN-1/)).toBeInTheDocument();
-    expect(screen.getByText(/patrulla · vehículo VEH-1 · 2 custodio\(s\)/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/patrulla · P-101 · ABC-1234 · Juan Pérez, Ana López/),
+    ).toBeInTheDocument();
     expect(screen.getByText(/no se recapturan custodios ni patrullas/i)).toBeInTheDocument();
 
     // No hay controles de edición de la escolta (solo lectura).
@@ -124,13 +148,13 @@ describe('FichaTecnicaViaje — lectura y escolta', () => {
         HttpResponse.json({ viaje_id: 'VJ-20', contenedores: [], gps_ids: [] }),
       ),
       http.get(path('/gps'), () => HttpResponse.json({ items: [], cursor_siguiente: null })),
-      http.get(path('/unidades'), () => HttpResponse.json(roster([]))),
+      http.get(path('/viajes/:id/asignacion'), () => HttpResponse.json(escolta([]))),
+      rosterProhibido,
     );
     renderFicha();
 
-    expect(
-      await screen.findByText('No hay unidades en la escolta de este viaje.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Este viaje no tiene escolta asignada.')).toBeInTheDocument();
+    expect(llamadasRoster).not.toHaveBeenCalled();
   });
 
   it('ofrece reintentar cuando la escolta falla, sin inventar datos', async () => {
@@ -140,7 +164,9 @@ describe('FichaTecnicaViaje — lectura y escolta', () => {
         HttpResponse.json({ viaje_id: 'VJ-20', contenedores: [], gps_ids: [] }),
       ),
       http.get(path('/gps'), () => HttpResponse.json({ items: [], cursor_siguiente: null })),
-      http.get(path('/unidades'), () => HttpResponse.json({ mensaje: 'falla' }, { status: 500 })),
+      http.get(path('/viajes/:id/asignacion'), () =>
+        HttpResponse.json({ codigo: 'error_interno', mensaje: 'falla' }, { status: 500 }),
+      ),
     );
     renderFicha();
 
@@ -148,5 +174,58 @@ describe('FichaTecnicaViaje — lectura y escolta', () => {
       expect(screen.getByText('No se pudo cargar la escolta.')).toBeInTheDocument(),
     );
     expect(screen.getByRole('button', { name: 'Reintentar escolta' })).toBeInTheDocument();
+  });
+});
+
+describe('FichaTecnicaViaje — un 403 no cierra la sesión', () => {
+  const prohibido = () =>
+    HttpResponse.json(
+      { codigo: 'prohibido', mensaje: 'el rol monitorista no puede invocar listarUnidades' },
+      { status: 403 },
+    );
+
+  it('el monitorista ve la escolta de su viaje sin pedir el roster (sin 403 ni logout)', async () => {
+    server.use(...handlersBase());
+    renderFicha();
+
+    expect(await screen.findByText(/Unidad UN-1/)).toBeInTheDocument();
+    expect(llamadasRoster).not.toHaveBeenCalled();
+    expect(screen.queryByText(/No tienes permiso/)).toBeNull();
+    expect(logoutSpy).not.toHaveBeenCalled();
+    expect(navigateSpy).not.toHaveBeenCalled();
+  });
+
+  it('un 403 en el detalle muestra el aviso de permiso sin cerrar la sesión', async () => {
+    server.use(http.get(path('/viajes/:id/detalle'), prohibido), ...handlersBase());
+    renderFicha();
+
+    expect(
+      await screen.findByText('No tienes permiso para ver la ficha técnica de este viaje.'),
+    ).toBeInTheDocument();
+    expect(logoutSpy).not.toHaveBeenCalled();
+    expect(navigateSpy).not.toHaveBeenCalled();
+  });
+
+  it('un 401 sigue cerrando la sesión y lleva a /login', async () => {
+    // MSW resuelve con el primer handler que casa: el override va antes de la base.
+    server.use(
+      http.get(path('/viajes/:id/detalle'), () => new HttpResponse(null, { status: 401 })),
+      ...handlersBase(),
+    );
+    renderFicha();
+
+    await waitFor(() => expect(logoutSpy).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(navigateSpy).toHaveBeenCalledWith(expect.objectContaining({ to: '/login' })),
+    );
+  });
+
+  it('el guardado distingue la falta de permiso de la sesión vencida', () => {
+    expect(mensajeErrorGuardarFicha(new ApiError('prohibido', 'x', 403))).toBe(
+      'No tienes permiso para guardar la ficha técnica.',
+    );
+    expect(mensajeErrorGuardarFicha(new ApiError('noAutorizado', 'x', 401))).toBe(
+      'Tu sesión ya no es válida. Vuelve a iniciar sesión.',
+    );
   });
 });

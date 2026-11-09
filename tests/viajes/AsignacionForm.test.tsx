@@ -40,6 +40,28 @@ function renderForm(overrides: Partial<React.ComponentProps<typeof AsignacionFor
 }
 
 describe('AsignacionForm', () => {
+  it('muestra el vehículo y los custodios por nombre, y el id de lo que ya no está en el catálogo (DT-19)', () => {
+    renderForm({
+      unidades: [
+        {
+          id: 'UN-7',
+          vehiculo_id: 'VEH-7',
+          custodios_ids: ['CUS-7', 'CUS-BORRADO'],
+          tipo: 'patrulla',
+          activa: true,
+          vehiculo: { economico: 'P-101', placas: 'ABC-1234' },
+          custodios: [{ id: 'CUS-7', nombre: 'Juan Pérez' }],
+        },
+        { id: 'UN-8', vehiculo_id: 'VEH-8', custodios_ids: ['CUS-8'], tipo: 'moto', activa: true },
+      ],
+    });
+    expect(screen.getByText('P-101 · ABC-1234')).toBeInTheDocument();
+    expect(screen.getByText('Juan Pérez, CUS-BORRADO')).toBeInTheDocument();
+    expect(screen.getByText('VEH-8')).toBeInTheDocument();
+    expect(screen.getByText('CUS-8')).toBeInTheDocument();
+    expect(screen.queryByText('VEH-7')).not.toBeInTheDocument();
+  });
+
   it('mantiene Confirmar deshabilitado sin selección y permite seleccionar varias unidades activas', async () => {
     const user = userEvent.setup();
     // Dos unidades activas para comprobar la selección múltiple sin tropezar con
