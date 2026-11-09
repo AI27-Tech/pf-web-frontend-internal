@@ -10,7 +10,8 @@
  * es un conflicto genérico y no se afirma ninguna causa (R5.6).
  */
 
-import { ApiError } from '@/lib/api/errors';
+import { ApiError, esSesionInvalida } from '@/lib/api/errors';
+import { ErrorSuperficieNoPublicada } from '@/lib/api/administracion';
 
 import { TEXTOS_ADMINISTRACION as TEXTOS } from './mensajes';
 import type { RelacionConSesion } from './relacionConSesion';
@@ -37,7 +38,8 @@ export type MotivoConflictoRol = 'usuario_desactivado' | 'rol_igual' | 'ultimo_a
 /** 403 en cualquier operación. */
 export class ErrorAutorizacionInsuficiente extends ApiError {
   constructor(codigo?: string) {
-    super('noAutorizado', TEXTOS.autorizacionInsuficiente, 403, codigo);
+    // `prohibido`, no `noAutorizado`: el 403 no cierra la sesión (PR #28).
+    super('prohibido', TEXTOS.autorizacionInsuficiente, 403, codigo);
     this.name = 'ErrorAutorizacionInsuficiente';
   }
 }
@@ -45,7 +47,7 @@ export class ErrorAutorizacionInsuficiente extends ApiError {
 /** 403 al cambiar el rol o el alcance del propio sujeto (R7.3, R7.4). */
 export class ErrorAutoescaladaBloqueada extends ApiError {
   constructor() {
-    super('noAutorizado', TEXTOS.autoescaladaBloqueada, 403);
+    super('prohibido', TEXTOS.autoescaladaBloqueada, 403);
     this.name = 'ErrorAutoescaladaBloqueada';
   }
 }
@@ -211,4 +213,16 @@ export function clasificarFallo(
   if (!(error instanceof ApiError)) return error;
   if (error.status === 401 || error.kind === 'sesionFinalizada') return error;
   return clasificarError(operacion, error.status, error.codigo, relacion);
+}
+
+/**
+ * Texto que muestra un diálogo para un fallo ya clasificado. Devuelve `null` si
+ * la sesión no es válida: en ese caso el AppShell delega al flujo de sesión y el
+ * diálogo no presenta la acción como realizada ni como fallida.
+ */
+export function textoDeFallo(error: unknown): string | null {
+  if (esSesionInvalida(error)) return null;
+  if (error instanceof ErrorSuperficieNoPublicada) return TEXTOS.superficieNoPublicada;
+  if (error instanceof ApiError) return error.message;
+  return TEXTOS.resultadoNoConfirmado;
 }

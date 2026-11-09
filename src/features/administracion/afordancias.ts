@@ -6,10 +6,22 @@
  * ante una relación `indeterminado` no se habilita el cambio de rol ni de alcance.
  */
 
-import { Rol } from '@ai27-tech/contracts/roles';
+import { Rol, esInterno, type Rol as RolTipo } from '@ai27-tech/contracts/roles';
+
+import { OPCIONES_ROL } from '@/lib/contracts/administracion';
 
 import type { RelacionConSesion } from './relacionConSesion';
 import { TEXTOS_ADMINISTRACION as TEXTOS } from './mensajes';
+
+/**
+ * Roles que el cambio de rol ofrece a un usuario. Un cliente no cambia de rol
+ * desde esta pantalla, y un usuario interno solo recibe roles internos: no se
+ * cruza entre el lado externo y el interno (R5.1).
+ */
+export function opcionesRolParaCambio(rolActual: RolTipo | null): readonly RolTipo[] {
+  if (rolActual === Rol.Cliente) return [];
+  return OPCIONES_ROL.filter((rol) => esInterno(rol));
+}
 
 /** Tipo de control de alcance según el rol del objetivo (R6.6). */
 export type TipoAlcance = 'unidades' | 'monitoristas' | 'supervisores';
@@ -55,6 +67,7 @@ function motivoBloqueo(
   if (relacion === 'indeterminado') return TEXTOS.sinIdentificarSesion;
   if (!objetivo.activo) return TEXTOS.usuarioInactivo;
   if (enCurso) return TEXTOS.solicitudEnCurso;
+  if (objetivo.rol === Rol.Cliente) return TEXTOS.cambioRolDeClienteNoEditable;
   return null;
 }
 
@@ -75,7 +88,7 @@ export function capacidades(
   const rolYAlcanceHabilitados = relacion === 'ajeno' && objetivo.activo && !enCurso;
 
   return {
-    puedeCambiarRol: rolYAlcanceHabilitados,
+    puedeCambiarRol: rolYAlcanceHabilitados && objetivo.rol !== Rol.Cliente,
     puedeEditarAlcance: rolYAlcanceHabilitados && controlesDeAlcance(objetivo.rol) !== null,
     puedeDesactivar: objetivo.activo && !enCurso,
     puedeReactivar: !objetivo.activo && !enCurso,

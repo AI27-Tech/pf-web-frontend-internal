@@ -56,6 +56,23 @@ export const TEXTOS_ADMINISTRACION = {
   resultadoNoConfirmado:
     'Resultado no confirmado: no se pudo confirmar la respuesta del servidor. No se pudo confirmar si la acción se aplicó.',
   superficieNoPublicada: 'Esta función aún no está disponible en el servicio.',
+
+  // Diálogos del Bloque B (contra el puerto falso)
+  cambioRolRetiraAlcance:
+    'Al cambiar el rol se retirará el alcance actual del usuario. El retiro aplica de inmediato.',
+  cambioRolDeClienteNoEditable: 'El rol de un cliente no se cambia desde esta pantalla.',
+  desactivarCorte:
+    'El corte del acceso ocurre en máximo 30 segundos. Desactivar no cambia el rol ni el alcance del usuario.',
+  reactivarConfirmacion: 'Confirme la reactivación del usuario.',
+  revocacionCorte: 'El corte de las sesiones ocurre en máximo 30 segundos.',
+  revocacionMotivoEtiqueta: 'Motivo de la revocación (obligatorio)',
+  revocacionSinSesiones: 'El usuario no tenía sesiones activas.',
+  revocacionEnCurso: 'Hay una revocación en curso para este usuario.',
+  organizacionEdicionTenant: 'Tenant (solo lectura)',
+  enviando: 'Enviando…',
+  cancelar: 'Cancelar',
+  confirmar: 'Confirmar',
+  guardar: 'Guardar',
 } as const;
 
 /** Textos de éxito. Solo afirman plazos que el contrato o el PO fijaron (PA-4, PA-8, PA-9). */
