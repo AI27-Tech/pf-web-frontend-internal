@@ -8,7 +8,7 @@
  */
 
 import type { SesionWire } from '@/lib/contracts';
-import { Rol } from '@/lib/contracts';
+import { Rol, esRol } from '@/lib/contracts';
 import { EstadoViaje, TRANSICIONES_VIAJE } from '@/lib/contracts/viajeDetalle';
 import type { ViajeResumen, PaginaViajesResumen, CrearViajeEntrada } from '@/lib/contracts/viajes';
 import type { Cliente, PaginaClientes } from '@/lib/contracts/clientes';
@@ -45,7 +45,7 @@ export const DEMO_CREDENTIALS = {
 const DEMO_CLAIMS = {
   sub: 'usr-demo-1',
   tenant_id: 'tenant-demo',
-  rol: Rol.Administrador,
+  rol: Rol.JefeOperativo,
   sesion_id: 'ses-demo-1',
 } as const;
 
@@ -77,11 +77,12 @@ export function mockAccessToken(rol: Rol = DEMO_CLAIMS.rol): string {
  * tokens son de mentira a propósito: no hay verificación real detrás, solo
  * desbloquean la UI.
  */
-export function createSessionWire(): SesionWire {
+export function createSessionWire(rol: Rol = DEMO_CLAIMS.rol): SesionWire {
   return {
     sesion_id: DEMO_CLAIMS.sesion_id,
-    access_token: mockAccessToken(),
-    refresh_token: `mock.refresh.${crypto.randomUUID()}`,
+    access_token: mockAccessToken(rol),
+    // El rol viaja en el refresh token para que el refresco conserve la sesión de cada credencial.
+    refresh_token: `mock.refresh.${rol}.${crypto.randomUUID()}`,
     expira_en: new Date(Date.now() + 3600_000).toISOString(),
   };
 }
@@ -1335,4 +1336,38 @@ export function simularVencimientoDeVentanaMock(id: string): void {
  */
 export function cambiarSujetoConversacionesMock(sujetoId: string): void {
   estadoConversaciones.sujetoId = sujetoId;
+}
+
+/**
+ * Credencial del administrador demo (E8-T19, tarea 4.6). Permite ver la
+ * administración en `dev:mock`. Es aparte del operador demo, que sigue como
+ * `jefe_operativo`.
+ */
+export const DEMO_ADMINISTRADOR = {
+  usuario: 'administrador@demo.ai27',
+  contrasena: 'demo1234',
+  rol: Rol.Administrador,
+} as const;
+
+/** Rol de un par de credenciales demo, o `null` si no coincide con ninguna. */
+export function rolDeCredenciales(
+  usuario: string | undefined,
+  contrasena: string | undefined,
+): Rol | null {
+  if (usuario === DEMO_CREDENTIALS.usuario && contrasena === DEMO_CREDENTIALS.contrasena) {
+    return DEMO_CLAIMS.rol;
+  }
+  if (usuario === DEMO_ADMINISTRADOR.usuario && contrasena === DEMO_ADMINISTRADOR.contrasena) {
+    return DEMO_ADMINISTRADOR.rol;
+  }
+  return null;
+}
+
+/**
+ * Lee el rol que `createSessionWire` dejó en el refresh token. Si el token no
+ * trae un rol reconocible (formato anterior), vuelve al operador demo.
+ */
+export function rolDesdeRefreshToken(refreshToken: string): Rol {
+  const segmento = refreshToken.split('.')[2];
+  return segmento !== undefined && esRol(segmento) ? segmento : DEMO_CLAIMS.rol;
 }

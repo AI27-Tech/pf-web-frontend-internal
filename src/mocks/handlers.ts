@@ -11,7 +11,8 @@ import { http, HttpResponse } from 'msw';
 import { API_PREFIX } from '@/lib/constants';
 import type { CredencialesEntrada } from '@/lib/contracts';
 import {
-  DEMO_CREDENTIALS,
+  rolDeCredenciales,
+  rolDesdeRefreshToken,
   crearViajeMock,
   listarClientesMock,
   createSessionWire,
@@ -681,24 +682,26 @@ export const handlers = [
   // POST /sesion ÔÇö login. Solo el operador demo entra.
   http.post(path('/sesion'), async ({ request }) => {
     const body = (await request.json()) as Partial<CredencialesEntrada>;
-    const ok =
-      body.usuario === DEMO_CREDENTIALS.usuario && body.contrasena === DEMO_CREDENTIALS.contrasena;
+    const rol = rolDeCredenciales(body.usuario, body.contrasena);
 
-    if (!ok) {
+    if (rol === null) {
       return HttpResponse.json({ mensaje: 'Credenciales inv├ílidas' }, { status: 401 });
     }
-    return HttpResponse.json(createSessionWire(), { status: 200 });
+    return HttpResponse.json(createSessionWire(rol), { status: 200 });
   }),
 
   // POST /sesion/refresh ÔÇö renueva la sesi├│n. El mock no valida el refresh_token.
-  http.post(path('/sesion/refresh'), ({ request }) => {
+  http.post(path('/sesion/refresh'), async ({ request }) => {
     if (
       request.headers.get('x-mock-session-cut') === '1' ||
       request.headers.get('cookie')?.includes('ai27-mock-session-cut=1')
     ) {
       return HttpResponse.json({ mensaje: 'Sesi├│n revocada' }, { status: 401 });
     }
-    return HttpResponse.json(createSessionWire(), { status: 200 });
+    const cuerpo = (await request.json()) as { refresh_token?: string };
+    return HttpResponse.json(createSessionWire(rolDesdeRefreshToken(cuerpo.refresh_token ?? '')), {
+      status: 200,
+    });
   }),
 
   // DELETE /sesion ÔÇö cierre de sesi├│n. Sin cuerpo.
