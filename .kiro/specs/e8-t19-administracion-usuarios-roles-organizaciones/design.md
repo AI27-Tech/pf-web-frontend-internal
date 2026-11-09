@@ -14,7 +14,7 @@ El frontend no resuelve dominio. Autorización, auto-escalada del servidor, regl
 ### Fuentes y versiones verificadas
 
 - **Contexto:** `ai27-platform-context` en `a55713c` (sin commits por traer en `origin/main`). DEC-022, DEC-036, DEC-045, DEC-053/054, DEC-072, DEC-091, DEC-103, DEC-137 y DEC-138.
-- **Contrato:** último tag publicado `v0.1.0-tracer.37` (`d2a3de2`). El `package.json` y `pnpm-lock.yaml` fijan `tracer.36`; para esta superficie ambos son idénticos. Además, `node_modules/@ai27-tech/contracts` resuelve hoy a `tracer.37` (ver B-9). No se sube el pin.
+- **Contrato:** último tag publicado `v0.1.0-tracer.38` (2026-11-06). El `package.json` y `pnpm-lock.yaml` fijan `tracer.37` (verificado). La ola de E8-T19 sale en `tracer.39` (DEC-140 #5); no se sube el pin sin aprobación explícita.
 - **UI:** `@ai27-tech/ui@0.2.0-beta.6`, verificada en `node_modules` (sección "Componentes de `@ai27-tech/ui`").
 
 ### Hecho de contrato verificado (fundamento del diseño)
@@ -26,7 +26,7 @@ GET /api/v1/unidades      listarUnidades    → PaginaUnidades { items: Unidad[]
 GET /api/v1/sesion ...    iniciarSesion / refrescarSesion / cerrarSesion                              (sesión propia, AppShell)
 ```
 
-`Unidad` trae `id`, `vehiculo_id`, `custodios_ids[]`, `tipo` y `activa`; **no trae un nombre o etiqueta legible** (B-16). `Cliente` (`listarClientes`) trae `id`, `nombre` y `estado`; el contrato no define su relación con "Organización" y el diseño **no las equipara**.
+`Unidad` en el contrato fijado (`tracer.37`) trae `id`, `vehiculo_id`, `custodios_ids[]`, `tipo` y `activa`, sin etiqueta legible. Según Lead, `tracer.38` (DT-19) agrega `vehiculo` y `custodios` legibles y **resuelve B-16**; se confirma en `bff.gen.ts` al subir el pin. `Cliente` (`listarClientes`) trae `id`, `nombre` y `estado`; el contrato no define su relación con "Organización" y el diseño **no las equipara**.
 
 Lo que **no existe** en el `bff` (`bff.gen.ts` no contiene sujetos, roles, organizaciones, alcance ni revocación): B-1 a B-5. `identidad` define seis operaciones sobre sujetos y una de sesión, pero no es pública (DEC-137). Se citan solo como **referencia de la forma probable** de la proyección futura y **no son llamables desde el frontend**:
 
@@ -44,7 +44,7 @@ Tres consecuencias de esa referencia que el diseño absorbe como **puntos abiert
 
 1. `SujetoDetalle` **no incluye nombre ni identificador de usuario**, que R2, R3.6, R8.1 y R11.1 necesitan (B-15).
 2. `Sujeto.id` y el claim `sub` del token **son distintos** (`sub` es opaco, DEC-072); la interfaz hoy solo conoce `sub` (B-14).
-3. `AsignacionRolEntrada` recibe solo `rol`; no hay lugar para la organización cuando un usuario pasa a `cliente` (R4.4, R4.8; B-17).
+3. `fijarRolSujeto` recibe solo `rol`. No hay cambio de rol entre `cliente` e interno (DEC-141): el diálogo ofrece solo roles del mismo lado y el servidor rechazará el cruce con `409` y `codigo` desde `tracer.39` (R4.4, R5.1, R5.11).
 
 ## Architecture
 
@@ -199,7 +199,7 @@ interface AdministracionPort {
   listarUsuarios(consulta, token): Promise<PaginaUsuarios>             // B-2, B-15
   obtenerUsuario(id, token): Promise<UsuarioDetalle>                   // B-1, B-14, B-15
   altaUsuario(alta, token): Promise<UsuarioDetalle>                    // B-1, B-3, B-7
-  fijarRol(id, rol, token): Promise<void>                              // B-1, B-17
+  fijarRol(id, rol, token): Promise<void>                              // B-1; operationId fijarRolSujeto (DEC-141 #4); 409 de cruce desde tracer.39
   desactivarUsuario(id, token): Promise<void>                          // B-1
   reactivarUsuario(id, token): Promise<void>                           // B-1
   editarUsuario(id, nombre, token): Promise<void>                      // B-8 (solo nombre; PA-10)
@@ -212,8 +212,8 @@ interface AdministracionPort {
   desactivarOrganizacion(id, token): Promise<void>                     // B-3
 
   // Alcance
-  leerAlcance(id, token): Promise<AlcanceEfectivo>                     // B-4
-  fijarAlcance(id, cambio, token): Promise<AlcanceEfectivo>            // B-4
+  leerAlcance(id, token): Promise<AlcanceEfectivo>                     // B-4 (tracer.39)
+  fijarAlcance(id, cambio, token): Promise<AlcanceEfectivo>            // B-4 (tracer.39); unidades: administrador y jefe_operativo; jerarquía: solo administrador
 
   // Sesiones
   revocarSesiones(id, motivo, token): Promise<ResultadoRevocacion>     // B-5 (motivo obligatorio; PA-1)
@@ -428,7 +428,7 @@ Reglas transversales: ninguna actualización optimista; el reintento de una cons
 
 **Sin mocks de red para las rutas faltantes.** No se agregan handlers a `src/mocks/handlers.ts` para sujetos, organizaciones, alcance o revocación: inventarían rutas y campos. Para ver la pantalla en `dev:mock` se puede añadir una credencial demo con rol `administrador` (usa el contrato de sesión, que sí existe); hoy la demo es `jefe_operativo`. Con la capacidad no publicada se verá el estado `brecha`.
 
-**Contrato.** `typecheck` sobre los tipos generados; el adaptador real se prueba contra MSW solo cuando el contrato publique las operaciones. Subir el pin a `tracer.37` o posterior requiere aprobación, y cada criterio CONDICIONADO se reverifica entonces.
+**Contrato.** `typecheck` sobre los tipos generados; el adaptador real se prueba contra MSW solo cuando el contrato publique las operaciones. Subir el pin a `tracer.39` requiere aprobación, y cada criterio CONDICIONADO se reverifica entonces.
 
 **No ejecutables todavía:** el e2e de revocación masiva con dos sesiones (DoD 3) depende de B-5 y de PA-5 (DEC-138), y la prueba de que el servidor rechaza la auto-escalada con `403` (DoD 2) depende de B-1.
 
@@ -447,15 +447,15 @@ Reglas transversales: ninguna actualización optimista; el reintento de una cons
 
 ### Puntos de extensión (preguntas abiertas que el diseño no resuelve)
 
-| Pregunta                                 | Dónde queda el punto de extensión                                                                                         |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| PA-1 motivo de revocación (decidida)     | `RevocarSesionesDialog` exige un motivo de texto libre; confirmar deshabilitado si está vacío; el puerto recibe `motivo`  |
-| PA-2 contacto de organización (decidida) | `OrganizacionFormDialog` y `Organizacion` llevan nombre, correo (con `@`) y teléfono (sin formato), los tres obligatorios |
-| PA-3 vínculo Monitorista↔unidad          | `fijarAlcance` y `AlcanceEditor`; no se define cuándo ni cómo se establece                                                |
-| PA-4 textos                              | `mensajes.ts`                                                                                                             |
-| PA-5 sesiones simultáneas (decidida)     | El e2e usa dos sujetos distintos (DEC-138); la vista muestra lo que devuelva el `bff`                                     |
-| PA-6 alcance al cambiar de rol           | Sin texto afirmativo; `CambioRolDialog` puede añadir una advertencia                                                      |
-| PA-7 auto-desactivación (decidida)       | Permitida salvo al último administrador activo; `capacidades` no la bloquea y el `bff` responde `409`                     |
-| PA-8 organizaciones (decidida)           | Desactivar es terminal: sin acción de reactivar; el texto dice "en su siguiente refresco", sin 30 s                       |
-| PA-9 cambio de rol (decidida, DEC-091)   | Texto de "siguiente refresco" sin plazo                                                                                   |
-| PA-10 edición de usuario (decidida)      | `editarUsuario` edita solo el nombre; el identificador de usuario es inmutable (B-8)                                      |
+| Pregunta                                   | Dónde queda el punto de extensión                                                                                                                                                    |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| PA-1 motivo de revocación (decidida)       | `RevocarSesionesDialog` exige un motivo de texto libre; confirmar deshabilitado si está vacío; el puerto recibe `motivo`                                                             |
+| PA-2 contacto de organización (decidida)   | `OrganizacionFormDialog` y `Organizacion` llevan nombre, correo (con `@`) y teléfono (sin formato), los tres obligatorios                                                            |
+| PA-3 vínculo Monitorista↔unidad (decidida) | Lista "mis unidades" en `identidad` (DEC-140 #1 y #2). `AlcanceEditor` edita unidades (administrador; el acceso del jefe operativo queda pendiente) y jerarquía (solo administrador) |
+| PA-4 textos                                | `mensajes.ts`                                                                                                                                                                        |
+| PA-5 sesiones simultáneas (decidida)       | El e2e usa dos sujetos distintos (DEC-138); la vista muestra lo que devuelva el `bff`                                                                                                |
+| PA-6 alcance al cambiar de rol (decidida)  | `CambioRolDialog` avisa que se retirará el alcance actual; el retiro aplica de inmediato (DEC-140 #3)                                                                                |
+| PA-7 auto-desactivación (decidida)         | Permitida salvo al último administrador activo; `capacidades` no la bloquea y el `bff` responde `409`                                                                                |
+| PA-8 organizaciones (decidida)             | Desactivar es terminal: sin acción de reactivar; el texto dice "en su siguiente refresco", sin 30 s                                                                                  |
+| PA-9 cambio de rol (decidida, DEC-091)     | Texto de "siguiente refresco" sin plazo                                                                                                                                              |
+| PA-10 edición de usuario (decidida)        | `editarUsuario` edita solo el nombre; el identificador de usuario es inmutable (B-8)                                                                                                 |

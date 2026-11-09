@@ -11,7 +11,7 @@ La tarea 19 (reverificación al publicarse el contrato) está **bloqueada y fuer
 
 ## Estado de avance
 
-**Bloque A ejecutado** (tareas 1 a 7), salvo la 4.6 y las pruebas opcionales (`*`) no escritas: la 4.6 necesita tocar `src/mocks/handlers.ts`, que este plan excluye. Verificado: `tsc --build`, `eslint .`, `vite build --mode mock` y `vitest run` (479 pruebas). El Bloque B sigue sin iniciar, bloqueado por contrato. Spec de requisitos, diseño y brechas aprobados; actualizados con DEC-139 y la respuesta de Lead (2026-11-05). Brechas de contrato (B-1, B-2, B-3, B-5, B-15, B-16) esperan la ola de B-9; B-4 espera PA-3. El pin efectivo de `@ai27-tech/contracts` en `package.json` es `0.1.0-tracer.36` (B-9); no se sube en este ciclo.
+**Bloque A ejecutado** (tareas 1 a 7), salvo la 4.6 y las pruebas opcionales (`*`) no escritas: la 4.6 necesita tocar `src/mocks/handlers.ts`, que este plan excluye. Verificado: `tsc --build`, `eslint .`, `vite build --mode mock` y `vitest run` (479 pruebas). El Bloque B sigue sin iniciar, bloqueado por contrato. Spec de requisitos, diseño y brechas aprobados; actualizados con DEC-139 y la respuesta de Lead (2026-11-05). Actualizado con DEC-140 y DEC-141 (2026-11-06): PA-3, PA-4, PA-6, B-4, B-6, B-13 y B-17 quedaron decididas; B-16 se resuelve con `tracer.38`. Las brechas de contrato B-1, B-2, B-3, B-4, B-5 y B-15 esperan la ola `tracer.39`. El pin efectivo de `@ai27-tech/contracts` en `package.json` es `0.1.0-tracer.37` (verificado); no se sube sin aprobación explícita.
 
 ## Task Dependency Graph
 
@@ -186,7 +186,7 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10, 4.3, 4.4, 4.6, 4.8_
 
 - [ ] 11. Cambio de rol
-  - [ ] 11.1 **Bloqueada por B-1, B-17.** Implementar `CambioRolDialog.tsx`: ocho roles con el actual marcado, solo para usuario activo y ajeno; el motivo del `409` (desactivado, rol igual, último administrador) solo si el `codigo` lo distingue, si no conflicto genérico; aviso de "siguiente refresco" y sin texto sobre el alcance previo (PA-6) ni plazo (PA-9); el cambio de rol no revoca sesiones ni desactiva. No asume cómo viaja la organización al pasar desde o hacia `cliente`.
+  - [ ] 11.1 **Bloqueada por B-1** (el `409` de cruce llega en `tracer.39`). Implementar `CambioRolDialog.tsx`: solo roles del mismo lado que el actual con el actual marcado (siete internos para un interno; sin cambio de rol para un `cliente`; DEC-141), solo para usuario activo y ajeno; el motivo del `409` (desactivado, rol igual, último administrador) solo si el `codigo` lo distingue, si no conflicto genérico; aviso previo de que se retirará el alcance actual (DEC-140 #3 y #4; texto nuevo en `mensajes.ts`), después de confirmar el rol nuevo aplica en el "siguiente refresco" y el retiro de alcance de inmediato; sin plazo (PA-9); el cambio de rol no revoca sesiones ni desactiva. `409` de cruce `cliente`↔interno: mensaje propio cuando exista su `codigo`.
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.10_
 
 - [ ] 12. Desactivar y reactivar usuarios
@@ -194,7 +194,7 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.9, 8.10_
 
 - [ ] 13. Alcance de monitoreo
-  - [ ] 13.1 **Bloqueada por B-4 (y PA-3) y B-2.** Implementar `AlcanceEditor.tsx`: unidades para `monitorista` (opciones de la tarea 4.5), Monitoristas para `supervisor`, Supervisores para `coordinador`, con columna `Checkbox` y `aria-label` por fila en `Table`; opciones solo las devueltas, filtradas por rol; el alcance efectivo se muestra tal cual lo devuelve el `bff` (sin calcular uniones); alcance vacío con mensaje; opciones vacías o con error deshabilitan confirmar sin perder la selección. No define cuándo ni cómo se establece el vínculo Monitorista↔unidad.
+  - [ ] 13.1 **Bloqueada por B-4 y B-2 (`tracer.39`).** Implementar `AlcanceEditor.tsx`: unidades para `monitorista` (opciones de la tarea 4.5; las edita el `administrador`, y el `jefe_operativo` según se defina su acceso), Monitoristas para `supervisor` y Supervisores para `coordinador` (solo `administrador`; DEC-140 #1 y #2), con columna `Checkbox` y `aria-label` por fila en `Table`; opciones solo las devueltas, filtradas por rol; el alcance efectivo se muestra tal cual lo devuelve el `bff` (sin calcular uniones); alcance vacío con mensaje; opciones vacías o con error deshabilitan confirmar sin perder la selección. El vínculo es la lista "mis unidades" de `identidad` (DEC-140 #1); el alcance de Supervisor y Coordinador se muestra como lo devuelve el `bff`.
     - _Requirements: 2.4, 6.1, 6.2, 6.3, 6.4, 6.9, 6.11_
   - [ ]* 13.2 Escribir prueba de propiedades para las opciones de alcance
     - **Property 11: Las opciones de alcance son solo las devueltas, filtradas por rol**
@@ -240,8 +240,8 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
 
 ### Reverificación al publicarse el contrato (bloqueada; fuera de este ciclo)
 
-- [ ] 19. **Bloqueada por la publicación de B-1 a B-5 (y B-7, B-14 a B-17).** No iniciar en este ciclo.
-  - [ ] 19.1 Subir el pin de `@ai27-tech/contracts` (hoy `0.1.0-tracer.36`; `tracer.37` publicado) al tracer que publique las operaciones. **Requiere aprobación explícita.** Actualizar la entrada en `minimumReleaseAgeExclude` de `pnpm-workspace.yaml`, reinstalar para alinear `node_modules` con el lockfile (B-9) y confirmar en `bff.gen.ts` los `operationId` reales.
+- [ ] 19. **Bloqueada por la publicación de `tracer.39` (B-1 a B-5, B-14 y B-15).** No iniciar en este ciclo.
+  - [ ] 19.1 Subir el pin de `@ai27-tech/contracts` (hoy `0.1.0-tracer.37`; `tracer.38` publicado) a `tracer.39`, o al siguiente libre si otra rama taguea antes. **Requiere aprobación explícita.** Actualizar la entrada en `minimumReleaseAgeExclude` de `pnpm-workspace.yaml`, reinstalar para alinear `node_modules` con el lockfile (B-9) y confirmar en `bff.gen.ts` los `operationId` reales.
     - _Requirements: 13.8_
   - [ ] 19.2 Regenerar tipos y escribir el adaptador real de `AdministracionPort` (único lugar con tipos generados de esta superficie): traducir wire a modelo de vista, mapear `codigo` a las clases de error (B-1), resolver el identificador comparable de la sesión (B-14), obtener nombre e identificador de usuario (B-15), etiqueta de unidad (B-16) y organización en cambios de rol (B-17). Coordinar B-18 en `src/lib/api/client.ts`: admitir `PUT` en `RequestOptions.method` y definir `AbortSignal` / tiempo de espera (valor no fijado en el spec). Solo entonces, y con autorización, agregar fixtures y handlers MSW.
     - _Requirements: 2, 3, 4, 5, 6, 7.7, 8, 9, 10, 11, 13.8_
@@ -254,13 +254,13 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
 
 ### Notas de brechas
 
-- **Bloque B bloqueado por contrato:** B-1 (sujetos y roles), B-2 (listado), B-3 (organizaciones), B-4 (alcance; además PA-3), B-5 (revocación masiva), B-7 (`tenant_id` de usuarios internos), B-14 (identificación del sujeto de la sesión), B-15 (nombre e identificador de usuario en el detalle), B-16 (etiqueta de unidad) y B-17 (organización al cambiar de rol). Hasta entonces la pantalla muestra el estado `brecha` y el puerto "no publicada" lanza `ErrorSuperficieNoPublicada`.
+- **Bloque B bloqueado por contrato:** B-1 (sujetos y roles), B-2 (listado), B-3 (organizaciones), B-4 (alcance), B-5 (revocación masiva), B-14 (identificación del sujeto de la sesión) y B-15 (nombre e identificador de usuario en el detalle); todo sale en `tracer.39`. Decididas: B-7, B-17 y PA-3. Resuelta con `tracer.38`: B-16. Hasta entonces la pantalla muestra el estado `brecha` y el puerto "no publicada" lanza `ErrorSuperficieNoPublicada`.
 - **Sin handlers MSW** para sujetos, organizaciones, alcance ni revocación: inventarían rutas y campos. Solo se agrega una credencial demo `administrador` (contrato de sesión existente).
 - **B-12 se resuelve en la tarea 1** sin contrato. **B-11** (sin `Tabs`, `Select` sin nombre accesible, sin multi-select, textos en inglés en `Modal` y `Table`, `Pagination` numérica) se resuelve componiendo con primitivas de la librería y registrando la brecha; no se duplica nada.
 - **B-18 (`PUT` y tiempo de espera en `client.ts`)** es un cambio en archivo compartido que se coordina al escribir el adaptador real (tarea 19.2). No se ejecuta en este ciclo.
-- **B-13 (reautenticación en acciones sensibles)** está sin verificar y no se asume.
-- **B-6** queda fuera de este plan (consulta de auditoría; sin respuesta de Lead). **B-8/PA-10** está decidida: el identificador de usuario es inmutable y editar usuario cambia solo el nombre (`editarUsuario` en el puerto); queda bloqueada por la ola de contrato de B-9.
-- **Decididas en DEC-139:** PA-1, PA-2, PA-5, PA-7, PA-8, PA-9 y PA-10, ya incorporadas. **Siguen pendientes y no se fijan:** PA-3 (bloquea B-4), PA-6 y PA-4 (textos provisionales centralizados en `mensajes.ts`). Abiertas con Identidad: B-17 y B-13.
+- **B-13 (reautenticación en acciones sensibles)** está decidida (DEC-141 #5): no se pide en V1. DT-21 queda para Seguridad.
+- **B-6** queda fuera de V1 (DEC-140 #6). **B-8/PA-10** está decidida: el identificador de usuario es inmutable y editar usuario cambia solo el nombre (`editarUsuario` en el puerto); queda bloqueada por la ola de contrato de B-9.
+- **Decididas en DEC-139:** PA-1, PA-2, PA-5, PA-7, PA-8, PA-9 y PA-10, ya incorporadas. También decididas en DEC-140 y DEC-141: PA-3, PA-4, PA-6, B-4, B-6, B-13 y B-17. **Pendiente:** el acceso del `jefe_operativo` a la edición de unidades (ver `requirements.md`, Preguntas abiertas).
 
 ### Inconsistencias detectadas en los documentos
 

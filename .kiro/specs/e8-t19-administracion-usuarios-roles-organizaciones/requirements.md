@@ -93,11 +93,11 @@ Este documento define el comportamiento funcional del frontend interno. El front
 1. WHERE el rol del usuario es `cliente`, THE Administracion_UI SHALL mostrar un selector de organización de selección única que ofrece únicamente organizaciones con estado activa, identificadas por su nombre, y SHALL NOT ofrecer organizaciones con estado inactiva. [CONDICIONADO a B-3]
 2. THE Administracion_UI SHALL NOT permitir asociar un usuario a más de una organización: el selector SHALL conservar como máximo una organización seleccionada y SHALL NOT enviar más de una organización por usuario. [CONDICIONADO a B-3]
 3. WHERE el rol del usuario es distinto de `cliente`, THE Administracion_UI SHALL NOT mostrar el selector de organización y SHALL NOT enviar ninguna organización cliente seleccionada previamente en el formulario.
-4. WHEN el Administrador cambia el rol de un usuario hacia `cliente`, THE Administracion_UI SHALL mantener deshabilitada la acción de confirmar mientras no haya una organización seleccionada, y SHALL habilitarla solo cuando exista exactamente una. [CONDICIONADO a B-1, B-3]
+4. THE Administracion_UI SHALL NOT ofrecer el cambio de rol entre `cliente` y un rol interno, en ninguna dirección (DEC-141 #1 a #3). Por eso el cambio de rol nunca lleva organización; la organización se captura solo en el alta de un usuario `cliente`. Para que una persona cambie de lado se desactiva su cuenta y se da de alta otra.
 5. THE Administracion_UI SHALL NOT afirmar que el aislamiento entre organizaciones se aplicó; esa garantía la resuelve el servidor (E4-HU-019).
-6. IF el rol del usuario es `cliente` y no existe ninguna organización activa, THEN THE Administracion_UI SHALL mostrar el selector sin opciones junto con un aviso de que no hay organizaciones activas disponibles, y SHALL mantener deshabilitada la acción de confirmar el alta o el cambio de rol hacia `cliente`. [CONDICIONADO a B-3]
+6. IF el rol del usuario es `cliente` y no existe ninguna organización activa, THEN THE Administracion_UI SHALL mostrar el selector sin opciones junto con un aviso de que no hay organizaciones activas disponibles, y SHALL mantener deshabilitada la acción de confirmar el alta. [CONDICIONADO a B-3]
 7. IF falla la carga de las organizaciones para el selector, THEN THE Administracion_UI SHALL mostrar un error junto al selector con una acción de reintentar, SHALL conservar lo capturado en el formulario y SHALL mantener deshabilitada la acción de confirmar mientras el selector no tenga una organización seleccionada. [CONDICIONADO a B-3]
-8. IF el `bff` rechaza el alta o el cambio de rol hacia `cliente` por la organización seleccionada, THEN THE Administracion_UI SHALL conservar lo capturado, indicar junto al selector que la organización no es válida, recargar las organizaciones disponibles y SHALL NOT presentar al usuario como asociado a esa organización. [CONDICIONADO a B-1, B-3]
+8. IF el `bff` rechaza el alta de un usuario `cliente` por la organización seleccionada, THEN THE Administracion_UI SHALL conservar lo capturado, indicar junto al selector que la organización no es válida, recargar las organizaciones disponibles y SHALL NOT presentar al usuario como asociado a esa organización. [CONDICIONADO a B-1, B-3]
 
 ### Requirement 5: Asignar o cambiar el rol de un usuario
 
@@ -105,7 +105,7 @@ Este documento define el comportamiento funcional del frontend interno. El front
 
 #### Acceptance Criteria
 
-1. WHEN el Administrador abre el cambio de rol de un usuario activo distinto del sujeto de la sesión, THE Administracion_UI SHALL ofrecer los ocho roles de V1 (`cliente`, `jefe_operativo`, `monitorista`, `supervisor`, `coordinador`, `ejecutivo`, `reaccion`, `administrador`) y marcar de forma visible el rol actual del usuario. [CONDICIONADO a B-1]
+1. WHEN el Administrador abre el cambio de rol de un usuario activo distinto del sujeto de la sesión, THE Administracion_UI SHALL ofrecer únicamente roles del mismo lado que el rol actual y marcar de forma visible el rol actual (DEC-141 #3). A un usuario interno se le ofrecen los siete roles internos (`jefe_operativo`, `monitorista`, `supervisor`, `coordinador`, `ejecutivo`, `reaccion`, `administrador`). A un usuario `cliente` no se le ofrece cambio de rol, porque `cliente` es el único rol de su lado. La guarda real es la del servidor. [CONDICIONADO a B-1]
 2. WHEN el Administrador confirma un cambio de rol, THE Administracion_UI SHALL enviar la solicitud una sola vez y deshabilitar el control de confirmación mientras la solicitud esté en curso, de modo que un segundo clic o pulsación no genere una segunda solicitud. [CONDICIONADO a B-1]
 3. WHEN el `bff` confirma el cambio de rol, THE Administracion_UI SHALL recargar el detalle del usuario y mostrar el rol resultante que devuelve el `bff`. [CONDICIONADO a B-1]
 4. WHEN el `bff` confirma el cambio de rol, THE Administracion_UI SHALL informar que el cambio surte efecto en el siguiente refresco de la sesión del usuario y SHALL NOT prometer un corte inmediato (DEC-091). [CONDICIONADO a B-1]
@@ -114,7 +114,8 @@ Este documento define el comportamiento funcional del frontend interno. El front
 7. IF el `bff` responde `403` porque el usuario objetivo es el sujeto de la sesión, THEN THE Administracion_UI SHALL mostrar el aviso de auto-escalada bloqueada (Requirement 7), recargar el detalle del usuario y SHALL NOT presentar el cambio como aplicado. [CONDICIONADO a B-1]
 8. IF la solicitud de cambio de rol falla por una causa distinta de las de los criterios 6 y 7 (error del `bff` o sin respuesta por falla de red), THEN THE Administracion_UI SHALL mostrar un mensaje de error indicando que el cambio no se aplicó, conservar el rol seleccionado, volver a habilitar el control de confirmación para permitir reintento y SHALL NOT presentar el cambio como aplicado. [CONDICIONADO a B-1]
 9. WHEN el Administrador cancela o cierra el cambio de rol sin confirmar, THE Administracion_UI SHALL descartar la selección, no enviar ninguna solicitud y mantener sin cambios el rol mostrado en el detalle del usuario. [CONDICIONADO a B-1]
-10. WHERE el rol anterior del usuario tenía alcance de monitoreo asignado, THE Administracion_UI SHALL NOT asumir cómo se conserva o se retira ese alcance al cambiar de rol ni mostrar texto que lo afirme. Esa regla es una pregunta abierta (PA-6).
+10. WHEN el Administrador abre el cambio de rol de un usuario, THE Administracion_UI SHALL avisar que se retirará el alcance actual del usuario (DEC-140 #3 y #4). Tras la confirmación, SHALL informar que el retiro del alcance aplica de inmediato y el rol nuevo en el siguiente refresco, y SHALL NOT afirmar que el retiro queda auditado más allá de lo que devuelva el `bff`.
+11. IF el `bff` responde `409` con el `codigo` de cruce entre `cliente` e interno, THEN THE Administracion_UI SHALL mostrar un mensaje que explique que una cuenta no cambia de lado, SHALL NOT presentar el cambio como aplicado y SHALL conservar el rol mostrado. Hasta que `tracer.39` publique ese código, la interfaz no ofrece el cruce y no depende del `409` para impedirlo. [CONDICIONADO a B-1, B-17]
 
 ### Requirement 6: Alcance de monitoreo por rol
 
@@ -122,13 +123,13 @@ Este documento define el comportamiento funcional del frontend interno. El front
 
 #### Acceptance Criteria
 
-1. WHERE el usuario es `monitorista`, THE Administracion_UI SHALL permitir asignarle una o más `unidades` y retirarle unidades, y SHALL ofrecer como opciones únicamente las unidades que devuelve `listarUnidades`. [CONDICIONADO a B-4]
-2. WHERE el usuario es `supervisor`, THE Administracion_UI SHALL permitir indicar los Monitoristas que supervisa, y SHALL ofrecer como opciones únicamente usuarios con rol `monitorista` obtenidos del listado de usuarios del `bff`. [CONDICIONADO a B-2, B-4]
-3. WHERE el usuario es `coordinador`, THE Administracion_UI SHALL permitir indicar los Supervisores que coordina, y SHALL ofrecer como opciones únicamente usuarios con rol `supervisor` obtenidos del listado de usuarios del `bff`. [CONDICIONADO a B-2, B-4]
+1. WHERE el usuario es `monitorista`, THE Administracion_UI SHALL permitir al `administrador` y al `jefe_operativo` asignarle una o más `unidades` (DEC-140 #1) y retirarle unidades, y SHALL ofrecer como opciones únicamente las unidades que devuelve `listarUnidades`. [CONDICIONADO a B-4]
+2. WHERE el usuario es `supervisor`, THE Administracion_UI SHALL permitir al `administrador`, y solo a él (DEC-140 #2), indicar los Monitoristas que supervisa, y SHALL ofrecer como opciones únicamente usuarios con rol `monitorista` obtenidos del listado de usuarios del `bff`. [CONDICIONADO a B-2, B-4]
+3. WHERE el usuario es `coordinador`, THE Administracion_UI SHALL permitir al `administrador`, y solo a él (DEC-140 #2), indicar los Supervisores que coordina, y SHALL ofrecer como opciones únicamente usuarios con rol `supervisor` obtenidos del listado de usuarios del `bff`. [CONDICIONADO a B-2, B-4]
 4. WHEN el Administrador confirma un cambio de alcance de un usuario y el `bff` lo acepta, THE Administracion_UI SHALL mostrar el alcance efectivo resultante que devuelve el `bff` y SHALL NOT mostrar un alcance calculado localmente. [CONDICIONADO a B-4]
 5. THE Administracion_UI SHALL NOT ofrecer campo, selector ni acción para asignar clientes a un Ejecutivo; el alcance de chat del Ejecutivo nace por auto-asignación pegajosa (E4-HU-018, DEC-103).
 6. WHERE el usuario es `jefe_operativo`, `ejecutivo`, `reaccion`, `administrador` o `cliente`, THE Administracion_UI SHALL NOT mostrar controles de alcance de monitoreo.
-7. THE Administracion_UI SHALL NOT definir la mecánica del vínculo Monitorista↔unidad (cuándo y cómo se establece); esa mecánica es una pregunta abierta (PA-3).
+7. THE Administracion_UI SHALL tratar el vínculo Monitorista↔unidad como una lista "mis unidades" que vive en `identidad` (DEC-140 #1) y SHALL mostrar el alcance de un Supervisor o un Coordinador como la unión de las unidades de sus subordinados, tal como lo devuelve el `bff` (DEC-045, DEC-140 #2), sin calcularla en el cliente.
 8. THE Administracion_UI SHALL presentar el alcance de monitoreo y el de conversación como dimensiones distintas y SHALL NOT mezclarlos en un mismo control.
 9. IF el `bff` rechaza un cambio de alcance, THEN THE Administracion_UI SHALL mostrar un mensaje que indique el motivo del rechazo, conservar la selección que el Administrador había capturado, mantener visible el último alcance efectivo confirmado por el `bff` y SHALL NOT presentar el cambio como aplicado. [CONDICIONADO a B-4]
 10. THE Administracion_UI SHALL NOT afirmar que Supervisor o Coordinador tienen alcance global por su rol; solo el `administrador` tiene alcance global.
@@ -326,23 +327,21 @@ Dado que dos usuarios distintos tienen cada uno su sesión viva, cuando el Admin
 
 Estos puntos no se fijan en este spec. Son decisiones de Producto o de Plataforma y no reglas.
 
-Estado tras DEC-139 y la respuesta de Lead (2026-11-05). Lo decidido ya está incorporado en los requisitos; lo pendiente no se fija.
+Estado tras DEC-139, DEC-140 y DEC-141 (2026-11-06). Lo decidido ya está incorporado en los requisitos.
 
 **Decididas**
 
-- **PA-1.** Motivo de revocación obligatorio, texto libre, sin catálogo (Requirement 11).
-- **PA-2.** Contacto de la organización: nombre, correo y teléfono obligatorios; correo con validación mínima de `@`, teléfono sin formato (Requirement 9).
-- **PA-5.** El e2e de revocación masiva usa dos sujetos distintos (DEC-138; escenario 20).
-- **PA-7.** Un administrador puede desactivarse si existe otro activo; desactivar al último se rechaza (Requirement 8.10).
-- **PA-8.** Desactivar una organización es terminal, sin reactivar; el acceso de sus usuarios se retira en el siguiente refresco (Requirement 10).
-- **PA-9.** El cambio de rol surte efecto en el siguiente refresco (DEC-091); el máximo de 30 s es solo de la revocación de sesión.
-- **PA-10.** El identificador de usuario es inmutable en V1; editar un usuario cambia el nombre.
+- **PA-1, PA-2, PA-5, PA-7, PA-8, PA-9, PA-10:** DEC-139 y DEC-138 (ver Requirements 8 a 11).
+- **PA-3:** el vínculo es una lista "mis unidades" en `identidad`. El `administrador` y el `jefe_operativo` asignan unidades a un Monitorista; solo el `administrador` asigna la jerarquía (DEC-140 #1 y #2).
+- **PA-4:** se aprueban como base de V1 los textos de `mensajes.ts`, más el aviso de retiro de alcance en el cambio de rol (DEC-140 #4).
+- **PA-6:** al cambiar el rol se retira el alcance anterior; aplica de inmediato (DEC-140 #3).
+- **B-13:** en V1 no se pide reautenticación (DEC-141 #5). Endurecimiento posible en DT-21 (Seguridad).
+- **B-17:** sin cruce entre `cliente` e interno; `fijarRolSujeto` es el nombre definitivo (DEC-141).
+- **B-6:** no hay vista de auditoría en V1 (DEC-140 #6).
 
-**Pendientes**
+**Pendiente**
 
-- **PA-3.** Vínculo Monitorista↔unidad (E4-HU-018, DEC-045). Owner: Operación/Producto. Bloquea el modelo de alcance (B-4).
-- **PA-4.** Textos exactos de mensajes. Se usan los provisionales marcados, centralizados en `mensajes.ts`.
-- **PA-6.** Qué pasa con el alcance previo al cambiar de rol. Ligado a PA-3.
+- **Acceso del `jefe_operativo` a la edición de unidades.** DEC-140 #1 le da la facultad de asignar unidades a un Monitorista, pero el Requirement 1 limita `/administracion` y su navegación al `administrador`, y la definición de terminado exige que los demás roles no vean controles de asignación. Falta definir dónde edita el `jefe_operativo` (otra pantalla o una excepción en esta) y qué ve. Mientras no se defina, esta pantalla ofrece la edición de unidades solo al `administrador`.
 
 ## Dependencias
 
@@ -374,23 +373,23 @@ Estas notas son prerrequisitos de verificación y no reglas. El detalle, las fue
 - **B-1. Sujetos y roles no están en el `bff`.** `identidad.yaml` define `altaSujeto`, `obtenerSujeto`, `desactivarSujeto`, `reactivarSujeto`, `listarHistorialSujeto` y `fijarRolSujeto`, pero no son públicas (DEC-137). Falta la proyección al `bff` con `operationId` propios.
 - **B-2. No existe listado ni búsqueda de sujetos** en ningún servicio.
 - **B-3. No existe la superficie de organizaciones** en ningún OpenAPI.
-- **B-4. No existe el modelo ni las operaciones de alcance** (unidades del Monitorista, Monitoristas del Supervisor, Supervisores del Coordinador). Depende de PA-3.
+- **B-4. Entra en `tracer.39`** (DEC-140 #5): lectura y edición de la lista y de la jerarquía, y el retiro al cambiar de rol. PA-3 está decidida.
 - **B-5. No existe "revocar todas las sesiones de un sujeto".** `revocarSesion` es por `sesion_id` y no hay forma de enumerar las sesiones de un sujeto. Solo `desactivarSujeto` revoca la sesión viva.
-- **B-6. No existe consulta de auditoría de revocaciones.** La respuesta de Lead (2026-11-05) no la menciona; el motivo queda en la auditoría local de identidad (PA-1). Pendiente de confirmar si habrá vista.
+- **B-6. No existe consulta de auditoría de revocaciones.** La respuesta de Lead (2026-11-05) no la menciona; el motivo queda en la auditoría local de identidad (PA-1). Decidida (DEC-140 #6): sin vista de auditoría en V1.
 - **B-7 (decidida, DEC-112/DEC-129). `tenant_id` para usuarios internos.** Hay un tenant interno único de AI27 para los siete roles internos y un tenant tipo cliente por organización. La interfaz no captura ni deriva el tenant de un interno; lo pone el servidor. Para `cliente` va la organización. Texto original de la brecha: `AltaSujetoEntrada` exige `tenant_id` para todo rol; E4-HU-018 solo liga la organización al rol `cliente`. No está definido qué valor lleva un usuario interno.
 - **B-8 (decidida, PA-10).** El identificador de usuario es inmutable en V1; editar usuario cambia el nombre. Falta la operación en el contrato (ola de B-9).
-- **B-9. Pin del contrato.** `package.json` fija `@ai27-tech/contracts@0.1.0-tracer.36`; el último publicado es `v0.1.0-tracer.37`. Para esta superficie `tracer.36` y `tracer.37` son idénticos. No se sube el pin sin aprobación explícita.
+- **B-9. Pin del contrato.** `package.json` fija `@ai27-tech/contracts@0.1.0-tracer.37` (verificado 2026-11-06). Último publicado: `v0.1.0-tracer.38`. La ola de E8-T19 sale en `tracer.39` (si otra rama taguea antes, el siguiente libre). No se sube el pin sin aprobación explícita.
 - **B-10. Contradicciones del repo de contexto.** La historia técnica E8-T19 dice "un Ejecutivo puede tener varios clientes" y cita `/api/v1/roles/...`; E4-HU-018 y DEC-103 la superan en lo primero, y el contrato de `identidad` no tiene rutas de roles aparte (el rol se fija con `PUT /sujetos/{id}/rol`). La historia técnica y la línea equivalente de E4-HU-018 (matriz del Ejecutivo) quedan por corregir.
 - **B-11. Brechas de UI.** `@ai27-tech/ui@0.2.0-beta.6` no tiene un multi-select dedicado para varias unidades, Monitoristas o Supervisores. Se compone con `Table`/`Card` + `Checkbox` (mismo criterio que E8-T11). Verificar la API de `Modal`, `Table`, `FilterTable`, `Select`, `Badge` y `Toast`.
 - **B-12. Navegación.** `navigationConfig.ts` muestra "Administración" a todos los roles internos. Cumplir el Requirement 1 exige restringirla a `administrador` (campo `visiblePara`). Es un cambio de E8-T4 que se hace al implementar, no antes.
-- **B-13 (pendiente, Identidad/Seguridad).** Ninguna fuente exige reautenticación. **Segundo factor.** No se revisó si las acciones sensibles (desactivar, revocar) exigen reautenticación; no se asume.
+- **B-13 (decidida, DEC-141 #5).** Sin reautenticación en V1. No se revisó si las acciones sensibles (desactivar, revocar) exigen reautenticación; no se asume.
 
 ## Trazabilidad
 
 - Solo el `administrador` asigna roles y no hay controles para otros roles: Requirement 1 y escenario 9; DoD de E8-T19 (primera prueba); E4-HU-018 Escenario 9.
 - Ocho roles, uno por usuario: Requirements 3 y 5 y escenarios 1, 2 y 4; E4-HU-018 (criterio 1); DEC-045, DEC-053.
 - Usuario Cliente atado a una organización: Requirements 3 y 4 y escenarios 2 y 18; E4-HU-018 (criterio 2); E4-HU-019.
-- Alcance de monitoreo (Monitorista, Supervisor, Coordinador): Requirement 6 y escenario 3; E4-HU-018 Escenarios 1 y 2; sujeto a B-4 y PA-3.
+- Alcance de monitoreo (Monitorista, Supervisor, Coordinador): Requirement 6 y escenario 3; E4-HU-018 Escenarios 1 y 2; sujeto a B-4 (`tracer.39`); PA-3 decidida en DEC-140.
 - Ejecutivo sin clientes asignados: Requirement 6.5 y escenario 13; E4-HU-018 (nota de DEC-103); la línea "varios clientes" de la historia técnica E8-T19 queda superada por E4-HU-018 y DEC-103.
 - Un usuario no puede editar su propio rol o alcance: Requirement 7 y escenario 10; E4-HU-018 Escenario 9; DoD (segunda prueba).
 - Quita de rol surte efecto en el siguiente refresco: Requirement 5.4 y 5.5 y escenarios 4 y 16; E4-HU-020 Escenario 3; DEC-091.
