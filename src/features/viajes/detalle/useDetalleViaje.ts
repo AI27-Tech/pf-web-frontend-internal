@@ -13,7 +13,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useSession } from '@/context/SessionContext';
 import { listarUnidades } from '@/lib/api/unidades';
-import { ApiError } from '@/lib/api/errors';
+import { ApiError, esProhibido, esSesionInvalida } from '@/lib/api/errors';
 import { entradaDeCierre, type MotivoCierre } from '@/lib/contracts/cierreViaje';
 import {
   asignarEscolta,
@@ -47,6 +47,8 @@ export interface DetalleViajeHook {
   readonly error: Error | null;
   /** true si cualquier operación activa requiere delegar la sesión. */
   readonly esNoAutorizado: boolean;
+  /** true si el detalle respondió 403: sin permiso para este viaje; la sesión sigue. */
+  readonly esProhibido: boolean;
   /** Reintenta la lectura del detalle. */
   readonly reintentar: () => void;
   /** Transiciona el viaje a un nuevo estado. Invalida la lectura. */
@@ -203,11 +205,11 @@ export function useDetalleViaje(
     [mutacionAsignacion],
   );
 
-  const esNoAutorizado =
-    (query.error instanceof ApiError && query.error.kind === 'noAutorizado') ||
-    (rosterQuery.error instanceof ApiError && rosterQuery.error.kind === 'noAutorizado') ||
-    (mutacionAsignacion.error instanceof ApiError &&
-      mutacionAsignacion.error.kind === 'noAutorizado');
+  const esNoAutorizado = [query.error, rosterQuery.error, mutacionAsignacion.error].some(
+    esSesionInvalida,
+  );
+  // Solo el detalle bloquea la vista; el roster y la asignación avisan en su formulario.
+  const esProhibidoDetalle = esProhibido(query.error);
 
   return {
     viaje: viajeInterno,
@@ -216,6 +218,7 @@ export function useDetalleViaje(
     cargando: query.isPending,
     error,
     esNoAutorizado,
+    esProhibido: esProhibidoDetalle,
     reintentar: () => void query.refetch(),
     transicionar: transicionarHandler,
     cerrarServicio: cerrarServicioHandler,

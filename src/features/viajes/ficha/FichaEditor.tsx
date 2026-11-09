@@ -15,6 +15,7 @@ import {
   Table,
 } from '@ai27-tech/ui';
 
+import { esProhibido } from '@/lib/api/errors';
 import type {
   DispositivoGps,
   FichaTecnica,
@@ -368,6 +369,14 @@ function GpsSelector({
 }) {
   if (cargando) {
     return <p className="ui-text-body-sm">Cargando catálogo GPS...</p>;
+  }
+
+  if (esProhibido(error)) {
+    return (
+      <p role="alert" className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)' }}>
+        No tienes permiso para consultar el catálogo GPS.
+      </p>
+    );
   }
 
   if (error) {

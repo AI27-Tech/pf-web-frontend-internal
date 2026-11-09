@@ -140,6 +140,19 @@ describe('E8-T7 · BandejaViajes — cuatro estados de UI (9.2)', () => {
     // No se pinta el error genérico del listado.
     expect(screen.queryByText('No se pudo cargar el listado de viajes.')).not.toBeInTheDocument();
   });
+
+  it('un 403 avisa la falta de permiso y NO cierra la sesión', async () => {
+    server.use(
+      http.get(BFF_VIAJES, () => HttpResponse.json({ codigo: 'prohibido' }, { status: 403 })),
+    );
+    renderBandeja();
+
+    expect(
+      await screen.findByText('No tienes permiso para ver el listado de viajes.'),
+    ).toBeInTheDocument();
+    expect(logoutSpy).not.toHaveBeenCalled();
+    expect(navigateSpy).not.toHaveBeenCalled();
+  });
 });
 
 describe('E8-T7 · BandejaViajes — filtro y paginación (9.3)', () => {

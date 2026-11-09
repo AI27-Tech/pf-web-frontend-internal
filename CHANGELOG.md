@@ -1,5 +1,23 @@
 ﻿# CHANGELOG
 
+## 2026:11:09 12:56
+
+**Resumen:** Un `403` ya no cierra la sesión. `kindFromStatus` mapeaba `401` y `403` a `noAutorizado`, y las pantallas trataban ese kind como sesión vencida. En el recorrido real, el monitorista abría la ficha técnica, `GET /api/v1/unidades` respondía `403` y el panel hacía `DELETE /sesion` y lo mandaba a `/login`. Ahora el `403` tiene su propio kind, `prohibido`, y cada pantalla dice que falta permiso sin cerrar la sesión. Solo el `401` (o el corte de sesión) delega al flujo de sesión, como fija DT-03.
+
+**Cambios:**
+
+- `src/lib/api/errors.ts`: kind nuevo `prohibido` (`403`); `noAutorizado` queda solo para `401`. Predicados `esSesionInvalida` (`401` o `sesionFinalizada`) y `esProhibido`.
+- `src/lib/api/{historicoViaje,emergencias,conversaciones,reportes,adjuntos,expediente}.ts`: los errores de dominio del `403` nacen con kind `prohibido`.
+- Ficha técnica (`useFichaTecnica.ts`, `FichaTecnicaViaje.tsx`, `FichaEditor.tsx`, `adaptadorFichaTecnica.ts`): un `403` del detalle o de la ficha muestra "No tienes permiso para ver la ficha técnica de este viaje."; uno de la escolta o del catálogo GPS lo dice en su sección y la ficha sigue a la vista; uno del guardado da "No tienes permiso para guardar la ficha técnica.".
+- Detalle del viaje (`useDetalleViaje.ts`, `DetalleViaje.tsx`, `asignacionForm.tsx`): un `403` del detalle muestra un aviso de permiso; uno del roster o de la asignación lo dice en el formulario de escolta.
+- Bandeja de viajes (`useBandejaViajes.ts`, `BandejaViajes.tsx`): un `403` del listado muestra un aviso de permiso.
+- Histórico (`useHistoricoViaje.ts`, `HistoricoViaje.tsx`): un `403` de una lectura muestra un aviso de permiso en lugar de "Tu sesión no está autorizada"; uno de una acción da un toast de permiso y la vista sigue.
+- `src/features/viajes/crear/adaptadorCrearViaje.ts`: mensaje propio para el `403`.
+- `src/features/viajes/evidencia/useEvidenciaViaje.ts`: se quita `esNoAutorizado`, que agrupaba el `403` con la sesión cortada y ninguna pantalla consumía.
+- Pruebas: `FichaTecnicaViaje.test.tsx`, `Asignacion.test.tsx`, `BandejaViajes.test.tsx` y `HistoricoViaje.test.tsx` prueban que un `403` muestra su mensaje sin `logout` ni `/login`, y que un `401` sigue cerrando la sesión. Sin el cambio fallan once pruebas nuevas: las nueve de `403` y las de `401` de ficha y detalle, que antes no delegaban la sesión cortada. `historicoViaje.unit.test.ts` y `expedienteApi.test.ts` esperan el kind `prohibido`.
+
+**Verificación:** `vite build --mode mock`, `lint`, `typecheck`, `test` (472) y `test:e2e` (4) en verde.
+
 ## 2026:11:06 14:30
 
 **Resumen:** Las unidades del roster se muestran por económico, placas y nombre de custodios en lugar de UUID (DT-19). Sube `@ai27-tech/contracts` de `tracer.37` a `tracer.38`, donde `Unidad` del `bff` trae `vehiculo` y `custodios` legibles. Aplica en "Asignar escolta", en el alta de viaje y en la ficha técnica. Si un vehículo o custodio ya no está en el catálogo, se muestra su id.
