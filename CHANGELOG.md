@@ -14,7 +14,7 @@
 - Histórico (`useHistoricoViaje.ts`, `HistoricoViaje.tsx`): un `403` de una lectura muestra un aviso de permiso en lugar de "Tu sesión no está autorizada"; uno de una acción da un toast de permiso y la vista sigue.
 - `src/features/viajes/crear/adaptadorCrearViaje.ts`: mensaje propio para el `403`.
 - `src/features/viajes/evidencia/useEvidenciaViaje.ts`: se quita `esNoAutorizado`, que agrupaba el `403` con la sesión cortada y ninguna pantalla consumía.
-- Pruebas: `FichaTecnicaViaje.test.tsx`, `Asignacion.test.tsx`, `BandejaViajes.test.tsx` y `HistoricoViaje.test.tsx` prueban que un `403` muestra su mensaje sin `logout` ni `/login`, y que un `401` sigue cerrando la sesión. Las once pruebas de `403` fallan sin el cambio. `historicoViaje.unit.test.ts` y `expedienteApi.test.ts` esperan el kind `prohibido`.
+- Pruebas: `FichaTecnicaViaje.test.tsx`, `Asignacion.test.tsx`, `BandejaViajes.test.tsx` y `HistoricoViaje.test.tsx` prueban que un `403` muestra su mensaje sin `logout` ni `/login`, y que un `401` sigue cerrando la sesión. Sin el cambio fallan once pruebas nuevas: las nueve de `403` y las de `401` de ficha y detalle, que antes no delegaban la sesión cortada. `historicoViaje.unit.test.ts` y `expedienteApi.test.ts` esperan el kind `prohibido`.
 
 **Verificación:** `vite build --mode mock`, `lint`, `typecheck`, `test` (472) y `test:e2e` (4) en verde.
 
