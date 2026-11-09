@@ -16,6 +16,7 @@ import { useState } from 'react';
 import { Button, Card, CardBody, CardFooter, Form, Table } from '@ai27-tech/ui';
 import type { Column } from '@ai27-tech/ui';
 
+import { esProhibido } from '@/lib/api/errors';
 import type { Unidad } from '@/lib/contracts/unidades';
 import { custodiosLegibles, vehiculoLegible } from '../unidadLegible';
 
@@ -92,6 +93,18 @@ export function AsignacionForm({
           </p>
         </CardBody>
       </Card>
+    );
+  }
+
+  if (esProhibido(error)) {
+    return (
+      <p
+        role="alert"
+        className="ui-text-body-sm"
+        style={{ color: 'var(--ui-color-text)', margin: 0 }}
+      >
+        No tienes permiso para consultar el roster de unidades.
+      </p>
     );
   }
 

@@ -2,8 +2,8 @@
  * Ficha técnica del viaje (E8-T12).
  *
  * La vista separa datos conocidos, captura incremental y el histórico. El
- * formulario solo serializa los campos publicados por tracer.21; no inventa
- * destinos editables ni una lectura de escolta que el BFF no expone.
+ * formulario solo serializa los campos publicados por tracer.21. La escolta es la
+ * asignación vigente del viaje (`obtenerAsignacion`, tracer.39), en solo lectura.
  */
 
 import { useEffect } from 'react';
@@ -31,6 +31,10 @@ export function FichaTecnicaViaje({ id }: FichaTecnicaViajeProps) {
 
   if (f.esNoAutorizado) {
     return <DelegacionSesion id={id} />;
+  }
+
+  if (f.esProhibido) {
+    return <SinPermiso onVolver={() => void navigate({ to: '/viajes/$id', params: { id } })} />;
   }
 
   if (usuario?.rol !== 'monitorista') {
@@ -206,7 +210,7 @@ function Escolta({
           </div>
         ) : unidades.length === 0 ? (
           <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
-            No hay unidades en la escolta de este viaje.
+            Este viaje no tiene escolta asignada.
           </p>
         ) : (
           <ul style={{ margin: 0, paddingLeft: 'var(--ui-space-4)' }}>
@@ -319,6 +323,27 @@ function AccesoNoAutorizado({ onVolver }: { readonly onVolver: () => void }) {
       <CardBody>
         <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
           Esta ficha solo está disponible para el monitorista.
+        </p>
+      </CardBody>
+      <CardFooter>
+        <Button variant="secondary" type="button" onClick={onVolver}>
+          Volver al detalle
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+function SinPermiso({ onVolver }: { readonly onVolver: () => void }) {
+  return (
+    <Card variant="outlined">
+      <CardBody>
+        <p
+          role="alert"
+          className="ui-text-body-sm"
+          style={{ margin: 0, color: 'var(--ui-color-text)' }}
+        >
+          No tienes permiso para ver la ficha técnica de este viaje.
         </p>
       </CardBody>
       <CardFooter>

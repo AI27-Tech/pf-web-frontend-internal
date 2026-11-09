@@ -16,3 +16,12 @@ export type Unidad = Schemas['Unidad'];
 
 /** Página del roster que expone el `bff` (generado). */
 export type PaginaUnidades = Schemas['PaginaUnidades'];
+
+/** Alta de unidad: vehículo y 1 o 2 custodios; el `tipo` lo deriva el servidor (tracer.39). */
+export type UnidadEntrada = Schemas['UnidadEntrada'];
+
+/** Edición de unidad: todo opcional; activar o desactivar es cambiar `activa` (tracer.39). */
+export type UnidadModificacion = Schemas['UnidadModificacion'];
+
+/** Escolta vigente de un viaje con sus unidades legibles (`obtenerAsignacion`, tracer.39). */
+export type EscoltaVigente = Schemas['EscoltaVigente'];

@@ -48,7 +48,7 @@ describe('descargarViaje — wrapper', () => {
 
     expect(error).toBeInstanceOf(ErrorDescargaProhibida);
     expect(error).toBeInstanceOf(ApiError);
-    expect(error).toMatchObject({ kind: 'noAutorizado', status: 403 });
+    expect(error).toMatchObject({ kind: 'prohibido', status: 403 });
   });
 
   it('clasifica 404 como ErrorViajeInexistente con status 404', async () => {

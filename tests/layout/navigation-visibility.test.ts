@@ -32,10 +32,11 @@ describe('E8-T4 · visibilidad de navegación por rol', () => {
     expect(visibles).toEqual(['Viajes', 'Conversaciones', 'Emergencias', 'Administración']);
   });
 
-  it('el administrador ve las siete entradas, con Dashboard', () => {
+  it('el administrador ve las ocho entradas, con Dashboard y Roster', () => {
     expect(labels(Rol.Administrador)).toEqual([
       'Dashboard',
       'Viajes',
+      'Roster',
       'Conversaciones',
       'Emergencias',
       'Catálogos',
@@ -54,5 +55,18 @@ describe('E8-T4 · visibilidad de navegación por rol', () => {
       'Reportes',
       'Administración',
     ]);
+  });
+
+  it('Roster solo lo ven el Jefe Operativo y el Administrador (E8-T21, DEC-142 #3)', () => {
+    expect(labels(Rol.JefeOperativo)).toContain('Roster');
+    for (const rol of [
+      Rol.Monitorista,
+      Rol.Supervisor,
+      Rol.Coordinador,
+      Rol.Ejecutivo,
+      Rol.Reaccion,
+    ]) {
+      expect(labels(rol)).not.toContain('Roster');
+    }
   });
 });

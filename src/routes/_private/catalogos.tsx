@@ -1,22 +1,12 @@
 /*
- * Administración de catálogos — E5
- * Stub temporal: la pestaña debe aterrizar en una pantalla real, no en Not Found.
+ * Catálogos — vehículos y custodios (adelanto de E8-T16, DEC-142 #6). Reemplaza el
+ * stub de E5 sobre la misma ruta; los demás catálogos de E8-T16 siguen pendientes.
  */
 
 import { createFileRoute } from '@tanstack/react-router';
 
-import { StubPage } from '@/components/layout/StubPage';
+import { Catalogos } from '@/features/catalogos/Catalogos';
 
 export const Route = createFileRoute('/_private/catalogos')({
-  component: CatalogosPage,
+  component: Catalogos,
 });
-
-function CatalogosPage() {
-  return (
-    <StubPage
-      titulo="Catálogos"
-      historia="E5"
-      descripcion="Aquí irá la administración de catálogos del sistema: tipos de unidad, tipos de custodia y demás valores operativos que define Operación."
-    />
-  );
-}

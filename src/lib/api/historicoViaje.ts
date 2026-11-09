@@ -45,7 +45,7 @@ export class ErrorEstadiaYaCerrada extends ApiError {
 /** Error cuando el rol autenticado no puede ejecutar la corrección solicitada. */
 export class ErrorAutorizacionInsuficiente extends ApiError {
   constructor() {
-    super('noAutorizado', 'No tienes autorización suficiente para esta acción.', 403);
+    super('prohibido', 'No tienes autorización suficiente para esta acción.', 403);
     this.name = 'ErrorAutorizacionInsuficiente';
   }
 }

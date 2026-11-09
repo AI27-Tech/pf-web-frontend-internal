@@ -4,7 +4,8 @@
  * Compone la pantalla del detalle: cabecera con estado y condiciones, lista de
  * acciones, formulario de ETA, y avisos de carrera/error con Toast.
  *
- * Ramifica el 401 (delega al AppShell sin pintar error) antes del error generico.
+ * Ramifica el 401 (delega al AppShell sin pintar error) y el 403 (sin permiso,
+ * sin cerrar sesión) antes del error generico.
  * Estado de carga y error con opcion de reintento. Bucle multi-parada visible
  * desde los destinos del detalle (nombre + numero_envio).
  *
@@ -89,9 +90,10 @@ interface ToastItem {
  *
  * Logica de ramificacion (Req 7.3, 7.1, 7.2, 5.1):
  * 1. Si 401: delega a sesion (logout + redirige a /login)
- * 2. Si otro error: muestra Card + boton reintento
- * 3. Si cargando y sin datos: indicador de carga
- * 4. Si datos: renderiza cabecera, acciones, modal, ETA, avisos
+ * 2. Si 403: avisa la falta de permiso, sin cerrar la sesion
+ * 3. Si otro error: muestra Card + boton reintento
+ * 4. Si cargando y sin datos: indicador de carga
+ * 5. Si datos: renderiza cabecera, acciones, modal, ETA, avisos
  */
 export function DetalleViaje({ id }: DetalleViajeProps) {
   const navigate = useNavigate();
@@ -127,6 +129,11 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
   // Requirement 7.3: delegacion de 401 a la sesion del AppShell
   if (d.esNoAutorizado) {
     return <DelegacionSesion />;
+  }
+
+  // Un 403 no es sesión vencida: se dice y la sesión sigue.
+  if (d.esProhibido) {
+    return <SinPermiso />;
   }
 
   // Requirement 7.1/7.2: error generico con reintento
@@ -232,6 +239,10 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
       if (err instanceof ErrorAsignacion) {
         // Mensaje de carrera: es distinto del estado de roster vacío.
         addToast('La asignación no pudo completarse: otro operador reservó una unidad.', 'error');
+      } else if (err instanceof ApiError && err.kind === 'prohibido') {
+        const mensaje = 'No tienes permiso para asignar la escolta de este viaje.';
+        addToast(mensaje, 'error');
+        throw new Error(mensaje, { cause: err });
       } else if (!(err instanceof ApiError && err.kind === 'noAutorizado')) {
         addToast('No se pudo asignar la escolta.', 'error');
       }
@@ -730,6 +741,25 @@ function EstadoError({ onReintentar }: { readonly onReintentar: () => void }) {
           Reintentar
         </Button>
       </CardFooter>
+    </Card>
+  );
+}
+
+/**
+ * Sin permiso (403): la sesión es válida pero el rol o el alcance no llega a este viaje.
+ */
+function SinPermiso() {
+  return (
+    <Card variant="outlined">
+      <CardBody>
+        <p
+          role="alert"
+          className="ui-text-body-sm"
+          style={{ color: 'var(--ui-color-text)', margin: 0 }}
+        >
+          No tienes permiso para ver el detalle de este viaje.
+        </p>
+      </CardBody>
     </Card>
   );
 }

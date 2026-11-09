@@ -11,7 +11,7 @@ import { ErrorViajeInexistente } from './expediente';
 /** Error cuando la autorización no alcanza al viaje o a sus adjuntos. */
 export class ErrorAdjuntosProhibido extends ApiError {
   constructor() {
-    super('noAutorizado', 'No tienes autorización para la evidencia de este viaje.', 403);
+    super('prohibido', 'No tienes autorización para la evidencia de este viaje.', 403);
     this.name = 'ErrorAdjuntosProhibido';
   }
 }

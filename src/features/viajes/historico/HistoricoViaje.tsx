@@ -83,6 +83,19 @@ function DelegacionSesion() {
   );
 }
 
+/** Sin permiso (403): la sesión es válida pero el rol o el alcance no llega al histórico. */
+function SinPermiso() {
+  return (
+    <Card variant="outlined">
+      <CardBody>
+        <p role="alert" className="ui-text-body-sm" style={{ margin: 0, color: COLOR_TEXT }}>
+          No tienes permiso para ver el histórico de este viaje.
+        </p>
+      </CardBody>
+    </Card>
+  );
+}
+
 export function HistoricoViaje({ id }: HistoricoViajeProps) {
   const { usuario } = useSession();
   const h = useHistoricoViaje(id);
@@ -103,14 +116,27 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
     return <DelegacionSesion />;
   }
 
+  if (h.esProhibido) {
+    return <SinPermiso />;
+  }
+
   const puedeCorregir = usuario ? puedeCorregirIncidencia(usuario.rol) : false;
+
+  // Un 403 en una acción se dice como falta de permiso; la vista y la sesión siguen.
+  const avisarFallo = (error: unknown, mensaje: string) =>
+    addToast(
+      error instanceof ErrorAutorizacionInsuficiente
+        ? 'No tienes permiso para esta acción en este viaje.'
+        : mensaje,
+      'error',
+    );
 
   const registrarNota = async (texto: string) => {
     try {
       await h.registrarNota({ texto });
       addToast('Nota registrada en la bitácora.', 'success');
-    } catch {
-      addToast('No se pudo registrar la nota.', 'error');
+    } catch (error) {
+      avisarFallo(error, 'No se pudo registrar la nota.');
     }
   };
 
@@ -118,8 +144,8 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
     try {
       await h.abrirEstadia(entrada);
       addToast('Estadía abierta.', 'success');
-    } catch {
-      addToast('No se pudo abrir la estadía.', 'error');
+    } catch (error) {
+      avisarFallo(error, 'No se pudo abrir la estadía.');
     }
   };
 
@@ -131,7 +157,7 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
       if (error instanceof ErrorEstadiaYaCerrada) {
         addToast('La estadía ya estaba cerrada.', 'error');
       } else {
-        addToast('No se pudo cerrar la estadía.', 'error');
+        avisarFallo(error, 'No se pudo cerrar la estadía.');
       }
     }
   };
@@ -144,7 +170,7 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
       if (error instanceof ErrorCondicionYaAbierta) {
         addToast('Ya existe una incidencia abierta para este viaje.', 'error');
       } else {
-        addToast('No se pudo marcar la incidencia.', 'error');
+        avisarFallo(error, 'No se pudo marcar la incidencia.');
       }
     }
   };
