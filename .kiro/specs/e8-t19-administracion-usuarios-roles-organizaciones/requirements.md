@@ -115,7 +115,7 @@ Este documento define el comportamiento funcional del frontend interno. El front
 8. IF la solicitud de cambio de rol falla por una causa distinta de las de los criterios 6 y 7 (error del `bff` o sin respuesta por falla de red), THEN THE Administracion_UI SHALL mostrar un mensaje de error indicando que el cambio no se aplicó, conservar el rol seleccionado, volver a habilitar el control de confirmación para permitir reintento y SHALL NOT presentar el cambio como aplicado. [CONDICIONADO a B-1]
 9. WHEN el Administrador cancela o cierra el cambio de rol sin confirmar, THE Administracion_UI SHALL descartar la selección, no enviar ninguna solicitud y mantener sin cambios el rol mostrado en el detalle del usuario. [CONDICIONADO a B-1]
 10. WHEN el Administrador abre el cambio de rol de un usuario, THE Administracion_UI SHALL avisar que se retirará el alcance actual del usuario (DEC-140 #3 y #4). Tras la confirmación, SHALL informar que el retiro del alcance aplica de inmediato y el rol nuevo en el siguiente refresco, y SHALL NOT afirmar que el retiro queda auditado más allá de lo que devuelva el `bff`.
-11. IF el `bff` responde `409` con el `codigo` de cruce entre `cliente` e interno, THEN THE Administracion_UI SHALL mostrar un mensaje que explique que una cuenta no cambia de lado, SHALL NOT presentar el cambio como aplicado y SHALL conservar el rol mostrado. Hasta que `tracer.39` publique ese código, la interfaz no ofrece el cruce y no depende del `409` para impedirlo. [CONDICIONADO a B-1, B-17]
+11. IF el `bff` responde `409` con el `codigo` de cruce entre `cliente` e interno, THEN THE Administracion_UI SHALL mostrar un mensaje que explique que una cuenta no cambia de lado, SHALL NOT presentar el cambio como aplicado y SHALL conservar el rol mostrado. Hasta que `tracer.40` publique ese código, la interfaz no ofrece el cruce y no depende del `409` para impedirlo. [CONDICIONADO a B-1, B-17]
 
 ### Requirement 6: Alcance de monitoreo por rol
 
@@ -123,7 +123,7 @@ Este documento define el comportamiento funcional del frontend interno. El front
 
 #### Acceptance Criteria
 
-1. WHERE el usuario es `monitorista`, THE Administracion_UI SHALL permitir al `administrador` y al `jefe_operativo` asignarle una o más `unidades` (DEC-140 #1) y retirarle unidades, y SHALL ofrecer como opciones únicamente las unidades que devuelve `listarUnidades`. [CONDICIONADO a B-4]
+1. WHERE el usuario es `monitorista`, THE Administracion_UI SHALL permitir al `administrador` asignarle una o más `unidades`. El `jefe_operativo` también puede hacerlo, pero en `/roster` (E8-T21, DEC-142), fuera de esta pantalla y retirarle unidades, y SHALL ofrecer como opciones únicamente las unidades que devuelve `listarUnidades`. [CONDICIONADO a B-4]
 2. WHERE el usuario es `supervisor`, THE Administracion_UI SHALL permitir al `administrador`, y solo a él (DEC-140 #2), indicar los Monitoristas que supervisa, y SHALL ofrecer como opciones únicamente usuarios con rol `monitorista` obtenidos del listado de usuarios del `bff`. [CONDICIONADO a B-2, B-4]
 3. WHERE el usuario es `coordinador`, THE Administracion_UI SHALL permitir al `administrador`, y solo a él (DEC-140 #2), indicar los Supervisores que coordina, y SHALL ofrecer como opciones únicamente usuarios con rol `supervisor` obtenidos del listado de usuarios del `bff`. [CONDICIONADO a B-2, B-4]
 4. WHEN el Administrador confirma un cambio de alcance de un usuario y el `bff` lo acepta, THE Administracion_UI SHALL mostrar el alcance efectivo resultante que devuelve el `bff` y SHALL NOT mostrar un alcance calculado localmente. [CONDICIONADO a B-4]
@@ -332,16 +332,16 @@ Estado tras DEC-139, DEC-140 y DEC-141 (2026-11-06). Lo decidido ya está incorp
 **Decididas**
 
 - **PA-1, PA-2, PA-5, PA-7, PA-8, PA-9, PA-10:** DEC-139 y DEC-138 (ver Requirements 8 a 11).
-- **PA-3:** el vínculo es una lista "mis unidades" en `identidad`. El `administrador` y el `jefe_operativo` asignan unidades a un Monitorista; solo el `administrador` asigna la jerarquía (DEC-140 #1 y #2).
+- **PA-3:** el vínculo es una lista "mis unidades" en `identidad`. El `administrador` y el `jefe_operativo` asignan unidades a un Monitorista; solo el `administrador` asigna la jerarquía (DEC-140 #1 y #2). En esta pantalla edita solo el `administrador`.
 - **PA-4:** se aprueban como base de V1 los textos de `mensajes.ts`, más el aviso de retiro de alcance en el cambio de rol (DEC-140 #4).
 - **PA-6:** al cambiar el rol se retira el alcance anterior; aplica de inmediato (DEC-140 #3).
 - **B-13:** en V1 no se pide reautenticación (DEC-141 #5). Endurecimiento posible en DT-21 (Seguridad).
 - **B-17:** sin cruce entre `cliente` e interno; `fijarRolSujeto` es el nombre definitivo (DEC-141).
 - **B-6:** no hay vista de auditoría en V1 (DEC-140 #6).
 
-**Pendiente**
+- **Jefe operativo (DEC-142, 2026-11-09):** asigna las unidades de un Monitorista en `/roster` (E8-T21), no en `/administracion`. E8-T19 se queda solo con el `administrador` y la definición de terminado no cambia. En `/roster`, la asignación de "mis unidades" espera la ola de E8-T19 (`tracer.40`).
 
-- **Acceso del `jefe_operativo` a la edición de unidades.** DEC-140 #1 le da la facultad de asignar unidades a un Monitorista, pero el Requirement 1 limita `/administracion` y su navegación al `administrador`, y la definición de terminado exige que los demás roles no vean controles de asignación. Falta definir dónde edita el `jefe_operativo` (otra pantalla o una excepción en esta) y qué ve. Mientras no se defina, esta pantalla ofrece la edición de unidades solo al `administrador`.
+**Pendiente de decisión:** ninguna.
 
 ## Dependencias
 
@@ -373,12 +373,12 @@ Estas notas son prerrequisitos de verificación y no reglas. El detalle, las fue
 - **B-1. Sujetos y roles no están en el `bff`.** `identidad.yaml` define `altaSujeto`, `obtenerSujeto`, `desactivarSujeto`, `reactivarSujeto`, `listarHistorialSujeto` y `fijarRolSujeto`, pero no son públicas (DEC-137). Falta la proyección al `bff` con `operationId` propios.
 - **B-2. No existe listado ni búsqueda de sujetos** en ningún servicio.
 - **B-3. No existe la superficie de organizaciones** en ningún OpenAPI.
-- **B-4. Entra en `tracer.39`** (DEC-140 #5): lectura y edición de la lista y de la jerarquía, y el retiro al cambiar de rol. PA-3 está decidida.
+- **B-4. Entra en `tracer.40`** (DEC-140 #5): lectura y edición de la lista y de la jerarquía, y el retiro al cambiar de rol. PA-3 está decidida.
 - **B-5. No existe "revocar todas las sesiones de un sujeto".** `revocarSesion` es por `sesion_id` y no hay forma de enumerar las sesiones de un sujeto. Solo `desactivarSujeto` revoca la sesión viva.
 - **B-6. No existe consulta de auditoría de revocaciones.** La respuesta de Lead (2026-11-05) no la menciona; el motivo queda en la auditoría local de identidad (PA-1). Decidida (DEC-140 #6): sin vista de auditoría en V1.
 - **B-7 (decidida, DEC-112/DEC-129). `tenant_id` para usuarios internos.** Hay un tenant interno único de AI27 para los siete roles internos y un tenant tipo cliente por organización. La interfaz no captura ni deriva el tenant de un interno; lo pone el servidor. Para `cliente` va la organización. Texto original de la brecha: `AltaSujetoEntrada` exige `tenant_id` para todo rol; E4-HU-018 solo liga la organización al rol `cliente`. No está definido qué valor lleva un usuario interno.
 - **B-8 (decidida, PA-10).** El identificador de usuario es inmutable en V1; editar usuario cambia el nombre. Falta la operación en el contrato (ola de B-9).
-- **B-9. Pin del contrato.** `package.json` fija `@ai27-tech/contracts@0.1.0-tracer.37` (verificado 2026-11-06). Último publicado: `v0.1.0-tracer.38`. La ola de E8-T19 sale en `tracer.39` (si otra rama taguea antes, el siguiente libre). No se sube el pin sin aprobación explícita.
+- **B-9. Pin del contrato.** `package.json` fija `@ai27-tech/contracts@0.1.0-tracer.37`. Último publicado: `v0.1.0-tracer.39`, que es la ola de `/roster` (E8-T21, DEC-142); no contiene sujetos, organizaciones ni revocación masiva. La ola de E8-T19 será `tracer.40` y todavía no existe. No se sube el pin hasta que Lead confirme que está publicada.
 - **B-10. Contradicciones del repo de contexto.** La historia técnica E8-T19 dice "un Ejecutivo puede tener varios clientes" y cita `/api/v1/roles/...`; E4-HU-018 y DEC-103 la superan en lo primero, y el contrato de `identidad` no tiene rutas de roles aparte (el rol se fija con `PUT /sujetos/{id}/rol`). La historia técnica y la línea equivalente de E4-HU-018 (matriz del Ejecutivo) quedan por corregir.
 - **B-11. Brechas de UI.** `@ai27-tech/ui@0.2.0-beta.6` no tiene un multi-select dedicado para varias unidades, Monitoristas o Supervisores. Se compone con `Table`/`Card` + `Checkbox` (mismo criterio que E8-T11). Verificar la API de `Modal`, `Table`, `FilterTable`, `Select`, `Badge` y `Toast`.
 - **B-12. Navegación.** `navigationConfig.ts` muestra "Administración" a todos los roles internos. Cumplir el Requirement 1 exige restringirla a `administrador` (campo `visiblePara`). Es un cambio de E8-T4 que se hace al implementar, no antes.
@@ -389,7 +389,7 @@ Estas notas son prerrequisitos de verificación y no reglas. El detalle, las fue
 - Solo el `administrador` asigna roles y no hay controles para otros roles: Requirement 1 y escenario 9; DoD de E8-T19 (primera prueba); E4-HU-018 Escenario 9.
 - Ocho roles, uno por usuario: Requirements 3 y 5 y escenarios 1, 2 y 4; E4-HU-018 (criterio 1); DEC-045, DEC-053.
 - Usuario Cliente atado a una organización: Requirements 3 y 4 y escenarios 2 y 18; E4-HU-018 (criterio 2); E4-HU-019.
-- Alcance de monitoreo (Monitorista, Supervisor, Coordinador): Requirement 6 y escenario 3; E4-HU-018 Escenarios 1 y 2; sujeto a B-4 (`tracer.39`); PA-3 decidida en DEC-140.
+- Alcance de monitoreo (Monitorista, Supervisor, Coordinador): Requirement 6 y escenario 3; E4-HU-018 Escenarios 1 y 2; sujeto a B-4 (`tracer.40`); PA-3 decidida en DEC-140.
 - Ejecutivo sin clientes asignados: Requirement 6.5 y escenario 13; E4-HU-018 (nota de DEC-103); la línea "varios clientes" de la historia técnica E8-T19 queda superada por E4-HU-018 y DEC-103.
 - Un usuario no puede editar su propio rol o alcance: Requirement 7 y escenario 10; E4-HU-018 Escenario 9; DoD (segunda prueba).
 - Quita de rol surte efecto en el siguiente refresco: Requirement 5.4 y 5.5 y escenarios 4 y 16; E4-HU-020 Escenario 3; DEC-091.
