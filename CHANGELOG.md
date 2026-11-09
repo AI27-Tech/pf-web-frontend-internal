@@ -1,5 +1,20 @@
 ﻿# CHANGELOG
 
+## 2026:11:09 13:11
+
+**Resumen:** Sección `/roster` del Jefe Operativo (E8-T21, DEC-142), vehículos y custodios en `/catalogos` (adelanto de E8-T16, DEC-142 #6) y escolta de la ficha técnica desde la asignación del viaje (E8-T12). Se desarrolló con los tipos de `tracer.39` puestos en `node_modules`; el pin sigue en `tracer.38` hasta subirlo.
+
+**Cambios:**
+
+- **`/roster`** (`src/features/roster/`, `src/routes/_private/roster.tsx`): solo `jefe_operativo` y `administrador`, con entrada de navegación propia y aviso de acceso para los demás roles. Lista paginada por cursor (vehículo legible, custodios por nombre, tipo, estado). Alta (`crearUnidad`): un vehículo activo y uno o dos custodios activos; una moto admite uno. El `tipo` no se captura. Edición (`modificarUnidad`): vehículo, custodios y activar/desactivar; solo envía lo que cambió. Mensajes propios para `409 vehiculo_en_otra_unidad`, `409 custodio_en_otra_unidad`, `409 unidad_con_reserva_vigente` (pide reasignar primero la escolta del viaje), `400` y `403` (sin cerrar la sesión). La asignación de "mis unidades" a cada Monitorista queda marcada como pendiente: llega con la ola de E8-T19.
+- **`/catalogos`** (`src/features/catalogos/`, `src/routes/_private/catalogos.tsx`): reemplaza el stub. Vehículos (tipo coche/moto, económico, placas, activa/inactiva, sin cliente por DEC-143) y custodios (nombre, teléfono, activo/inactivo). Leen `jefe_operativo` y `administrador`; dan de alta y editan solo `administrador`. Los demás catálogos de E8-T16 siguen pendientes.
+- **Ficha técnica** (`useFichaTecnica.ts`, `FichaTecnicaViaje.tsx`): la escolta sale de `obtenerAsignacion` (`GET /viajes/{id}/asignacion`) y ya no de `listarUnidades`, que responde `403` al monitorista. Sin asignación vigente dice "Este viaje no tiene escolta asignada.".
+- `src/lib/api/unidades.ts`, `src/lib/api/catalogos.ts` (nuevo), `src/lib/api/viajeDetalle.ts` (`obtenerAsignacion`); `src/lib/contracts/unidades.ts` y `src/lib/contracts/catalogos.ts` (nuevo) con los tipos generados de `tracer.39`.
+- `src/mocks/roster.ts` (nuevo): handlers MSW del roster, vehículos, custodios y escolta, con las reglas del servidor (rol leído del JWT del mock, exclusividad, reserva vigente, validación y forma `{codigo, mensaje}` de los errores). `handlers.ts` deja su `GET /unidades` fijo y la asignación registra la reserva. `mockAccessToken(rol)` se exporta para las pruebas.
+- Pruebas: `tests/roster/Roster.test.tsx` (14), `tests/catalogos/Catalogos.test.tsx` (10), `FichaTecnicaViaje.test.tsx` (con y sin escolta, sin pedir el roster), `navigation-visibility.test.ts` y `e2e/roster.spec.ts` (login del demo, navegación y alta de unidad en el bundle mock).
+
+**Verificación:** con los tipos de `tracer.39`: `vite build --mode mock`, `lint`, `typecheck`, `test` (497) y `test:e2e` (5) en verde.
+
 ## 2026:11:09 12:56
 
 **Resumen:** Un `403` ya no cierra la sesión. `kindFromStatus` mapeaba `401` y `403` a `noAutorizado`, y las pantallas trataban ese kind como sesión vencida. En el recorrido real, el monitorista abría la ficha técnica, `GET /api/v1/unidades` respondía `403` y el panel hacía `DELETE /sesion` y lo mandaba a `/login`. Ahora el `403` tiene su propio kind, `prohibido`, y cada pantalla dice que falta permiso sin cerrar la sesión. Solo el `401` (o el corte de sesión) delega al flujo de sesión, como fija DT-03.
