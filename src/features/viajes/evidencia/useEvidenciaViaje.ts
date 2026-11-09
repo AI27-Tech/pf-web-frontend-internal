@@ -4,11 +4,9 @@ import { useSession } from '@/context/SessionContext';
 import {
   crearIntencionSubidaAdjunto,
   descargarAdjunto,
-  ErrorAdjuntosProhibido,
   listarAdjuntos,
   subirBytes,
 } from '@/lib/api/adjuntos';
-import { ApiError } from '@/lib/api/errors';
 import type { Adjunto } from '@/lib/contracts/adjuntos';
 
 import { esDescargable } from './adjuntoDescargable';
@@ -21,7 +19,6 @@ export interface EvidenciaViajeHook {
   readonly cargando: boolean;
   readonly vacio: boolean;
   readonly error: Error | null;
-  readonly esNoAutorizado: boolean;
   readonly reintentar: () => void;
   readonly subir: (archivo: File) => void;
   readonly subiendo: boolean;
@@ -45,13 +42,6 @@ function abrirUrl(url: string): void {
   } finally {
     ancla.remove();
   }
-}
-
-function esNoAutorizadoError(error: unknown): boolean {
-  return (
-    error instanceof ErrorAdjuntosProhibido ||
-    (error instanceof ApiError && error.kind === 'sesionFinalizada')
-  );
 }
 
 /**
@@ -116,7 +106,6 @@ export function useEvidenciaViaje(id: string): EvidenciaViajeHook {
     cargando: lista.isPending,
     vacio: lista.isSuccess && lista.data.items.length === 0,
     error: lista.error ?? null,
-    esNoAutorizado: esNoAutorizadoError(lista.error),
     reintentar: () => void lista.refetch(),
     subir: (archivo) => subirArchivo(archivo),
     subiendo: subida.isPending,

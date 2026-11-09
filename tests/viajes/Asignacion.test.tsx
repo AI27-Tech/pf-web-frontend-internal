@@ -7,6 +7,7 @@ import { setupServer } from 'msw/node';
 import type { ReactNode } from 'react';
 
 import { DetalleViaje } from '@/features/viajes/detalle/DetalleViaje';
+import { restablecerCorte } from '@/lib/api/sessionCut';
 import { API_PREFIX } from '@/lib/constants';
 
 const path = (segment: string) => `${API_PREFIX}${segment}`;
@@ -24,6 +25,7 @@ afterEach(() => {
   server.resetHandlers();
   logoutSpy.mockReset();
   navigateSpy.mockReset();
+  restablecerCorte();
 });
 afterAll(() => server.close());
 
@@ -167,5 +169,68 @@ describe('Asignación de escolta', () => {
 
     expect(await screen.findByText(/otro operador reservó una unidad/i)).toBeInTheDocument();
     expect(screen.queryByText('Sin unidades disponibles para asignar.')).not.toBeInTheDocument();
+  });
+});
+
+describe('Detalle del viaje — un 403 no cierra la sesión', () => {
+  const prohibido = () => HttpResponse.json({ codigo: 'prohibido' }, { status: 403 });
+
+  it('un 403 en el detalle muestra el aviso de permiso sin logout ni /login', async () => {
+    server.use(http.get(path('/viajes/:id/detalle'), prohibido));
+    renderDetalle();
+
+    expect(
+      await screen.findByText('No tienes permiso para ver el detalle de este viaje.'),
+    ).toBeInTheDocument();
+    expect(logoutSpy).not.toHaveBeenCalled();
+    expect(navigateSpy).not.toHaveBeenCalled();
+  });
+
+  it('un 403 al leer el roster avisa en el formulario y deja el detalle a la vista', async () => {
+    server.use(
+      http.get(path('/viajes/:id/detalle'), () => HttpResponse.json(detalle())),
+      http.get(path('/unidades'), prohibido),
+    );
+    renderDetalle();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Asignar escolta' }));
+    expect(
+      await screen.findByText('No tienes permiso para consultar el roster de unidades.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('APROBADO')).toBeInTheDocument();
+    expect(logoutSpy).not.toHaveBeenCalled();
+    expect(navigateSpy).not.toHaveBeenCalled();
+  });
+
+  it('un 403 al asignar dice que falta permiso y conserva la sesión', async () => {
+    server.use(
+      http.get(path('/viajes/:id/detalle'), () => HttpResponse.json(detalle())),
+      http.get(path('/unidades'), () => HttpResponse.json(roster())),
+      http.post(path('/viajes/:id/asignacion'), prohibido),
+    );
+    renderDetalle();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Asignar escolta' }));
+    const checkboxes = await screen.findAllByRole('checkbox');
+    await userEvent.click(checkboxes[1]!);
+    await userEvent.click(screen.getByRole('button', { name: /Confirmar asignación/i }));
+
+    expect(
+      await screen.findAllByText('No tienes permiso para asignar la escolta de este viaje.'),
+    ).not.toHaveLength(0);
+    expect(logoutSpy).not.toHaveBeenCalled();
+    expect(navigateSpy).not.toHaveBeenCalled();
+  });
+
+  it('un 401 sigue cerrando la sesión y lleva a /login', async () => {
+    server.use(
+      http.get(path('/viajes/:id/detalle'), () => new HttpResponse(null, { status: 401 })),
+    );
+    renderDetalle();
+
+    await waitFor(() => expect(logoutSpy).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(navigateSpy).toHaveBeenCalledWith(expect.objectContaining({ to: '/login' })),
+    );
   });
 });

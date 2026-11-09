@@ -19,7 +19,7 @@ export interface PeriodoReporte {
 /** Error cuando la autorización no alcanza al reporte (`403`). */
 export class ErrorReportesProhibido extends ApiError {
   constructor() {
-    super('noAutorizado', 'No tienes autorización para ver este reporte.', 403);
+    super('prohibido', 'No tienes autorización para ver este reporte.', 403);
     this.name = 'ErrorReportesProhibido';
   }
 }

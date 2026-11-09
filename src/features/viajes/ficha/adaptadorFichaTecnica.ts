@@ -83,7 +83,8 @@ export function esFichaConfirmada(
 
 export function mensajeErrorGuardarFicha(error: unknown): string {
   if (error instanceof ApiError) {
-    if (error.kind === 'noAutorizado') return 'Tu sesión o autorización ya no es válida.';
+    if (error.kind === 'noAutorizado') return 'Tu sesión ya no es válida. Vuelve a iniciar sesión.';
+    if (error.kind === 'prohibido') return 'No tienes permiso para guardar la ficha técnica.';
     if (error.kind === 'noEncontrado') return 'El viaje ya no está disponible.';
     if (error.kind === 'degradado') return 'El servicio no está disponible. Reintenta más tarde.';
     if (error.kind === 'red') return 'No se pudo conectar con el servicio. Revisa la conexión.';

@@ -8,7 +8,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useSession } from '@/context/SessionContext';
-import { ApiError } from '@/lib/api/errors';
+import { ApiError, esProhibido, esSesionInvalida } from '@/lib/api/errors';
 import { guardarFicha, listarGps, obtenerFicha } from '@/lib/api/fichaTecnica';
 import { listarUnidades } from '@/lib/api/unidades';
 import { obtenerDetalle } from '@/lib/api/viajeDetalle';
@@ -33,7 +33,10 @@ export interface FichaTecnicaHook {
   readonly errorGps: Error | null;
   readonly errorEscolta: Error | null;
   readonly errorGuardado: Error | null;
+  /** 401 o sesión cortada: la pantalla delega al flujo de sesión. */
   readonly esNoAutorizado: boolean;
+  /** 403 en el detalle o la ficha: sin permiso para esta ficha; la sesión sigue. */
+  readonly esProhibido: boolean;
   readonly guardando: boolean;
   readonly reintentar: () => void;
   readonly reintentarGps: () => void;
@@ -106,12 +109,16 @@ export function useFichaTecnica(id: string): FichaTecnicaHook {
     errorGps: gpsQuery.isError ? (gpsQuery.error as Error) : null,
     errorEscolta: escoltaQuery.isError ? (escoltaQuery.error as Error) : null,
     errorGuardado: mutation.error as Error | null,
-    esNoAutorizado:
-      (detalleQuery.error instanceof ApiError && detalleQuery.error.kind === 'noAutorizado') ||
-      (fichaQuery.error instanceof ApiError && fichaQuery.error.kind === 'noAutorizado') ||
-      (gpsQuery.error instanceof ApiError && gpsQuery.error.kind === 'noAutorizado') ||
-      (escoltaQuery.error instanceof ApiError && escoltaQuery.error.kind === 'noAutorizado') ||
-      (mutation.error instanceof ApiError && mutation.error.kind === 'noAutorizado'),
+    esNoAutorizado: [
+      detalleQuery.error,
+      fichaQuery.error,
+      gpsQuery.error,
+      escoltaQuery.error,
+      mutation.error,
+    ].some(esSesionInvalida),
+    // Solo el detalle y la ficha bloquean la pantalla; GPS, escolta y guardado
+    // dicen su falta de permiso en su propia sección.
+    esProhibido: esProhibido(detalleQuery.error) || esProhibido(fichaQuery.error),
     guardando: mutation.isPending,
     reintentar: () => {
       void detalleQuery.refetch();

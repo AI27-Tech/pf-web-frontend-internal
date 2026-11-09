@@ -108,6 +108,6 @@ describe('wrapper historicoViaje — clasificación de conflictos y autorizació
       (e) => e,
     );
     expect(err).toBeInstanceOf(ErrorAutorizacionInsuficiente);
-    expect((err as ApiError).kind).toBe('noAutorizado');
+    expect((err as ApiError).kind).toBe('prohibido');
   });
 });

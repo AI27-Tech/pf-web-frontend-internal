@@ -9,8 +9,10 @@
 export type ApiErrorKind =
   /** Credenciales inválidas al iniciar sesión (401 en /sesion). */
   | 'invalidCredentials'
-  /** Token ausente o vencido a media conexión: reconecta tras refrescar. */
+  /** 401: token ausente o vencido. Es un problema de sesión y la cierra. */
   | 'noAutorizado'
+  /** 403: la sesión es válida, pero el rol o el alcance no alcanza. No cierra la sesión. */
+  | 'prohibido'
   /** La sesión no pudo recuperarse y el portal ejecutó el corte. */
   | 'sesionFinalizada'
   /** Recurso inexistente (404). */
@@ -45,9 +47,23 @@ export class ApiError extends Error {
 
 /** Deriva la clase del error a partir del código HTTP. */
 export function kindFromStatus(status: number): ApiErrorKind {
-  if (status === 401 || status === 403) return 'noAutorizado';
+  if (status === 401) return 'noAutorizado';
+  if (status === 403) return 'prohibido';
   if (status === 404) return 'noEncontrado';
   if (status === 409) return 'conflicto';
   if (status >= 500) return 'degradado';
   return 'red';
+}
+
+/** La sesión ya no sirve (401 o corte ejecutado): la pantalla delega al flujo de sesión. */
+export function esSesionInvalida(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    (error.kind === 'noAutorizado' || error.kind === 'sesionFinalizada')
+  );
+}
+
+/** Falta permiso para esta operación (403): la pantalla lo dice y la sesión sigue. */
+export function esProhibido(error: unknown): boolean {
+  return error instanceof ApiError && error.kind === 'prohibido';
 }

@@ -12,6 +12,7 @@ import { Button, Card, CardBody, CardFooter, CardHeader } from '@ai27-tech/ui';
 import { useNavigate } from '@tanstack/react-router';
 
 import { useSession } from '@/context/SessionContext';
+import { esProhibido } from '@/lib/api/errors';
 import type { FichaTecnica } from '@/lib/contracts/fichaTecnica';
 import type { Unidad } from '@/lib/contracts/unidades';
 import { custodiosLegibles, vehiculoLegible } from '../unidadLegible';
@@ -31,6 +32,10 @@ export function FichaTecnicaViaje({ id }: FichaTecnicaViajeProps) {
 
   if (f.esNoAutorizado) {
     return <DelegacionSesion id={id} />;
+  }
+
+  if (f.esProhibido) {
+    return <SinPermiso onVolver={() => void navigate({ to: '/viajes/$id', params: { id } })} />;
   }
 
   if (usuario?.rol !== 'monitorista') {
@@ -191,6 +196,14 @@ function Escolta({
           <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
             Cargando la escolta...
           </p>
+        ) : esProhibido(error) ? (
+          <p
+            role="alert"
+            className="ui-text-body-sm"
+            style={{ margin: 0, color: 'var(--ui-color-text)' }}
+          >
+            No tienes permiso para consultar la escolta de este viaje.
+          </p>
         ) : error ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
             <p
@@ -319,6 +332,27 @@ function AccesoNoAutorizado({ onVolver }: { readonly onVolver: () => void }) {
       <CardBody>
         <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
           Esta ficha solo está disponible para el monitorista.
+        </p>
+      </CardBody>
+      <CardFooter>
+        <Button variant="secondary" type="button" onClick={onVolver}>
+          Volver al detalle
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+function SinPermiso({ onVolver }: { readonly onVolver: () => void }) {
+  return (
+    <Card variant="outlined">
+      <CardBody>
+        <p
+          role="alert"
+          className="ui-text-body-sm"
+          style={{ margin: 0, color: 'var(--ui-color-text)' }}
+        >
+          No tienes permiso para ver la ficha técnica de este viaje.
         </p>
       </CardBody>
       <CardFooter>

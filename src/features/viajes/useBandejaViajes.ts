@@ -8,8 +8,10 @@
  *
  * - `queryKey: ['viajes', params]` → cambiar filtro o cursor dispara refetch.
  * - `retry: false` → el error es inmediato y el reintento es explícito (Req 7.2).
- * - 401 (`noAutorizado`) se expone como `esNoAutorizado` para que la presentación
+ * - 401 o sesión cortada se expone como `esNoAutorizado` para que la presentación
  *   lo delegue al flujo de sesión del AppShell (Req 7.3), sin pintar error genérico.
+ * - 403 (`prohibido`) se expone como `esProhibido`: se avisa la falta de permiso
+ *   y la sesión sigue.
  */
 
 import { useReducer } from 'react';
@@ -17,7 +19,7 @@ import { useReducer } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import { useSession } from '@/context/SessionContext';
-import { ApiError } from '@/lib/api/errors';
+import { esProhibido, esSesionInvalida } from '@/lib/api/errors';
 import { listarViajes } from '@/lib/api/viajes';
 
 import { ESTADO_VISTA_INICIAL, paramsDesdeVista, reducir } from './bandejaReducer';
@@ -37,8 +39,10 @@ export interface BandejaViajes {
   readonly cargando: boolean;
   /** Error de la petición, o null si no hubo (Req 7.1). */
   readonly error: Error | null;
-  /** true si el fallo fue 401/403: la presentación delega a sesión (Req 7.3). */
+  /** true si el fallo fue 401 o la sesión se cortó: la presentación delega a sesión (Req 7.3). */
   readonly esNoAutorizado: boolean;
+  /** true si el fallo fue 403: sin permiso para el listado; la sesión sigue. */
+  readonly esProhibido: boolean;
   /** Reintenta con el filtro vigente (mismo queryKey, Req 7.2). */
   readonly reintentar: () => void;
   /** Cambia el filtro de estado; reinicia la paginación (Req 3.2/3.3/4.5). */
@@ -74,9 +78,8 @@ export function useBandejaViajes(): BandejaViajes {
     estadoSeleccionado: vista.estado,
     cargando: query.isPending,
     error,
-    esNoAutorizado:
-      query.error instanceof ApiError &&
-      (query.error.kind === 'noAutorizado' || query.error.kind === 'sesionFinalizada'),
+    esNoAutorizado: esSesionInvalida(query.error),
+    esProhibido: esProhibido(query.error),
     reintentar: () => void query.refetch(),
     cambiarFiltro: (estado) => dispatch({ tipo: 'cambiarFiltro', nuevoEstado: estado }),
     irAPagina: (pagina) => dispatch({ tipo: 'irAPagina', pagina, cursorSiguiente }),
