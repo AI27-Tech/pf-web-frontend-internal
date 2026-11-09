@@ -261,8 +261,8 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
 - **B-13 (reautenticación en acciones sensibles)** está decidida (DEC-141 #5): no se pide en V1. DT-21 queda para Seguridad.
 - **B-6** queda fuera de V1 (DEC-140 #6). **B-8/PA-10** está decidida: el identificador de usuario es inmutable y editar usuario cambia solo el nombre (`editarUsuario` en el puerto); queda bloqueada por la ola de contrato de B-9.
 - **Decididas en DEC-139:** PA-1, PA-2, PA-5, PA-7, PA-8, PA-9 y PA-10, ya incorporadas. También decididas en DEC-140 y DEC-141: PA-3, PA-4, PA-6, B-4, B-6, B-13 y B-17. DEC-142: el `jefe_operativo` asigna unidades en `/roster` (E8-T21), no en esta pantalla. No queda pregunta abierta de producto.
-- **Rama desactualizada (2026-11-09):** `feature/e8-t19-administracion-usuarios` está 12 commits detrás de `pf-wfi-d` y choca en `src/lib/api/unidades.ts` (conservar `listarTodasUnidades` y el encabezado nuevo) y en `tests/layout/navigation-visibility.test.ts` (la entrada de `/roster`). Mergear `pf-wfi-d` en la rama, sin force-push, antes de seguir con el Bloque B.
-- **Errores 403 (PR #28):** el código nuevo usa `esProhibido(err)` para mostrar "no tienes permiso" sin cerrar la sesión, y `esSesionInvalida(err)` solo para el 401 o la sesión cortada (DT-03). Revisar `clasificarError` (tarea 2.6) contra esto.
+- **Rama desactualizada (2026-11-09):** `feature/e8-t19-administracion-usuarios` está 12 commits detrás de `pf-wfi-d` y choca en `src/lib/api/unidades.ts` (conservar `listarTodasUnidades` y el encabezado nuevo) y en `tests/layout/navigation-visibility.test.ts` (la entrada de `/roster`). Resuelto: `pf-wfi-d` está mergeada en la rama (`bbbadc2`). El push queda pendiente de aprobación.
+- **Errores 403 (PR #28):** el código nuevo usa `esProhibido(err)` para mostrar "no tienes permiso" sin cerrar la sesión, y `esSesionInvalida(err)` solo para el 401 o la sesión cortada (DT-03). Resuelto: `clasificarError` clasifica el 403 como `prohibido` y `textoDeFallo` no produce texto ante sesión inválida.
 
 ### Inconsistencias detectadas en los documentos
 

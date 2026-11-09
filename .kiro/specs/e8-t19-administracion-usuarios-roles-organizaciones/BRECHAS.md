@@ -4,7 +4,7 @@ Documento de brechas del spec. Cada brecha indica qué pide la tarea, qué exist
 
 ## Estado
 
-**Bloque A implementado; Bloque B sin iniciar.** Ver la sección siguiente para el estado de cada brecha. El Bloque B espera la ola de contrato `tracer.40`.
+**Bloque A implementado. De la B, los diálogos 11.1, 12.1, 14.1 y 15.1 están implementados contra el puerto falso, sin conectar a la pantalla ni a datos reales; el resto del Bloque B sin iniciar.** Ver la sección siguiente para el estado de cada brecha. El Bloque B espera la ola de contrato `tracer.40`.
 
 ## Estado tras DEC-139, DEC-140 y DEC-141 (2026-11-06)
 
