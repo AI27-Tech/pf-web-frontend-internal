@@ -20,7 +20,6 @@ import {
   transicionarViajeMock,
   fijarEtaMock,
   completarFechaHoraMock,
-  listarUnidadesMock,
   asignarEscoltaMock,
   obtenerFichaMock,
   guardarFichaMock,
@@ -33,8 +32,6 @@ import {
   crearIntencionSubidaMock,
   descargarAdjuntoMock,
   ALMACEN_MOCK,
-  UNIDADES_DEMO,
-  UNIDADES_SIN_DISPONIBLES_DEMO,
   listarBitacoraMock,
   registrarEntradaBitacoraMock,
   listarIncidenciasMock,
@@ -59,6 +56,7 @@ import {
 import type { TransicionEntrada, EtaEntrada, FechaHoraEntrada } from '@/lib/contracts/viajeDetalle';
 import { EstadoViaje } from '@/lib/contracts/viajeDetalle';
 import { handlersEmergencias } from './emergencias';
+import { handlersRoster, reservarEscoltaMock, unidadDelRosterMock } from './roster';
 import type { CrearViajeEntrada } from '@/lib/contracts/viajes';
 import type {
   EntradaBitacoraEntrada,
@@ -236,6 +234,7 @@ export const handlersConversaciones = [
 ];
 
 export const handlers = [
+  ...handlersRoster,
   ...handlersEmergencias,
   ...handlersConversaciones,
   // GET /clientes ÔÇö cat├ílogo proyectado por el BFF (tracer.20). El mock devuelve
@@ -447,18 +446,9 @@ export const handlers = [
     return HttpResponse.json(detalle, { status: 200 });
   }),
 
-  // GET /unidades ÔÇö roster esperado por E8-T10. La aptitud no se expone aqu├¡.
-  http.get(path('/unidades'), ({ request }) => {
-    const url = new URL(request.url);
-    const unidades =
-      url.searchParams.get('sin_disponibles') === '1'
-        ? UNIDADES_SIN_DISPONIBLES_DEMO
-        : UNIDADES_DEMO;
-    return HttpResponse.json(listarUnidadesMock(unidades), { status: 200 });
-  }),
-
   // POST /viajes/{id}/asignacion ÔÇö reserva at├│mica de la escolta.
   // `x-mock-asignacion-conflicto` permite forzar el 409 de carrera en pruebas.
+  // El roster vive en `./roster`: la reserva queda registrada para `obtenerAsignacion`.
   http.post(path('/viajes/:id/asignacion'), async ({ params, request }) => {
     const { id } = params as { id: string };
     let body: { unidades_ids?: unknown } = {};
@@ -486,13 +476,14 @@ export const handlers = [
       request.headers.get('x-mock-asignacion-conflicto') === 'true' ||
       url.searchParams.get('conflicto') === '1';
     const unidadNoDisponible = unidades_ids.some(
-      (unidad_id) => !UNIDADES_DEMO.some((unidad) => unidad.id === unidad_id),
+      (unidad_id) => unidadDelRosterMock(unidad_id)?.activa !== true,
     );
     if (conflictoForzado || unidadNoDisponible) {
       return HttpResponse.json({ error: { codigo: 'recurso_no_disponible' } }, { status: 409 });
     }
 
     const asignacion = asignarEscoltaMock(id, unidades_ids);
+    reservarEscoltaMock(id, unidades_ids);
     return HttpResponse.json(asignacion, { status: 200 });
   }),
 
