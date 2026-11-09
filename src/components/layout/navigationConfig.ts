@@ -16,8 +16,10 @@ import {
   BarChart3,
   LayoutDashboard,
   Package,
+  Users,
 } from 'lucide-react';
 
+import { ROLES_ROSTER } from '@/features/catalogos/afordancias';
 import { ROLES_CON_MONITOREO } from '@/features/monitoreo/puedeUsarMonitoreo';
 
 /**
@@ -67,6 +69,15 @@ export const NAV_ITEMS: readonly NavItem[] = [
     icon: Truck,
     path: '/viajes',
     ocultarPara: [],
+  },
+  {
+    id: 'roster',
+    label: 'Roster',
+    icon: Users,
+    path: '/roster',
+    ocultarPara: [],
+    // E8-T21 (DEC-142 #3): solo el Jefe Operativo y el Administrador arman el roster.
+    visiblePara: ROLES_ROSTER,
   },
   {
     id: 'conversaciones',

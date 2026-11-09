@@ -10,8 +10,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@/context/SessionContext';
 import { ApiError, esProhibido, esSesionInvalida } from '@/lib/api/errors';
 import { guardarFicha, listarGps, obtenerFicha } from '@/lib/api/fichaTecnica';
-import { listarUnidades } from '@/lib/api/unidades';
-import { obtenerDetalle } from '@/lib/api/viajeDetalle';
+import { obtenerAsignacion, obtenerDetalle } from '@/lib/api/viajeDetalle';
 import type {
   DispositivoGps,
   FichaTecnica,
@@ -70,12 +69,12 @@ export function useFichaTecnica(id: string): FichaTecnicaHook {
     enabled: accessToken.length > 0,
   });
 
-  // Escolta en solo lectura: se deriva del roster (`listarUnidades`, E8-T10),
-  // no se recaptura. La asignación por viaje es un POST (reserva), no una
-  // lectura; la ficha muestra las unidades disponibles del roster.
+  // Escolta en solo lectura: la de ESTE viaje (`obtenerAsignacion`, tracer.39), no
+  // el roster completo, que el monitorista no puede leer (DEC-142). La clave cuelga
+  // de ['viaje', id] para que asignar o reasignar la invalide junto con el detalle.
   const escoltaQuery = useQuery({
-    queryKey: ['unidades'],
-    queryFn: () => listarUnidades(accessToken),
+    queryKey: ['viaje', id, 'escolta'],
+    queryFn: async () => (await obtenerAsignacion(id, accessToken)).unidades,
     retry: false,
     enabled: accessToken.length > 0,
   });

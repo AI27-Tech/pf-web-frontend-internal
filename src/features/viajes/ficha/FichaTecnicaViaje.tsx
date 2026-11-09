@@ -2,8 +2,8 @@
  * Ficha técnica del viaje (E8-T12).
  *
  * La vista separa datos conocidos, captura incremental y el histórico. El
- * formulario solo serializa los campos publicados por tracer.21; no inventa
- * destinos editables ni una lectura de escolta que el BFF no expone.
+ * formulario solo serializa los campos publicados por tracer.21. La escolta es la
+ * asignación vigente del viaje (`obtenerAsignacion`, tracer.39), en solo lectura.
  */
 
 import { useEffect } from 'react';
@@ -12,7 +12,6 @@ import { Button, Card, CardBody, CardFooter, CardHeader } from '@ai27-tech/ui';
 import { useNavigate } from '@tanstack/react-router';
 
 import { useSession } from '@/context/SessionContext';
-import { esProhibido } from '@/lib/api/errors';
 import type { FichaTecnica } from '@/lib/contracts/fichaTecnica';
 import type { Unidad } from '@/lib/contracts/unidades';
 import { custodiosLegibles, vehiculoLegible } from '../unidadLegible';
@@ -196,14 +195,6 @@ function Escolta({
           <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
             Cargando la escolta...
           </p>
-        ) : esProhibido(error) ? (
-          <p
-            role="alert"
-            className="ui-text-body-sm"
-            style={{ margin: 0, color: 'var(--ui-color-text)' }}
-          >
-            No tienes permiso para consultar la escolta de este viaje.
-          </p>
         ) : error ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
             <p
@@ -219,7 +210,7 @@ function Escolta({
           </div>
         ) : unidades.length === 0 ? (
           <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
-            No hay unidades en la escolta de este viaje.
+            Este viaje no tiene escolta asignada.
           </p>
         ) : (
           <ul style={{ margin: 0, paddingLeft: 'var(--ui-space-4)' }}>
