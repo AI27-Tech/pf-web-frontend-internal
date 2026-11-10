@@ -1,5 +1,40 @@
 ﻿# CHANGELOG
 
+## 2026:11:10 15:30
+
+**Resumen:** "Mis unidades" de cada Monitorista en `/roster` (E8-T21, DEC-140 #1, DEC-142 #2, DEC-145). La tarjeta "Unidades de cada Monitorista" deja de ser un aviso de pendiente: lista los Monitoristas activos con sus unidades legibles y permite reemplazar el conjunto con "Editar unidades". Sube el pin de `@ai27-tech/contracts` a `0.1.0-tracer.40`. Para funcionar de punta a punta necesita core con la ola tracer.40 (pf-svc-core #78).
+
+**Cambios:**
+
+- `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`: `@ai27-tech/contracts` pasa de `0.1.0-tracer.39` a `0.1.0-tracer.40`; la versión nueva entra en `minimumReleaseAgeExclude`. No rompió typecheck.
+- `src/lib/api/alcance.ts` y `src/lib/contracts/alcance.ts` (nuevos): `listarMonitoristasActivos` (`GET /sujetos?rol=monitorista&activo=true`), `obtenerAlcanceSujeto` y `fijarUnidadesSujeto` (`PUT`, 204), con los tipos generados del `bff`. Quedan aparte del módulo de administración de E8-T19.
+- `src/lib/api/client.ts`: el cliente acepta `PUT`.
+- `src/features/roster/useUnidadesMonitoristas.ts` (nuevo): lee todas las páginas de Monitoristas activos con su alcance y el roster completo. Fijar invalida `['alcance']` y espera la recarga.
+- `src/features/roster/UnidadesMonitoristas.tsx` y `UnidadesMonitoristaForm.tsx` (nuevos): tabla con el nombre del Monitorista (o su identificador, o "Monitorista sin nombre") y cada unidad como en el roster (`P-101 · ABC-1234`); una unidad inactiva asignada sale marcada "Inactiva". El diálogo ofrece las unidades activas y las ya asignadas aunque estén inactivas, para poder quitarlas. Envío único (también con doble clic) y sin cambios no se guarda. Estados de carga, vacío ("No hay Monitoristas activos."), error con reintento y 403 sin cerrar la sesión.
+- `src/features/roster/mensajes.ts`: `mensajeErrorAlcance` para `409 rol_sin_alcance`, `409 sujeto_desactivado`, `403 autoescalamiento`, `400` (unidad inexistente) y `403`.
+- `src/features/roster/Roster.tsx`: usa la tarjeta nueva en lugar del aviso.
+- `src/mocks/roster.ts`: handlers MSW de las tres operaciones con las reglas del `bff` (el `jefe_operativo` solo con `rol=monitorista`; 400, 409 y 404).
+- `tests/roster/Roster.test.tsx`: 10 pruebas nuevas (lista legible, filtro y paginación, vacío, 403 al listar y al guardar, conjunto completo con un solo PUT, unidad inactiva marcada y quitada, 409 `rol_sin_alcance` y `sujeto_desactivado`, administrador). La prueba de paginación del roster descuenta la lectura completa que hace la tarjeta nueva.
+
+**Verificación:** `pnpm lint` y `pnpm typecheck` sin errores. `pnpm test`: 77 archivos y 533 pruebas en verde. `pnpm build` correcto. `pnpm test:e2e`: 5 de 5. En navegador contra el demo (core tracer.40): `demo-jefe_operativo` y `demo-administrador` asignan y quitan la unidad sembrada a `demo-monitorista`; `identidad.alcance_unidad` lo refleja. `./demo.sh recorrido`: 46 pasos, 0 fallas.
+
+**Archivos modificados:**
+
+- `package.json`
+- `pnpm-lock.yaml`
+- `pnpm-workspace.yaml`
+- `src/lib/api/alcance.ts`
+- `src/lib/api/client.ts`
+- `src/lib/contracts/alcance.ts`
+- `src/features/roster/Roster.tsx`
+- `src/features/roster/UnidadesMonitoristas.tsx`
+- `src/features/roster/UnidadesMonitoristaForm.tsx`
+- `src/features/roster/mensajes.ts`
+- `src/features/roster/useUnidadesMonitoristas.ts`
+- `src/mocks/roster.ts`
+- `tests/roster/Roster.test.tsx`
+- `CHANGELOG.md`
+
 ## 2026:11:10 12:15
 
 **Resumen:** Modo mock con inicio de sesión para los siete roles internos (spec `modo-mock-roles-internos`). Cada rol entra con su cuenta `<cuenta>@demo.ai27` y la contraseña `demo1234`. Cada cuenta tiene su propio `sub` y su `sesion_id`. La renovación conserva rol, `sub` y `sesion_id`, y las conversaciones mock siguen a la cuenta que inició sesión.
