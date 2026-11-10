@@ -18,64 +18,64 @@ Plan de implementación derivado de `requirements.md` y `design.md`. Ejecutar en
 
 ## Tasks
 
-- [ ] 1. Catálogo de cuentas y helpers en `src/mocks/data.ts`
-  - [ ] 1.1 Registrar la línea base de verificación
+- [x] 1. Catálogo de cuentas y helpers en `src/mocks/data.ts`
+  - [x] 1.1 Registrar la línea base de verificación
     - Antes de editar, correr `pnpm typecheck`, `pnpm lint` y `pnpm test`, y anotar los fallos que ya existían. Así se distingue un fallo previo de uno causado por esta feature.
     - _Requisitos: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 3.1, 4.1, 4.2_
 
-  - [ ] 1.2 Confirmar los miembros de `Rol` con grep
+  - [x] 1.2 Confirmar los miembros de `Rol` con grep
     - Buscar en `node_modules/@ai27-tech/contracts/src/roles/roles.gen.ts` los siete roles internos: `JefeOperativo`, `Monitorista`, `Supervisor`, `Coordinador`, `Ejecutivo`, `Reaccion` y `Administrador`. Repetir la comprobación antes de editar, porque la versión de la librería puede cambiar.
     - _Requisitos: 1.1_
 
-  - [ ] 1.3 Reemplazar `DEMO_CREDENTIALS` y `DEMO_CLAIMS` por el catálogo
+  - [x] 1.3 Reemplazar `DEMO_CREDENTIALS` y `DEMO_CLAIMS` por el catálogo
     - Definir `CONTRASENA_DEMO = 'demo1234'` y `CUENTAS_DEMO`, con siete filas `{ cuenta, rol }`, una por rol interno, usando `as const`.
     - Agregar `sujetoDeCuenta(cuenta)` (`usr-demo-<cuenta>`), `sesionDeCuenta(cuenta)` (`ses-demo-<cuenta>`), `cuentaPorCredenciales(usuario, contrasena)`, `cuentaPorRol(rol)` y `cuentaPorRefreshToken(token)`.
     - `cuentaPorRefreshToken` aplica la expresión `^mock\.refresh\.([a-z]+)\.[0-9a-f-]{36}$`.
     - Exportar `CUENTAS_DEMO` para las pruebas. Eliminar `DEMO_CREDENTIALS` y `DEMO_CLAIMS`.
     - _Requisitos: 1.1, 1.2, 2.1, 2.2, 2.3_
 
-  - [ ] 1.4 Ajustar `createSessionWire(cuenta)` y `mockAccessToken(rol)`
+  - [x] 1.4 Ajustar `createSessionWire(cuenta)` y `mockAccessToken(rol)`
     - `createSessionWire(cuenta)` emite el `sesion_id` y el `access_token` de esa cuenta. El `refresh_token` es `mock.refresh.<cuenta>.<uuid>`, con `crypto.randomUUID()`.
     - `mockAccessToken(rol)` conserva su firma y toma `sub` y `sesion_id` de la cuenta del rol, con `cuentaPorRol`.
     - Las llamadas sin argumento dejan de compilar. Se corrigen en la tarea 5.1.
     - _Requisitos: 1.1, 2.1, 2.2, 3.1_
 
-- [ ] 2. `POST /sesion` en `src/mocks/handlers.ts`
-  - [ ] 2.1 Reparar la codificación de las líneas de sesión
+- [x] 2. `POST /sesion` en `src/mocks/handlers.ts`
+  - [x] 2.1 Reparar la codificación de las líneas de sesión
     - Reparar el texto doblemente codificado de la cabecera del archivo y de los comentarios y mensajes de `POST /sesion`, `POST /sesion/refresh` y `DELETE /sesion`. Incluye `Credenciales inválidas` y `Sesión revocada`.
     - No tocar el resto del archivo. Ver decisiones pendientes.
     - _Requisitos: 1.3_
 
-  - [ ] 2.2 Validar credenciales y reiniciar conversaciones al iniciar sesión
+  - [x] 2.2 Validar credenciales y reiniciar conversaciones al iniciar sesión
     - Leer `usuario` y `contrasena` del cuerpo. Si el cuerpo no es JSON, falta un campo, está vacío o no es cadena, tratarlo como credencial inválida.
     - Buscar la cuenta con `cuentaPorCredenciales`. Sin coincidencia, responder 401 con `{ mensaje: 'Credenciales inválidas' }` y sin `access_token`.
     - Con coincidencia, llamar `reiniciarConversacionesMock({ sujetoId: sujetoDeCuenta(cuenta) })` y responder 200 con `createSessionWire(cuenta)`. El reinicio también borra los fallos forzados y las solicitudes registradas, como indica el diseño.
     - _Requisitos: 1.1, 1.3, 2.1, 2.2_
 
-- [ ] 3. `POST /sesion/refresh` en `src/mocks/handlers.ts`
-  - [ ] 3.1 Conservar la cuenta al renovar
+- [x] 3. `POST /sesion/refresh` en `src/mocks/handlers.ts`
+  - [x] 3.1 Conservar la cuenta al renovar
     - Evaluar primero el corte de sesión (`x-mock-session-cut` y la cookie), como hoy.
     - Leer `refresh_token` del cuerpo. Extraer la cuenta con `cuentaPorRefreshToken`. Sin cuenta, responder 401 con `{ mensaje: 'Refresh token inválido' }`.
     - Con cuenta, responder 200 con `createSessionWire(cuenta)`. El refresh no reinicia conversaciones.
     - _Requisitos: 3.1_
 
-- [ ] 4. Sujeto de conversaciones
-  - [ ] 4.1 Cambiar `SUJETO_CONVERSACIONES_DEMO`
+- [x] 4. Sujeto de conversaciones
+  - [x] 4.1 Cambiar `SUJETO_CONVERSACIONES_DEMO`
     - Asignar `sujetoDeCuenta('operador')`, es decir, `usr-demo-operador`. Mantener el nombre de la constante. `OTRO_RESPONSABLE_DEMO = 'usr-demo-2'` no cambia.
     - _Requisitos: 2.1, 2.2_
 
-  - [ ] 4.2 Revisar las pruebas de conversaciones y de viajes que usan `usr-demo-1`
+  - [x] 4.2 Revisar las pruebas de conversaciones y de viajes que usan `usr-demo-1`
     - Revisar `tests/conversaciones/BandejaConversaciones.test.tsx` (línea 64, `usr-demo-1` dentro del mock de sesión, y el `beforeEach` de la línea 142) y `tests/viajes/CrearViaje.test.tsx` (línea 27, `usr-demo-1` como dato local).
     - Ajustar solo lo que falle al correr las pruebas.
     - _Requisitos: 2.1_
 
-- [ ] 5. Pruebas
-  - [ ] 5.1 Ajustar las pruebas existentes que usan la firma anterior
+- [x] 5. Pruebas
+  - [x] 5.1 Ajustar las pruebas existentes que usan la firma anterior
     - `tests/contracts/sesion.test.ts`: reemplazar `DEMO_CREDENTIALS` por el usuario y la contraseña de una cuenta de `CUENTAS_DEMO`, y pasar la cuenta a `createSessionWire` en cada llamada.
     - `tests/sesion/SessionContext.test.tsx` (líneas 42 y 62): pasar `'operador'` a `createSessionWire`.
     - _Requisitos: 1.1, 2.2, 3.1_
 
-  - [ ] 5.2 Crear `tests/sesion/cuentasDemo.test.ts`
+  - [x] 5.2 Crear `tests/sesion/cuentasDemo.test.ts`
     - Por cada una de las siete cuentas, en login: el `access_token` decodificado con `decodificarClaims` trae el `rol`, el `sub` y el `sesion_id` del catálogo.
     - Por cada cuenta, en refresh: el mismo `rol`, `sub` y `sesion_id`.
     - Ningún `sub` ni `sesion_id` se repite entre cuentas.
@@ -84,60 +84,60 @@ Plan de implementación derivado de `requirements.md` y `design.md`. Ejecutar en
     - Usar el servidor MSW de las pruebas. Revisar `tests/setup.ts` y `tests/viajes/mswServer.ts` para seguir el patrón existente.
     - _Requisitos: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 3.1_
 
-  - [ ] 5.3 Probar el sujeto de conversaciones tras iniciar sesión
+  - [x] 5.3 Probar el sujeto de conversaciones tras iniciar sesión
     - Crear `tests/conversaciones/sujetoSesion.test.ts`. Iniciar sesión como `monitorista` por el handler de `POST /sesion`. `sujetoConversacionesMock()` debe devolver `usr-demo-monitorista`.
     - _Requisitos: 2.1_
 
-- [ ] 6. Documentación
-  - [ ] 6.1 Actualizar `README.md`
+- [x] 6. Documentación
+  - [x] 6.1 Actualizar `README.md`
     - En la línea 44, reemplazar la única credencial por una tabla con las siete cuentas (rol y usuario) y la contraseña común `demo1234`.
     - _Requisitos: 1.2_
 
-  - [ ] 6.2 Actualizar `.env.example`
+  - [x] 6.2 Actualizar `.env.example`
     - En el comentario de la línea 30, listar las mismas siete cuentas que en 6.1.
     - _Requisitos: 1.2_
 
-- [ ] 7. Verificación de build (Requisito 4)
-  - [ ] 7.1 Confirmar qué comando generó el `dist/` actual
+- [x] 7. Verificación de build (Requisito 4)
+  - [x] 7.1 Confirmar qué comando generó el `dist/` actual
     - Evidencia disponible: `dist/assets/browser-eHn3TrBO.js` contiene `demo1234` y `operador@demo.ai27`, no hay archivos `.map` y no existe `.env.local` en el repo. Con eso no se sabe si el `dist` salió de `pnpm build` o de `pnpm build:mock`.
     - Antes de reconstruir, copiar `dist/` a una carpeta temporal fuera del repo. Si el comando no se puede determinar, el `dist` anterior no sirve como evidencia y el build nuevo decide.
     - _Requisitos: 4.2_
 
-  - [ ] 7.2 Confirmar que ningún archivo de entorno ni la shell activan los mocks
+  - [x] 7.2 Confirmar que ningún archivo de entorno ni la shell activan los mocks
     - Revisar `.env`, `.env.local`, `.env.production` y `.env.production.local`. Hoy solo existen `.env.example` y `.env.mock`.
     - Confirmar que `VITE_ENABLE_MOCKS` no está definida en la sesión de PowerShell (`$env:VITE_ENABLE_MOCKS`).
     - _Requisitos: 4.1_
 
-  - [ ] 7.3 Control positivo de la búsqueda con `pnpm build:mock`
+  - [x] 7.3 Control positivo de la búsqueda con `pnpm build:mock`
     - Correr `pnpm build:mock` y buscar en `dist/`, sin distinguir mayúsculas, `demo1234` y `@demo.ai27`. Ambas cadenas deben aparecer. Sin este control, la búsqueda negativa de 7.4 no demuestra nada.
     - Comando de referencia: `Get-ChildItem dist -Recurse -File | Select-String -SimpleMatch -Pattern 'demo1234','@demo.ai27'`.
     - _Requisitos: 4.2_
 
-  - [ ] 7.4 Build de producción sin credenciales demo
+  - [x] 7.4 Build de producción sin credenciales demo
     - Correr `pnpm build` sin `VITE_ENABLE_MOCKS` y repetir la búsqueda de 7.3 sobre todo `dist/`, incluidos `.html`, `.css` y `.map` si existieran. Resultado esperado: cero coincidencias.
     - Si hay coincidencias, detenerse y reportarlas. La causa puede estar en el guard de `src/main.tsx`, que es una comparación en tiempo de ejecución, o en la falta de un `define` en `vite.config.ts`. No está verificado si Rollup elimina el import dinámico de `./mocks/browser` cuando la variable no está definida. Esta tarea no elige la solución; esa decisión se toma aparte.
     - Dejar `dist/` con el resultado de `pnpm build`.
     - _Requisitos: 4.1, 4.2_
 
-- [ ] 8. Verificación final
-  - [ ] 8.1 Correr `pnpm typecheck`
+- [x] 8. Verificación final
+  - [x] 8.1 Correr `pnpm typecheck`
     - Debe terminar sin errores.
     - _Requisitos: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 3.1, 4.1, 4.2_
 
-  - [ ] 8.2 Correr `pnpm lint`
+  - [x] 8.2 Correr `pnpm lint`
     - Debe terminar sin errores nuevos frente a la línea base de 1.1.
     - _Requisitos: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 3.1, 4.1, 4.2_
 
-  - [ ] 8.3 Correr `pnpm test`
+  - [x] 8.3 Correr `pnpm test`
     - Todas las pruebas de `tests/` deben pasar, incluidas las nuevas. Comparar con la línea base de 1.1.
     - _Requisitos: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 3.1, 4.1, 4.2_
 
-  - [ ] 8.4 Correr los e2e de login, roster y session-cut
+  - [x] 8.4 Correr los e2e de login, roster y session-cut
     - Ejecutar `pnpm test:e2e` sobre `e2e/login.spec.ts`, `e2e/roster.spec.ts` y `e2e/session-cut.spec.ts`. Estos specs siguen usando `operador@demo.ai27` y no se modifican, salvo que fallen por algo de esta feature.
     - `playwright.config.ts` no se revisó en la planeación. Confirmar si arranca `pnpm dev:mock` por sí mismo. Si no, el usuario levanta ese servidor a mano antes de correr los e2e.
     - _Requisitos: 1.1, 1.2, 1.3_
 
-- [ ] 9. Checkpoint - Ensure all tests pass, ask the user if questions arise.
+- [x] 9. Checkpoint - Ensure all tests pass, ask the user if questions arise.
   - Confirmar que typecheck, lint, pruebas de `tests/` y e2e pasan. Preguntar al usuario si hay dudas antes de cerrar la feature.
 
 ## Notes
