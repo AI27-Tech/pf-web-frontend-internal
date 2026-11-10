@@ -41,7 +41,17 @@ pnpm run dev
 pnpm run dev:mock                          # http://localhost:5173
 ```
 
-En modo mock se entra con **`operador@demo.ai27`** / **`demo1234`** (rol `jefe_operativo`). Para ver la administración, entra con **`administrador@demo.ai27`** / **`demo1234`** (rol `administrador`).
+En modo mock, la contraseña es **`demo1234`** en las siete cuentas. Cada rol entra con su propio usuario:
+
+| Rol              | Usuario                   |
+| ---------------- | ------------------------- |
+| `jefe_operativo` | `operador@demo.ai27`      |
+| `monitorista`    | `monitorista@demo.ai27`   |
+| `supervisor`     | `supervisor@demo.ai27`    |
+| `coordinador`    | `coordinador@demo.ai27`   |
+| `ejecutivo`      | `ejecutivo@demo.ai27`     |
+| `reaccion`       | `reaccion@demo.ai27`      |
+| `administrador`  | `administrador@demo.ai27` |
 
 | Script                    | Qué hace                                                                         |
 | ------------------------- | -------------------------------------------------------------------------------- |

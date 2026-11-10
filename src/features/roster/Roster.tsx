@@ -3,8 +3,8 @@
  *
  * Entran el Jefe Operativo y el Administrador, los dos con edición completa. Lista
  * el roster por página, da de alta unidades y las edita (vehículo, custodios,
- * activar o desactivar). La asignación de "mis unidades" a cada Monitorista llega
- * con la ola de contrato de E8-T19 (tracer.40); aquí solo queda su lugar marcado.
+ * activar o desactivar) y asigna "mis unidades" a cada Monitorista (DEC-140 #1,
+ * DEC-142 #2, tracer.40).
  */
 
 import { useState } from 'react';
@@ -21,6 +21,7 @@ import { useCustodios, useVehiculos } from '../catalogos/useCatalogos';
 import { custodiosLegibles, vehiculoLegible } from '../viajes/unidadLegible';
 import { mensajeErrorRoster } from './mensajes';
 import { UnidadForm } from './UnidadForm';
+import { UnidadesMonitoristas } from './UnidadesMonitoristas';
 import { useRoster } from './useRoster';
 
 const TEXTO = 'var(--ui-color-text)';
@@ -181,19 +182,7 @@ function RosterAutorizado() {
         </CardBody>
       </Card>
 
-      <Card variant="outlined">
-        <CardHeader>
-          <h2 className="ui-text-body-md" style={{ margin: 0, color: TEXTO }}>
-            Unidades de cada Monitorista
-          </h2>
-        </CardHeader>
-        <CardBody>
-          <p className="ui-text-body-sm" style={{ margin: 0, color: TEXTO_TENUE }}>
-            Pendiente: asignar "mis unidades" a cada Monitorista llega con la ola de contrato de
-            E8-T19.
-          </p>
-        </CardBody>
-      </Card>
+      <UnidadesMonitoristas />
 
       <Modal
         open={edicion !== null}

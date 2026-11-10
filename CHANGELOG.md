@@ -1,4 +1,39 @@
-﻿# CHANGELOG
+# CHANGELOG
+
+## 2026:11:10 15:30
+
+**Resumen:** "Mis unidades" de cada Monitorista en `/roster` (E8-T21, DEC-140 #1, DEC-142 #2, DEC-145). La tarjeta "Unidades de cada Monitorista" deja de ser un aviso de pendiente: lista los Monitoristas activos con sus unidades legibles y permite reemplazar el conjunto con "Editar unidades". Sube el pin de `@ai27-tech/contracts` a `0.1.0-tracer.40`. Para funcionar de punta a punta necesita core con la ola tracer.40 (pf-svc-core #78).
+
+**Cambios:**
+
+- `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`: `@ai27-tech/contracts` pasa de `0.1.0-tracer.39` a `0.1.0-tracer.40`; la versión nueva entra en `minimumReleaseAgeExclude`. No rompió typecheck.
+- `src/lib/api/alcance.ts` y `src/lib/contracts/alcance.ts` (nuevos): `listarMonitoristasActivos` (`GET /sujetos?rol=monitorista&activo=true`), `obtenerAlcanceSujeto` y `fijarUnidadesSujeto` (`PUT`, 204), con los tipos generados del `bff`. Quedan aparte del módulo de administración de E8-T19.
+- `src/lib/api/client.ts`: el cliente acepta `PUT`.
+- `src/features/roster/useUnidadesMonitoristas.ts` (nuevo): lee todas las páginas de Monitoristas activos con su alcance y el roster completo. Fijar invalida `['alcance']` y espera la recarga.
+- `src/features/roster/UnidadesMonitoristas.tsx` y `UnidadesMonitoristaForm.tsx` (nuevos): tabla con el nombre del Monitorista (o su identificador, o "Monitorista sin nombre") y cada unidad como en el roster (`P-101 · ABC-1234`); una unidad inactiva asignada sale marcada "Inactiva". El diálogo ofrece las unidades activas y las ya asignadas aunque estén inactivas, para poder quitarlas. Envío único (también con doble clic) y sin cambios no se guarda. Estados de carga, vacío ("No hay Monitoristas activos."), error con reintento y 403 sin cerrar la sesión.
+- `src/features/roster/mensajes.ts`: `mensajeErrorAlcance` para `409 rol_sin_alcance`, `409 sujeto_desactivado`, `403 autoescalamiento`, `400` (unidad inexistente) y `403`.
+- `src/features/roster/Roster.tsx`: usa la tarjeta nueva en lugar del aviso.
+- `src/mocks/roster.ts`: handlers MSW de las tres operaciones con las reglas del `bff` (el `jefe_operativo` solo con `rol=monitorista`; 400, 409 y 404).
+- `tests/roster/Roster.test.tsx`: 10 pruebas nuevas (lista legible, filtro y paginación, vacío, 403 al listar y al guardar, conjunto completo con un solo PUT, unidad inactiva marcada y quitada, 409 `rol_sin_alcance` y `sujeto_desactivado`, administrador). La prueba de paginación del roster descuenta la lectura completa que hace la tarjeta nueva.
+
+**Verificación:** `pnpm lint` y `pnpm typecheck` sin errores. `pnpm test`: 77 archivos y 533 pruebas en verde. `pnpm build` correcto. `pnpm test:e2e`: 5 de 5. En navegador contra el demo (core tracer.40): `demo-jefe_operativo` y `demo-administrador` asignan y quitan la unidad sembrada a `demo-monitorista`; `identidad.alcance_unidad` lo refleja. `./demo.sh recorrido`: 46 pasos, 0 fallas.
+
+**Archivos modificados:**
+
+- `package.json`
+- `pnpm-lock.yaml`
+- `pnpm-workspace.yaml`
+- `src/lib/api/alcance.ts`
+- `src/lib/api/client.ts`
+- `src/lib/contracts/alcance.ts`
+- `src/features/roster/Roster.tsx`
+- `src/features/roster/UnidadesMonitoristas.tsx`
+- `src/features/roster/UnidadesMonitoristaForm.tsx`
+- `src/features/roster/mensajes.ts`
+- `src/features/roster/useUnidadesMonitoristas.ts`
+- `src/mocks/roster.ts`
+- `tests/roster/Roster.test.tsx`
+- `CHANGELOG.md`
 
 ## 2026:11:10 13:54
 
@@ -17,6 +52,37 @@
 - Spec de E8-T19 (`BRECHAS.md`, `requirements.md`, `design.md`, `tasks.md`) actualizado con `tracer.40` y las decisiones DEC-139 a DEC-145.
 
 **Verificación:** con los tipos de `tracer.40`: `tsc --build`, `eslint .`, `vite build --mode mock` y `vitest run` (559) en verde. No hay prueba de punta a punta: el servidor no sirve las rutas todavía.
+
+## 2026:11:10 12:15
+
+**Resumen:** Modo mock con inicio de sesión para los siete roles internos (spec `modo-mock-roles-internos`). Cada rol entra con su cuenta `<cuenta>@demo.ai27` y la contraseña `demo1234`. Cada cuenta tiene su propio `sub` y su `sesion_id`. La renovación conserva rol, `sub` y `sesion_id`, y las conversaciones mock siguen a la cuenta que inició sesión.
+
+**Cambios:**
+
+- `src/mocks/data.ts`: catálogo `CUENTAS_DEMO` con las siete cuentas. Sustituye `DEMO_CREDENTIALS` y `DEMO_CLAIMS`. Nuevas funciones `sujetoDeCuenta`, `sesionDeCuenta`, `cuentaPorCredenciales`, `cuentaPorRol` y `cuentaPorRefreshToken`. `createSessionWire(cuenta)` emite el `refresh_token` como `mock.refresh.<cuenta>.<uuid>`. `SUJETO_CONVERSACIONES_DEMO` pasa de `usr-demo-1` a `usr-demo-operador`.
+- `src/mocks/handlers.ts`: `POST /sesion` valida contra el catálogo y responde 401 sin `access_token` si las credenciales son inválidas, vacías, ausentes o si el cuerpo no es JSON. Al iniciar sesión reinicia el estado de conversaciones con el sujeto de la cuenta. `POST /sesion/refresh` toma la cuenta del `refresh_token` y responde 401 si el token no corresponde a ninguna cuenta. Se reparó el texto con codificación doble en las líneas de sesión.
+- Pruebas nuevas: `tests/sesion/cuentasDemo.test.ts` (login, refresh, unicidad de `sub` y `sesion_id`, y 401) y `tests/conversaciones/sujetoSesion.test.ts`. Se ajustaron `tests/contracts/sesion.test.ts` y `tests/sesion/SessionContext.test.tsx` a la nueva firma de `createSessionWire`.
+- `README.md` y `.env.example`: documentan las siete cuentas y la contraseña común.
+- Spec `.kiro/specs/modo-mock-roles-internos/`: requisitos, diseño, tareas, línea base de verificación y metadatos.
+
+**Verificación:** `pnpm typecheck` y `pnpm lint` sin errores. `pnpm test`: 77 archivos y 523 pruebas en verde. `pnpm test:e2e` (login, roster y session-cut): 5 de 5. `pnpm build` produce un `dist/` sin `demo1234` ni `@demo.ai27`.
+
+**Archivos modificados:**
+
+- `.env.example`
+- `README.md`
+- `src/mocks/data.ts`
+- `src/mocks/handlers.ts`
+- `tests/contracts/sesion.test.ts`
+- `tests/sesion/SessionContext.test.tsx`
+- `tests/sesion/cuentasDemo.test.ts`
+- `tests/conversaciones/sujetoSesion.test.ts`
+- `.kiro/specs/modo-mock-roles-internos/.config.kiro`
+- `.kiro/specs/modo-mock-roles-internos/design.md`
+- `.kiro/specs/modo-mock-roles-internos/linea-base.md`
+- `.kiro/specs/modo-mock-roles-internos/requirements.md`
+- `.kiro/specs/modo-mock-roles-internos/tasks.md`
+- `.kiro/specs/modo-mock-roles-internos/tasks.meta.json`
 
 ## 2026:11:09 13:11
 

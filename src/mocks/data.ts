@@ -8,7 +8,7 @@
  */
 
 import type { SesionWire } from '@/lib/contracts';
-import { Rol, esRol } from '@/lib/contracts';
+import { Rol } from '@/lib/contracts';
 import { EstadoViaje, TRANSICIONES_VIAJE } from '@/lib/contracts/viajeDetalle';
 import type { ViajeResumen, PaginaViajesResumen, CrearViajeEntrada } from '@/lib/contracts/viajes';
 import type { Cliente, PaginaClientes } from '@/lib/contracts/clientes';
@@ -35,19 +35,63 @@ import type {
   TrabajoBandeja as TrabajoBandejaWire,
 } from '@/lib/contracts/conversaciones';
 
-/** Credenciales del operador demo. Documentadas en el README. */
-export const DEMO_CREDENTIALS = {
-  usuario: 'operador@demo.ai27',
-  contrasena: 'demo1234',
-} as const;
+/** Contraseña común de las siete cuentas demo. Decisión confirmada por el usuario. */
+const CONTRASENA_DEMO = 'demo1234';
 
-/** Claims del operador demo, los que `decodificarClaims` espera extraer del token. */
-const DEMO_CLAIMS = {
-  sub: 'usr-demo-1',
-  tenant_id: 'tenant-demo',
-  rol: Rol.JefeOperativo,
-  sesion_id: 'ses-demo-1',
-} as const;
+/**
+ * Catálogo de cuentas demo: una fila por rol interno. Es la única fuente de
+ * verdad. El usuario, el `sub` y el `sesion_id` se calculan a partir de la cuenta.
+ */
+export const CUENTAS_DEMO = [
+  { cuenta: 'operador', rol: Rol.JefeOperativo },
+  { cuenta: 'monitorista', rol: Rol.Monitorista },
+  { cuenta: 'supervisor', rol: Rol.Supervisor },
+  { cuenta: 'coordinador', rol: Rol.Coordinador },
+  { cuenta: 'ejecutivo', rol: Rol.Ejecutivo },
+  { cuenta: 'reaccion', rol: Rol.Reaccion },
+  { cuenta: 'administrador', rol: Rol.Administrador },
+] as const;
+
+/** Nombre de una cuenta del catálogo, por ejemplo `operador`. */
+export type CuentaDemo = (typeof CUENTAS_DEMO)[number]['cuenta'];
+
+/** Fila del catálogo: `{ cuenta, rol }`. */
+export type FilaCuentaDemo = (typeof CUENTAS_DEMO)[number];
+
+/** Claim `sub` de la cuenta demo, por ejemplo `usr-demo-operador`. */
+export function sujetoDeCuenta(cuenta: CuentaDemo): string {
+  return `usr-demo-${cuenta}`;
+}
+
+/** Claim `sesion_id` de la cuenta demo. No cambia al renovar la sesión. */
+export function sesionDeCuenta(cuenta: CuentaDemo): string {
+  return `ses-demo-${cuenta}`;
+}
+
+/**
+ * Busca la cuenta por usuario (`<cuenta>@demo.ai27`) y contraseña. La comparación
+ * distingue mayúsculas y minúsculas. Devuelve `undefined` si no hay coincidencia.
+ */
+export function cuentaPorCredenciales(usuario: string, contrasena: string): CuentaDemo | undefined {
+  return CUENTAS_DEMO.find(
+    ({ cuenta }) => usuario === `${cuenta}@demo.ai27` && contrasena === CONTRASENA_DEMO,
+  )?.cuenta;
+}
+
+/** Fila del catálogo para un rol. Supone una cuenta por rol. */
+export function cuentaPorRol(rol: Rol): FilaCuentaDemo | undefined {
+  return CUENTAS_DEMO.find((fila) => fila.rol === rol);
+}
+
+/** Forma del `refresh_token` demo: `mock.refresh.<cuenta>.<uuid>`. */
+const PATRON_REFRESH_DEMO = /^mock\.refresh\.([a-z]+)\.[0-9a-f-]{36}$/;
+
+/** Extrae la cuenta del `refresh_token`. Devuelve `undefined` si el token no es del catálogo. */
+export function cuentaPorRefreshToken(token: string): CuentaDemo | undefined {
+  const coincidencia = PATRON_REFRESH_DEMO.exec(token);
+  if (!coincidencia) return undefined;
+  return CUENTAS_DEMO.find(({ cuenta }) => cuenta === coincidencia[1])?.cuenta;
+}
 
 /**
  * Codifica un segmento como base64url sin padding, igual que un JWT real. El
@@ -60,29 +104,58 @@ function base64Url(valor: string): string {
   return btoa(binario).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+/** Tenant de las cuentas demo. Todas pertenecen al mismo tenant. */
+const TENANT_DEMO = 'tenant-demo';
+
+/** Rol de la cuenta demo. Lanza un error si la cuenta no está en el catálogo. */
+function rolDeCuenta(cuenta: CuentaDemo): Rol {
+  const fila = CUENTAS_DEMO.find((candidata) => candidata.cuenta === cuenta);
+  if (!fila) throw new Error(`Cuenta demo desconocida: ${cuenta}`);
+  return fila.rol;
+}
+
 /**
- * Construye un access_token mock con forma de JWT (header.payload.firma). La
- * firma es de mentira —el mock no verifica nada—, pero el payload es un JSON de
- * claims real que la app puede decodificar. Los handlers que aplican facultades
+ * Construye un access_token mock con forma de JWT (header.payload.firma) para una
+ * cuenta demo. La firma es de mentira: el mock no verifica nada. El payload es un
+ * JSON de claims que la app puede decodificar. Los handlers que aplican facultades
  * leen el rol de aquí, como el `bff` real.
  */
-export function mockAccessToken(rol: Rol = DEMO_CLAIMS.rol): string {
+function accessTokenDeCuenta(cuenta: CuentaDemo, rol: Rol): string {
   const header = base64Url(JSON.stringify({ alg: 'none', typ: 'JWT' }));
-  const payload = base64Url(JSON.stringify({ ...DEMO_CLAIMS, rol }));
+  const payload = base64Url(
+    JSON.stringify({
+      sub: sujetoDeCuenta(cuenta),
+      tenant_id: TENANT_DEMO,
+      rol,
+      sesion_id: sesionDeCuenta(cuenta),
+    }),
+  );
   return `${header}.${payload}.firma-de-mentira`;
 }
 
 /**
- * Construye una respuesta de sesión en forma de wire (contrato `Sesion`). Los
- * tokens son de mentira a propósito: no hay verificación real detrás, solo
- * desbloquean la UI.
+ * Construye un access_token mock para el rol. Toma la cuenta del rol con
+ * `cuentaPorRol`, así que `sub` y `sesion_id` salen de esa cuenta. Lanza un error si
+ * ningún rol de la cuenta coincide con el pedido.
  */
-export function createSessionWire(rol: Rol = DEMO_CLAIMS.rol): SesionWire {
+export function mockAccessToken(rol: Rol = Rol.JefeOperativo): string {
+  const fila = cuentaPorRol(rol);
+  if (!fila) throw new Error(`No hay cuenta demo para el rol: ${rol}`);
+  return accessTokenDeCuenta(fila.cuenta, fila.rol);
+}
+
+/**
+ * Construye una respuesta de sesión en forma de wire (contrato `Sesion`) para una
+ * cuenta demo. `sesion_id` y `access_token` salen de la cuenta. `refresh_token` lleva
+ * la cuenta (`mock.refresh.<cuenta>.<uuid>`) para que `POST /sesion/refresh` la
+ * identifique. Los tokens son de mentira a propósito: no hay verificación real detrás,
+ * solo desbloquean la UI.
+ */
+export function createSessionWire(cuenta: CuentaDemo): SesionWire {
   return {
-    sesion_id: DEMO_CLAIMS.sesion_id,
-    access_token: mockAccessToken(rol),
-    // El rol viaja en el refresh token para que el refresco conserve la sesión de cada credencial.
-    refresh_token: `mock.refresh.${rol}.${crypto.randomUUID()}`,
+    sesion_id: sesionDeCuenta(cuenta),
+    access_token: accessTokenDeCuenta(cuenta, rolDeCuenta(cuenta)),
+    refresh_token: `mock.refresh.${cuenta}.${crypto.randomUUID()}`,
     expira_en: new Date(Date.now() + 3600_000).toISOString(),
   };
 }
@@ -814,7 +887,7 @@ export function cerrarEstadiaMock(
  */
 
 /** Sujeto de la sesión demo (claim `sub` del operador demo). */
-export const SUJETO_CONVERSACIONES_DEMO: string = DEMO_CLAIMS.sub;
+export const SUJETO_CONVERSACIONES_DEMO: string = sujetoDeCuenta('operador');
 /** Otra persona del pool: reclama, libera y responde en los escenarios de concurrencia. */
 export const OTRO_RESPONSABLE_DEMO = 'usr-demo-2';
 /** Cliente sin entrada en `listarClientes` (inactivo o fuera de alcance): el nombre no se resuelve. */
@@ -1336,38 +1409,4 @@ export function simularVencimientoDeVentanaMock(id: string): void {
  */
 export function cambiarSujetoConversacionesMock(sujetoId: string): void {
   estadoConversaciones.sujetoId = sujetoId;
-}
-
-/**
- * Credencial del administrador demo (E8-T19, tarea 4.6). Permite ver la
- * administración en `dev:mock`. Es aparte del operador demo, que sigue como
- * `jefe_operativo`.
- */
-export const DEMO_ADMINISTRADOR = {
-  usuario: 'administrador@demo.ai27',
-  contrasena: 'demo1234',
-  rol: Rol.Administrador,
-} as const;
-
-/** Rol de un par de credenciales demo, o `null` si no coincide con ninguna. */
-export function rolDeCredenciales(
-  usuario: string | undefined,
-  contrasena: string | undefined,
-): Rol | null {
-  if (usuario === DEMO_CREDENTIALS.usuario && contrasena === DEMO_CREDENTIALS.contrasena) {
-    return DEMO_CLAIMS.rol;
-  }
-  if (usuario === DEMO_ADMINISTRADOR.usuario && contrasena === DEMO_ADMINISTRADOR.contrasena) {
-    return DEMO_ADMINISTRADOR.rol;
-  }
-  return null;
-}
-
-/**
- * Lee el rol que `createSessionWire` dejó en el refresh token. Si el token no
- * trae un rol reconocible (formato anterior), vuelve al operador demo.
- */
-export function rolDesdeRefreshToken(refreshToken: string): Rol {
-  const segmento = refreshToken.split('.')[2];
-  return segmento !== undefined && esRol(segmento) ? segmento : DEMO_CLAIMS.rol;
 }
