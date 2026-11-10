@@ -29,7 +29,7 @@ async function leerCodigoError(response: Response): Promise<string | undefined> 
 }
 
 interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   accessToken?: string;
   /** Control interno para limitar el reintento después de un refresco. */
