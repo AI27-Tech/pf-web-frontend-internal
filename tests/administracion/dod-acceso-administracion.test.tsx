@@ -12,6 +12,8 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { Rol, ROLES } from '@ai27-tech/contracts/roles';
 
 import { entradasVisiblesPara } from '@/components/layout/navigationConfig';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
 import { AdministracionProvider } from '@/context/AdministracionContext';
 import { Administracion } from '@/features/administracion/Administracion';
 import { TEXTOS_ADMINISTRACION as TEXTOS } from '@/features/administracion/mensajes';
@@ -44,9 +46,16 @@ function renderizarPagina(capacidadesPublicadas = true) {
     revocacionMasiva: capacidadesPublicadas,
   });
   render(
-    <AdministracionProvider port={puerto}>
-      <Administracion seccion="usuarios" usuarioId={null} onCambiarSeccion={() => {}} />
-    </AdministracionProvider>,
+    <QueryClientProvider client={new QueryClient()}>
+      <AdministracionProvider port={puerto}>
+        <Administracion
+          seccion="usuarios"
+          usuarioId={null}
+          onCambiarSeccion={() => {}}
+          onAbrirUsuario={() => {}}
+        />
+      </AdministracionProvider>
+    </QueryClientProvider>,
   );
   return puerto;
 }

@@ -10,15 +10,21 @@ interface AdministracionProps {
   readonly seccion: SeccionAdministracion;
   readonly usuarioId: string | null;
   readonly onCambiarSeccion: (seccion: SeccionAdministracion) => void;
+  readonly onAbrirUsuario: (id: string | null) => void;
 }
 
 /**
  * Pantalla `/administracion` (E8-T19). El título siempre es visible. Sin sesión o
- * con un rol distinto de `administrador`, muestra el aviso de acceso no
- * autorizado y no monta `AdministracionAutorizada`: no hay controles, ni
- * consultas, ni llamadas al puerto.
+ * con un rol distinto de `administrador`, muestra el aviso de acceso no autorizado y
+ * no monta `AdministracionAutorizada`: no hay controles, ni consultas, ni llamadas
+ * al puerto.
  */
-export function Administracion({ seccion, usuarioId, onCambiarSeccion }: AdministracionProps) {
+export function Administracion({
+  seccion,
+  usuarioId,
+  onCambiarSeccion,
+  onAbrirUsuario,
+}: AdministracionProps) {
   const { usuario } = useSession();
   const autorizado = usuario !== null && puedeAdministrar(usuario.rol);
 
@@ -33,6 +39,7 @@ export function Administracion({ seccion, usuarioId, onCambiarSeccion }: Adminis
           seccion={seccion}
           usuarioId={usuarioId}
           onCambiarSeccion={onCambiarSeccion}
+          onAbrirUsuario={onAbrirUsuario}
         />
       ) : (
         <Card variant="outlined">

@@ -100,12 +100,12 @@ export interface UsuarioDetalle extends UsuarioResumen {
 
 /** Parámetros del listado de usuarios (B-2). */
 export interface ConsultaUsuarios {
-  readonly texto?: string;
-  readonly rol?: Rol;
+  readonly texto?: string | undefined;
+  readonly rol?: Rol | undefined;
   /** Id de la organización (es su tenant, DEC-112). */
-  readonly organizacionId?: string;
-  readonly activo?: boolean;
-  readonly cursor?: string;
+  readonly organizacionId?: string | undefined;
+  readonly activo?: boolean | undefined;
+  readonly cursor?: string | undefined;
 }
 
 /** Página del listado de usuarios, con cursor opaco (B-2). */
