@@ -29,7 +29,7 @@ Este documento define el comportamiento funcional del frontend interno. El front
 - **Alcance efectivo**: el alcance de monitoreo resultante que el `bff` reporta para un usuario. La interfaz lo muestra y no lo calcula.
 - **Alcance de conversación**: clientes cuyas conversaciones atiende un Ejecutivo. Nace por auto-asignación pegajosa (DEC-103) y la interfaz no lo edita.
 - **Auto-escalada**: intento de un usuario de modificar su propio rol o alcance.
-- **Sujeto de la sesión**: el usuario autenticado en el panel. La interfaz lo compara con el usuario objetivo para detectar auto-escalada.
+- **Sujeto de la sesión**: el usuario autenticado en el panel. El servidor indica si el objetivo es el mismo (`es_propio`, B-14); la interfaz no compara identificadores ni nombres.
 - **Sesión**: sesión viva de un usuario con `sesion_id` propio (ADR 26).
 - **Revocación masiva**: acción administrativa que revoca todas las sesiones activas de un usuario (E4-HU-020). Es distinta de desactivar al usuario y de cerrar la propia sesión.
 - **Último administrador**: condición en la que una desactivación o cambio de rol dejaría al sistema sin ningún `administrador`.
@@ -77,7 +77,7 @@ Este documento define el comportamiento funcional del frontend interno. El front
 2. THE Administracion_UI SHALL exigir exactamente un rol por usuario y SHALL NOT habilitar la confirmación del alta mientras falte el nombre, el identificador de usuario o el rol, ni cuando el rol sea un valor fuera del enum. [CONDICIONADO a B-1]
 3. WHERE el rol elegido es `cliente`, THE Administracion_UI SHALL exigir la selección de una única organización activa y SHALL NOT habilitar la confirmación del alta mientras no haya una seleccionada (Requirement 4). [CONDICIONADO a B-1, B-3]
 4. IF el rol elegido es `cliente` y el `bff` no devuelve ninguna organización activa, THEN THE Administracion_UI SHALL mostrar un aviso de que no hay organizaciones activas disponibles, SHALL NOT habilitar la confirmación del alta y SHALL conservar lo capturado. [CONDICIONADO a B-1, B-3]
-5. WHERE el rol elegido es distinto de `cliente`, THE Administracion_UI SHALL NOT pedir organización cliente ni pedir al Administrador un valor de `tenant_id`, y SHALL NOT derivar ese valor en el cliente. El valor de `tenant_id` que `AltaSujetoEntrada` exige para un usuario interno no está definido y se resuelve por la brecha B-7. [CONDICIONADO a B-1, B-7]
+5. WHERE el rol elegido es distinto de `cliente`, THE Administracion_UI SHALL NOT pedir organización cliente ni pedir al Administrador un valor de `tenant_id`, y SHALL NOT derivar ese valor en el cliente. `AltaSujetoEntrada` del `bff` no lleva `tenant_id`: lleva `organizacion_id`, obligatoria para `cliente` y prohibida para un rol interno; el `bff` resuelve el tenant interno de AI27 (B-7, tracer.40). [CONDICIONADO a B-1, B-7]
 6. WHEN el `bff` confirma el alta, THE Administracion_UI SHALL mostrar un aviso de éxito y SHALL mostrar el usuario creado con el nombre, el identificador de usuario, el rol y el estado que devuelve el `bff`. [CONDICIONADO a B-1]
 7. IF el `bff` rechaza el alta porque el identificador de usuario ya existe, THEN THE Administracion_UI SHALL indicar el conflicto junto al campo identificador de usuario, SHALL conservar todo lo capturado (incluidos el rol y, si aplica, la organización) y SHALL NOT crear ni mostrar un usuario duplicado. [CONDICIONADO a B-1]
 8. IF el `bff` rechaza la entrada por validación, THEN THE Administracion_UI SHALL mostrar el error junto al campo que corresponda, o como aviso general del formulario cuando el error no sea atribuible a un campo, y SHALL conservar lo capturado.
@@ -147,7 +147,7 @@ Este documento define el comportamiento funcional del frontend interno. El front
 4. IF la recarga del detalle posterior al `403` de auto-escalada falla, THEN THE Administracion_UI SHALL mostrar el estado de error de carga del Requirement 13, conservar el aviso de auto-escalada bloqueada y SHALL NOT mostrar como vigente el rol ni el alcance que el Administrador intentó fijar. [CONDICIONADO a B-1, B-4]
 5. IF la interfaz no puede determinar el sujeto de la sesión, THEN THE Administracion_UI SHALL deshabilitar los controles de cambio de rol y de alcance sobre todos los usuarios y SHALL mostrar un aviso de que no se pudo identificar la sesión.
 6. THE Administracion_UI SHALL tratar el bloqueo de la interfaz como una afordancia y SHALL NOT sustituir la validación del servidor; la decisión del `bff` prevalece sobre el estado habilitado o deshabilitado de cualquier control.
-7. THE Administracion_UI SHALL identificar el sujeto de la sesión comparando el identificador del sujeto de la sesión con el identificador del usuario objetivo, y SHALL NOT compararlos por nombre.
+7. THE Administracion_UI SHALL identificar si el usuario objetivo es el sujeto de la sesión con el indicador `es_propio` que devuelve el `bff`, calculado en servidor contra el token (B-14), y SHALL NOT compararlos por identificador ni por nombre. Sin respuesta del `bff`, la relación es `indeterminado` y la interfaz falla cerrada.
 
 ### Requirement 8: Desactivar y reactivar usuarios
 
@@ -370,15 +370,15 @@ Estado tras DEC-139, DEC-140 y DEC-141 (2026-11-06). Lo decidido ya está incorp
 
 Estas notas son prerrequisitos de verificación y no reglas. El detalle, las fuentes y el estado de cada una están en `BRECHAS.md`. Si una verificación no está disponible, se documenta la brecha y no se inventa una alternativa.
 
-- **B-1. Sujetos y roles no están en el `bff`.** `identidad.yaml` define `altaSujeto`, `obtenerSujeto`, `desactivarSujeto`, `reactivarSujeto`, `listarHistorialSujeto` y `fijarRolSujeto`, pero no son públicas (DEC-137). Falta la proyección al `bff` con `operationId` propios.
-- **B-2. No existe listado ni búsqueda de sujetos** en ningún servicio.
-- **B-3. No existe la superficie de organizaciones** en ningún OpenAPI.
+- **B-1 (contrato publicado en `tracer.40`).** El `bff` expone `listarSujetos`, `altaSujeto`, `obtenerSujeto`, `editarSujeto`, `desactivarSujeto`, `reactivarSujeto` y `fijarRolSujeto` (tag `administracion`). Los servidores (`identidad`, `bff`, core) aún no las sirven: responden 404 y no pasan a `-m` antes del demo del 11 (DEC-144).
+- **B-2 (contrato publicado en `tracer.40`).** `listarSujetos` con `q`, `rol`, `tenant_id` (id de la organización), `activo` y `cursor`.
+- **B-3 (contrato publicado en `tracer.40`).** `listarOrganizaciones`, `crearOrganizacion` (con `id` opcional para reintentar, DEC-144 #2), `actualizarOrganizacion` y `desactivarOrganizacion`. Una organización desactivada no se edita ni se reactiva (`409 organizacion_desactivada`).
 - **B-4. Entra en `tracer.40`** (DEC-140 #5): lectura y edición de la lista y de la jerarquía, y el retiro al cambiar de rol. PA-3 está decidida.
-- **B-5. No existe "revocar todas las sesiones de un sujeto".** `revocarSesion` es por `sesion_id` y no hay forma de enumerar las sesiones de un sujeto. Solo `desactivarSujeto` revoca la sesión viva.
+- **B-5 (contrato publicado en `tracer.40`).** `revocarSesionesSujeto` recibe `{motivo}` obligatorio y responde `{sesiones_revocadas}`; 0 es un resultado válido, no un error.
 - **B-6. No existe consulta de auditoría de revocaciones.** La respuesta de Lead (2026-11-05) no la menciona; el motivo queda en la auditoría local de identidad (PA-1). Decidida (DEC-140 #6): sin vista de auditoría en V1.
 - **B-7 (decidida, DEC-112/DEC-129). `tenant_id` para usuarios internos.** Hay un tenant interno único de AI27 para los siete roles internos y un tenant tipo cliente por organización. La interfaz no captura ni deriva el tenant de un interno; lo pone el servidor. Para `cliente` va la organización. Texto original de la brecha: `AltaSujetoEntrada` exige `tenant_id` para todo rol; E4-HU-018 solo liga la organización al rol `cliente`. No está definido qué valor lleva un usuario interno.
 - **B-8 (decidida, PA-10).** El identificador de usuario es inmutable en V1; editar usuario cambia el nombre. Falta la operación en el contrato (ola de B-9).
-- **B-9. Pin del contrato.** `package.json` fija `@ai27-tech/contracts@0.1.0-tracer.37`. Último publicado: `v0.1.0-tracer.39`, que es la ola de `/roster` (E8-T21, DEC-142); no contiene sujetos, organizaciones ni revocación masiva. La ola de E8-T19 será `tracer.40` y todavía no existe. No se sube el pin hasta que Lead confirme que está publicada.
+- **B-9. Pin del contrato (resuelta).** `package.json` fija `@ai27-tech/contracts@0.1.0-tracer.40` desde el 2026-11-10, con aprobación de Lead. `tracer.39` fue la ola de `/roster` (E8-T21). Los servidores aún no sirven la superficie (404; DEC-144).
 - **B-10. Contradicciones del repo de contexto.** La historia técnica E8-T19 dice "un Ejecutivo puede tener varios clientes" y cita `/api/v1/roles/...`; E4-HU-018 y DEC-103 la superan en lo primero, y el contrato de `identidad` no tiene rutas de roles aparte (el rol se fija con `PUT /sujetos/{id}/rol`). La historia técnica y la línea equivalente de E4-HU-018 (matriz del Ejecutivo) quedan por corregir.
 - **B-11. Brechas de UI.** `@ai27-tech/ui@0.2.0-beta.6` no tiene un multi-select dedicado para varias unidades, Monitoristas o Supervisores. Se compone con `Table`/`Card` + `Checkbox` (mismo criterio que E8-T11). Verificar la API de `Modal`, `Table`, `FilterTable`, `Select`, `Badge` y `Toast`.
 - **B-12. Navegación.** `navigationConfig.ts` muestra "Administración" a todos los roles internos. Cumplir el Requirement 1 exige restringirla a `administrador` (campo `visiblePara`). Es un cambio de E8-T4 que se hace al implementar, no antes.

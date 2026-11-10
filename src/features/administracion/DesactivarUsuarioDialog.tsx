@@ -11,6 +11,7 @@ import {
   reducirDialogoConfirmacion,
   estaPendienteConfirmacion,
 } from './dialogoConfirmacionReducer';
+import { etiquetaUsuario } from './etiquetas';
 import { mensajesDeExito, TEXTOS_ADMINISTRACION as TEXTOS } from './mensajes';
 import { claveEnvio, type EnvioUnico } from './useEnvioUnico';
 import { useAlAbrir } from './useAlAbrir';
@@ -116,7 +117,7 @@ export function DesactivarUsuarioDialog({
       <div className="flex flex-col gap-3">
         <p>
           {desactivar ? '¿Desactivar a ' : '¿Reactivar a '}
-          <strong>{usuario.nombre}</strong>?
+          <strong>{etiquetaUsuario(usuario)}</strong>?
         </p>
         <p>{desactivar ? TEXTOS.desactivarCorte : TEXTOS.reactivarConfirmacion}</p>
         {errorEnvio && <p role="alert">{errorEnvio}</p>}

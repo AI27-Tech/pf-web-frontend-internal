@@ -1,4 +1,4 @@
-import { useReducer, useState, type FormEvent } from 'react';
+import { useReducer, useRef, useState, type FormEvent } from 'react';
 import { Button, FormField, Input } from '@ai27-tech/ui';
 
 import { useAdministracionPort } from '@/context/AdministracionContext';
@@ -45,9 +45,13 @@ export function OrganizacionFormDialog({
   const [telefono, setTelefono] = useState('');
   const [errores, setErrores] = useState<Partial<Record<CampoOrganizacion, string>>>({});
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
+  // Id del alta: se genera al abrir y se reutiliza al reintentar, de modo que un
+  // alta a medias se completa en lugar de duplicarse (DEC-144 #2).
+  const idAlta = useRef<string>(crypto.randomUUID());
 
   useAlAbrir(abierto, () => {
     despachar('abrir');
+    idAlta.current = crypto.randomUUID();
     setNombre(organizacion?.nombre ?? '');
     setCorreo(organizacion?.correo ?? '');
     setTelefono(organizacion?.telefono ?? '');
@@ -86,7 +90,7 @@ export function OrganizacionFormDialog({
       const resultado = await envio.enviar(clave, () =>
         organizacion
           ? port.editarOrganizacion(organizacion.id, datos, token)
-          : port.crearOrganizacion(datos, token),
+          : port.crearOrganizacion({ ...datos, id: idAlta.current }, token),
       );
       if (!resultado.enviado) return;
 
@@ -161,7 +165,7 @@ export function OrganizacionFormDialog({
           )}
           {organizacion && (
             <p className="text-sm">
-              {TEXTOS.organizacionEdicionTenant}: {organizacion.tenant}
+              {TEXTOS.organizacionEdicionTenant}: {organizacion.id}
             </p>
           )}
           {errorGeneral && <p role="alert">{errorGeneral}</p>}

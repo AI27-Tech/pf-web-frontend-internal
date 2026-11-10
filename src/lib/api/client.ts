@@ -29,9 +29,11 @@ async function leerCodigoError(response: Response): Promise<string | undefined> 
 }
 
 interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   accessToken?: string;
+  /** Permite cancelar o limitar la espera (E8-T19, B-18). Un aborto se reporta como fallo de red. */
+  signal?: AbortSignal;
   /** Control interno para limitar el reintento después de un refresco. */
   _reintentoPostRefresco?: boolean;
 }
@@ -79,7 +81,7 @@ async function manejar401<T>(path: string, options: RequestOptions): Promise<T> 
  * a `ApiError` con su clase: quien llama decide la política a partir de `kind`.
  */
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, accessToken } = options;
+  const { method = 'GET', body, accessToken, signal } = options;
 
   const headers = new Headers({ Accept: 'application/json' });
   if (body !== undefined) headers.set('Content-Type', 'application/json');
@@ -91,6 +93,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
       method,
       headers,
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      ...(signal !== undefined ? { signal } : {}),
     });
   } catch {
     throw new ApiError('red', `Fallo de red al llamar a ${path}`);

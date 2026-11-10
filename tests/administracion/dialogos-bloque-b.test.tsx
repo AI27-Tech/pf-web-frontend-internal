@@ -51,14 +51,14 @@ const usuarioInterno: UsuarioResumen = {
   identificadorUsuario: 'lupita.prueba',
   rol: Rol.Monitorista,
   activo: true,
-  idpSubject: 'sub-otro',
+  esPropio: false,
 };
 
 const usuarioCliente: UsuarioResumen = {
   ...usuarioInterno,
   id: 'usr-cliente',
   rol: Rol.Cliente,
-  organizacionId: 'org-1',
+  organizacion: { id: 'org-1', nombre: 'Transportes Norte' },
 };
 
 describe('E8-T19 · 11.1 CambioRolDialog', () => {
@@ -354,8 +354,8 @@ const organizacionActiva: Organizacion = {
   nombre: 'Transportes Norte',
   correo: 'contacto@norte.mx',
   telefono: '5550001',
-  tenant: 'tenant-norte',
   activa: true,
+  usuariosActivos: 0,
 };
 
 describe('E8-T19 · 14.1 OrganizacionFormDialog', () => {
@@ -435,8 +435,14 @@ describe('E8-T19 · 14.1 OrganizacionFormDialog', () => {
     await user.type(screen.getByLabelText(/Teléfono/), '5551234');
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
 
+    // El id del alta lo genera el panel al abrir el diálogo (DEC-144 #2).
     expect(puerto.espias.crearOrganizacion).toHaveBeenCalledWith(
-      { nombre: 'Acme', correo: 'ventas@acme.mx', telefono: '5551234' },
+      {
+        id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+        nombre: 'Acme',
+        correo: 'ventas@acme.mx',
+        telefono: '5551234',
+      },
       'token-prueba',
     );
     expect(onGuardada).toHaveBeenCalledWith(TEXTOS_EXITO.guardarOrganizacion);
@@ -494,7 +500,7 @@ describe('E8-T19 · 14.1 OrganizacionFormDialog', () => {
     );
 
     expect(screen.getByLabelText(/Nombre/)).toHaveValue('Transportes Norte');
-    expect(screen.getByText(/tenant-norte/)).toBeTruthy();
+    expect(screen.getByText(/org-1/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: /reactivar/i })).toBeNull();
 
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
@@ -562,7 +568,7 @@ describe('E8-T19 · 15.1 RevocarSesionesDialog', () => {
 
   it('revoca con el motivo sin espacios y muestra "sin sesiones" tal como lo devuelve el bff', async () => {
     const puerto = crearPuertoFalso();
-    puerto.espias.revocarSesiones.mockResolvedValue({ sinSesiones: true });
+    puerto.espias.revocarSesiones.mockResolvedValue({ sesionesRevocadas: 0 });
     const onResultado = vi.fn();
     const user = userEvent.setup();
     render(

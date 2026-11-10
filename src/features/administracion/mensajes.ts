@@ -43,12 +43,23 @@ export const TEXTOS_ADMINISTRACION = {
     'La solicitud entró en conflicto con el estado actual. Recargue e intente de nuevo.',
   conflictoRolUsuarioDesactivado: 'No se puede cambiar el rol de un usuario desactivado.',
   conflictoRolIgual: 'El usuario ya tiene ese rol.',
+  conflictoRolCruzaAudiencia:
+    'Una cuenta no cambia entre cliente e interno. Desactive esta cuenta y dé de alta otra.',
   conflictoRolUltimoAdministrador:
     'No se puede quitar el rol de administrador al último administrador activo.',
   ultimoAdministrador:
     'No se puede desactivar al último administrador activo. El usuario sigue activo.',
   identificadorDuplicado: 'Ya existe un usuario con ese identificador de usuario.',
   validacion: 'Revise los datos capturados.',
+  organizacionDesactivada:
+    'La organización está desactivada. No admite altas ni cambios y no se reactiva.',
+  conflictoAlcanceRolSinAlcance: 'El rol actual del usuario no tiene alcance de monitoreo.',
+  conflictoAlcanceSubordinadoRolInvalido:
+    'Alguno de los usuarios elegidos no tiene el rol que corresponde a este alcance.',
+  conflictoAlcanceSubordinadoConSuperior:
+    'Alguno de los usuarios elegidos ya tiene otro superior asignado.',
+  usuarioSinNombre: 'Sin nombre registrado',
+  usuarioSinIdentificador: 'Sin identificador registrado',
   organizacionInvalida: 'La organización seleccionada ya no es válida. Seleccione otra.',
   nombreOrganizacionDuplicado: 'Ya existe una organización con ese nombre.',
   servicioNoDisponibleAccion:

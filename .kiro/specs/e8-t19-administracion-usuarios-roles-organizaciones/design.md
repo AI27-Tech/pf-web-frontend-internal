@@ -14,7 +14,7 @@ El frontend no resuelve dominio. Autorización, auto-escalada del servidor, regl
 ### Fuentes y versiones verificadas
 
 - **Contexto:** `ai27-platform-context` en `a55713c` (sin commits por traer en `origin/main`). DEC-022, DEC-036, DEC-045, DEC-053/054, DEC-072, DEC-091, DEC-103, DEC-137 y DEC-138.
-- **Contrato:** último tag publicado `v0.1.0-tracer.39` (ola de `/roster`, E8-T21; sin sujetos, organizaciones ni revocación masiva). El `package.json` y `pnpm-lock.yaml` fijan `tracer.37`. La ola de E8-T19 será `tracer.40`, todavía no publicada; no se sube el pin hasta que Lead lo confirme.
+- **Contrato:** `@ai27-tech/contracts@0.1.0-tracer.40` (pin subido el 2026-11-10 con aprobación de Lead). Trae la superficie de administración del `bff`. `tracer.39` fue la ola de `/roster`. Los servidores aún no la sirven (404) y no pasan a `-m` antes del demo del 11 (DEC-144).
 - **UI:** `@ai27-tech/ui@0.2.0-beta.6`, verificada en `node_modules` (sección "Componentes de `@ai27-tech/ui`").
 
 ### Hecho de contrato verificado (fundamento del diseño)
@@ -28,7 +28,7 @@ GET /api/v1/sesion ...    iniciarSesion / refrescarSesion / cerrarSesion        
 
 `Unidad` en el contrato fijado (`tracer.37`) trae `id`, `vehiculo_id`, `custodios_ids[]`, `tipo` y `activa`, sin etiqueta legible. Según Lead, `tracer.38` (DT-19) agrega `vehiculo` y `custodios` legibles y **resuelve B-16**; se confirma en `bff.gen.ts` al subir el pin. `Cliente` (`listarClientes`) trae `id`, `nombre` y `estado`; el contrato no define su relación con "Organización" y el diseño **no las equipara**.
 
-Lo que **no existe** en el `bff` (`bff.gen.ts` no contiene sujetos, roles, organizaciones, alcance ni revocación): B-1 a B-5. `identidad` define seis operaciones sobre sujetos y una de sesión, pero no es pública (DEC-137). Se citan solo como **referencia de la forma probable** de la proyección futura y **no son llamables desde el frontend**:
+Superficie publicada en el `bff` desde `v0.1.0-tracer.40` (tag `administracion`, solo el administrador escribe): `listarSujetos`, `altaSujeto`, `obtenerSujeto`, `editarSujeto`, `desactivarSujeto`, `reactivarSujeto`, `fijarRolSujeto`, `revocarSesionesSujeto`, `obtenerAlcanceSujeto`, `fijarUnidadesSujeto`, `fijarSubordinadosSujeto`, `listarOrganizaciones`, `crearOrganizacion`, `actualizarOrganizacion` y `desactivarOrganizacion`. El contrato está publicado, pero `identidad`, el `bff` y el core aún no lo sirven (404). El bloque de abajo es la referencia histórica de `identidad`.
 
 ```
 # Referencia (identidad.gen.ts, NO llamable desde el frontend; el bff podría proyectarlas con otros operationId)
@@ -42,8 +42,8 @@ listarHistorialSujeto GET   /sujetos/{id}/historial  (cursor)   ← sin vista en
 
 Tres consecuencias de esa referencia que el diseño absorbe como **puntos abiertos**, no como decisiones:
 
-1. `SujetoDetalle` **no incluye nombre ni identificador de usuario**, que R2, R3.6, R8.1 y R11.1 necesitan (B-15).
-2. `Sujeto.id` y el claim `sub` del token **son distintos** (`sub` es opaco, DEC-072); la interfaz hoy solo conoce `sub` (B-14).
+1. **Resuelto en tracer.40 (B-15):** `UsuarioAdmin` trae `nombre` e `identificador_usuario`, ambos opcionales (un usuario anterior a tracer.40 puede no tenerlos). La interfaz muestra un texto de respaldo y no lo trata como error.
+2. **Resuelto en tracer.40 (B-14):** `UsuarioAdmin.es_propio` lo calcula el servidor contra el token. La interfaz no compara identificadores; `indeterminado` queda solo sin respuesta.
 3. `fijarRolSujeto` recibe solo `rol`. No hay cambio de rol entre `cliente` e interno (DEC-141): el diálogo ofrece solo roles del mismo lado y el servidor rechazará el cruce con `409` y `codigo` desde `tracer.40` (R4.4, R5.1, R5.11).
 
 ## Architecture
@@ -145,7 +145,7 @@ Dentro de `AdministracionAutorizada` **ninguna acción consulta el rol local** p
 `relacionConSesion(objetivo, sesion)` devuelve `'propio' | 'ajeno' | 'indeterminado'`:
 
 - Compara **identificadores**, nunca nombres (R7.7).
-- Hoy `sesion.usuario.id` es el claim `sub`, que es **opaco y distinto de `Sujeto.id`** (DEC-072). La comparación válida es contra el identificador del IdP del objetivo (`idp_subject` en la referencia de `SujetoDetalle`), y solo si el `bff` lo entrega. Si no hay con qué comparar, o no hay sesión, devuelve `indeterminado`.
+- `relacionConSesion` toma `es_propio` del usuario objetivo (B-14): `true` es `propio`, `false` es `ajeno` y la ausencia es `indeterminado`, que falla cerrado. Ya no compara `sesion.usuario.id` con ningún identificador.
 - `indeterminado` se trata como R7.5 (falla cerrada): se deshabilitan cambio de rol y de alcance y se muestra "no se pudo identificar la sesión". El diseño aplica lo mismo a la revocación masiva (R11.11 prohíbe ofrecerla sobre uno mismo y no se puede garantizar). Esto último es una decisión de diseño a confirmar.
 - La estrategia es un punto de extensión: al cerrarse B-14 solo cambia esta función.
 
@@ -221,7 +221,7 @@ interface AdministracionPort {
 ```
 
 - **Implementación "no publicada":** `capacidades` en `false` y cada método lanza `ErrorSuperficieNoPublicada`. Las secciones muestran el estado `brecha` (mismo precedente que `ClienteSelector`, `EstadoCatalogoClientes = 'brecha'`). No hay handlers MSW para estas rutas: inventarlos fijaría rutas y campos que el contrato no define.
-- **Implementación real:** un adaptador por área, escrito cuando el contrato se publique. Traduce wire → modelo de vista y clasifica errores. Es el **único** lugar con tipos generados de esta superficie.
+- **Implementación real (`crearAdministracionHttp()`, tarea 19.2, hecha):** vive en `src/lib/api/administracion.ts`, sobre `request` de `client.ts` (que ahora admite `PUT` y `AbortSignal`, B-18) y los tipos generados de `@ai27-tech/contracts` (tracer.40). Traduce wire a modelo de vista (`mapearUsuario`, `mapearOrganizacion`), recorre todas las páginas de organizaciones, y en `fijarAlcance` hace el `PUT` (204) y vuelve a leer el alcance para mostrar solo lo que devuelve el `bff`. `consultarConsecuencia` toma el conteo de `Organizacion.usuarios_activos` y la lista de `listarSujetos` con `tenant_id` y `activo=true`. `revocarSesiones` limita la espera con `AbortSignal.timeout` (15 s, valor de trabajo). **No se inyecta por omisión**: el contexto sigue entregando "no publicada" hasta que el servidor responda; se cablea en la tarea 16.1.
 - **Inyección:** un `AdministracionProvider` (contexto React) entrega el puerto; las pruebas inyectan dobles. Los hooks no importan el adaptador directamente.
 - **Fuera del puerto, por requisito:** revocar por `sesion_id`, enumerar sesiones, consultar o exportar auditoría, historial del sujeto, editar tenant, asignar clientes a un Ejecutivo, organización padre y transferir usuarios (R6.5, R9.5, R9.6, R11.9, R12).
 
@@ -251,12 +251,12 @@ Dos cambios en la capa HTTP compartida que el adaptador real probablemente neces
 Los modelos de wire serán los generados del contrato cuando existan; no se redefinen. Los siguientes son **modelos de vista conceptuales** que el adaptador producirá; sus campos reflejan lo que los requisitos necesitan mostrar y se confirman contra el contrato (B-15).
 
 ```
-UsuarioResumen { id, nombre, identificadorUsuario, rol | null, activo, organizacion? }        // organizacion solo si rol = cliente
-UsuarioDetalle = UsuarioResumen + { alcance?: AlcanceEfectivo, idpSubject? }                   // idpSubject: ver B-14
-Organizacion { id, nombre, correo, telefono, tenant, activa }                                // tenant solo lectura (R9.4); sin reactivar (PA-8)
+UsuarioResumen { id, nombre?, identificadorUsuario?, rol | null, activo, organizacion?: { id, nombre }, esPropio? }
+UsuarioDetalle = UsuarioResumen + { alcance?: AlcanceEfectivo }                                 // esPropio viene del bff (B-14)
+Organizacion { id, nombre, correo?, telefono?, activa, usuariosActivos }                           // el id es el tenant (DEC-112), solo lectura; sin reactivar (PA-8)
 ConsecuenciaDesactivacion { usuariosActivos: number, usuarios: { nombre, identificadorUsuario }[] }
 AltaUsuario { nombre, identificadorUsuario, rol, organizacionId? }                             // sin tenant_id: la UI nunca lo captura (R3.5)
-AlcanceEfectivo / CambioAlcance / ResultadoRevocacion                                           // forma por definir en B-4 y B-5
+AlcanceEfectivo { unidadesIds, subordinadosIds, unidadesEfectivasIds }; CambioAlcance = { tipo: 'unidades' | 'subordinados', ids }; ResultadoRevocacion { sesionesRevocadas }
 ```
 
 Estado local de la vista (no es wire):
@@ -428,7 +428,7 @@ Reglas transversales: ninguna actualización optimista; el reintento de una cons
 
 **Sin mocks de red para las rutas faltantes.** No se agregan handlers a `src/mocks/handlers.ts` para sujetos, organizaciones, alcance o revocación: inventarían rutas y campos. Para ver la pantalla en `dev:mock` se puede añadir una credencial demo con rol `administrador` (usa el contrato de sesión, que sí existe); hoy la demo es `jefe_operativo`. Con la capacidad no publicada se verá el estado `brecha`.
 
-**Contrato.** `typecheck` sobre los tipos generados; el adaptador real se prueba contra MSW solo cuando el contrato publique las operaciones. Subir el pin a `tracer.40` requiere aprobación, y cada criterio CONDICIONADO se reverifica entonces.
+**Contrato.** `typecheck` sobre los tipos generados (tracer.40). El adaptador real se prueba con un `fetch` simulado (`tests/administracion/adaptadorHttp.test.ts`): método, ruta, cuerpo y traducción. La prueba de punta a punta contra el `bff` espera a que el servidor sirva las rutas (hoy 404; DEC-144).
 
 **No ejecutables todavía:** el e2e de revocación masiva con dos sesiones (DoD 3) depende de B-5 y de PA-5 (DEC-138), y la prueba de que el servidor rechaza la auto-escalada con `403` (DoD 2) depende de B-1.
 

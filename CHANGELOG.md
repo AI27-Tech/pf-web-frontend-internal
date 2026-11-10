@@ -1,5 +1,23 @@
 ﻿# CHANGELOG
 
+## 2026:11:10 13:54
+
+**Resumen:** E8-T19 sube el pin a `@ai27-tech/contracts@0.1.0-tracer.40` y escribe el adaptador HTTP real de `AdministracionPort` sobre los tipos generados (tareas 19.1 y 19.2). El servidor (`identidad`, `bff`, core) aún no sirve las rutas: responden 404 y no pasan a `-m` antes del demo del 11 (DEC-144). Por eso el adaptador no se inyecta por omisión; se cablea en la tarea 16.1.
+
+**Cambios:**
+
+- **Pin:** `package.json`, `pnpm-lock.yaml` y `minimumReleaseAgeExclude` de `pnpm-workspace.yaml` pasan de `tracer.39` a `tracer.40`.
+- **Adaptador real** (`src/lib/api/administracion.ts`): `crearAdministracionHttp()` con las 15 operaciones del tag `administracion` del `bff`. Traduce wire a modelo de vista sin inventar `nombre` ni `identificador_usuario`. `fijarAlcance` hace el `PUT` (204) y vuelve a leer el alcance. `revocarSesiones` limita la espera con `AbortSignal.timeout`.
+- **Cliente HTTP** (`src/lib/api/client.ts`): admite `PUT` y `AbortSignal` (B-18).
+- **Modelos** (`src/lib/contracts/administracion.ts`): `esPropio` reemplaza a `idpSubject` (B-14); `nombre` e `identificadorUsuario` son opcionales (B-15); `Organizacion` pierde `tenant` (el id es el tenant, DEC-112) y gana `usuariosActivos`; el alcance y el cambio de alcance siguen la forma del wire; `ResultadoRevocacion` trae `sesionesRevocadas`.
+- **`relacionConSesion`** toma `es_propio` del servidor; ya no compara identificadores.
+- **`clasificarError`**: `sujeto_desactivado`, `rol_cruza_audiencia`, `autoescalamiento` (403), los tres códigos de alcance y `organizacion_desactivada`.
+- **Diálogos:** texto de respaldo para usuarios sin nombre (`etiquetas.ts`); el alta de organización genera un `id` con `crypto.randomUUID()` al abrir y lo reutiliza al reintentar (DEC-144 #2).
+- Pruebas: `tests/administracion/adaptadorHttp.test.ts` (17) y ajustes en `dialogos-bloque-b` y `dod-autoescalada`.
+- Spec de E8-T19 (`BRECHAS.md`, `requirements.md`, `design.md`, `tasks.md`) actualizado con `tracer.40` y las decisiones DEC-139 a DEC-145.
+
+**Verificación:** con los tipos de `tracer.40`: `tsc --build`, `eslint .`, `vite build --mode mock` y `vitest run` (559) en verde. No hay prueba de punta a punta: el servidor no sirve las rutas todavía.
+
 ## 2026:11:09 13:11
 
 **Resumen:** Sección `/roster` del Jefe Operativo (E8-T21, DEC-142), vehículos y custodios en `/catalogos` (adelanto de E8-T16, DEC-142 #6) y escolta de la ficha técnica desde la asignación del viaje (E8-T12). Se desarrolló con los tipos de `tracer.39` puestos en `node_modules`; el pin sigue en `tracer.38` hasta subirlo.

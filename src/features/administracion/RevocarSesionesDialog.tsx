@@ -11,6 +11,7 @@ import {
   reducirDialogoConfirmacion,
   estaPendienteConfirmacion,
 } from './dialogoConfirmacionReducer';
+import { etiquetaUsuario } from './etiquetas';
 import { mensajesDeExito, TEXTOS_ADMINISTRACION as TEXTOS } from './mensajes';
 import type { RelacionConSesion } from './relacionConSesion';
 import { claveEnvio, type EnvioUnico } from './useEnvioUnico';
@@ -81,7 +82,7 @@ export function RevocarSesionesDialog({
 
       despachar('exito');
       onResultado(
-        resultado.valor.sinSesiones
+        resultado.valor.sesionesRevocadas === 0
           ? TEXTOS.revocacionSinSesiones
           : mensajesDeExito('revocarSesiones'),
       );
@@ -117,7 +118,7 @@ export function RevocarSesionesDialog({
         ) : (
           <>
             <p>
-              Se cerrarán las sesiones activas de <strong>{usuario.nombre}</strong>.{' '}
+              Se cerrarán las sesiones activas de <strong>{etiquetaUsuario(usuario)}</strong>.{' '}
               {TEXTOS.revocacionCorte}
             </p>
             <FormField label={TEXTOS.revocacionMotivoEtiqueta} htmlFor="revocacion-motivo" required>

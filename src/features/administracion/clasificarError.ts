@@ -33,7 +33,11 @@ export type OperacionAdministracion =
   | 'fijarAlcance'
   | 'revocarSesiones';
 
-export type MotivoConflictoRol = 'usuario_desactivado' | 'rol_igual' | 'ultimo_administrador';
+export type MotivoConflictoRol =
+  'usuario_desactivado' | 'rol_igual' | 'ultimo_administrador' | 'rol_cruza_audiencia';
+
+export type MotivoConflictoAlcance =
+  'rol_sin_alcance' | 'subordinado_rol_invalido' | 'subordinado_con_superior';
 
 /** 403 en cualquier operación. */
 export class ErrorAutorizacionInsuficiente extends ApiError {
@@ -68,6 +72,25 @@ export class ErrorConflictoRol extends ApiError {
     super('conflicto', textoConflictoRol(motivo), 409, codigo);
     this.name = 'ErrorConflictoRol';
     this.motivo = motivo;
+  }
+}
+
+/** 409 al fijar el alcance (DEC-145). Lleva el motivo solo si el código lo distingue. */
+export class ErrorConflictoAlcance extends ApiError {
+  readonly motivo: MotivoConflictoAlcance | undefined;
+
+  constructor(motivo?: MotivoConflictoAlcance, codigo?: string) {
+    super('conflicto', textoConflictoAlcance(motivo), 409, codigo);
+    this.name = 'ErrorConflictoAlcance';
+    this.motivo = motivo;
+  }
+}
+
+/** 409 `organizacion_desactivada`: la desactivación es terminal (DEC-139 #4). */
+export class ErrorOrganizacionDesactivada extends ApiError {
+  constructor() {
+    super('conflicto', TEXTOS.organizacionDesactivada, 409, 'organizacion_desactivada');
+    this.name = 'ErrorOrganizacionDesactivada';
   }
 }
 
@@ -144,8 +167,23 @@ function textoConflictoRol(motivo: MotivoConflictoRol | undefined): string {
       return TEXTOS.conflictoRolIgual;
     case 'ultimo_administrador':
       return TEXTOS.conflictoRolUltimoAdministrador;
+    case 'rol_cruza_audiencia':
+      return TEXTOS.conflictoRolCruzaAudiencia;
     default:
       return TEXTOS.conflictoRolGenerico;
+  }
+}
+
+function textoConflictoAlcance(motivo: MotivoConflictoAlcance | undefined): string {
+  switch (motivo) {
+    case 'rol_sin_alcance':
+      return TEXTOS.conflictoAlcanceRolSinAlcance;
+    case 'subordinado_rol_invalido':
+      return TEXTOS.conflictoAlcanceSubordinadoRolInvalido;
+    case 'subordinado_con_superior':
+      return TEXTOS.conflictoAlcanceSubordinadoConSuperior;
+    default:
+      return TEXTOS.conflictoGenerico;
   }
 }
 
@@ -163,8 +201,10 @@ export function clasificarError(
   if (status === undefined || status >= 500) return new ErrorServicioNoDisponible(status, codigo);
 
   if (status === 403) {
+    // El `bff` declara `autoescalamiento` al cambiar el propio rol o alcance.
     const cambioSobrePropio =
-      relacion === 'propio' && (operacion === 'fijarRol' || operacion === 'fijarAlcance');
+      (operacion === 'fijarRol' || operacion === 'fijarAlcance') &&
+      (codigo === 'autoescalamiento' || relacion === 'propio');
     return cambioSobrePropio
       ? new ErrorAutoescaladaBloqueada()
       : new ErrorAutorizacionInsuficiente(codigo);
@@ -172,11 +212,14 @@ export function clasificarError(
 
   if (status === 404) return new ErrorUsuarioNoDisponible();
 
+  if (codigo === 'organizacion_desactivada') return new ErrorOrganizacionDesactivada();
   if (codigo === 'organizacion_invalida') return new ErrorOrganizacionInvalida(status);
   if (codigo === 'nombre_organizacion_duplicado') return new ErrorNombreOrganizacionDuplicado();
 
   if (status === 409) {
     if (operacion === 'fijarRol') return new ErrorConflictoRol(motivoConflictoRol(codigo), codigo);
+    if (operacion === 'fijarAlcance')
+      return new ErrorConflictoAlcance(motivoConflictoAlcance(codigo), codigo);
     if (operacion === 'desactivarUsuario' && codigo === 'ultimo_administrador') {
       return new ErrorUltimoAdministrador();
     }
@@ -190,10 +233,25 @@ export function clasificarError(
 }
 
 function motivoConflictoRol(codigo: string | undefined): MotivoConflictoRol | undefined {
+  // El `bff` emite `sujeto_desactivado`; `usuario_desactivado` es la categoría de presentación.
+  if (codigo === 'sujeto_desactivado' || codigo === 'usuario_desactivado') {
+    return 'usuario_desactivado';
+  }
   if (
-    codigo === 'usuario_desactivado' ||
     codigo === 'rol_igual' ||
-    codigo === 'ultimo_administrador'
+    codigo === 'ultimo_administrador' ||
+    codigo === 'rol_cruza_audiencia'
+  ) {
+    return codigo;
+  }
+  return undefined;
+}
+
+function motivoConflictoAlcance(codigo: string | undefined): MotivoConflictoAlcance | undefined {
+  if (
+    codigo === 'rol_sin_alcance' ||
+    codigo === 'subordinado_rol_invalido' ||
+    codigo === 'subordinado_con_superior'
   ) {
     return codigo;
   }
