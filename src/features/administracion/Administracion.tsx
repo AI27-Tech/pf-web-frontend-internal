@@ -1,0 +1,53 @@
+import { Card, CardBody } from '@ai27-tech/ui';
+
+import { useSession } from '@/context/SessionContext';
+
+import { AdministracionAutorizada, type SeccionAdministracion } from './AdministracionAutorizada';
+import { TEXTOS_ADMINISTRACION as TEXTOS } from './mensajes';
+import { puedeAdministrar } from './puedeAdministrar';
+
+interface AdministracionProps {
+  readonly seccion: SeccionAdministracion;
+  readonly usuarioId: string | null;
+  readonly onCambiarSeccion: (seccion: SeccionAdministracion) => void;
+  readonly onAbrirUsuario: (id: string | null) => void;
+}
+
+/**
+ * Pantalla `/administracion` (E8-T19). El título siempre es visible. Sin sesión o
+ * con un rol distinto de `administrador`, muestra el aviso de acceso no autorizado y
+ * no monta `AdministracionAutorizada`: no hay controles, ni consultas, ni llamadas
+ * al puerto.
+ */
+export function Administracion({
+  seccion,
+  usuarioId,
+  onCambiarSeccion,
+  onAbrirUsuario,
+}: AdministracionProps) {
+  const { usuario } = useSession();
+  const autorizado = usuario !== null && puedeAdministrar(usuario.rol);
+
+  return (
+    <section aria-labelledby="administracion-titulo" className="flex flex-col gap-4 p-6">
+      <h1 id="administracion-titulo" tabIndex={-1} className="text-2xl font-semibold">
+        Administración
+      </h1>
+
+      {autorizado ? (
+        <AdministracionAutorizada
+          seccion={seccion}
+          usuarioId={usuarioId}
+          onCambiarSeccion={onCambiarSeccion}
+          onAbrirUsuario={onAbrirUsuario}
+        />
+      ) : (
+        <Card variant="outlined">
+          <CardBody>
+            <p role="alert">{TEXTOS.accesoNoAutorizado}</p>
+          </CardBody>
+        </Card>
+      )}
+    </section>
+  );
+}

@@ -1,4 +1,30 @@
-﻿# CHANGELOG
+# CHANGELOG
+
+## 2026:11:10 17:00
+
+**Resumen:** E8-T19 cierra todo lo que se puede verificar sin servidor: el aviso de un rechazo `403` o `409` ya sobrevive a una recarga fallida del detalle, la lista de organizaciones se vuelve a leer tras crear o editar, y el alcance de un Monitorista muestra vehículo y custodios legibles. Se fusionó `pf-wfi-d` y se documenta el Bloque B de usuarios, organizaciones, alcance y revocación (sin entrada previa en este archivo).
+
+**Cambios:**
+
+- **Bloque B de `/administracion`** (`src/features/administracion/`): `SeccionUsuarios`, `PanelUsuario`, `AltaUsuarioDialog`, `AlcanceEditor`, `SeccionOrganizaciones`, `DesactivarOrganizacionDialog` y los diálogos de rol, desactivar, organización y revocación, con el adaptador real inyectado en la ruta y los handlers MSW de `src/mocks/administracion.ts`.
+- **Rechazos del servidor** (`PanelUsuario`, `CambioRolDialog`, `DesactivarUsuarioDialog`): un `403` o `409` muestra su aviso en el panel y vuelve a leer el detalle; si esa lectura falla, el aviso se conserva (R7.3, R7.4).
+- **Organizaciones** (`SeccionOrganizaciones`): crear o editar ya recarga la lista.
+- **Alcance** (`AlcanceEditor`, `opcionesUnidades.ts`): las unidades se muestran con económico, placas y custodios (B-16, `tracer.38`); la tabla titula sus columnas según lo que se elige.
+- **Fusión con `pf-wfi-d`**: se retiró la credencial propia `DEMO_ADMINISTRADOR`; el administrador demo sale de las cuentas por rol.
+- Pruebas: `tests/administracion/panel-y-secciones.test.tsx` (8, incluye la tarea 17.6) y `propiedades.test.ts` (17, fast-check).
+
+**Verificación:** `tsc --build`, `eslint .`, `vite build --mode mock` y `vitest run` (625) en verde. Sin prueba contra el servidor real: `identidad`, `bff` y core responden 404 (DEC-144). Quedan sin escribir las pruebas opcionales 4.7, 5.2, 6.3, 13.2, 17.1 a 17.5 y 17.7.
+
+## 2026:11:10 16:48
+
+**Resumen:** La administración de E8-T19 usa `@ai27-tech/ui` como fuente de verdad. Se eliminan los componentes propios que reimplementaban la librería: los diálogos usan `Modal` directo y las listas usan `Table` con sus estados de carga y vacío. Se corrige una doble codificación de acentos en las pruebas del Bloque B.
+**Cambios:**
+
+- **Componentes eliminados** (`src/features/administracion/`): `EstadoBadge` (pasa a `Badge`), `RegionConsulta` (pasa a `Card`, y `Table` lleva `loading` y `emptyState`), `DialogoAdministracion` (pasa a `Modal`), `SelectorRol` y `SelectorOrganizacion` (pasan a `FormSection` y `Radio` dentro de cada diálogo) y `AvisoBloqueo` (pasa a `Card`).
+- **Diálogos** (`AltaUsuarioDialog`, `CambioRolDialog`, `DesactivarUsuarioDialog`, `DesactivarOrganizacionDialog`, `OrganizacionFormDialog`, `RevocarSesionesDialog`): usan `Modal` con `closeOnEsc`, `closeOnOverlayClick` y `showCloseButton` según haya una solicitud pendiente. Se quita la prop `idEncabezadoSeccion`, que `Modal` ya no necesita.
+- **Pruebas** (`tests/administracion/dialogos-bloque-b.test.tsx` y `flujos-bloque-b.test.tsx`): se corrigen acentos dañados por una doble codificación (UTF-8 leído como Windows-1252 y guardado otra vez en UTF-8). No cambia ninguna prueba.
+  **Pendiente:** al cerrar un diálogo no hay respaldo de foco al encabezado de la sección; `Modal` solo devuelve el foco al elemento que abrió el diálogo. La paginación por cursor usa botones Anterior y Siguiente, porque `Pagination` de la librería es numérica. La librería no trae componentes de texto, encabezado ni layout, así que se usan `p`, `h2`, `h3` y clases utilitarias.
+  **Verificación:** `tsc --build` y `eslint .` sin errores. `vitest run`: 85 archivos y 625 pruebas en verde. Sin prueba contra el servidor real (DEC-144).
 
 ## 2026:11:10 15:30
 
@@ -34,6 +60,24 @@
 - `src/mocks/roster.ts`
 - `tests/roster/Roster.test.tsx`
 - `CHANGELOG.md`
+
+## 2026:11:10 13:54
+
+**Resumen:** E8-T19 sube el pin a `@ai27-tech/contracts@0.1.0-tracer.40` y escribe el adaptador HTTP real de `AdministracionPort` sobre los tipos generados (tareas 19.1 y 19.2). El servidor (`identidad`, `bff`, core) aún no sirve las rutas: responden 404 y no pasan a `-m` antes del demo del 11 (DEC-144). Por eso el adaptador no se inyecta por omisión; se cablea en la tarea 16.1.
+
+**Cambios:**
+
+- **Pin:** `package.json`, `pnpm-lock.yaml` y `minimumReleaseAgeExclude` de `pnpm-workspace.yaml` pasan de `tracer.39` a `tracer.40`.
+- **Adaptador real** (`src/lib/api/administracion.ts`): `crearAdministracionHttp()` con las 15 operaciones del tag `administracion` del `bff`. Traduce wire a modelo de vista sin inventar `nombre` ni `identificador_usuario`. `fijarAlcance` hace el `PUT` (204) y vuelve a leer el alcance. `revocarSesiones` limita la espera con `AbortSignal.timeout`.
+- **Cliente HTTP** (`src/lib/api/client.ts`): admite `PUT` y `AbortSignal` (B-18).
+- **Modelos** (`src/lib/contracts/administracion.ts`): `esPropio` reemplaza a `idpSubject` (B-14); `nombre` e `identificadorUsuario` son opcionales (B-15); `Organizacion` pierde `tenant` (el id es el tenant, DEC-112) y gana `usuariosActivos`; el alcance y el cambio de alcance siguen la forma del wire; `ResultadoRevocacion` trae `sesionesRevocadas`.
+- **`relacionConSesion`** toma `es_propio` del servidor; ya no compara identificadores.
+- **`clasificarError`**: `sujeto_desactivado`, `rol_cruza_audiencia`, `autoescalamiento` (403), los tres códigos de alcance y `organizacion_desactivada`.
+- **Diálogos:** texto de respaldo para usuarios sin nombre (`etiquetas.ts`); el alta de organización genera un `id` con `crypto.randomUUID()` al abrir y lo reutiliza al reintentar (DEC-144 #2).
+- Pruebas: `tests/administracion/adaptadorHttp.test.ts` (17) y ajustes en `dialogos-bloque-b` y `dod-autoescalada`.
+- Spec de E8-T19 (`BRECHAS.md`, `requirements.md`, `design.md`, `tasks.md`) actualizado con `tracer.40` y las decisiones DEC-139 a DEC-145.
+
+**Verificación:** con los tipos de `tracer.40`: `tsc --build`, `eslint .`, `vite build --mode mock` y `vitest run` (559) en verde. No hay prueba de punta a punta: el servidor no sirve las rutas todavía.
 
 ## 2026:11:10 12:15
 
