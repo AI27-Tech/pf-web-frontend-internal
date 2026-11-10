@@ -56,6 +56,13 @@ export function PanelUsuario({ usuarioId, envio, onVolver, onAviso }: PanelUsuar
   const invalidar = useInvalidarAdministracion();
   const [dialogo, setDialogo] = useState<DialogoAbierto>(null);
   const [alcanceAbierto, setAlcanceAbierto] = useState(false);
+  // Aviso de un rechazo del `bff` (403 o 409). Vive en el panel para sobrevivir a una
+  // recarga fallida del detalle, que cambia lo que se renderiza (R7.4).
+  const [rechazo, setRechazo] = useState<string | null>(null);
+  const alRechazar = (texto: string | null) => {
+    setRechazo(texto);
+    void invalidar();
+  };
 
   const noDisponible =
     consulta.isError && consulta.error instanceof ApiError && consulta.error.status === 404;
@@ -66,6 +73,13 @@ export function PanelUsuario({ usuarioId, envio, onVolver, onAviso }: PanelUsuar
     data: consulta.data,
   });
   const aviso = avisoDeEstado(estado.estado);
+  const avisoRechazo = rechazo ? (
+    <Card variant="outlined">
+      <CardBody>
+        <p role="alert">{rechazo}</p>
+      </CardBody>
+    </Card>
+  ) : null;
 
   const volver = (
     <Button variant="ghost" size="sm" onClick={onVolver}>
@@ -156,6 +170,7 @@ export function PanelUsuario({ usuarioId, envio, onVolver, onAviso }: PanelUsuar
     return (
       <div className="flex flex-col gap-3">
         {volver}
+        {avisoRechazo}
         {aviso && (
           <Card variant="outlined">
             <CardBody>
@@ -175,6 +190,7 @@ export function PanelUsuario({ usuarioId, envio, onVolver, onAviso }: PanelUsuar
     <div className="flex flex-col gap-4">
       {volver}
       <h2 className="text-lg font-semibold">{etiquetaUsuario(usuario)}</h2>
+      {avisoRechazo}
       {tabla}
 
       <AccionesUsuario
@@ -182,6 +198,7 @@ export function PanelUsuario({ usuarioId, envio, onVolver, onAviso }: PanelUsuar
         relacion={relacion}
         enCurso={enCurso}
         onAccion={(accion: AccionUsuario) => {
+          setRechazo(null);
           if (accion === 'editarAlcance') setAlcanceAbierto(true);
           if (accion === 'cambiarRol') setDialogo('cambiarRol');
           if (accion === 'desactivar') setDialogo('desactivar');
@@ -201,9 +218,11 @@ export function PanelUsuario({ usuarioId, envio, onVolver, onAviso }: PanelUsuar
         relacion={relacion}
         envio={envio}
         onCambiado={(mensaje) => {
+          setRechazo(null);
           onAviso(mensaje, 'exito');
           void invalidar();
         }}
+        onRechazado={alRechazar}
       />
       <DesactivarUsuarioDialog
         abierto={dialogo === 'desactivar'}
@@ -212,9 +231,11 @@ export function PanelUsuario({ usuarioId, envio, onVolver, onAviso }: PanelUsuar
         modo="desactivar"
         envio={envio}
         onCompletado={(mensaje) => {
+          setRechazo(null);
           onAviso(mensaje, 'exito');
           void invalidar();
         }}
+        onRechazado={alRechazar}
       />
       <DesactivarUsuarioDialog
         abierto={dialogo === 'reactivar'}
@@ -223,9 +244,11 @@ export function PanelUsuario({ usuarioId, envio, onVolver, onAviso }: PanelUsuar
         modo="reactivar"
         envio={envio}
         onCompletado={(mensaje) => {
+          setRechazo(null);
           onAviso(mensaje, 'exito');
           void invalidar();
         }}
+        onRechazado={alRechazar}
       />
       <RevocarSesionesDialog
         abierto={dialogo === 'revocar'}

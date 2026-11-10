@@ -14,6 +14,7 @@ import {
   useUsuariosDeRol,
 } from './consultasAdministracion';
 import { clasificarFallo, textoDeFallo } from './clasificarError';
+import { opcionesUnidadesAlcance } from './opcionesUnidades';
 import { etiquetaIdentificador, etiquetaUsuario } from './etiquetas';
 import { mensajesDeExito, TEXTOS_ADMINISTRACION as TEXTOS } from './mensajes';
 import { claveEnvio, type EnvioUnico } from './useEnvioUnico';
@@ -30,10 +31,22 @@ interface OpcionAlcance {
   readonly detalle: string;
 }
 
-const COLUMNAS: Column<OpcionAlcance>[] = [
-  { key: 'etiqueta', header: TEXTOS.columnaNombre, cell: (opcion) => opcion.etiqueta },
-  { key: 'detalle', header: TEXTOS.columnaIdentificador, cell: (opcion) => opcion.detalle },
-];
+/** Columnas según lo que se elige: unidades (vehículo y custodios) o usuarios (nombre e identificador). */
+function columnasDe(tipo: 'unidades' | 'monitoristas' | 'supervisores'): Column<OpcionAlcance>[] {
+  const unidades = tipo === 'unidades';
+  return [
+    {
+      key: 'etiqueta',
+      header: unidades ? TEXTOS.columnaVehiculo : TEXTOS.columnaNombre,
+      cell: (opcion) => opcion.etiqueta,
+    },
+    {
+      key: 'detalle',
+      header: unidades ? TEXTOS.columnaCustodios : TEXTOS.columnaIdentificador,
+      cell: (opcion) => opcion.detalle,
+    },
+  ];
+}
 
 /**
  * Alcance de monitoreo (R6). Un Monitorista recibe unidades; un Supervisor, Monitoristas
@@ -59,11 +72,7 @@ export function AlcanceEditor({ usuario, envio, onAviso }: AlcanceEditorProps) {
   const sujetosDelTipo = tipo === 'monitoristas' ? monitoristas.data : supervisores.data;
   const opciones: OpcionAlcance[] =
     tipo === 'unidades'
-      ? (unidades.data ?? []).map((unidad) => ({
-          valor: unidad.id,
-          etiqueta: unidad.id,
-          detalle: '',
-        }))
+      ? [...opcionesUnidadesAlcance(unidades.data ?? [])]
       : (sujetosDelTipo ?? []).map((sujeto) => ({
           valor: sujeto.id,
           etiqueta: etiquetaUsuario(sujeto),
@@ -127,7 +136,7 @@ export function AlcanceEditor({ usuario, envio, onAviso }: AlcanceEditorProps) {
         </Card>
       ) : (
         <Table<OpcionAlcance>
-          columns={COLUMNAS}
+          columns={columnasDe(tipo)}
           data={opciones}
           rowKey={(opcion) => opcion.valor}
           selectedKeys={new Set<Key>(seleccion)}

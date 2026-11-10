@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026:11:10 17:00
+
+**Resumen:** E8-T19 cierra todo lo que se puede verificar sin servidor: el aviso de un rechazo `403` o `409` ya sobrevive a una recarga fallida del detalle, la lista de organizaciones se vuelve a leer tras crear o editar, y el alcance de un Monitorista muestra vehículo y custodios legibles. Se fusionó `pf-wfi-d` y se documenta el Bloque B de usuarios, organizaciones, alcance y revocación (sin entrada previa en este archivo).
+
+**Cambios:**
+
+- **Bloque B de `/administracion`** (`src/features/administracion/`): `SeccionUsuarios`, `PanelUsuario`, `AltaUsuarioDialog`, `AlcanceEditor`, `SeccionOrganizaciones`, `DesactivarOrganizacionDialog` y los diálogos de rol, desactivar, organización y revocación, con el adaptador real inyectado en la ruta y los handlers MSW de `src/mocks/administracion.ts`.
+- **Rechazos del servidor** (`PanelUsuario`, `CambioRolDialog`, `DesactivarUsuarioDialog`): un `403` o `409` muestra su aviso en el panel y vuelve a leer el detalle; si esa lectura falla, el aviso se conserva (R7.3, R7.4).
+- **Organizaciones** (`SeccionOrganizaciones`): crear o editar ya recarga la lista.
+- **Alcance** (`AlcanceEditor`, `opcionesUnidades.ts`): las unidades se muestran con económico, placas y custodios (B-16, `tracer.38`); la tabla titula sus columnas según lo que se elige.
+- **Fusión con `pf-wfi-d`**: se retiró la credencial propia `DEMO_ADMINISTRADOR`; el administrador demo sale de las cuentas por rol.
+- Pruebas: `tests/administracion/panel-y-secciones.test.tsx` (8, incluye la tarea 17.6) y `propiedades.test.ts` (17, fast-check).
+
+**Verificación:** `tsc --build`, `eslint .`, `vite build --mode mock` y `vitest run` (625) en verde. Sin prueba contra el servidor real: `identidad`, `bff` y core responden 404 (DEC-144). Quedan sin escribir las pruebas opcionales 4.7, 5.2, 6.3, 13.2, 17.1 a 17.5 y 17.7.
+
 ## 2026:11:10 15:30
 
 **Resumen:** "Mis unidades" de cada Monitorista en `/roster` (E8-T21, DEC-140 #1, DEC-142 #2, DEC-145). La tarjeta "Unidades de cada Monitorista" deja de ser un aviso de pendiente: lista los Monitoristas activos con sus unidades legibles y permite reemplazar el conjunto con "Editar unidades". Sube el pin de `@ai27-tech/contracts` a `0.1.0-tracer.40`. Para funcionar de punta a punta necesita core con la ola tracer.40 (pf-svc-core #78).

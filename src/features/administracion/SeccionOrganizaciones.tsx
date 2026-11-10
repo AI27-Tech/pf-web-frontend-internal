@@ -7,7 +7,7 @@ import { avisoDeEstado, estadoConsulta } from './estadoConsulta';
 import { DesactivarOrganizacionDialog } from './DesactivarOrganizacionDialog';
 import { OrganizacionFormDialog } from './OrganizacionFormDialog';
 import { TEXTOS_ADMINISTRACION as TEXTOS } from './mensajes';
-import { useOrganizaciones } from './consultasAdministracion';
+import { useInvalidarAdministracion, useOrganizaciones } from './consultasAdministracion';
 import type { EnvioUnico } from './useEnvioUnico';
 
 interface SeccionOrganizacionesProps {
@@ -27,6 +27,7 @@ type DialogoOrganizacion =
  */
 export function SeccionOrganizaciones({ envio, onAviso }: SeccionOrganizacionesProps) {
   const consulta = useOrganizaciones();
+  const invalidar = useInvalidarAdministracion();
   const [dialogo, setDialogo] = useState<DialogoOrganizacion>(null);
 
   const estado = estadoConsulta(
@@ -135,7 +136,10 @@ export function SeccionOrganizaciones({ envio, onAviso }: SeccionOrganizacionesP
         onCerrar={cerrar}
         {...(editando ? { organizacion: editando } : {})}
         envio={envio}
-        onGuardada={(mensaje) => onAviso(mensaje, 'exito')}
+        onGuardada={(mensaje) => {
+          onAviso(mensaje, 'exito');
+          void invalidar();
+        }}
       />
 
       {desactivando && (

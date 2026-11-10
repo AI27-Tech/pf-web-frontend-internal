@@ -3,6 +3,7 @@ import { Button, Card, CardBody, FormSection, Modal, Radio } from '@ai27-tech/ui
 import { Rol } from '@ai27-tech/contracts/roles';
 
 import { useAdministracionPort } from '@/context/AdministracionContext';
+import { ApiError } from '@/lib/api/errors';
 import { useSession } from '@/context/SessionContext';
 import type { UsuarioResumen } from '@/lib/contracts/administracion';
 
@@ -25,6 +26,11 @@ interface CambioRolDialogProps {
   /** Cerrojo de envío del padre. Vive fuera del diálogo para sobrevivir a su cierre. */
   readonly envio: EnvioUnico;
   readonly onCambiado: (mensaje: string) => void;
+  /**
+   * El `bff` rechazó el cambio con `403` o `409`. El padre vuelve a leer el detalle y
+   * conserva el aviso aunque esa recarga falle (R7.3, R7.4).
+   */
+  readonly onRechazado?: (texto: string | null) => void;
 }
 
 /**
@@ -40,6 +46,7 @@ export function CambioRolDialog({
   relacion,
   envio,
   onCambiado,
+  onRechazado,
 }: CambioRolDialogProps) {
   const port = useAdministracionPort();
   const { sesion } = useSession();
@@ -83,7 +90,15 @@ export function CambioRolDialog({
       onCerrar();
     } catch (fallo) {
       despachar('fallo');
-      setErrorEnvio(textoDeFallo(clasificarFallo('fijarRol', fallo, relacion)));
+      const clasificado = clasificarFallo('fijarRol', fallo, relacion);
+      const texto = textoDeFallo(clasificado);
+      setErrorEnvio(texto);
+      if (
+        clasificado instanceof ApiError &&
+        (clasificado.status === 403 || clasificado.status === 409)
+      ) {
+        onRechazado?.(texto);
+      }
     }
   };
 

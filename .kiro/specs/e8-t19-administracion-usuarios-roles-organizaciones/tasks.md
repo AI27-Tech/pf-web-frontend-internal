@@ -5,13 +5,13 @@
 Las tareas implementan el comportamiento funcional de E8-T19 en `/administracion`: guarda exclusiva del `administrador`, consulta, alta, cambio de rol, alcance, desactivación y reactivación de usuarios, organizaciones cliente y revocación masiva de sesiones. **El `bff` no expone sujetos, roles, organizaciones, alcance ni revocación administrativa** (`BRECHAS.md`, B-1 a B-5); por eso el plan se divide en dos bloques:
 
 - **Bloque A (tareas 1 a 7): construible hoy, sin contrato nuevo.** Guarda de rol y navegación (B-12), funciones puras, puerto `AdministracionPort` con implementación "no publicada", pantalla base con estados, bloqueo de auto-escalada en la interfaz y las pruebas de la definición de terminado (DoD) que no dependen del servidor.
-- **Bloque B (tareas 8 a 17): condicionado a contrato.** Cada tarea indica "**Contrato publicado en `tracer.40` (B-n); el servidor aún responde 404, así que se prueba contra el puerto falso.**" y se implementa **contra el puerto falso** inyectado por `AdministracionProvider`. Los nombres del puerto son de trabajo del frontend: **no** son `operationId` del `bff`. No se inventan rutas, campos ni handlers MSW (`src/mocks/handlers.ts` no se toca).
+- **Bloque B (tareas 8 a 17): construido sobre el contrato `tracer.40`.** Se implementó con el adaptador real (`crearAdministracionHttp`) y los handlers MSW de `src/mocks/administracion.ts`, que reproducen las reglas del contrato publicado. El servidor (`identidad`, `bff`, core) aún no sirve las rutas, así que nada se verificó contra el servidor real. Los nombres del puerto son del frontend y no coinciden con los `operationId` del `bff`.
 
-La tarea 19 (reverificación al publicarse el contrato) está **bloqueada y fuera de este ciclo**. Las exclusiones de V1 (auditoría, rol Auditor, break-glass, transferencia, edición de tenant, organización padre, reactivación de organizaciones, edición del identificador de usuario, revocación por `sesion_id`, asignación de clientes a un Ejecutivo) no se construyen.
+La tarea 19 (reverificación contra el servidor real) está parcialmente hecha: 19.1 y 19.2 están cerradas; 19.3 y 19.4 esperan a que el servidor sirva las rutas. Las exclusiones de V1 (auditoría, rol Auditor, break-glass, transferencia, edición de tenant, organización padre, reactivación de organizaciones, edición del identificador de usuario, revocación por `sesion_id`, asignación de clientes a un Ejecutivo) no se construyen.
 
 ## Estado de avance
 
-**Bloque A ejecutado** (tareas 1 a 7), salvo la 4.6 y las pruebas opcionales (`*`) no escritas: la 4.6 necesita tocar `src/mocks/handlers.ts`, que este plan excluye. Verificado: `tsc --build`, `eslint .`, `vite build --mode mock` y `vitest run` (479 pruebas). El Bloque B sigue sin iniciar, bloqueado por contrato. Spec de requisitos, diseño y brechas aprobados; actualizados con DEC-139 y la respuesta de Lead (2026-11-05). Actualizado con DEC-140 y DEC-141 (2026-11-06): PA-3, PA-4, PA-6, B-4, B-6, B-13 y B-17 quedaron decididas; B-16 se resuelve con `tracer.38`. Las brechas de contrato B-1, B-2, B-3, B-4, B-5 y B-15 esperan la ola `tracer.40`. El pin efectivo de `@ai27-tech/contracts` en `package.json` es `0.1.0-tracer.37` (verificado); no se sube sin aprobación explícita.
+**Bloques A y B construidos y verificados contra mocks (2026-11-10).** Pin en `@ai27-tech/contracts@0.1.0-tracer.40`. Están hechas las tareas 1 a 18, 19.1 y 19.2, y las pruebas de propiedades de funciones puras. Verificado: `tsc --build`, `eslint .`, `vite build --mode mock` y `vitest run` (625 pruebas) en verde. **Falta para cerrar:** 19.3 y 19.4, que necesitan que `identidad`, `bff` y core sirvan las rutas (hoy 404; no pasan a `-m` antes del demo del 11, DEC-144). **Opcionales sin escribir:** 4.7, 5.2, 6.3, 13.2, 17.1 a 17.5 y 17.7.
 
 ## Task Dependency Graph
 
@@ -68,7 +68,7 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
     - _Requirements: 1.1, 1.2, 1.3 (B-12)_
   - [x] 1.2 Actualizar `tests/layout/navigation-visibility.test.ts`: hoy espera "Administración" para Reacción y otros roles; debe afirmar que solo `administrador` la ve y que los otros siete roles no.
     - _Requirements: 1.1, 1.3; escenario 9_
-  - [ ]* 1.3 Escribir prueba de propiedades para la visibilidad por rol
+  - [x]* 1.3 Escribir prueba de propiedades para la visibilidad por rol **Hecha** en `tests/administracion/propiedades.test.ts` (fast-check, 100 iteraciones; un solo archivo para todas las propiedades de funciones puras).
     - **Property 1: Visibilidad por rol**
     - **Validates: Requirements 1.1, 1.3**
 
@@ -87,31 +87,31 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
     - _Requirements: 4.5, 5.4, 5.6, 5.10, 6.10, 8.3, 10.6, 11.4, 11.5, 12.1, 12.6, 13.3_
   - [x] 2.7 Implementar `usarEnvioUnico.ts` (nombre final: `useEnvioUnico.ts`, por la regla react-hooks): cerrojo en `useRef` combinado con `isPending`, clave `(acción, objetivo)`, liberado al terminar con éxito o error; sin reintento automático.
     - _Requirements: 3.10, 5.2, 8.5, 8.6, 9.10, 10.11, 11.3, 13.4_
-  - [ ]* 2.8 Escribir prueba de propiedades para `relacionConSesion`
+  - [x]* 2.8 Escribir prueba de propiedades para `relacionConSesion` **Hecha** en `tests/administracion/propiedades.test.ts` (fast-check, 100 iteraciones; un solo archivo para todas las propiedades de funciones puras).
     - **Property 7: El sujeto de la sesión se identifica por identificador, no por nombre**
     - **Validates: Requirements 7.7**
-  - [ ]* 2.9 Escribir prueba de propiedades para `capacidades`
+  - [x]* 2.9 Escribir prueba de propiedades para `capacidades` **Hecha** en `tests/administracion/propiedades.test.ts` (fast-check, 100 iteraciones; un solo archivo para todas las propiedades de funciones puras).
     - **Property 8: Capacidades según relación y estado**
     - **Validates: Requirements 7.1, 7.5, 8.8, 8.10, 11.11**
-  - [ ]* 2.10 Escribir prueba de propiedades para los controles de alcance por rol
+  - [x]* 2.10 Escribir prueba de propiedades para los controles de alcance por rol **Hecha** en `tests/administracion/propiedades.test.ts` (fast-check, 100 iteraciones; un solo archivo para todas las propiedades de funciones puras).
     - **Property 10: Controles de alcance según el rol del objetivo**
     - **Validates: Requirements 6.5, 6.6, 6.8**
-  - [ ]* 2.11 Escribir prueba de propiedades para `validarAlta`
+  - [x]* 2.11 Escribir prueba de propiedades para `validarAlta` **Hecha** en `tests/administracion/propiedades.test.ts` (fast-check, 100 iteraciones; un solo archivo para todas las propiedades de funciones puras).
     - **Property 4: Validez del alta y forma del comando**
     - **Validates: Requirements 3.2, 3.3, 3.4, 3.5, 4.3, 4.4, 4.6** (se revalida al cerrar B-1, B-3 y B-7)
-  - [ ]* 2.12 Escribir prueba de propiedades para `organizacionesOfrecibles`
+  - [x]* 2.12 Escribir prueba de propiedades para `organizacionesOfrecibles` **Hecha** en `tests/administracion/propiedades.test.ts` (fast-check, 100 iteraciones; un solo archivo para todas las propiedades de funciones puras).
     - **Property 5: Organizaciones ofrecibles**
     - **Validates: Requirements 4.1, 4.2, 10.7** (se revalida al cerrar B-3)
-  - [ ]* 2.13 Escribir prueba de propiedades para `validarOrganizacion` y `validarMotivo`
+  - [x]* 2.13 Escribir prueba de propiedades para `validarOrganizacion` y `validarMotivo` **Hecha** en `tests/administracion/propiedades.test.ts` (fast-check, 100 iteraciones; un solo archivo para todas las propiedades de funciones puras).
     - **Property 6: Datos de organización obligatorios**
     - **Validates: Requirements 9.11**
-  - [ ]* 2.14 Escribir prueba de propiedades para `estadoConsulta`
+  - [x]* 2.14 Escribir prueba de propiedades para `estadoConsulta` **Hecha** en `tests/administracion/propiedades.test.ts` (fast-check, 100 iteraciones; un solo archivo para todas las propiedades de funciones puras).
     - **Property 12: Estados de consulta excluyentes**
     - **Validates: Requirements 2.5, 2.7, 2.8, 9.13, 13.1, 13.2**
-  - [ ]* 2.15 Escribir prueba de propiedades para `clasificarError`
+  - [x]* 2.15 Escribir prueba de propiedades para `clasificarError` **Hecha** en `tests/administracion/propiedades.test.ts` (fast-check, 100 iteraciones; un solo archivo para todas las propiedades de funciones puras).
     - **Property 16: Clasificación total de errores**
     - **Validates: Requirements 5.6, 13.3** (se revalida al cerrar B-1)
-  - [ ]* 2.16 Escribir prueba de propiedades para `mensajesDeExito`
+  - [x]* 2.16 Escribir prueba de propiedades para `mensajesDeExito` **Hecha** en `tests/administracion/propiedades.test.ts` (fast-check, 100 iteraciones; un solo archivo para todas las propiedades de funciones puras).
     - **Property 19: Los textos de éxito se limitan a lo que el contrato garantiza**
     - **Validates: Requirements 4.5, 5.4, 5.10, 6.10, 8.3, 10.6, 11.4, 11.5, 12.1, 12.6**
 
@@ -122,10 +122,10 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
     - _Requirements: 13.4_
   - [x] 3.3 Crear el puerto falso de pruebas `tests/administracion/puertoFalso.ts`: dobles configurables por método con espías, para inyectar vía `AdministracionProvider` (apoyo a las pruebas de ambos bloques; no es un handler MSW).
     - _Requirements: 13.4_
-  - [ ]* 3.4 Escribir prueba estructural del puerto: el conjunto de métodos es el declarado y no incluye los excluidos
+  - [x]* 3.4 Escribir prueba estructural del puerto: el conjunto de métodos es el declarado y no incluye los excluidos **Hecha** en `tests/administracion/propiedades.test.ts` (fast-check, 100 iteraciones; un solo archivo para todas las propiedades de funciones puras).
     - _Requirements: 6.5, 9.5, 9.6, 11.9, 12.2, 12.4, 12.5_
 
-- [ ] 4. Pantalla base, estados y accesibilidad
+- [x] 4. Pantalla base, estados y accesibilidad
   - [x] 4.1 Implementar `Administracion.tsx` y `AdministracionAutorizada.tsx` y reemplazar el stub `src/routes/_private/administracion.tsx`: título "Administración" siempre visible; sin sesión o rol distinto de `administrador` se muestra el aviso de acceso no autorizado y **no se monta** `AdministracionAutorizada` (sin hooks de red, sin controles). Dentro de la pantalla autorizada, secciones `usuarios` / `organizaciones` por parámetros de búsqueda (`?seccion=`, `?usuario=`) alternadas con `Button`; mientras la capacidad del puerto no esté publicada cada sección muestra el estado `brecha`. Ninguna acción consulta el rol local para decidir su resultado.
     - _Requirements: 1.2, 1.3, 1.5, 13.1, 13.5_
   - [x] 4.2 Crear `SelectorRol.tsx` (`Radio` dentro de `FormSection` con leyenda; ocho opciones desde el enum; marca visible del rol actual cuando se indica) y `EstadoBadge.tsx` (`Badge` con texto activo / inactivo; sin estado "bloqueado").
@@ -136,12 +136,12 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
     - _Requirements: 13.4, 13.10, 13.11_
   - [x] 4.5 Ajustar `src/lib/api/unidades.ts` con `listarTodasUnidades` que recorre todas las páginas (como `listarTodosClientes`) y crear la lista de opciones de unidades para el selector de alcance. La etiqueta es el identificador devuelto, sin inventar nombre o placa (B-16). No guarda alcance (eso es B-4).
     - _Requirements: 6.1 (solo opciones)_
-  - [ ] 4.6 Agregar en `src/mocks/data.ts` una credencial demo con rol `administrador` (contrato de sesión existente) para ver la pantalla en `dev:mock`; no agregar handlers de sujetos, organizaciones, alcance ni revocación.
+  - [x] 4.6 Credencial demo con rol `administrador`. Hecha por las cuentas demo por rol de `pf-wfi-d` (`administrador@demo.ai27` / `demo1234`, `CUENTAS_DEMO` en `src/mocks/data.ts`); la credencial propia `DEMO_ADMINISTRADOR` se retiró al fusionar.
     - _Requirements: 1.1_
   - [ ]* 4.7 Escribir prueba de propiedades para el acceso sin solicitudes ni controles
     - **Property 2: Sin solicitudes ni controles para quien no es administrador**
     - **Validates: Requirements 1.2, 1.3**
-  - [ ]* 4.8 Escribir prueba de propiedades para las opciones de rol
+  - [x]* 4.8 Escribir prueba de propiedades para las opciones de rol **Hecha** en `tests/administracion/propiedades.test.ts` (fast-check, 100 iteraciones; un solo archivo para todas las propiedades de funciones puras).
     - **Property 3: Las opciones de rol son exactamente el enum**
     - **Validates: Requirements 1.6, 3.1, 5.1, 12.3**
 
@@ -159,62 +159,62 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
     - _Requirements: 7.1, 7.2, 7.5; escenario 10_
   - [ ]* 6.3 Pruebas de accesibilidad de ejemplo: nombre accesible no vacío en cada control, `Radio` de rol con leyenda, `Badge` con texto, foco inicial dentro del diálogo, Tab atrapado, foco devuelto y respaldo al encabezado, operación completa con teclado.
     - _Requirements: 13.5, 13.6, 13.10, 13.11_
-  - [ ]* 6.4 Pruebas de exclusiones de V1: no existen controles de auditoría, rol Auditor, break-glass, transferencia, edición de tenant, organización padre, reactivación de organizaciones, edición del identificador de usuario ni revocación por `sesion_id`.
+  - [x]* 6.4 Pruebas de exclusiones de V1: no existen controles de auditoría, rol Auditor, break-glass, transferencia, edición de tenant, organización padre, reactivación de organizaciones, edición del identificador de usuario ni revocación por `sesion_id`. **Hecha** en `tests/administracion/propiedades.test.ts` (fast-check, 100 iteraciones; un solo archivo para todas las propiedades de funciones puras). Cubre la ausencia de métodos de auditoría, historial, tenant, revocación por `sesion_id` y reactivar organización en el puerto; no recorre la interfaz.
     - _Requirements: 9.5, 9.6, 9.7, 11.9, 11.10, 12.2, 12.3, 12.4, 12.5_
 
 - [x] 7. Checkpoint - Bloque A completo
   - Ensure all tests pass, ask the user if questions arise.
 
-### Bloque B: condicionado a contrato (contra el puerto falso; no inventar `operationId`, rutas ni campos)
+### Bloque B: construido sobre el contrato `tracer.40` (adaptador real y mocks; sin servidor real)
 
-- [ ] 8. Sección de usuarios
-  - [ ] 8.1 **Contrato publicado en `tracer.40` (B-2); el servidor aún responde 404, así que se prueba contra el puerto falso.** B-15 aporta nombre e identificador de usuario. Implementar `useUsuarios(consulta)` con clave `['administracion','usuarios',consulta]`, `retry: false`, sin sondeo, consulta con `texto`, `rol` y `cursor`; reductor puro de `page` real y cursores visitados (patrón de `bandejaReducer`); búsqueda con retraso corto (valor no fijado).
+- [x] 8. Sección de usuarios
+  - [x] 8.1 **Hecha (contrato `tracer.40`; sin servidor real, se verifica con mocks y adaptador).** B-15 aporta nombre e identificador de usuario. Implementar `useUsuarios(consulta)` con clave `['administracion','usuarios',consulta]`, `retry: false`, sin sondeo, consulta con `texto`, `rol` y `cursor`; reductor puro de `page` real y cursores visitados (patrón de `bandejaReducer`); búsqueda con retraso corto (valor no fijado). Sin prueba directa del reductor de paginación (`paginacionCursor.ts`).
     - _Requirements: 2.1, 2.2, 2.8_
-  - [ ] 8.2 **Contrato publicado en `tracer.40` (B-2, B-15); el servidor aún responde 404, así que se prueba contra el puerto falso.** Implementar `SeccionUsuarios.tsx` con `FilterTable` (búsqueda, filtro por rol desde el enum, `hideCount`), `Pagination` mapeada a cursor, `EstadoBadge`, organización solo para `cliente`, renderizado tal cual en el orden recibido y los estados de la tarea 4.3.
+  - [x] 8.2 **Hecha (contrato `tracer.40`; sin servidor real, se verifica con mocks y adaptador).** Implementar `SeccionUsuarios.tsx` con `FilterTable` (búsqueda, filtro por rol desde el enum, `hideCount`), `Pagination` mapeada a cursor, `EstadoBadge`, organización solo para `cliente`, renderizado tal cual en el orden recibido y los estados de la tarea 4.3. Cubierta por `flujos-bloque-b.test.tsx` (lista con organización y respaldo).
     - _Requirements: 2.1, 2.2, 2.5, 2.7, 2.8, 13.1, 13.2_
 
-- [ ] 9. Detalle de usuario y acciones base
-  - [ ] 9.1 **Contrato publicado en `tracer.40` (B-1); el servidor aún responde 404, así que se prueba contra el puerto falso.** Implementar `useUsuario(id)` (clave `['administracion','usuario',id]`, recarga tras mutación exitosa y tras `403`/`409`) y `useAccionUsuario()`: `useMutation` por acción, sin actualización optimista ni reintento, con `usarEnvioUnico`; tras el éxito recarga y muestra solo lo que devuelve el `bff`.
+- [x] 9. Detalle de usuario y acciones base
+  - [x] 9.1 **Hecha (contrato `tracer.40`; sin servidor real, se verifica con mocks y adaptador).** Implementar `useUsuario(id)` (clave `['administracion','usuario',id]`, recarga tras mutación exitosa y tras `403`/`409`) y `useAccionUsuario()`: `useMutation` por acción, sin actualización optimista ni reintento, con `usarEnvioUnico`; tras el éxito recarga y muestra solo lo que devuelve el `bff`. Sin prueba directa de `useUsuario` ni de `useAccionUsuario`.
     - _Requirements: 2.3, 5.3, 5.7, 7.3, 8.5, 13.4_
-  - [ ] 9.2 **Contrato publicado en `tracer.40` (B-1, B-14, B-15); el servidor aún responde 404, así que se prueba contra el puerto falso.** Implementar `PanelUsuario.tsx`: detalle (nombre, identificador de usuario, rol o "sin rol", estado, organización si es `cliente`) con estados `cargando`, `no_disponible` (404), `error`, `sin_acceso` y `datos`; integra `AccionesUsuario` y la relación con la sesión; sin datos de otro usuario ante error. El aviso de auto-escalada es independiente de la recarga del detalle.
+  - [x] 9.2 **Hecha (contrato `tracer.40`; sin servidor real, se verifica con mocks y adaptador).** Implementar `PanelUsuario.tsx`: detalle (nombre, identificador de usuario, rol o "sin rol", estado, organización si es `cliente`) con estados `cargando`, `no_disponible` (404), `error`, `sin_acceso` y `datos`; integra `AccionesUsuario` y la relación con la sesión; sin datos de otro usuario ante error. El aviso de auto-escalada es independiente de la recarga del detalle. Sin prueba directa de `PanelUsuario`.
     - _Requirements: 2.3, 2.6, 2.9, 7.3, 7.4, 13.1, 13.2_
 
-- [ ] 10. Alta de usuario y organización del Cliente
-  - [ ] 10.1 **Contrato publicado en `tracer.40` (B-3); el servidor aún responde 404, así que se prueba contra el puerto falso.** Implementar `useOrganizaciones()` y `SelectorOrganizacion.tsx` (`Radio` con leyenda; solo organizaciones activas por nombre; selección única).
+- [x] 10. Alta de usuario y organización del Cliente
+  - [x] 10.1 **Hecha (contrato `tracer.40`; sin servidor real, se verifica con mocks y adaptador).** Implementar `useOrganizaciones()` y `SelectorOrganizacion.tsx` (`Radio` con leyenda; solo organizaciones activas por nombre; selección única). `SelectorOrganizacion.tsx` ya no existe: el alta usa `Radio` dentro de `AltaUsuarioDialog`.
     - _Requirements: 4.1, 4.2, 9.1_
-  - [ ] 10.2 **Contrato publicado en `tracer.40` (B-1, B-3, B-7); el servidor aún responde 404, así que se prueba contra el puerto falso.** Implementar `AltaUsuarioDialog.tsx`: nombre, identificador de usuario, `SelectorRol` y `SelectorOrganizacion` solo para `cliente`; cambiar a un rol distinto descarta la organización del comando; sin `tenant_id` capturado; confirmación deshabilitada mientras la solicitud está en curso; conserva lo capturado ante cualquier error; identificador duplicado junto al campo; organización inválida junto al selector con recarga de organizaciones. No define qué valor lleva `tenant_id` de usuarios internos (B-7 abierta).
+  - [x] 10.2 **Hecha (contrato `tracer.40`; sin servidor real, se verifica con mocks y adaptador).** Implementar `AltaUsuarioDialog.tsx`: nombre, identificador de usuario, `SelectorRol` y `SelectorOrganizacion` solo para `cliente`; cambiar a un rol distinto descarta la organización del comando; sin `tenant_id` capturado; confirmación deshabilitada mientras la solicitud está en curso; conserva lo capturado ante cualquier error; identificador duplicado junto al campo; organización inválida junto al selector con recarga de organizaciones. No define qué valor lleva `tenant_id` de usuarios internos (B-7 abierta). Cubierta por `flujos-bloque-b.test.tsx` (alta interna y identificador repetido).
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10, 4.3, 4.4, 4.6, 4.8_
 
-- [ ] 11. Cambio de rol
-  - [ ] 11.1 **Contrato publicado en `tracer.40` (B-1); el servidor aún responde 404, así que se prueba contra el puerto falso.** El `409` de cruce `rol_cruza_audiencia` ya está en el contrato. Implementar `CambioRolDialog.tsx`: solo roles del mismo lado que el actual con el actual marcado (siete internos para un interno; sin cambio de rol para un `cliente`; DEC-141), solo para usuario activo y ajeno; el motivo del `409` (desactivado, rol igual, último administrador) solo si el `codigo` lo distingue, si no conflicto genérico; aviso previo de que se retirará el alcance actual (DEC-140 #3 y #4; texto nuevo en `mensajes.ts`), después de confirmar el rol nuevo aplica en el "siguiente refresco" y el retiro de alcance de inmediato; sin plazo (PA-9); el cambio de rol no revoca sesiones ni desactiva. `409` de cruce `cliente`↔interno: mensaje propio cuando exista su `codigo`.
+- [x] 11. Cambio de rol
+  - [x] 11.1 **Hecha (contrato `tracer.40`; sin servidor real, se verifica con mocks y adaptador).** El `409` de cruce `rol_cruza_audiencia` ya está en el contrato. Implementar `CambioRolDialog.tsx`: solo roles del mismo lado que el actual con el actual marcado (siete internos para un interno; sin cambio de rol para un `cliente`; DEC-141), solo para usuario activo y ajeno; el motivo del `409` (desactivado, rol igual, último administrador) solo si el `codigo` lo distingue, si no conflicto genérico; aviso previo de que se retirará el alcance actual (DEC-140 #3 y #4; texto nuevo en `mensajes.ts`), después de confirmar el rol nuevo aplica en el "siguiente refresco" y el retiro de alcance de inmediato; sin plazo (PA-9); el cambio de rol no revoca sesiones ni desactiva. `409` de cruce `cliente`↔interno: mensaje propio cuando exista su `codigo`. Cubierta por `dialogos-bloque-b.test.tsx`.
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.10_
 
-- [ ] 12. Desactivar y reactivar usuarios
-  - [ ] 12.1 **Contrato publicado en `tracer.40` (B-1); el servidor aún responde 404, así que se prueba contra el puerto falso.** Implementar `DesactivarUsuarioDialog.tsx` (confirmación previa, `danger`, sin solicitud antes de confirmar) y la acción de reactivar; aviso del corte "máximo 30 segundos"; el último administrador se explica con el motivo del `bff`; la auto-desactivación la decide el `bff` (PA-7); desactivar no cambia rol ni alcance.
+- [x] 12. Desactivar y reactivar usuarios
+  - [x] 12.1 **Hecha (contrato `tracer.40`; sin servidor real, se verifica con mocks y adaptador).** Implementar `DesactivarUsuarioDialog.tsx` (confirmación previa, `danger`, sin solicitud antes de confirmar) y la acción de reactivar; aviso del corte "máximo 30 segundos"; el último administrador se explica con el motivo del `bff`; la auto-desactivación la decide el `bff` (PA-7); desactivar no cambia rol ni alcance. Cubierta por `dialogos-bloque-b.test.tsx`.
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.9, 8.10_
 
-- [ ] 13. Alcance de monitoreo
-  - [ ] 13.1 **Contrato publicado en `tracer.40` (B-4 y B-2); el servidor aún responde 404, así que se prueba contra el puerto falso.** Implementar `AlcanceEditor.tsx`: unidades para `monitorista` (opciones de la tarea 4.5; las edita el `administrador`), Monitoristas para `supervisor` y Supervisores para `coordinador` (solo `administrador`; DEC-140 #1 y #2), con columna `Checkbox` y `aria-label` por fila en `Table`; opciones solo las devueltas, filtradas por rol; el alcance efectivo se muestra tal cual lo devuelve el `bff` (sin calcular uniones); alcance vacío con mensaje; opciones vacías o con error deshabilitan confirmar sin perder la selección. El vínculo es la lista "mis unidades" de `identidad` (DEC-140 #1); el alcance de Supervisor y Coordinador se muestra como lo devuelve el `bff`.
+- [x] 13. Alcance de monitoreo
+  - [x] 13.1 **Hecha (contrato `tracer.40`; sin servidor real, se verifica con mocks y adaptador).** Implementar `AlcanceEditor.tsx`: unidades para `monitorista` (opciones de la tarea 4.5; las edita el `administrador`), Monitoristas para `supervisor` y Supervisores para `coordinador` (solo `administrador`; DEC-140 #1 y #2), con columna `Checkbox` y `aria-label` por fila en `Table`; opciones solo las devueltas, filtradas por rol; el alcance efectivo se muestra tal cual lo devuelve el `bff` (sin calcular uniones); alcance vacío con mensaje; opciones vacías o con error deshabilitan confirmar sin perder la selección. El vínculo es la lista "mis unidades" de `identidad` (DEC-140 #1); el alcance de Supervisor y Coordinador se muestra como lo devuelve el `bff`. Sin prueba directa de `AlcanceEditor`.
     - _Requirements: 2.4, 6.1, 6.2, 6.3, 6.4, 6.9, 6.11_
   - [ ]* 13.2 Escribir prueba de propiedades para las opciones de alcance
     - **Property 11: Las opciones de alcance son solo las devueltas, filtradas por rol**
     - **Validates: Requirements 6.1, 6.2, 6.3, 6.11** (se revalida al cerrar B-2 y B-4)
 
-- [ ] 14. Organizaciones
-  - [ ] 14.1 **Contrato publicado en `tracer.40` (B-3); el servidor aún responde 404, así que se prueba contra el puerto falso.** Implementar `useAccionOrganizacion()`, `SeccionOrganizaciones.tsx` (lista plana con `Table`, `EstadoBadge`, tenant solo lectura, estado vacío con "crear la primera") y `OrganizacionFormDialog.tsx` (crear y editar nombre, correo y teléfono, los tres obligatorios; correo con `@`, teléfono sin formato; conflicto de nombre conserva el formulario). Sin organización padre y sin acción de reactivar: la desactivación es terminal (PA-8).
+- [x] 14. Organizaciones
+  - [x] 14.1 **Hecha (contrato `tracer.40`; sin servidor real, se verifica con mocks y adaptador).** Implementar `useAccionOrganizacion()`, `SeccionOrganizaciones.tsx` (lista plana con `Table`, `EstadoBadge`, tenant solo lectura, estado vacío con "crear la primera") y `OrganizacionFormDialog.tsx` (crear y editar nombre, correo y teléfono, los tres obligatorios; correo con `@`, teléfono sin formato; conflicto de nombre conserva el formulario). Sin organización padre y sin acción de reactivar: la desactivación es terminal (PA-8). `OrganizacionFormDialog` cubierto por `dialogos-bloque-b.test.tsx`; `SeccionOrganizaciones` sin prueba directa.
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.8, 9.9, 9.10, 9.11, 9.12, 9.13_
-  - [ ] 14.2 **Contrato publicado en `tracer.40` (B-2, B-3); el servidor aún responde 404, así que se prueba contra el puerto falso.** Implementar `DesactivarOrganizacionDialog.tsx`: consulta la consecuencia (número de usuarios activos que pierden el acceso, tal cual lo devuelve el `bff`), `confirmar` solo en el estado `listo`, error de consecuencia con reintento, conteo cero con mensaje propio, sin afirmar plazos ni revocación de sesiones (PA-8).
+  - [x] 14.2 **Hecha (contrato `tracer.40`; sin servidor real, se verifica con mocks y adaptador).** Implementar `DesactivarOrganizacionDialog.tsx`: consulta la consecuencia (número de usuarios activos que pierden el acceso, tal cual lo devuelve el `bff`), `confirmar` solo en el estado `listo`, error de consecuencia con reintento, conteo cero con mensaje propio, sin afirmar plazos ni revocación de sesiones (PA-8). Cubierta por `flujos-bloque-b.test.tsx` (consecuencia visible antes de confirmar).
     - _Requirements: 10.2, 10.3, 10.4, 10.5, 10.6, 10.8, 10.10, 10.11_
 
-- [ ] 15. Revocación masiva de sesiones
-  - [ ] 15.1 **Contrato publicado en `tracer.40` (B-5); el servidor aún responde 404, así que se prueba contra el puerto falso.** Implementar `RevocarSesionesDialog.tsx`: confirmación previa, estado "revocación en curso" por usuario que sobrevive a cerrar el diálogo, resultado informativo tal cual (incluido "sin sesiones"), aviso "máximo 30 segundos", "no se pudo confirmar" ante falta de respuesta sin asumir que no se aplicó, campo de motivo obligatorio de texto libre con confirmar deshabilitado si está vacío (PA-1), sin revocación por `sesion_id` y sin ofrecerla sobre uno mismo. Sin afirmar auditoría ni "la sesión ya dejó de funcionar".
+- [x] 15. Revocación masiva de sesiones
+  - [x] 15.1 **Hecha (contrato `tracer.40`; sin servidor real, se verifica con mocks y adaptador).** Implementar `RevocarSesionesDialog.tsx`: confirmación previa, estado "revocación en curso" por usuario que sobrevive a cerrar el diálogo, resultado informativo tal cual (incluido "sin sesiones"), aviso "máximo 30 segundos", "no se pudo confirmar" ante falta de respuesta sin asumir que no se aplicó, campo de motivo obligatorio de texto libre con confirmar deshabilitado si está vacío (PA-1), sin revocación por `sesion_id` y sin ofrecerla sobre uno mismo. Sin afirmar auditoría ni "la sesión ya dejó de funcionar". Cubierta por `dialogos-bloque-b.test.tsx`.
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 11.7, 11.8, 11.11_
 
-- [ ] 16. Integración del Bloque B
-  - [ ] 16.1 **Contrato publicado en `tracer.40` (B-1 a B-5); el servidor aún responde 404, así que se prueba contra el puerto falso.** Cablear secciones y diálogos: montar `SeccionUsuarios`, `SeccionOrganizaciones` y `PanelUsuario` en `AdministracionAutorizada`; abrir `AltaUsuarioDialog` desde la sección de usuarios; abrir cambio de rol, desactivar/reactivar, alcance y revocar desde `PanelUsuario`; avisos con `Toast`/`ToastContainer`; mientras la capacidad del puerto no esté publicada se conserva el estado `brecha` y no se muestran controles de la acción.
+- [x] 16. Integración del Bloque B
+  - [x] 16.1 **Hecha (contrato `tracer.40`; sin servidor real, se verifica con mocks y adaptador).** Cablear secciones y diálogos: montar `SeccionUsuarios`, `SeccionOrganizaciones` y `PanelUsuario` en `AdministracionAutorizada`; abrir `AltaUsuarioDialog` desde la sección de usuarios; abrir cambio de rol, desactivar/reactivar, alcance y revocar desde `PanelUsuario`; avisos con `Toast`/`ToastContainer`; mientras la capacidad del puerto no esté publicada se conserva el estado `brecha` y no se muestran controles de la acción. `AdministracionAutorizada` sin prueba directa; el flujo se ejercita en `flujos-bloque-b.test.tsx`. El adaptador real se inyecta en la ruta `/administracion` (`puertoHttp.ts`).
     - _Requirements: 2.1, 3.1, 5.1, 6.1, 8.1, 9.1, 10.1, 11.1, 13.1_
 
-- [ ] 17. Verificación del Bloque B contra el puerto falso
+- [x] 17. Verificación del Bloque B contra el puerto falso
   - [ ]* 17.1 Escribir prueba de propiedades para la vista de lo devuelto
     - **Property 13: La vista refleja lo devuelto**
     - **Validates: Requirements 2.2, 2.4, 6.4, 10.2, 10.3** (se revalida al cerrar B-2, B-3 y B-4)
@@ -230,12 +230,12 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
   - [ ]* 17.5 Escribir prueba de propiedades para las acciones destructivas
     - **Property 18: Ninguna solicitud destructiva antes de confirmar**
     - **Validates: Requirements 8.1, 8.2, 10.4, 10.5, 10.10, 11.2**
-  - [ ] 17.6 **Contrato publicado en `tracer.40` (B-1 (solo la parte del servidor)); el servidor aún responde 404, así que se prueba contra el puerto falso.** DoD 2, lado de la interfaz ante `403`: con el puerto falso respondiendo `403` a un cambio de rol o de alcance del propio sujeto, la interfaz muestra el estado de auto-escalada bloqueada, el rol no cambia y el aviso se conserva si la recarga del detalle falla. Que el servidor real rechace con `403` **no** se demuestra aquí (tarea 19.4).
+  - [x] 17.6 DoD 2, lado de la interfaz ante `403`: con el puerto respondiendo `403` (`autoescalamiento`) a un cambio de rol del propio sujeto, la interfaz muestra la auto-escalada bloqueada, el rol no cambia y el aviso se conserva aunque la recarga del detalle falle. **Hecha** en `tests/administracion/panel-y-secciones.test.tsx`. Para cumplirla se corrigió `PanelUsuario`: el aviso de un rechazo `403` o `409` vive en el panel y los diálogos de cambio de rol y desactivar vuelven a leer el detalle (`onRechazado`). Que el servidor real rechace con `403` se demuestra en la tarea 19.4.
     - _Requirements: 7.3, 7.4; escenario 10_
   - [ ]* 17.7 Pruebas de ejemplo de los flujos condicionados con el puerto falso: alta interna y de Cliente, cambio de rol con `409` por motivo y genérico, desactivar/reactivar, organización (crear, editar, duplicado, consecuencia), revocación en curso y sin respuesta, `401` delegado al AppShell sin presentar la acción como realizada, `404` y error del detalle.
     - _Requirements: 3, 4, 5, 8, 9, 10, 11, 13.3, 13.4; escenarios 1, 2, 4, 5, 6, 7, 8, 11, 12, 16, 17, 18, 19_
 
-- [ ] 18. Checkpoint final
+- [x] 18. Checkpoint final **Hecho (2026-11-10):** `tsc --build`, `eslint .`, `vite build --mode mock` y `vitest run` (625 pruebas) en verde.
   - Ejecutar `typecheck`, `lint`, `test` y `build:mock` y verificar la ausencia de controles excluidos. Registrar en `BRECHAS.md` toda superficie que no permita demostrar el resultado requerido. Ensure all tests pass, ask the user if questions arise.
 
 ### Reverificación al publicarse el contrato (bloqueada; fuera de este ciclo)
@@ -255,14 +255,15 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
 ### Notas de brechas
 
 - **Bloque B bloqueado por contrato:** B-1 (sujetos y roles), B-2 (listado), B-3 (organizaciones), B-4 (alcance), B-5 (revocación masiva), B-14 (identificación del sujeto de la sesión) y B-15 (nombre e identificador de usuario en el detalle); todo sale en `tracer.40`. Decididas: B-7, B-17 y PA-3. Resuelta con `tracer.38`: B-16. Hasta entonces la pantalla muestra el estado `brecha` y el puerto "no publicada" lanza `ErrorSuperficieNoPublicada`.
-- **Sin handlers MSW** para sujetos, organizaciones, alcance ni revocación: inventarían rutas y campos. Solo se agrega una credencial demo `administrador` (contrato de sesión existente).
+- **Handlers MSW (cambio respecto del plan original):** al publicarse `tracer.40` ya no se inventan rutas ni campos, así que se agregaron `src/mocks/administracion.ts` y su registro en `handlers.ts`. La credencial demo `administrador` sale de las cuentas por rol de `pf-wfi-d`.
 - **B-12 se resuelve en la tarea 1** sin contrato. **B-11** (sin `Tabs`, `Select` sin nombre accesible, sin multi-select, textos en inglés en `Modal` y `Table`, `Pagination` numérica) se resuelve componiendo con primitivas de la librería y registrando la brecha; no se duplica nada.
 - **B-18 (`PUT` y tiempo de espera en `client.ts`)** es un cambio en archivo compartido que se coordina al escribir el adaptador real (tarea 19.2). No se ejecuta en este ciclo.
 - **B-13 (reautenticación en acciones sensibles)** está decidida (DEC-141 #5): no se pide en V1. DT-21 queda para Seguridad.
 - **B-6** queda fuera de V1 (DEC-140 #6). **B-8/PA-10** está decidida: el identificador de usuario es inmutable y editar usuario cambia solo el nombre (`editarUsuario` en el puerto); queda bloqueada por la ola de contrato de B-9.
 - **Decididas en DEC-139:** PA-1, PA-2, PA-5, PA-7, PA-8, PA-9 y PA-10, ya incorporadas. También decididas en DEC-140 y DEC-141: PA-3, PA-4, PA-6, B-4, B-6, B-13 y B-17. DEC-142: el `jefe_operativo` asigna unidades en `/roster` (E8-T21), no en esta pantalla. No queda pregunta abierta de producto.
-- **Rama desactualizada (2026-11-09):** `feature/e8-t19-administracion-usuarios` está 12 commits detrás de `pf-wfi-d` y choca en `src/lib/api/unidades.ts` (conservar `listarTodasUnidades` y el encabezado nuevo) y en `tests/layout/navigation-visibility.test.ts` (la entrada de `/roster`). Resuelto: `pf-wfi-d` está mergeada en la rama (`bbbadc2`). El push queda pendiente de aprobación.
+- **Rama desactualizada (2026-11-09; fusionada de nuevo el 2026-11-10 con `pf-wfi-d`):** `feature/e8-t19-administracion-usuarios` está 12 commits detrás de `pf-wfi-d` y choca en `src/lib/api/unidades.ts` (conservar `listarTodasUnidades` y el encabezado nuevo) y en `tests/layout/navigation-visibility.test.ts` (la entrada de `/roster`). Resuelto: `pf-wfi-d` está mergeada en la rama (`bbbadc2`). El push queda pendiente de aprobación.
 - **Errores 403 (PR #28):** el código nuevo usa `esProhibido(err)` para mostrar "no tienes permiso" sin cerrar la sesión, y `esSesionInvalida(err)` solo para el 401 o la sesión cortada (DT-03). Resuelto: `clasificarError` clasifica el 403 como `prohibido` y `textoDeFallo` no produce texto ante sesión inválida.
+- **Archivos retirados (commit 4c35ead):** SelectorRol.tsx, SelectorOrganizacion.tsx, EstadoBadge.tsx, RegionConsulta.tsx y DialogoAdministracion.tsx ya no existen; los diálogos y secciones usan componentes de @ai27-tech/ui directamente (Modal, Radio, Badge, FilterTable). Las tareas 4.2 y 4.3 describen los archivos anteriores. Falta confirmar que cada control conserva nombre accesible (B-11, tarea 6.3 opcional).
 - **Lo que cambió con `tracer.40` (Lead, 2026-11-10):** el alta no lleva `tenant_id` sino `organizacion_id` (obligatoria para `cliente`, prohibida para un rol interno); `es_propio` reemplaza la comparación de identificadores; `nombre` e `identificador_usuario` son opcionales (texto de respaldo); desactivar, reactivar y cambiar rol responden 204 y se vuelve a leer con `useUsuario`; `crearOrganizacion` acepta `id` (se genera con `crypto.randomUUID()` al abrir el diálogo y se reutiliza al reintentar, DEC-144 #2); una organización desactivada no se edita (`409 organizacion_desactivada`); el filtro por organización de `listarSujetos` es `tenant_id` (el mismo id de la organización); los `PUT` de alcance reemplazan la lista completa (DEC-145). Las tareas 8 a 16 deben seguir esta nota.
 
 ### Inconsistencias detectadas en los documentos
@@ -270,7 +271,7 @@ Las ondas 0 a 4 son el Bloque A y se pueden ejecutar hoy. Las ondas 5 a 8 son el
 - El diseño nombra el estado de datos previos con fallo como `datos_desactualizados` (Estados de la interfaz, `EstadoConsulta` de Data Models) y como `datos_desactualizado` (Property 12, Decisiones de diseño, `BRECHAS.md`). Las tareas usan `datos_desactualizado`; alinear al implementar la tarea 2.5.
 - El diseño ubica "Estados y foco de los diálogos" en el Bloque A aunque los diálogos son del Bloque B. Se construye el estado y la configuración de `Modal` en la tarea 4.4 y los diálogos en las tareas 10 a 15.
 - Las Correctness Properties 4, 5, 11, 13 y 16 están marcadas como condicionadas pero las funciones puras (4, 5, 16) se pueden probar hoy; se escriben en el Bloque A y se revalidan en la tarea 19.3.
-- El e2e de revocación masiva (DoD 3) se arma con dos sujetos distintos (PA-5 resuelto); sigue sin armarse en este ciclo porque depende de B-5.
+- El e2e de revocación masiva (DoD 3) se arma con dos sujetos distintos (PA-5 resuelto); sigue sin armarse porque depende de que el servidor sirva `revocarSesionesSujeto` (tarea 19.4).
 - R13.6 menciona el estado "bloqueado", que el contrato no tiene (solo `activo`); se muestran solo activo e inactivo.
 
 ### Notas generales

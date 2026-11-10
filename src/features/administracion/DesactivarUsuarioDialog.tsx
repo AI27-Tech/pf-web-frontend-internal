@@ -2,6 +2,7 @@ import { useReducer, useState } from 'react';
 import { Button, Card, CardBody, Modal } from '@ai27-tech/ui';
 
 import { useAdministracionPort } from '@/context/AdministracionContext';
+import { ApiError } from '@/lib/api/errors';
 import { useSession } from '@/context/SessionContext';
 import type { UsuarioResumen } from '@/lib/contracts/administracion';
 
@@ -23,6 +24,8 @@ interface DesactivarUsuarioDialogProps {
   readonly modo: ModoActivacion;
   readonly envio: EnvioUnico;
   readonly onCompletado: (mensaje: string) => void;
+  /** El `bff` rechazó la acción con `403` o `409`; el padre vuelve a leer el detalle. */
+  readonly onRechazado?: (texto: string | null) => void;
 }
 
 const OPERACION: Record<ModoActivacion, OperacionAdministracion> = {
@@ -43,6 +46,7 @@ export function DesactivarUsuarioDialog({
   modo,
   envio,
   onCompletado,
+  onRechazado,
 }: DesactivarUsuarioDialogProps) {
   const port = useAdministracionPort();
   const { sesion } = useSession();
@@ -83,7 +87,15 @@ export function DesactivarUsuarioDialog({
       onCerrar();
     } catch (fallo) {
       despachar('fallo');
-      setErrorEnvio(textoDeFallo(clasificarFallo(OPERACION[modo], fallo)));
+      const clasificado = clasificarFallo(OPERACION[modo], fallo);
+      const texto = textoDeFallo(clasificado);
+      setErrorEnvio(texto);
+      if (
+        clasificado instanceof ApiError &&
+        (clasificado.status === 403 || clasificado.status === 409)
+      ) {
+        onRechazado?.(texto);
+      }
     }
   };
 

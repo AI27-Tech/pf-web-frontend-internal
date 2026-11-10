@@ -92,6 +92,8 @@ export const TEXTOS_ADMINISTRACION = {
   buscarUsuario: 'Buscar por nombre o identificador',
   todosLosRoles: 'Todos los roles',
   columnaNombre: 'Nombre',
+  columnaVehiculo: 'Vehículo',
+  columnaCustodios: 'Custodios',
   columnaIdentificador: 'Identificador',
   columnaRol: 'Rol',
   columnaOrganizacion: 'Organización',
