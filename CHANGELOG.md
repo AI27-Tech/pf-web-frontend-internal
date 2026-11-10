@@ -1,5 +1,36 @@
 ﻿# CHANGELOG
 
+## 2026:11:10 12:15
+
+**Resumen:** Modo mock con inicio de sesión para los siete roles internos (spec `modo-mock-roles-internos`). Cada rol entra con su cuenta `<cuenta>@demo.ai27` y la contraseña `demo1234`. Cada cuenta tiene su propio `sub` y su `sesion_id`. La renovación conserva rol, `sub` y `sesion_id`, y las conversaciones mock siguen a la cuenta que inició sesión.
+
+**Cambios:**
+
+- `src/mocks/data.ts`: catálogo `CUENTAS_DEMO` con las siete cuentas. Sustituye `DEMO_CREDENTIALS` y `DEMO_CLAIMS`. Nuevas funciones `sujetoDeCuenta`, `sesionDeCuenta`, `cuentaPorCredenciales`, `cuentaPorRol` y `cuentaPorRefreshToken`. `createSessionWire(cuenta)` emite el `refresh_token` como `mock.refresh.<cuenta>.<uuid>`. `SUJETO_CONVERSACIONES_DEMO` pasa de `usr-demo-1` a `usr-demo-operador`.
+- `src/mocks/handlers.ts`: `POST /sesion` valida contra el catálogo y responde 401 sin `access_token` si las credenciales son inválidas, vacías, ausentes o si el cuerpo no es JSON. Al iniciar sesión reinicia el estado de conversaciones con el sujeto de la cuenta. `POST /sesion/refresh` toma la cuenta del `refresh_token` y responde 401 si el token no corresponde a ninguna cuenta. Se reparó el texto con codificación doble en las líneas de sesión.
+- Pruebas nuevas: `tests/sesion/cuentasDemo.test.ts` (login, refresh, unicidad de `sub` y `sesion_id`, y 401) y `tests/conversaciones/sujetoSesion.test.ts`. Se ajustaron `tests/contracts/sesion.test.ts` y `tests/sesion/SessionContext.test.tsx` a la nueva firma de `createSessionWire`.
+- `README.md` y `.env.example`: documentan las siete cuentas y la contraseña común.
+- Spec `.kiro/specs/modo-mock-roles-internos/`: requisitos, diseño, tareas, línea base de verificación y metadatos.
+
+**Verificación:** `pnpm typecheck` y `pnpm lint` sin errores. `pnpm test`: 77 archivos y 523 pruebas en verde. `pnpm test:e2e` (login, roster y session-cut): 5 de 5. `pnpm build` produce un `dist/` sin `demo1234` ni `@demo.ai27`.
+
+**Archivos modificados:**
+
+- `.env.example`
+- `README.md`
+- `src/mocks/data.ts`
+- `src/mocks/handlers.ts`
+- `tests/contracts/sesion.test.ts`
+- `tests/sesion/SessionContext.test.tsx`
+- `tests/sesion/cuentasDemo.test.ts`
+- `tests/conversaciones/sujetoSesion.test.ts`
+- `.kiro/specs/modo-mock-roles-internos/.config.kiro`
+- `.kiro/specs/modo-mock-roles-internos/design.md`
+- `.kiro/specs/modo-mock-roles-internos/linea-base.md`
+- `.kiro/specs/modo-mock-roles-internos/requirements.md`
+- `.kiro/specs/modo-mock-roles-internos/tasks.md`
+- `.kiro/specs/modo-mock-roles-internos/tasks.meta.json`
+
 ## 2026:11:09 13:11
 
 **Resumen:** Sección `/roster` del Jefe Operativo (E8-T21, DEC-142), vehículos y custodios en `/catalogos` (adelanto de E8-T16, DEC-142 #6) y escolta de la ficha técnica desde la asignación del viaje (E8-T12). Se desarrolló con los tipos de `tracer.39` puestos en `node_modules`; el pin sigue en `tracer.38` hasta subirlo.
