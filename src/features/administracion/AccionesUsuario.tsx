@@ -1,10 +1,10 @@
-import { Button } from '@ai27-tech/ui';
+import { Button, Card, CardBody } from '@ai27-tech/ui';
 
 import type { UsuarioResumen } from '@/lib/contracts/administracion';
 
 import { capacidades, controlesDeAlcance } from './afordancias';
-import type { RelacionConSesion } from './relacionConSesion';
 import { TEXTOS_ADMINISTRACION as TEXTOS } from './mensajes';
+import type { RelacionConSesion } from './relacionConSesion';
 
 export type AccionUsuario =
   'cambiarRol' | 'editarAlcance' | 'desactivar' | 'reactivar' | 'revocarSesiones';
@@ -19,15 +19,16 @@ interface AccionesUsuarioProps {
 }
 
 /**
- * Acciones sobre un usuario, habilitadas según `capacidades`. Las acciones
- * bloqueadas quedan deshabilitadas con el motivo visible. Como una acción
- * deshabilitada no dispara `onAccion` por ningún medio, no se emite ninguna
- * solicitud sobre un objetivo bloqueado (R7.2, R7.5, R8.8).
+ * Acciones sobre un usuario, habilitadas según `capacidades`. Una acción bloqueada
+ * queda deshabilitada y su motivo se muestra. Como un control deshabilitado no
+ * dispara `onAccion` por ningún medio, no sale ninguna solicitud sobre un objetivo
+ * bloqueado (R7.2, R7.5, R8.8).
  */
 export function AccionesUsuario({ usuario, relacion, enCurso, onAccion }: AccionesUsuarioProps) {
   const permisos = capacidades(usuario, relacion, enCurso);
-  const tipoAlcance = controlesDeAlcance(usuario.rol);
+  const tieneAlcance = controlesDeAlcance(usuario.rol) !== null;
   const idMotivo = `acciones-motivo-${usuario.id}`;
+  const describir = permisos.motivoBloqueo ? idMotivo : undefined;
 
   const disparar = (accion: AccionUsuario, habilitada: boolean) => {
     if (habilitada) onAccion(accion);
@@ -36,27 +37,27 @@ export function AccionesUsuario({ usuario, relacion, enCurso, onAccion }: Accion
   return (
     <section aria-labelledby={`acciones-usuario-${usuario.id}`} className="flex flex-col gap-3">
       <h3 id={`acciones-usuario-${usuario.id}`} tabIndex={-1} className="font-semibold">
-        Acciones
+        {TEXTOS.accionesTitulo}
       </h3>
 
       <div className="flex flex-wrap gap-2">
         <Button
           variant="outline"
           disabled={!permisos.puedeCambiarRol}
-          aria-describedby={permisos.motivoBloqueo ? idMotivo : undefined}
+          aria-describedby={describir}
           onClick={() => disparar('cambiarRol', permisos.puedeCambiarRol)}
         >
-          Cambiar rol
+          {TEXTOS.cambiarRol}
         </Button>
 
-        {tipoAlcance !== null && (
+        {tieneAlcance && (
           <Button
             variant="outline"
             disabled={!permisos.puedeEditarAlcance}
-            aria-describedby={permisos.motivoBloqueo ? idMotivo : undefined}
+            aria-describedby={describir}
             onClick={() => disparar('editarAlcance', permisos.puedeEditarAlcance)}
           >
-            Editar alcance
+            {TEXTOS.editarAlcance}
           </Button>
         )}
 
@@ -66,7 +67,7 @@ export function AccionesUsuario({ usuario, relacion, enCurso, onAccion }: Accion
             disabled={!permisos.puedeDesactivar}
             onClick={() => disparar('desactivar', permisos.puedeDesactivar)}
           >
-            Desactivar
+            {TEXTOS.desactivar}
           </Button>
         ) : (
           <Button
@@ -74,7 +75,7 @@ export function AccionesUsuario({ usuario, relacion, enCurso, onAccion }: Accion
             disabled={!permisos.puedeReactivar}
             onClick={() => disparar('reactivar', permisos.puedeReactivar)}
           >
-            Reactivar
+            {TEXTOS.reactivar}
           </Button>
         )}
 
@@ -84,29 +85,28 @@ export function AccionesUsuario({ usuario, relacion, enCurso, onAccion }: Accion
             disabled={!permisos.puedeRevocarSesiones}
             onClick={() => disparar('revocarSesiones', permisos.puedeRevocarSesiones)}
           >
-            Revocar sesiones
+            {TEXTOS.revocarSesiones}
           </Button>
         )}
       </div>
 
-      <AvisoBloqueo id={idMotivo} motivo={permisos.motivoBloqueo} />
+      {permisos.motivoBloqueo && (
+        <Card variant="outlined">
+          <CardBody>
+            <p id={idMotivo} role="note">
+              {permisos.motivoBloqueo}
+            </p>
+          </CardBody>
+        </Card>
+      )}
 
-      {relacion === 'propio' && <p>{TEXTOS.propioRevocacion}</p>}
+      {relacion === 'propio' && (
+        <Card variant="outlined">
+          <CardBody>
+            <p>{TEXTOS.propioRevocacion}</p>
+          </CardBody>
+        </Card>
+      )}
     </section>
-  );
-}
-
-interface AvisoBloqueoProps {
-  readonly id: string;
-  readonly motivo: string | null;
-}
-
-/** Motivo visible del bloqueo de rol y alcance. Asociado a los controles por `aria-describedby`. */
-export function AvisoBloqueo({ id, motivo }: AvisoBloqueoProps) {
-  if (motivo === null) return null;
-  return (
-    <p id={id} role="note" className="text-sm">
-      {motivo}
-    </p>
   );
 }

@@ -1,21 +1,19 @@
 import { useReducer, useState } from 'react';
-import { Button } from '@ai27-tech/ui';
-import type { Rol } from '@ai27-tech/contracts/roles';
+import { Button, Card, CardBody, FormSection, Modal, Radio } from '@ai27-tech/ui';
+import { Rol } from '@ai27-tech/contracts/roles';
 
 import { useAdministracionPort } from '@/context/AdministracionContext';
 import { useSession } from '@/context/SessionContext';
 import type { UsuarioResumen } from '@/lib/contracts/administracion';
 
-import { DialogoAdministracion } from './DialogoAdministracion';
 import { controlesDeAlcance, opcionesRolParaCambio } from './afordancias';
 import { clasificarFallo, textoDeFallo } from './clasificarError';
 import {
   reducirDialogoConfirmacion,
   estaPendienteConfirmacion,
 } from './dialogoConfirmacionReducer';
-import { mensajesDeExito, TEXTOS_ADMINISTRACION as TEXTOS } from './mensajes';
+import { ETIQUETAS_ROL, mensajesDeExito, TEXTOS_ADMINISTRACION as TEXTOS } from './mensajes';
 import type { RelacionConSesion } from './relacionConSesion';
-import { SelectorRol } from './SelectorRol';
 import { claveEnvio, type EnvioUnico } from './useEnvioUnico';
 import { useAlAbrir } from './useAlAbrir';
 
@@ -26,16 +24,14 @@ interface CambioRolDialogProps {
   readonly relacion: RelacionConSesion;
   /** Cerrojo de envío del padre. Vive fuera del diálogo para sobrevivir a su cierre. */
   readonly envio: EnvioUnico;
-  /** Id del encabezado de la sección que recibe el foco como respaldo. */
-  readonly idEncabezadoSeccion: string;
   readonly onCambiado: (mensaje: string) => void;
 }
 
 /**
- * Cambio de rol de un usuario (R5). Solo ofrece roles del mismo lado: un cliente
- * no cambia de rol y un interno no recibe `cliente`. Avisa que el cambio retira
- * el alcance actual del usuario (DEC-140 #3). Contra el puerto falso: no consume
- * datos reales.
+ * Cambio de rol de un usuario (R5). Solo ofrece roles del mismo lado: un cliente no
+ * cambia de rol y un interno no recibe `cliente`. Avisa que el cambio retira el
+ * alcance actual del usuario (DEC-140 #3). Contra el puerto: no consume datos fuera
+ * del puerto.
  */
 export function CambioRolDialog({
   abierto,
@@ -43,7 +39,6 @@ export function CambioRolDialog({
   usuario,
   relacion,
   envio,
-  idEncabezadoSeccion,
   onCambiado,
 }: CambioRolDialogProps) {
   const port = useAdministracionPort();
@@ -81,54 +76,79 @@ export function CambioRolDialog({
       const resultado = await envio.enviar(clave, () =>
         port.fijarRol(usuario.id, rolElegido, token),
       );
-      // Una segunda confirmación que llega con el cerrojo tomado no emite nada.
       if (!resultado.enviado) return;
 
       despachar('exito');
       onCambiado(mensajesDeExito('cambioRol'));
       onCerrar();
     } catch (fallo) {
-      const clasificado = clasificarFallo('fijarRol', fallo, relacion);
       despachar('fallo');
-      setErrorEnvio(textoDeFallo(clasificado));
+      setErrorEnvio(textoDeFallo(clasificarFallo('fijarRol', fallo, relacion)));
     }
   };
 
   return (
-    <DialogoAdministracion
-      abierto={abierto}
-      onCerrar={cerrar}
-      pendiente={pendiente}
-      titulo="Cambiar rol"
-      idEncabezadoSeccion={idEncabezadoSeccion}
-      pie={
+    <Modal
+      open={abierto}
+      onClose={() => {
+        if (!pendiente) cerrar();
+      }}
+      title={TEXTOS.cambioRolTitulo}
+      closeOnEsc={!pendiente}
+      closeOnOverlayClick={!pendiente}
+      showCloseButton={!pendiente}
+      footer={
         <>
           <Button variant="outline" onClick={cerrar} disabled={pendiente}>
             {TEXTOS.cancelar}
           </Button>
           <Button variant="primary" onClick={() => void confirmar()} disabled={!puedeConfirmar}>
-            {pendiente ? TEXTOS.enviando : 'Cambiar rol'}
+            {pendiente ? TEXTOS.enviando : TEXTOS.cambiarRol}
           </Button>
         </>
       }
     >
       {opciones.length === 0 ? (
-        <p>{TEXTOS.cambioRolDeClienteNoEditable}</p>
+        <Card variant="outlined">
+          <CardBody>
+            <p>{TEXTOS.cambioRolDeClienteNoEditable}</p>
+          </CardBody>
+        </Card>
       ) : (
         <div className="flex flex-col gap-3">
-          <SelectorRol
-            nombre={`cambio-rol-${usuario.id}`}
-            leyenda="Nuevo rol"
-            valor={rolElegido}
-            onCambiar={setRolElegido}
-            opciones={opciones}
-            rolActual={usuario.rol}
-            disabled={pendiente || !habilitado}
-          />
-          {retiraAlcance && <p role="note">{TEXTOS.cambioRolRetiraAlcance}</p>}
-          {errorEnvio && <p role="alert">{errorEnvio}</p>}
+          <FormSection title={TEXTOS.cambioRolLeyenda}>
+            {opciones.map((rol) => (
+              <Radio
+                key={rol}
+                name={`cambio-rol-${usuario.id}`}
+                value={rol}
+                checked={rolElegido === rol}
+                disabled={pendiente || !habilitado}
+                onChange={() => setRolElegido(rol)}
+                label={
+                  rol === usuario.rol
+                    ? `${ETIQUETAS_ROL[rol]} (${TEXTOS.rolActual})`
+                    : ETIQUETAS_ROL[rol]
+                }
+              />
+            ))}
+          </FormSection>
+          {retiraAlcance && (
+            <Card variant="outlined">
+              <CardBody>
+                <p role="note">{TEXTOS.cambioRolRetiraAlcance}</p>
+              </CardBody>
+            </Card>
+          )}
+          {errorEnvio && (
+            <Card variant="outlined">
+              <CardBody>
+                <p role="alert">{errorEnvio}</p>
+              </CardBody>
+            </Card>
+          )}
         </div>
       )}
-    </DialogoAdministracion>
+    </Modal>
   );
 }

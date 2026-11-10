@@ -1,11 +1,10 @@
 import { useRef, useState } from 'react';
-import { Button, Toast, ToastContainer } from '@ai27-tech/ui';
+import { Button, Card, CardBody, Toast, ToastContainer } from '@ai27-tech/ui';
 
 import { useAdministracionPort } from '@/context/AdministracionContext';
 
 import { AltaUsuarioDialog } from './AltaUsuarioDialog';
 import { PanelUsuario } from './PanelUsuario';
-import { RegionConsulta } from './RegionConsulta';
 import { SeccionOrganizaciones } from './SeccionOrganizaciones';
 import { SeccionUsuarios } from './SeccionUsuarios';
 import { TEXTOS_ADMINISTRACION as TEXTOS } from './mensajes';
@@ -63,10 +62,11 @@ export function AdministracionAutorizada({
   const contenido = () => {
     if (!publicada) {
       return (
-        <RegionConsulta
-          estado="brecha"
-          etiqueta={seccion === 'usuarios' ? TEXTOS.usuariosTitulo : TEXTOS.organizacionesTitulo}
-        />
+        <Card variant="outlined">
+          <CardBody>
+            <p role="status">{TEXTOS.seccionNoPublicada}</p>
+          </CardBody>
+        </Card>
       );
     }
     if (seccion === 'organizaciones') {
@@ -77,7 +77,6 @@ export function AdministracionAutorizada({
         <PanelUsuario
           usuarioId={usuarioId}
           envio={envio}
-          idEncabezadoSeccion="administracion-seccion-usuarios"
           onVolver={() => onAbrirUsuario(null)}
           onAviso={aviso}
         />
@@ -93,7 +92,6 @@ export function AdministracionAutorizada({
           abierto={altaAbierta}
           onCerrar={() => setAltaAbierta(false)}
           envio={envio}
-          idEncabezadoSeccion="administracion-seccion-usuarios"
           onAlta={(mensaje) => aviso(mensaje, 'exito')}
         />
       </>
@@ -102,7 +100,7 @@ export function AdministracionAutorizada({
 
   return (
     <div className="flex flex-col gap-4">
-      <nav aria-label="Secciones de administración" className="flex gap-2">
+      <nav aria-label={TEXTOS.seccionesAdministracion} className="flex gap-2">
         {SECCIONES.map((item) => {
           const activa = item.id === seccion;
           return (

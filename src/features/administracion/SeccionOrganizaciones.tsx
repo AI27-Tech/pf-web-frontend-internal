@@ -1,14 +1,12 @@
 import { useState } from 'react';
-import { Button, Table, type Column } from '@ai27-tech/ui';
+import { Badge, Button, Card, CardBody, Table, type Column } from '@ai27-tech/ui';
 
 import type { Organizacion } from '@/lib/contracts/administracion';
 
+import { avisoDeEstado, estadoConsulta } from './estadoConsulta';
 import { DesactivarOrganizacionDialog } from './DesactivarOrganizacionDialog';
-import { EstadoBadge } from './EstadoBadge';
-import { estadoConsulta } from './estadoConsulta';
 import { OrganizacionFormDialog } from './OrganizacionFormDialog';
 import { TEXTOS_ADMINISTRACION as TEXTOS } from './mensajes';
-import { RegionConsulta } from './RegionConsulta';
 import { useOrganizaciones } from './consultasAdministracion';
 import type { EnvioUnico } from './useEnvioUnico';
 
@@ -22,8 +20,6 @@ type DialogoOrganizacion =
   | { readonly tipo: 'editar'; readonly organizacion: Organizacion }
   | { readonly tipo: 'desactivar'; readonly organizacion: Organizacion }
   | null;
-
-const SIN_DATO = TEXTOS.sinDato;
 
 /**
  * Lista plana de organizaciones de Cliente (R9). El tenant es solo lectura. No hay
@@ -42,11 +38,16 @@ export function SeccionOrganizaciones({ envio, onAviso }: SeccionOrganizacionesP
     },
     (datos) => datos.length === 0,
   );
+  const aviso = avisoDeEstado(estado.estado);
 
   const columnas: Column<Organizacion>[] = [
     { key: 'nombre', header: TEXTOS.columnaNombre, cell: (fila) => fila.nombre },
-    { key: 'correo', header: TEXTOS.columnaCorreo, cell: (fila) => fila.correo ?? SIN_DATO },
-    { key: 'telefono', header: TEXTOS.columnaTelefono, cell: (fila) => fila.telefono ?? SIN_DATO },
+    { key: 'correo', header: TEXTOS.columnaCorreo, cell: (fila) => fila.correo ?? TEXTOS.sinDato },
+    {
+      key: 'telefono',
+      header: TEXTOS.columnaTelefono,
+      cell: (fila) => fila.telefono ?? TEXTOS.sinDato,
+    },
     { key: 'tenant', header: TEXTOS.columnaTenant, cell: (fila) => fila.id },
     {
       key: 'usuarios',
@@ -56,7 +57,11 @@ export function SeccionOrganizaciones({ envio, onAviso }: SeccionOrganizacionesP
     {
       key: 'estado',
       header: TEXTOS.columnaEstado,
-      cell: (fila) => <EstadoBadge activo={fila.activa} />,
+      cell: (fila) => (
+        <Badge variant={fila.activa ? 'secure' : 'neutral'} dot>
+          {fila.activa ? TEXTOS.activo : TEXTOS.inactivo}
+        </Badge>
+      ),
     },
     {
       key: 'acciones',
@@ -103,30 +108,33 @@ export function SeccionOrganizaciones({ envio, onAviso }: SeccionOrganizacionesP
         </Button>
       </div>
 
-      {estado.estado === 'datos' || estado.estado === 'datos_desactualizado' ? (
-        <RegionConsulta estado={estado.estado} etiqueta={TEXTOS.organizacionesTitulo}>
-          <Table<Organizacion>
-            columns={columnas}
-            data={[...(consulta.data ?? [])]}
-            rowKey={(fila) => fila.id}
-            aria-label={TEXTOS.organizacionesTitulo}
-          />
-        </RegionConsulta>
-      ) : (
-        <RegionConsulta
-          estado={estado.estado}
-          etiqueta={TEXTOS.organizacionesTitulo}
-          textoVacio={TEXTOS.organizacionesVacias}
-          onReintentar={() => void consulta.refetch()}
-        />
+      {aviso && (
+        <Card variant="outlined">
+          <CardBody>
+            <p role={aviso.alerta ? 'alert' : 'status'}>{aviso.texto}</p>
+            {estado.estado === 'error' && (
+              <Button variant="outline" size="sm" onClick={() => void consulta.refetch()}>
+                {TEXTOS.reintentar}
+              </Button>
+            )}
+          </CardBody>
+        </Card>
       )}
+
+      <Table<Organizacion>
+        columns={columnas}
+        data={[...(consulta.data ?? [])]}
+        rowKey={(fila) => fila.id}
+        loading={estado.estado === 'cargando'}
+        emptyState={TEXTOS.organizacionesVacias}
+        aria-label={TEXTOS.organizacionesTitulo}
+      />
 
       <OrganizacionFormDialog
         abierto={dialogo?.tipo === 'crear' || dialogo?.tipo === 'editar'}
         onCerrar={cerrar}
         {...(editando ? { organizacion: editando } : {})}
         envio={envio}
-        idEncabezadoSeccion="administracion-seccion-organizaciones"
         onGuardada={(mensaje) => onAviso(mensaje, 'exito')}
       />
 
@@ -136,7 +144,6 @@ export function SeccionOrganizaciones({ envio, onAviso }: SeccionOrganizacionesP
           onCerrar={cerrar}
           organizacion={desactivando}
           envio={envio}
-          idEncabezadoSeccion="administracion-seccion-organizaciones"
           onCompletado={(mensaje) => onAviso(mensaje, 'exito')}
         />
       )}

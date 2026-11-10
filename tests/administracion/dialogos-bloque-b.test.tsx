@@ -74,7 +74,6 @@ describe('E8-T19 · 11.1 CambioRolDialog', () => {
             usuario={usuarioCliente}
             relacion="ajeno"
             envio={envio}
-            idEncabezadoSeccion="seccion"
             onCambiado={vi.fn()}
           />
         )}
@@ -97,7 +96,6 @@ describe('E8-T19 · 11.1 CambioRolDialog', () => {
             usuario={usuarioInterno}
             relacion="ajeno"
             envio={envio}
-            idEncabezadoSeccion="seccion"
             onCambiado={vi.fn()}
           />
         )}
@@ -121,7 +119,6 @@ describe('E8-T19 · 11.1 CambioRolDialog', () => {
             usuario={usuarioInterno}
             relacion="ajeno"
             envio={envio}
-            idEncabezadoSeccion="seccion"
             onCambiado={vi.fn()}
           />
         )}
@@ -150,7 +147,6 @@ describe('E8-T19 · 11.1 CambioRolDialog', () => {
             usuario={usuarioInterno}
             relacion="ajeno"
             envio={envio}
-            idEncabezadoSeccion="seccion"
             onCambiado={onCambiado}
           />
         )}
@@ -187,7 +183,6 @@ describe('E8-T19 · 11.1 CambioRolDialog', () => {
             usuario={usuarioInterno}
             relacion="ajeno"
             envio={envio}
-            idEncabezadoSeccion="seccion"
             onCambiado={vi.fn()}
           />
         )}
@@ -217,7 +212,6 @@ describe('E8-T19 · 11.1 CambioRolDialog', () => {
             usuario={usuarioInterno}
             relacion="ajeno"
             envio={envio}
-            idEncabezadoSeccion="seccion"
             onCambiado={vi.fn()}
           />
         )}
@@ -244,7 +238,6 @@ describe('E8-T19 · 11.1 CambioRolDialog', () => {
             usuario={usuarioInterno}
             relacion="propio"
             envio={envio}
-            idEncabezadoSeccion="seccion"
             onCambiado={vi.fn()}
           />
         )}
@@ -274,7 +267,6 @@ describe('E8-T19 · 12.1 DesactivarUsuarioDialog', () => {
             usuario={usuarioInterno}
             modo="desactivar"
             envio={envio}
-            idEncabezadoSeccion="seccion"
             onCompletado={onCompletado}
           />
         )}
@@ -307,7 +299,6 @@ describe('E8-T19 · 12.1 DesactivarUsuarioDialog', () => {
             usuario={usuarioInterno}
             modo="desactivar"
             envio={envio}
-            idEncabezadoSeccion="seccion"
             onCompletado={vi.fn()}
           />
         )}
@@ -334,7 +325,6 @@ describe('E8-T19 · 12.1 DesactivarUsuarioDialog', () => {
             usuario={{ ...usuarioInterno, activo: false }}
             modo="reactivar"
             envio={envio}
-            idEncabezadoSeccion="seccion"
             onCompletado={vi.fn()}
           />
         )}
@@ -366,13 +356,7 @@ describe('E8-T19 · 14.1 OrganizacionFormDialog', () => {
       <Contenedor
         puerto={puerto}
         montar={(envio) => (
-          <OrganizacionFormDialog
-            abierto
-            onCerrar={vi.fn()}
-            envio={envio}
-            idEncabezadoSeccion="seccion"
-            onGuardada={vi.fn()}
-          />
+          <OrganizacionFormDialog abierto onCerrar={vi.fn()} envio={envio} onGuardada={vi.fn()} />
         )}
       />,
     );
@@ -390,13 +374,7 @@ describe('E8-T19 · 14.1 OrganizacionFormDialog', () => {
       <Contenedor
         puerto={puerto}
         montar={(envio) => (
-          <OrganizacionFormDialog
-            abierto
-            onCerrar={vi.fn()}
-            envio={envio}
-            idEncabezadoSeccion="seccion"
-            onGuardada={vi.fn()}
-          />
+          <OrganizacionFormDialog abierto onCerrar={vi.fn()} envio={envio} onGuardada={vi.fn()} />
         )}
       />,
     );
@@ -423,7 +401,6 @@ describe('E8-T19 · 14.1 OrganizacionFormDialog', () => {
             abierto
             onCerrar={vi.fn()}
             envio={envio}
-            idEncabezadoSeccion="seccion"
             onGuardada={onGuardada}
           />
         )}
@@ -458,13 +435,7 @@ describe('E8-T19 · 14.1 OrganizacionFormDialog', () => {
       <Contenedor
         puerto={puerto}
         montar={(envio) => (
-          <OrganizacionFormDialog
-            abierto
-            onCerrar={vi.fn()}
-            envio={envio}
-            idEncabezadoSeccion="seccion"
-            onGuardada={vi.fn()}
-          />
+          <OrganizacionFormDialog abierto onCerrar={vi.fn()} envio={envio} onGuardada={vi.fn()} />
         )}
       />,
     );
@@ -492,7 +463,6 @@ describe('E8-T19 · 14.1 OrganizacionFormDialog', () => {
             onCerrar={vi.fn()}
             organizacion={organizacionActiva}
             envio={envio}
-            idEncabezadoSeccion="seccion"
             onGuardada={vi.fn()}
           />
         )}
@@ -526,7 +496,6 @@ describe('E8-T19 · 15.1 RevocarSesionesDialog', () => {
             usuario={usuarioInterno}
             relacion="propio"
             envio={envio}
-            idEncabezadoSeccion="seccion"
             onResultado={vi.fn()}
           />
         )}
@@ -551,7 +520,6 @@ describe('E8-T19 · 15.1 RevocarSesionesDialog', () => {
             usuario={usuarioInterno}
             relacion="ajeno"
             envio={envio}
-            idEncabezadoSeccion="seccion"
             onResultado={vi.fn()}
           />
         )}
@@ -581,7 +549,6 @@ describe('E8-T19 · 15.1 RevocarSesionesDialog', () => {
             usuario={usuarioInterno}
             relacion="ajeno"
             envio={envio}
-            idEncabezadoSeccion="seccion"
             onResultado={onResultado}
           />
         )}
@@ -613,7 +580,6 @@ describe('E8-T19 · 15.1 RevocarSesionesDialog', () => {
             usuario={usuarioInterno}
             relacion="ajeno"
             envio={envio}
-            idEncabezadoSeccion="seccion"
             onResultado={vi.fn()}
           />
         )}

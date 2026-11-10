@@ -1,11 +1,11 @@
 import { useReducer, useState, type FormEvent } from 'react';
-import { Button, FormField, Input } from '@ai27-tech/ui';
+import { Button, Card, CardBody, FormField, FormSection, Input, Modal, Radio } from '@ai27-tech/ui';
 import { Rol } from '@ai27-tech/contracts/roles';
 
 import { useAdministracionPort } from '@/context/AdministracionContext';
 import { useSession } from '@/context/SessionContext';
+import { OPCIONES_ROL } from '@/lib/contracts/administracion';
 
-import { DialogoAdministracion } from './DialogoAdministracion';
 import { useInvalidarAdministracion, useOrganizaciones } from './consultasAdministracion';
 import {
   clasificarFallo,
@@ -14,9 +14,8 @@ import {
   textoDeFallo,
 } from './clasificarError';
 import { estaPendienteFormulario, reducirDialogoFormulario } from './dialogoFormularioReducer';
-import { mensajesDeExito, TEXTOS_ADMINISTRACION as TEXTOS } from './mensajes';
-import { SelectorOrganizacion } from './SelectorOrganizacion';
-import { SelectorRol } from './SelectorRol';
+import { ETIQUETAS_ROL, mensajesDeExito, TEXTOS_ADMINISTRACION as TEXTOS } from './mensajes';
+import { organizacionesOfrecibles } from './validacion';
 import { useAlAbrir } from './useAlAbrir';
 import { claveEnvio, type EnvioUnico } from './useEnvioUnico';
 import { validarAlta, type CampoAlta } from './validacion';
@@ -25,23 +24,16 @@ interface AltaUsuarioDialogProps {
   readonly abierto: boolean;
   readonly onCerrar: () => void;
   readonly envio: EnvioUnico;
-  readonly idEncabezadoSeccion: string;
   readonly onAlta: (mensaje: string) => void;
 }
 
 /**
- * Alta de usuario (R3). Organización solo para `cliente`; al cambiar a un rol
- * interno se descarta la organización capturada. Nunca captura `tenant_id`. Ante
- * cualquier error conserva lo capturado. Identificador duplicado va junto a su
- * campo; una organización inválida va junto al selector y recarga las organizaciones.
+ * Alta de usuario (R3). Organización solo para `cliente`; al cambiar a un rol interno
+ * se descarta la organización capturada. Nunca captura `tenant_id`. Ante cualquier
+ * error conserva lo capturado. El identificador duplicado va junto a su campo; una
+ * organización inválida va junto al selector y recarga las organizaciones.
  */
-export function AltaUsuarioDialog({
-  abierto,
-  onCerrar,
-  envio,
-  idEncabezadoSeccion,
-  onAlta,
-}: AltaUsuarioDialogProps) {
+export function AltaUsuarioDialog({ abierto, onCerrar, envio, onAlta }: AltaUsuarioDialogProps) {
   const port = useAdministracionPort();
   const { sesion } = useSession();
   const organizaciones = useOrganizaciones();
@@ -67,6 +59,7 @@ export function AltaUsuarioDialog({
 
   const pendiente = estaPendienteFormulario(estado);
   const clave = claveEnvio('altaUsuario', 'nuevo');
+  const ofrecibles = organizacionesOfrecibles(organizaciones.data ?? []);
 
   const elegirRol = (nuevo: Rol) => {
     setRol(nuevo);
@@ -123,13 +116,16 @@ export function AltaUsuarioDialog({
   };
 
   return (
-    <DialogoAdministracion
-      abierto={abierto}
-      onCerrar={cerrar}
-      pendiente={pendiente}
-      titulo={TEXTOS.altaTitulo}
-      idEncabezadoSeccion={idEncabezadoSeccion}
-      pie={
+    <Modal
+      open={abierto}
+      onClose={() => {
+        if (!pendiente) cerrar();
+      }}
+      title={TEXTOS.altaTitulo}
+      closeOnEsc={!pendiente}
+      closeOnOverlayClick={!pendiente}
+      showCloseButton={!pendiente}
+      footer={
         <>
           <Button variant="outline" onClick={cerrar} disabled={pendiente}>
             {TEXTOS.cancelar}
@@ -156,6 +152,7 @@ export function AltaUsuarioDialog({
               disabled={pendiente}
             />
           </FormField>
+
           <FormField
             label={TEXTOS.altaIdentificador}
             htmlFor="alta-identificador"
@@ -171,27 +168,55 @@ export function AltaUsuarioDialog({
               autoComplete="off"
             />
           </FormField>
-          <SelectorRol
-            nombre="alta-rol"
-            leyenda={TEXTOS.altaRol}
-            valor={rol}
-            onCambiar={elegirRol}
-            disabled={pendiente}
-          />
+
+          <FormSection title={TEXTOS.altaRol}>
+            {OPCIONES_ROL.map((opcion) => (
+              <Radio
+                key={opcion}
+                name="alta-rol"
+                value={opcion}
+                checked={rol === opcion}
+                disabled={pendiente}
+                onChange={() => elegirRol(opcion)}
+                label={ETIQUETAS_ROL[opcion]}
+              />
+            ))}
+          </FormSection>
+
           {rol === Rol.Cliente && (
-            <SelectorOrganizacion
-              nombre="alta-organizacion"
-              leyenda={TEXTOS.altaOrganizacion}
-              valor={organizacionId}
-              onCambiar={setOrganizacionId}
-              organizaciones={organizaciones.data ?? []}
-              disabled={pendiente}
-            />
+            <FormSection title={TEXTOS.altaOrganizacion}>
+              {ofrecibles.length === 0 ? (
+                <Card variant="outlined">
+                  <CardBody>
+                    <p role="status">{TEXTOS.sinOrganizaciones}</p>
+                  </CardBody>
+                </Card>
+              ) : (
+                ofrecibles.map((organizacion) => (
+                  <Radio
+                    key={organizacion.id}
+                    name="alta-organizacion"
+                    value={organizacion.id}
+                    checked={organizacionId === organizacion.id}
+                    disabled={pendiente}
+                    onChange={() => setOrganizacionId(organizacion.id)}
+                    label={organizacion.nombre}
+                  />
+                ))
+              )}
+              {errores.organizacionId && <p role="alert">{errores.organizacionId}</p>}
+            </FormSection>
           )}
-          {errores.organizacionId && <p role="alert">{errores.organizacionId}</p>}
-          {errorGeneral && <p role="alert">{errorGeneral}</p>}
+
+          {errorGeneral && (
+            <Card variant="outlined">
+              <CardBody>
+                <p role="alert">{errorGeneral}</p>
+              </CardBody>
+            </Card>
+          )}
         </div>
       </form>
-    </DialogoAdministracion>
+    </Modal>
   );
 }

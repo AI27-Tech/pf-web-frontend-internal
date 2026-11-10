@@ -1,17 +1,15 @@
 import { useReducer, useState } from 'react';
-import { Button } from '@ai27-tech/ui';
+import { Button, Card, CardBody, Modal } from '@ai27-tech/ui';
 
 import { useAdministracionPort } from '@/context/AdministracionContext';
 import { useSession } from '@/context/SessionContext';
 import type { UsuarioResumen } from '@/lib/contracts/administracion';
 
-import { DialogoAdministracion } from './DialogoAdministracion';
 import { clasificarFallo, textoDeFallo, type OperacionAdministracion } from './clasificarError';
 import {
   reducirDialogoConfirmacion,
   estaPendienteConfirmacion,
 } from './dialogoConfirmacionReducer';
-import { etiquetaUsuario } from './etiquetas';
 import { mensajesDeExito, TEXTOS_ADMINISTRACION as TEXTOS } from './mensajes';
 import { claveEnvio, type EnvioUnico } from './useEnvioUnico';
 import { useAlAbrir } from './useAlAbrir';
@@ -24,7 +22,6 @@ interface DesactivarUsuarioDialogProps {
   readonly usuario: UsuarioResumen;
   readonly modo: ModoActivacion;
   readonly envio: EnvioUnico;
-  readonly idEncabezadoSeccion: string;
   readonly onCompletado: (mensaje: string) => void;
 }
 
@@ -35,9 +32,9 @@ const OPERACION: Record<ModoActivacion, OperacionAdministracion> = {
 
 /**
  * Confirmación previa para desactivar (R8.1, R8.2) o reactivar un usuario. Ninguna
- * solicitud sale antes de confirmar. Desactivar avisa el corte en máximo 30 s y
- * que no cambia rol ni alcance (R8.4, R8.7). El último administrador lo explica el
- * motivo que devuelve el `bff` (R8.10), no la interfaz.
+ * solicitud sale antes de confirmar. Desactivar avisa el corte en máximo 30 s y que
+ * no cambia rol ni alcance (R8.4, R8.7). El último administrador lo explica el motivo
+ * que devuelve el `bff` (R8.10), no la interfaz.
  */
 export function DesactivarUsuarioDialog({
   abierto,
@@ -45,7 +42,6 @@ export function DesactivarUsuarioDialog({
   usuario,
   modo,
   envio,
-  idEncabezadoSeccion,
   onCompletado,
 }: DesactivarUsuarioDialogProps) {
   const port = useAdministracionPort();
@@ -86,20 +82,22 @@ export function DesactivarUsuarioDialog({
       onCompletado(mensajesDeExito(desactivar ? 'desactivarUsuario' : 'reactivarUsuario'));
       onCerrar();
     } catch (fallo) {
-      const clasificado = clasificarFallo(OPERACION[modo], fallo);
       despachar('fallo');
-      setErrorEnvio(textoDeFallo(clasificado));
+      setErrorEnvio(textoDeFallo(clasificarFallo(OPERACION[modo], fallo)));
     }
   };
 
   return (
-    <DialogoAdministracion
-      abierto={abierto}
-      onCerrar={cerrar}
-      pendiente={pendiente}
-      titulo={desactivar ? 'Desactivar usuario' : 'Reactivar usuario'}
-      idEncabezadoSeccion={idEncabezadoSeccion}
-      pie={
+    <Modal
+      open={abierto}
+      onClose={() => {
+        if (!pendiente) cerrar();
+      }}
+      title={desactivar ? TEXTOS.desactivarUsuarioTitulo : TEXTOS.reactivarUsuarioTitulo}
+      closeOnEsc={!pendiente}
+      closeOnOverlayClick={!pendiente}
+      showCloseButton={!pendiente}
+      footer={
         <>
           <Button variant="outline" onClick={cerrar} disabled={pendiente}>
             {TEXTOS.cancelar}
@@ -109,19 +107,32 @@ export function DesactivarUsuarioDialog({
             onClick={() => void confirmar()}
             disabled={!puedeConfirmar}
           >
-            {pendiente ? TEXTOS.enviando : desactivar ? 'Desactivar' : 'Reactivar'}
+            {pendiente ? TEXTOS.enviando : desactivar ? TEXTOS.desactivar : TEXTOS.reactivar}
           </Button>
         </>
       }
     >
       <div className="flex flex-col gap-3">
         <p>
-          {desactivar ? '¿Desactivar a ' : '¿Reactivar a '}
-          <strong>{etiquetaUsuario(usuario)}</strong>?
+          {desactivar ? TEXTOS.confirmarDesactivarUsuario : TEXTOS.confirmarReactivarUsuario}{' '}
+          <strong>
+            {usuario.nombre ?? usuario.identificadorUsuario ?? TEXTOS.usuarioSinNombre}
+          </strong>
+          ?
         </p>
-        <p>{desactivar ? TEXTOS.desactivarCorte : TEXTOS.reactivarConfirmacion}</p>
-        {errorEnvio && <p role="alert">{errorEnvio}</p>}
+        <Card variant="outlined">
+          <CardBody>
+            <p>{desactivar ? TEXTOS.desactivarCorte : TEXTOS.reactivarConfirmacion}</p>
+          </CardBody>
+        </Card>
+        {errorEnvio && (
+          <Card variant="outlined">
+            <CardBody>
+              <p role="alert">{errorEnvio}</p>
+            </CardBody>
+          </Card>
+        )}
       </div>
-    </DialogoAdministracion>
+    </Modal>
   );
 }

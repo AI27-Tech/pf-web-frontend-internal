@@ -82,15 +82,7 @@ describe('E8-T19 · Bloque B con el adaptador real y los mocks', () => {
     const user = userEvent.setup();
     render(
       <Montaje>
-        {(envio) => (
-          <AltaUsuarioDialog
-            abierto
-            onCerrar={() => {}}
-            envio={envio}
-            idEncabezadoSeccion="seccion"
-            onAlta={onAlta}
-          />
-        )}
+        {(envio) => <AltaUsuarioDialog abierto onCerrar={() => {}} envio={envio} onAlta={onAlta} />}
       </Montaje>,
     );
 
@@ -107,13 +99,7 @@ describe('E8-T19 · Bloque B con el adaptador real y los mocks', () => {
     render(
       <Montaje>
         {(envio) => (
-          <AltaUsuarioDialog
-            abierto
-            onCerrar={() => {}}
-            envio={envio}
-            idEncabezadoSeccion="seccion"
-            onAlta={() => {}}
-          />
+          <AltaUsuarioDialog abierto onCerrar={() => {}} envio={envio} onAlta={() => {}} />
         )}
       </Montaje>,
     );
@@ -157,7 +143,6 @@ describe('E8-T19 · Bloque B con el adaptador real y los mocks', () => {
             onCerrar={() => {}}
             organizacion={organizacion}
             envio={envio}
-            idEncabezadoSeccion="seccion"
             onCompletado={onCompletado}
           />
         )}

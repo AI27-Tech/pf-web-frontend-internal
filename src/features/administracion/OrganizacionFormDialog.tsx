@@ -1,17 +1,16 @@
 import { useReducer, useRef, useState, type FormEvent } from 'react';
-import { Button, FormField, Input } from '@ai27-tech/ui';
+import { Button, Card, CardBody, FormField, Input, Modal } from '@ai27-tech/ui';
 
 import { useAdministracionPort } from '@/context/AdministracionContext';
 import { useSession } from '@/context/SessionContext';
 import type { Organizacion } from '@/lib/contracts/administracion';
 
-import { DialogoAdministracion } from './DialogoAdministracion';
 import { clasificarFallo, textoDeFallo } from './clasificarError';
 import { estaPendienteFormulario, reducirDialogoFormulario } from './dialogoFormularioReducer';
-import { TEXTOS_ADMINISTRACION as TEXTOS, mensajesDeExito } from './mensajes';
-import { validarOrganizacion, type CampoOrganizacion } from './validacion';
+import { mensajesDeExito, TEXTOS_ADMINISTRACION as TEXTOS } from './mensajes';
 import { claveEnvio, type EnvioUnico } from './useEnvioUnico';
 import { useAlAbrir } from './useAlAbrir';
+import { validarOrganizacion, type CampoOrganizacion } from './validacion';
 
 interface OrganizacionFormDialogProps {
   readonly abierto: boolean;
@@ -19,22 +18,20 @@ interface OrganizacionFormDialogProps {
   /** Sin organización, el diálogo crea. Con una, edita nombre, correo y teléfono. */
   readonly organizacion?: Organizacion;
   readonly envio: EnvioUnico;
-  readonly idEncabezadoSeccion: string;
   readonly onGuardada: (mensaje: string) => void;
 }
 
 /**
- * Crear o editar una organización de Cliente (R9.1 a R9.12). Nombre, correo (con
- * `@`) y teléfono son obligatorios. El tenant es solo lectura y no hay organización
- * padre. No hay acción de reactivar: desactivar es terminal (PA-8). Ante un
- * nombre duplicado, el formulario conserva lo capturado.
+ * Crear o editar una organización de Cliente (R9.1 a R9.12). Nombre, correo (con `@`)
+ * y teléfono son obligatorios. El tenant es solo lectura y no hay organización padre.
+ * No hay acción de reactivar: desactivar es terminal (PA-8). Ante un nombre duplicado,
+ * el formulario conserva lo capturado.
  */
 export function OrganizacionFormDialog({
   abierto,
   onCerrar,
   organizacion,
   envio,
-  idEncabezadoSeccion,
   onGuardada,
 }: OrganizacionFormDialogProps) {
   const port = useAdministracionPort();
@@ -45,18 +42,17 @@ export function OrganizacionFormDialog({
   const [telefono, setTelefono] = useState('');
   const [errores, setErrores] = useState<Partial<Record<CampoOrganizacion, string>>>({});
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
-  // Id del alta: se genera al abrir y se reutiliza al reintentar, de modo que un
-  // alta a medias se completa en lugar de duplicarse (DEC-144 #2).
-  const idAlta = useRef<string>(crypto.randomUUID());
+  // Id del alta: se genera al abrir y se reutiliza al reintentar (DEC-144 #2).
+  const idAlta = useRef<string>('');
 
   useAlAbrir(abierto, () => {
     despachar('abrir');
-    idAlta.current = crypto.randomUUID();
     setNombre(organizacion?.nombre ?? '');
     setCorreo(organizacion?.correo ?? '');
     setTelefono(organizacion?.telefono ?? '');
     setErrores({});
     setErrorGeneral(null);
+    idAlta.current = crypto.randomUUID();
   });
 
   const pendiente = estaPendienteFormulario(estado);
@@ -98,42 +94,26 @@ export function OrganizacionFormDialog({
       onGuardada(mensajesDeExito('guardarOrganizacion'));
       onCerrar();
     } catch (fallo) {
-      const operacion = organizacion ? 'editarOrganizacion' : 'crearOrganizacion';
-      const clasificado = clasificarFallo(operacion, fallo);
       despachar('fallo_general');
-      setErrorGeneral(textoDeFallo(clasificado));
+      setErrorGeneral(
+        textoDeFallo(
+          clasificarFallo(organizacion ? 'editarOrganizacion' : 'crearOrganizacion', fallo),
+        ),
+      );
     }
   };
 
-  const campo = (
-    id: string,
-    etiqueta: string,
-    valor: string,
-    alCambiar: (valor: string) => void,
-    error: string | undefined,
-    tipo: 'text' | 'email' = 'text',
-  ) => (
-    <FormField label={etiqueta} htmlFor={id} required error={error}>
-      <Input
-        id={id}
-        type={tipo}
-        value={valor}
-        onChange={(evento) => alCambiar(evento.target.value)}
-        state={error ? 'error' : undefined}
-        disabled={pendiente}
-        autoComplete="off"
-      />
-    </FormField>
-  );
-
   return (
-    <DialogoAdministracion
-      abierto={abierto}
-      onCerrar={cerrar}
-      pendiente={pendiente}
-      titulo={organizacion ? 'Editar organización' : 'Nueva organización'}
-      idEncabezadoSeccion={idEncabezadoSeccion}
-      pie={
+    <Modal
+      open={abierto}
+      onClose={() => {
+        if (!pendiente) cerrar();
+      }}
+      title={organizacion ? TEXTOS.editarOrganizacionTitulo : TEXTOS.nuevaOrganizacionTitulo}
+      closeOnEsc={!pendiente}
+      closeOnOverlayClick={!pendiente}
+      showCloseButton={!pendiente}
+      footer={
         <>
           <Button variant="outline" onClick={cerrar} disabled={pendiente}>
             {TEXTOS.cancelar}
@@ -146,31 +126,65 @@ export function OrganizacionFormDialog({
     >
       <form id="organizacion-form" onSubmit={(evento) => void guardar(evento)} noValidate>
         <div className="flex flex-col gap-3">
-          {campo('organizacion-nombre', 'Nombre', nombre, setNombre, errores.nombre)}
-          {campo(
-            'organizacion-correo',
-            'Correo de contacto',
-            correo,
-            setCorreo,
-            errores.correo,
-            'email',
-          )}
-          {campo(
-            'organizacion-telefono',
-            'Teléfono de contacto',
-            telefono,
-            setTelefono,
-            errores.telefono,
-            'text',
-          )}
+          <FormField
+            label={TEXTOS.columnaNombre}
+            htmlFor="organizacion-nombre"
+            required
+            error={errores.nombre}
+          >
+            <Input
+              id="organizacion-nombre"
+              value={nombre}
+              onChange={(evento) => setNombre(evento.target.value)}
+              state={errores.nombre ? 'error' : undefined}
+              disabled={pendiente}
+            />
+          </FormField>
+          <FormField
+            label={TEXTOS.columnaCorreo}
+            htmlFor="organizacion-correo"
+            required
+            error={errores.correo}
+          >
+            <Input
+              id="organizacion-correo"
+              type="email"
+              value={correo}
+              onChange={(evento) => setCorreo(evento.target.value)}
+              state={errores.correo ? 'error' : undefined}
+              disabled={pendiente}
+              autoComplete="off"
+            />
+          </FormField>
+          <FormField
+            label={TEXTOS.columnaTelefono}
+            htmlFor="organizacion-telefono"
+            required
+            error={errores.telefono}
+          >
+            <Input
+              id="organizacion-telefono"
+              value={telefono}
+              onChange={(evento) => setTelefono(evento.target.value)}
+              state={errores.telefono ? 'error' : undefined}
+              disabled={pendiente}
+              autoComplete="off"
+            />
+          </FormField>
           {organizacion && (
             <p className="text-sm">
               {TEXTOS.organizacionEdicionTenant}: {organizacion.id}
             </p>
           )}
-          {errorGeneral && <p role="alert">{errorGeneral}</p>}
+          {errorGeneral && (
+            <Card variant="outlined">
+              <CardBody>
+                <p role="alert">{errorGeneral}</p>
+              </CardBody>
+            </Card>
+          )}
         </div>
       </form>
-    </DialogoAdministracion>
+    </Modal>
   );
 }

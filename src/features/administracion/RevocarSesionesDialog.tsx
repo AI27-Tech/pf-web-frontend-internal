@@ -1,17 +1,15 @@
 import { useReducer, useState } from 'react';
-import { Button, FormField, Textarea } from '@ai27-tech/ui';
+import { Button, Card, CardBody, FormField, Modal, Textarea } from '@ai27-tech/ui';
 
 import { useAdministracionPort } from '@/context/AdministracionContext';
 import { useSession } from '@/context/SessionContext';
 import type { UsuarioResumen } from '@/lib/contracts/administracion';
 
-import { DialogoAdministracion } from './DialogoAdministracion';
 import { clasificarFallo, textoDeFallo } from './clasificarError';
 import {
   reducirDialogoConfirmacion,
   estaPendienteConfirmacion,
 } from './dialogoConfirmacionReducer';
-import { etiquetaUsuario } from './etiquetas';
 import { mensajesDeExito, TEXTOS_ADMINISTRACION as TEXTOS } from './mensajes';
 import type { RelacionConSesion } from './relacionConSesion';
 import { claveEnvio, type EnvioUnico } from './useEnvioUnico';
@@ -25,16 +23,15 @@ interface RevocarSesionesDialogProps {
   readonly relacion: RelacionConSesion;
   /** Cerrojo del padre. La revocación en curso sigue visible al cerrar el diálogo. */
   readonly envio: EnvioUnico;
-  readonly idEncabezadoSeccion: string;
   readonly onResultado: (mensaje: string) => void;
 }
 
 /**
  * Revocación masiva de las sesiones de un usuario (R11). Exige un motivo de texto
  * libre y confirmar queda deshabilitado mientras esté vacío (PA-1). No ofrece la
- * revocación sobre uno mismo: remite al cierre de sesión. No revoca por
- * `sesion_id`. El resultado se muestra tal como lo devuelve el `bff`, incluido
- * "sin sesiones" (R11.5, R11.6).
+ * revocación sobre uno mismo: remite al cierre de sesión. No revoca por `sesion_id`.
+ * El resultado se muestra tal como lo devuelve el `bff`, incluido "sin sesiones"
+ * (R11.5, R11.6).
  */
 export function RevocarSesionesDialog({
   abierto,
@@ -42,7 +39,6 @@ export function RevocarSesionesDialog({
   usuario,
   relacion,
   envio,
-  idEncabezadoSeccion,
   onResultado,
 }: RevocarSesionesDialogProps) {
   const port = useAdministracionPort();
@@ -88,38 +84,47 @@ export function RevocarSesionesDialog({
       );
       onCerrar();
     } catch (fallo) {
-      const clasificado = clasificarFallo('revocarSesiones', fallo, relacion);
       despachar('fallo');
-      setErrorEnvio(textoDeFallo(clasificado));
+      setErrorEnvio(textoDeFallo(clasificarFallo('revocarSesiones', fallo, relacion)));
     }
   };
 
   return (
-    <DialogoAdministracion
-      abierto={abierto}
-      onCerrar={cerrar}
-      pendiente={pendiente}
-      titulo="Revocar sesiones"
-      idEncabezadoSeccion={idEncabezadoSeccion}
-      pie={
+    <Modal
+      open={abierto}
+      onClose={() => {
+        if (!pendiente) cerrar();
+      }}
+      title={TEXTOS.revocarSesiones}
+      closeOnEsc={!pendiente}
+      closeOnOverlayClick={!pendiente}
+      showCloseButton={!pendiente}
+      footer={
         <>
           <Button variant="outline" onClick={cerrar} disabled={pendiente}>
             {TEXTOS.cancelar}
           </Button>
           <Button variant="danger" onClick={() => void confirmar()} disabled={!puedeConfirmar}>
-            {pendiente ? TEXTOS.enviando : 'Revocar sesiones'}
+            {pendiente ? TEXTOS.enviando : TEXTOS.revocarSesiones}
           </Button>
         </>
       }
     >
       <div className="flex flex-col gap-3">
         {relacion === 'propio' ? (
-          <p>{TEXTOS.propioRevocacion}</p>
+          <Card variant="outlined">
+            <CardBody>
+              <p>{TEXTOS.propioRevocacion}</p>
+            </CardBody>
+          </Card>
         ) : (
           <>
             <p>
-              Se cerrarán las sesiones activas de <strong>{etiquetaUsuario(usuario)}</strong>.{' '}
-              {TEXTOS.revocacionCorte}
+              {TEXTOS.revocacionAlcance}{' '}
+              <strong>
+                {usuario.nombre ?? usuario.identificadorUsuario ?? TEXTOS.usuarioSinNombre}
+              </strong>
+              . {TEXTOS.revocacionCorte}
             </p>
             <FormField label={TEXTOS.revocacionMotivoEtiqueta} htmlFor="revocacion-motivo" required>
               <Textarea
@@ -132,9 +137,21 @@ export function RevocarSesionesDialog({
             </FormField>
           </>
         )}
-        {enCurso && <p role="status">{TEXTOS.revocacionEnCurso}</p>}
-        {errorEnvio && <p role="alert">{errorEnvio}</p>}
+        {enCurso && (
+          <Card variant="outlined">
+            <CardBody>
+              <p role="status">{TEXTOS.revocacionEnCurso}</p>
+            </CardBody>
+          </Card>
+        )}
+        {errorEnvio && (
+          <Card variant="outlined">
+            <CardBody>
+              <p role="alert">{errorEnvio}</p>
+            </CardBody>
+          </Card>
+        )}
       </div>
-    </DialogoAdministracion>
+    </Modal>
   );
 }

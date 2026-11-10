@@ -1,14 +1,13 @@
 import { useState } from 'react';
-import { Button } from '@ai27-tech/ui';
+import { Button, Card, CardBody, Modal, Table, type Column } from '@ai27-tech/ui';
 
 import { useAdministracionPort } from '@/context/AdministracionContext';
 import { useSession } from '@/context/SessionContext';
 import type { Organizacion } from '@/lib/contracts/administracion';
 
-import { DialogoAdministracion } from './DialogoAdministracion';
 import { useConsecuenciaOrganizacion, useInvalidarAdministracion } from './consultasAdministracion';
 import { clasificarFallo, textoDeFallo } from './clasificarError';
-import { etiquetaUsuario } from './etiquetas';
+import { etiquetaIdentificador, etiquetaUsuario } from './etiquetas';
 import { mensajesDeExito, TEXTOS_ADMINISTRACION as TEXTOS } from './mensajes';
 import { claveEnvio, type EnvioUnico } from './useEnvioUnico';
 
@@ -17,9 +16,24 @@ interface DesactivarOrganizacionDialogProps {
   readonly onCerrar: () => void;
   readonly organizacion: Organizacion;
   readonly envio: EnvioUnico;
-  readonly idEncabezadoSeccion: string;
   readonly onCompletado: (mensaje: string) => void;
 }
+
+/** Fila de la consecuencia: solo el nombre y el identificador que devuelve el `bff`. */
+interface FilaConsecuencia {
+  readonly fila: string;
+  readonly nombre?: string | undefined;
+  readonly identificadorUsuario?: string | undefined;
+}
+
+const COLUMNAS_CONSECUENCIA: Column<FilaConsecuencia>[] = [
+  { key: 'nombre', header: TEXTOS.columnaNombre, cell: (fila) => etiquetaUsuario(fila) },
+  {
+    key: 'identificador',
+    header: TEXTOS.columnaIdentificador,
+    cell: (fila) => etiquetaIdentificador(fila),
+  },
+];
 
 /**
  * Desactivar una organización (R10). Antes de confirmar consulta la consecuencia: los
@@ -32,7 +46,6 @@ export function DesactivarOrganizacionDialog({
   onCerrar,
   organizacion,
   envio,
-  idEncabezadoSeccion,
   onCompletado,
 }: DesactivarOrganizacionDialogProps) {
   const port = useAdministracionPort();
@@ -43,8 +56,7 @@ export function DesactivarOrganizacionDialog({
 
   const clave = claveEnvio('desactivarOrganizacion', organizacion.id);
   const pendiente = envio.enCurso(clave);
-  const listo = consecuencia.isSuccess && !pendiente;
-  const puedeConfirmar = listo;
+  const puedeConfirmar = consecuencia.isSuccess && !pendiente;
 
   const confirmar = async () => {
     if (!puedeConfirmar) return;
@@ -63,41 +75,19 @@ export function DesactivarOrganizacionDialog({
     }
   };
 
-  const contenido = () => {
-    if (consecuencia.isPending) return <p role="status">{TEXTOS.organizacionConsultando}</p>;
-    if (consecuencia.isError) {
-      return (
-        <div className="flex flex-col gap-2">
-          <p role="alert">{TEXTOS.organizacionConsecuenciaError}</p>
-          <Button variant="outline" size="sm" onClick={() => void consecuencia.refetch()}>
-            {TEXTOS.reintentar}
-          </Button>
-        </div>
-      );
-    }
-    const datos = consecuencia.data;
-    if (!datos) return null;
-    if (datos.usuariosActivos === 0) return <p>{TEXTOS.organizacionSinUsuarios}</p>;
-    return (
-      <div className="flex flex-col gap-2">
-        <p>{TEXTOS.organizacionConsecuencia(datos.usuariosActivos)}</p>
-        <ul className="list-disc pl-5 text-sm">
-          {datos.usuarios.map((usuario, indice) => (
-            <li key={indice}>{etiquetaUsuario(usuario)}</li>
-          ))}
-        </ul>
-      </div>
-    );
-  };
+  const usuarios = consecuencia.data?.usuarios ?? [];
 
   return (
-    <DialogoAdministracion
-      abierto={abierto}
-      onCerrar={onCerrar}
-      pendiente={pendiente}
-      titulo={`Desactivar ${organizacion.nombre}`}
-      idEncabezadoSeccion={idEncabezadoSeccion}
-      pie={
+    <Modal
+      open={abierto}
+      onClose={() => {
+        if (!pendiente) onCerrar();
+      }}
+      title={`${TEXTOS.desactivarOrganizacionTitulo}: ${organizacion.nombre}`}
+      closeOnEsc={!pendiente}
+      closeOnOverlayClick={!pendiente}
+      showCloseButton={!pendiente}
+      footer={
         <>
           <Button variant="outline" onClick={onCerrar} disabled={pendiente}>
             {TEXTOS.cancelar}
@@ -109,10 +99,55 @@ export function DesactivarOrganizacionDialog({
       }
     >
       <div className="flex flex-col gap-3">
-        <p>{TEXTOS.organizacionDesactivarAviso}</p>
-        {contenido()}
-        {errorEnvio && <p role="alert">{errorEnvio}</p>}
+        <Card variant="outlined">
+          <CardBody>
+            <p>{TEXTOS.organizacionDesactivarAviso}</p>
+          </CardBody>
+        </Card>
+
+        {consecuencia.isPending && <p role="status">{TEXTOS.organizacionConsultando}</p>}
+
+        {consecuencia.isError && (
+          <Card variant="outlined">
+            <CardBody>
+              <p role="alert">{TEXTOS.organizacionConsecuenciaError}</p>
+              <Button variant="outline" size="sm" onClick={() => void consecuencia.refetch()}>
+                {TEXTOS.reintentar}
+              </Button>
+            </CardBody>
+          </Card>
+        )}
+
+        {consecuencia.isSuccess && (
+          <>
+            <p>{TEXTOS.organizacionConsecuencia(consecuencia.data.usuariosActivos)}</p>
+            {consecuencia.data.usuariosActivos > 0 && (
+              <Table<FilaConsecuencia>
+                columns={COLUMNAS_CONSECUENCIA}
+                data={usuarios.map((usuario, indice) => ({ ...usuario, fila: String(indice) }))}
+                rowKey={(fila) => fila.fila}
+                emptyState={TEXTOS.organizacionSinUsuarios}
+                aria-label={TEXTOS.consecuenciaUsuarios}
+              />
+            )}
+            {consecuencia.data.usuariosActivos === 0 && (
+              <Card variant="outlined">
+                <CardBody>
+                  <p>{TEXTOS.organizacionSinUsuarios}</p>
+                </CardBody>
+              </Card>
+            )}
+          </>
+        )}
+
+        {errorEnvio && (
+          <Card variant="outlined">
+            <CardBody>
+              <p role="alert">{errorEnvio}</p>
+            </CardBody>
+          </Card>
+        )}
       </div>
-    </DialogoAdministracion>
+    </Modal>
   );
 }

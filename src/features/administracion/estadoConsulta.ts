@@ -10,6 +10,8 @@
 import { ApiError } from '@/lib/api/errors';
 import { ErrorSuperficieNoPublicada } from '@/lib/api/administracion';
 
+import { TEXTOS_ADMINISTRACION as TEXTOS } from './mensajes';
+
 export type EstadoConsultaTipo =
   'brecha' | 'cargando' | 'vacio' | 'error' | 'sin_acceso' | 'datos' | 'datos_desactualizado';
 
@@ -50,4 +52,28 @@ export function estadoConsulta<T>(
   if (entrada.data === undefined) return { estado: 'cargando' };
   if (esVacio(entrada.data)) return { estado: 'vacio' };
   return { estado: 'datos', datos: entrada.data };
+}
+
+/**
+ * Aviso que acompaña a un estado que no muestra datos nuevos. `alerta` indica si el
+ * aviso se anuncia como alerta. Devuelve `null` en `cargando`, `vacio` y `datos`:
+ * esos los muestra la tabla de la librería (`loading`, `emptyState`).
+ */
+export function avisoDeEstado(
+  estado: EstadoConsultaTipo,
+): { readonly texto: string; readonly alerta: boolean } | null {
+  switch (estado) {
+    case 'brecha':
+      return { texto: TEXTOS.seccionNoPublicada, alerta: false };
+    case 'error':
+      return { texto: TEXTOS.errorConsulta, alerta: true };
+    case 'sin_acceso':
+      return { texto: TEXTOS.sinAccesoConsulta, alerta: true };
+    case 'datos_desactualizado':
+      return { texto: TEXTOS.datosDesactualizados, alerta: true };
+    case 'cargando':
+    case 'vacio':
+    case 'datos':
+      return null;
+  }
 }
