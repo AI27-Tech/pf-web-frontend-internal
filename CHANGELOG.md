@@ -15,6 +15,17 @@
 
 **Verificación:** `tsc --build`, `eslint .`, `vite build --mode mock` y `vitest run` (625) en verde. Sin prueba contra el servidor real: `identidad`, `bff` y core responden 404 (DEC-144). Quedan sin escribir las pruebas opcionales 4.7, 5.2, 6.3, 13.2, 17.1 a 17.5 y 17.7.
 
+## 2026:11:10 16:48
+
+**Resumen:** La administración de E8-T19 usa `@ai27-tech/ui` como fuente de verdad. Se eliminan los componentes propios que reimplementaban la librería: los diálogos usan `Modal` directo y las listas usan `Table` con sus estados de carga y vacío. Se corrige una doble codificación de acentos en las pruebas del Bloque B.
+**Cambios:**
+
+- **Componentes eliminados** (`src/features/administracion/`): `EstadoBadge` (pasa a `Badge`), `RegionConsulta` (pasa a `Card`, y `Table` lleva `loading` y `emptyState`), `DialogoAdministracion` (pasa a `Modal`), `SelectorRol` y `SelectorOrganizacion` (pasan a `FormSection` y `Radio` dentro de cada diálogo) y `AvisoBloqueo` (pasa a `Card`).
+- **Diálogos** (`AltaUsuarioDialog`, `CambioRolDialog`, `DesactivarUsuarioDialog`, `DesactivarOrganizacionDialog`, `OrganizacionFormDialog`, `RevocarSesionesDialog`): usan `Modal` con `closeOnEsc`, `closeOnOverlayClick` y `showCloseButton` según haya una solicitud pendiente. Se quita la prop `idEncabezadoSeccion`, que `Modal` ya no necesita.
+- **Pruebas** (`tests/administracion/dialogos-bloque-b.test.tsx` y `flujos-bloque-b.test.tsx`): se corrigen acentos dañados por una doble codificación (UTF-8 leído como Windows-1252 y guardado otra vez en UTF-8). No cambia ninguna prueba.
+  **Pendiente:** al cerrar un diálogo no hay respaldo de foco al encabezado de la sección; `Modal` solo devuelve el foco al elemento que abrió el diálogo. La paginación por cursor usa botones Anterior y Siguiente, porque `Pagination` de la librería es numérica. La librería no trae componentes de texto, encabezado ni layout, así que se usan `p`, `h2`, `h3` y clases utilitarias.
+  **Verificación:** `tsc --build` y `eslint .` sin errores. `vitest run`: 85 archivos y 625 pruebas en verde. Sin prueba contra el servidor real (DEC-144).
+
 ## 2026:11:10 15:30
 
 **Resumen:** "Mis unidades" de cada Monitorista en `/roster` (E8-T21, DEC-140 #1, DEC-142 #2, DEC-145). La tarjeta "Unidades de cada Monitorista" deja de ser un aviso de pendiente: lista los Monitoristas activos con sus unidades legibles y permite reemplazar el conjunto con "Editar unidades". Sube el pin de `@ai27-tech/contracts` a `0.1.0-tracer.40`. Para funcionar de punta a punta necesita core con la ola tracer.40 (pf-svc-core #78).
