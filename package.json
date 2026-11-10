@@ -4,7 +4,7 @@
   "private": true,
   "description": "panel-admin — consola web interna de la plataforma AI27",
   "type": "module",
-  "packageManager": "pnpm@12.18.0",
+  "packageManager": "pnpm@12.3.4",
   "engines": {
     "node": ">=22"
   },
