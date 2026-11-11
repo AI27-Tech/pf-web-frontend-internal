@@ -1,6 +1,9 @@
 /*
  * Handlers MSW de emergencias (E8-T18). Siguen la forma de `bff` (tracer.37) y los
- * códigos de error del contrato. El estado vive en memoria y se reinicia al recargar.
+ * códigos de error del contrato.
+ *
+ * Los casos y las emergencias de cada viaje viven en el almacén
+ * (`almacen-viajes.ts`). Las notas siguen en este módulo.
  */
 import { http, HttpResponse } from 'msw';
 import { API_PREFIX } from '@/lib/constants';
@@ -9,65 +12,18 @@ import type {
   EmergenciaReaccion,
   EmergenciaViaje,
   NotaEmergencia,
+  ViajeEmergencia,
 } from '@/lib/contracts/emergencias';
+import {
+  esEstadoTerminalMock,
+  obtenerAlmacen,
+  reemplazarAlmacen,
+  type RegistroViaje,
+} from './almacen-viajes';
+import { CLIENTES_DEMO } from './data';
+import { unidadDelRosterMock } from './roster';
 
 const path = (segmento: string) => `${API_PREFIX}${segmento}`;
-
-/** Responsable de demostración de los casos ya reclamados (no es el usuario de sesión). */
-const RESPONSABLE_OTRO = 'sujeto-reaccion-otro';
-
-const VIAJE_DEMO = {
-  cliente_nombre: 'Transportes del Norte',
-  estado: 'EN_TRANSITO',
-  origen: 'Monterrey, NL',
-  destinos: [{ nombre: 'Saltillo, Coah.', fecha_cita: null, arribo: false }],
-  fecha_hora_servicio: '2026-11-03T14:00:00Z',
-  tipo_servicio: 'escolta',
-  eta_estimado: null,
-  escolta: [
-    {
-      tipo: 'patrulla',
-      economico: 'P-104',
-      placas: 'NL-4521',
-      custodios: [{ nombre: 'Custodio A', telefono: '+52 81 5555 0101' }],
-    },
-    { tipo: 'moto', custodios: [{ nombre: 'Custodio B' }] },
-  ],
-};
-
-let casos: EmergenciaReaccion[] = [
-  {
-    id: 'em-001',
-    estado: 'abierta',
-    origen: 'cliente',
-    version_reclamo: 1,
-    reclamo_activo: null,
-    activada_en: '2026-11-04T08:10:00Z',
-  },
-  {
-    id: 'em-002',
-    estado: 'en_atencion',
-    origen: 'operacion',
-    version_reclamo: 3,
-    reclamo_activo: {
-      id: 'rc-002',
-      conversacion_id: 'em-002',
-      responsable_id: RESPONSABLE_OTRO,
-      version: 3,
-      abierto_en: '2026-11-04T07:50:00Z',
-    },
-    activada_en: '2026-11-04T07:45:00Z',
-  },
-  {
-    id: 'em-003',
-    estado: 'resuelta',
-    origen: 'operacion',
-    version_reclamo: 2,
-    reclamo_activo: null,
-    activada_en: '2026-11-03T22:00:00Z',
-    resuelta_en: '2026-11-03T23:00:00Z',
-  },
-];
 
 const notasPorCaso: Record<string, NotaEmergencia[]> = {
   'em-002': [
@@ -81,25 +37,80 @@ const notasPorCaso: Record<string, NotaEmergencia[]> = {
   ],
 };
 
-const viajesEmergencias: Record<string, EmergenciaViaje[]> = {
-  'viaje-001': [
-    { id: 'em-003', estado: 'resuelta', activada_en: '2026-11-03T22:00:00Z' },
-    { id: 'em-004', estado: 'abierta', activada_en: '2026-11-04T09:00:00Z' },
-  ],
-};
-
 function errorContrato(status: number, codigo: string, mensaje: string) {
   return HttpResponse.json({ codigo, mensaje }, { status });
 }
 
+/** Caso de Reacción por id, leído del almacén. */
 function buscarCaso(eid: string): EmergenciaReaccion | undefined {
-  return casos.find((c) => c.id === eid);
+  return obtenerAlmacen().casos.find((c) => c.id === eid);
+}
+
+/**
+ * Aplica un cambio al caso y refleja su estado en la lista de emergencias de cada
+ * viaje. Devuelve el caso nuevo, o `undefined` si no existe.
+ */
+function actualizarCaso(
+  eid: string,
+  cambio: (caso: EmergenciaReaccion) => EmergenciaReaccion,
+): EmergenciaReaccion | undefined {
+  const almacen = obtenerAlmacen();
+  const actual = almacen.casos.find((c) => c.id === eid);
+  if (!actual) return undefined;
+  const siguiente = cambio(actual);
+  almacen.casos = almacen.casos.map((c) => (c.id === eid ? siguiente : c));
+  for (const registro of Object.values(almacen.viajes)) {
+    registro.emergencias = registro.emergencias.map((e) =>
+      e.id === eid ? { ...e, estado: siguiente.estado } : e,
+    );
+  }
+  reemplazarAlmacen(almacen);
+  return siguiente;
+}
+
+/** Datos del viaje que Reacción necesita, proyectados desde el registro. */
+function proyectarViaje(registro: RegistroViaje): ViajeEmergencia {
+  const { viaje } = registro.detalle;
+  return {
+    cliente_nombre:
+      CLIENTES_DEMO.find((cliente) => cliente.id === viaje.cliente_id)?.nombre ??
+      'Sin cliente asignado',
+    estado: viaje.estado,
+    origen: viaje.origen,
+    destinos: viaje.destinos.map((destino) => ({
+      nombre: destino.nombre,
+      fecha_cita: null,
+      arribo: false,
+    })),
+    fecha_hora_servicio: viaje.fecha_hora_servicio ?? null,
+    tipo_servicio: 'escolta',
+    eta_estimado: viaje.eta_estimado ?? null,
+    escolta: registro.escolta.flatMap((unidadId) => {
+      const unidad = unidadDelRosterMock(unidadId);
+      if (!unidad) return [];
+      return [
+        {
+          tipo: unidad.tipo,
+          ...(unidad.vehiculo?.economico && { economico: unidad.vehiculo.economico }),
+          ...(unidad.vehiculo?.placas && { placas: unidad.vehiculo.placas }),
+          custodios: (unidad.custodios ?? []).map((c) => ({ nombre: c.nombre })),
+        },
+      ];
+    }),
+  };
+}
+
+/** Registro del viaje al que pertenece una emergencia. */
+function registroDeEmergencia(eid: string): RegistroViaje | undefined {
+  return Object.values(obtenerAlmacen().viajes).find((r) =>
+    r.emergencias.some((e) => e.id === eid),
+  );
 }
 
 export const handlersEmergencias = [
   http.get(path('/panel/emergencias'), () =>
     HttpResponse.json({
-      items: casos.filter((c) => c.estado !== 'cerrada'),
+      items: obtenerAlmacen().casos.filter((c) => c.estado !== 'cerrada'),
       cursor_siguiente: null,
     }),
   ),
@@ -107,7 +118,9 @@ export const handlersEmergencias = [
   http.get(path('/panel/emergencias/:eid'), ({ params }) => {
     const caso = buscarCaso(String(params.eid));
     if (!caso) return errorContrato(404, 'no_encontrado', 'Emergencia no encontrada');
-    const detalle: DetalleEmergenciaReaccion = { caso, viaje: VIAJE_DEMO };
+    const registro = registroDeEmergencia(caso.id);
+    if (!registro) return errorContrato(404, 'no_encontrado', 'Viaje de la emergencia no existe');
+    const detalle: DetalleEmergenciaReaccion = { caso, viaje: proyectarViaje(registro) };
     return HttpResponse.json(detalle);
   }),
 
@@ -132,11 +145,12 @@ export const handlersEmergencias = [
       version: caso.version_reclamo + 1,
       abierto_en: new Date().toISOString(),
     };
-    casos = casos.map((c) =>
-      c.id === caso.id
-        ? { ...c, estado: 'en_atencion', reclamo_activo: reclamo, version_reclamo: reclamo.version }
-        : c,
-    );
+    actualizarCaso(caso.id, (actual) => ({
+      ...actual,
+      estado: 'en_atencion',
+      reclamo_activo: reclamo,
+      version_reclamo: reclamo.version,
+    }));
     return HttpResponse.json(reclamo, { status: 201 });
   }),
 
@@ -147,9 +161,7 @@ export const handlersEmergencias = [
     if (!caso.reclamo_activo || caso.reclamo_activo.version !== version) {
       return errorContrato(409, 'conflicto_version_reclamo', 'La versión del reclamo cambió');
     }
-    casos = casos.map((c) =>
-      c.id === caso.id ? { ...c, estado: 'abierta', reclamo_activo: null } : c,
-    );
+    actualizarCaso(caso.id, (actual) => ({ ...actual, estado: 'abierta', reclamo_activo: null }));
     return new HttpResponse(null, { status: 204 });
   }),
 
@@ -163,9 +175,11 @@ export const handlersEmergencias = [
     if (!caso.reclamo_activo || caso.reclamo_activo.version !== cuerpo.version_esperada) {
       return errorContrato(409, 'conflicto_version_reclamo', 'La versión del reclamo cambió');
     }
-    casos = casos.map((c) =>
-      c.id === caso.id ? { ...c, estado: 'resuelta', resuelta_en: new Date().toISOString() } : c,
-    );
+    const resuelto = actualizarCaso(caso.id, (actual) => ({
+      ...actual,
+      estado: 'resuelta',
+      resuelta_en: new Date().toISOString(),
+    }));
     notasPorCaso[caso.id] = [
       ...(notasPorCaso[caso.id] ?? []),
       {
@@ -177,7 +191,7 @@ export const handlersEmergencias = [
         creado_en: new Date().toISOString(),
       },
     ];
-    return HttpResponse.json(buscarCaso(caso.id));
+    return HttpResponse.json(resuelto);
   }),
 
   http.post(path('/panel/emergencias/:eid/cierre'), ({ params }) => {
@@ -186,39 +200,53 @@ export const handlersEmergencias = [
     if (caso.estado !== 'resuelta') {
       return errorContrato(409, 'emergencia_cerrada', 'La emergencia no está resuelta');
     }
-    casos = casos.map((c) =>
-      c.id === caso.id ? { ...c, estado: 'cerrada', cerrada_en: new Date().toISOString() } : c,
-    );
+    actualizarCaso(caso.id, (actual) => ({
+      ...actual,
+      estado: 'cerrada',
+      cerrada_en: new Date().toISOString(),
+    }));
     return HttpResponse.json({ id: caso.id, estado: 'cerrada' });
   }),
 
   http.get(path('/panel/viajes/:id/emergencias'), ({ params }) =>
-    HttpResponse.json({ items: viajesEmergencias[String(params.id)] ?? [] }),
+    HttpResponse.json({ items: obtenerAlmacen().viajes[String(params.id)]?.emergencias ?? [] }),
   ),
 
   http.post(path('/panel/viajes/:id/emergencias'), async ({ params, request }) => {
     const viajeId = String(params.id);
-    if (viajeId === 'viaje-terminal') {
+    const almacen = obtenerAlmacen();
+    const registro = almacen.viajes[viajeId];
+    if (!registro) return errorContrato(404, 'no_encontrado', 'Viaje no encontrado');
+    if (esEstadoTerminalMock(registro.detalle.viaje.estado)) {
       return errorContrato(409, 'viaje_en_estado_terminal', 'El viaje está en estado terminal');
     }
     const cuerpo = (await request.json()) as { activacion_id: string };
-    const existentes = viajesEmergencias[viajeId] ?? [];
-    const reentrega = existentes.find((e) => e.id === `act-${cuerpo.activacion_id}`);
+    // Mismo id para el caso y la entrada del viaje: la bandeja y el detalle lo enlazan.
+    const id = `em-${cuerpo.activacion_id}`;
+    const reentrega = registro.emergencias.find((e) => e.id === id);
     if (reentrega) return HttpResponse.json(reentrega, { status: 200 });
-    const nueva: EmergenciaViaje = {
-      id: `act-${cuerpo.activacion_id}`,
-      estado: 'abierta',
-      activada_en: new Date().toISOString(),
-    };
-    viajesEmergencias[viajeId] = [...existentes, nueva];
+
+    const activada_en = new Date().toISOString();
+    const nueva: EmergenciaViaje = { id, estado: 'abierta', activada_en };
+    almacen.casos = [
+      ...almacen.casos,
+      {
+        id,
+        estado: 'abierta',
+        origen: 'operacion',
+        version_reclamo: 1,
+        reclamo_activo: null,
+        activada_en,
+      },
+    ];
+    registro.emergencias = [...registro.emergencias, nueva];
+    reemplazarAlmacen(almacen);
     return HttpResponse.json(nueva, { status: 201 });
   }),
 
   http.post(path('/panel/viajes/:id/emergencias/:eid/notas'), async ({ params, request }) => {
     const eid = String(params.eid);
-    const emergencia = Object.values(viajesEmergencias)
-      .flat()
-      .find((e) => e.id === eid);
+    const emergencia = registroDeEmergencia(eid)?.emergencias.find((e) => e.id === eid);
     if (!emergencia) return errorContrato(404, 'no_encontrado', 'Emergencia no encontrada');
     if (emergencia.estado === 'cerrada') {
       return errorContrato(409, 'emergencia_cerrada', 'La emergencia ya está cerrada');

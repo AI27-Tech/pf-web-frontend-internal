@@ -58,7 +58,12 @@ import {
 import type { TransicionEntrada, EtaEntrada, FechaHoraEntrada } from '@/lib/contracts/viajeDetalle';
 import { EstadoViaje } from '@/lib/contracts/viajeDetalle';
 import { handlersEmergencias } from './emergencias';
-import { handlersRoster, reservarEscoltaMock, unidadDelRosterMock } from './roster';
+import {
+  handlersRoster,
+  reservarEscoltaMock,
+  unidadDelRosterMock,
+  unidadReservadaEnOtroViaje,
+} from './roster';
 import { handlersAdministracion } from './administracion';
 import type { CrearViajeEntrada } from '@/lib/contracts/viajes';
 import type {
@@ -276,11 +281,16 @@ export const handlers = [
   // GET /viajes/{id}/ficha — lectura de la ficha técnica (E8-T12).
   http.get(path('/viajes/:id/ficha'), ({ params }) => {
     const { id } = params as { id: string };
-    const ficha = obtenerFichaMock(id);
-
-    if (!ficha) {
-      return HttpResponse.json({ mensaje: 'Ficha no encontrada' }, { status: 404 });
+    if (!obtenerDetalleViajeMock(id)) {
+      return HttpResponse.json({ mensaje: 'Viaje no encontrado' }, { status: 404 });
     }
+    // Ficha sin captura: 200 con la forma vacía del contrato (tracer.40).
+    const ficha = obtenerFichaMock(id) ?? {
+      viaje_id: id,
+      tracto: null,
+      contenedores: [],
+      gps_ids: [],
+    };
 
     return HttpResponse.json(ficha, { status: 200 });
   }),
@@ -301,31 +311,6 @@ export const handlers = [
   // GET /gps — catálogo registrado; el wrapper vuelve a filtrar activos como defensa.
   http.get(path('/gps'), () => {
     return HttpResponse.json(listarGpsMock(), { status: 200 });
-  }),
-
-  // GET /viajes/{id}/ficha — lectura de la ficha técnica (E8-T12).
-  http.get(path('/viajes/:id/ficha'), ({ params }) => {
-    const { id } = params as { id: string };
-    const ficha = obtenerFichaMock(id);
-
-    if (!ficha) {
-      return HttpResponse.json({ mensaje: 'Ficha no encontrada' }, { status: 404 });
-    }
-
-    return HttpResponse.json(ficha, { status: 200 });
-  }),
-
-  // PATCH /viajes/{id}/ficha — guardado parcial de la ficha (E8-T12).
-  http.patch(path('/viajes/:id/ficha'), async ({ params, request }) => {
-    const { id } = params as { id: string };
-    const body = (await request.json()) as FichaTecnicaEntrada;
-    const ficha = guardarFichaMock(id, body);
-
-    if (!ficha) {
-      return HttpResponse.json({ mensaje: 'Viaje no encontrado' }, { status: 404 });
-    }
-
-    return HttpResponse.json(ficha, { status: 200 });
   }),
 
   // GET /viajes/{id}/detalle ÔÇö detalle del viaje con estado can├│nico, destinos y eta_estimado.
@@ -480,7 +465,9 @@ export const handlers = [
       request.headers.get('x-mock-asignacion-conflicto') === 'true' ||
       url.searchParams.get('conflicto') === '1';
     const unidadNoDisponible = unidades_ids.some(
-      (unidad_id) => unidadDelRosterMock(unidad_id)?.activa !== true,
+      (unidad_id) =>
+        unidadDelRosterMock(unidad_id)?.activa !== true ||
+        unidadReservadaEnOtroViaje(unidad_id, id),
     );
     if (conflictoForzado || unidadNoDisponible) {
       return HttpResponse.json({ error: { codigo: 'recurso_no_disponible' } }, { status: 409 });
