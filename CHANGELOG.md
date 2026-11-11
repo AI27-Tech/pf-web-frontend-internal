@@ -1,5 +1,36 @@
 # CHANGELOG
 
+## 2026:11:11 11:24
+
+**Resumen:** Modo mock con datos coherentes (spec `modo-mock-coherencia-datos`, tareas 1 a 10). Un solo almacén de viajes alimenta listado, detalle, ficha, expediente, incidencias, escolta, emergencias y reportes. Así una transición, una reserva o una emergencia se ve igual en todas las pantallas del mock. Los datos se guardan en `localStorage` solo en modo mock.
+
+**Cambios:**
+
+- **Almacén único** (`src/mocks/almacen-viajes.ts`, nuevo): estado de viajes, semilla con un viaje por cada valor de `EstadoViaje`, lista de estados terminales, persistencia en `localStorage` con clave versionada (`ai27.mock.almacen-viajes.v2`) y `reiniciarAlmacenMock()`. Solo guarda cuando `VITE_ENABLE_MOCKS === 'true'`.
+- **Fachadas** (`src/mocks/data.ts`): se quitan `VIAJES_DEMO`, `DETALLES_VIAJES`, `FICHAS_DEMO`, `INCIDENCIAS_DEMO` y `FILAS_REPORTE_DEMO`. Las funciones exportadas conservan su firma. Cada mutación escribe una vez en el almacén y lo guarda.
+- **Incidencias:** abrir una incidencia agrega la condición `INCIDENCIA`; resolver la última la quita. Un rechazo no cambia el almacén.
+- **Escolta** (`src/mocks/roster.ts`): la reserva vive en el viaje. Una unidad reservada en otro viaje no terminal responde `409 recurso_no_disponible`. Al entrar en estado terminal se libera. Con datos de roster nuevos (`UN-1003` a `UN-1010`) cada viaje en `ASIGNADO` o posterior tiene escolta. Una transición a un estado que la exige sin escolta se rechaza.
+- **Emergencias** (`src/mocks/emergencias.ts`): casos y emergencias por viaje salen del almacén. Se quitan `VIAJE_DEMO` y los ids `viaje-001` y `viaje-terminal`. El detalle de Reacción toma los datos del viaje (`ViajeEmergencia`), incluido el nombre del cliente. Activar en viaje terminal responde `409 viaje_en_estado_terminal` según el estado real.
+- **Ficha** (`src/mocks/handlers.ts`): un viaje sin ficha responde `200` con la forma vacía del contrato. El `404` queda para viaje inexistente. Se quitó el handler duplicado.
+- **Reportes:** `reporteViajesMock` deriva filas del almacén. `reporteEstadosMock` cuenta cambios de estado, según la respuesta de Producto a la Pregunta 9 de E8-T17. Se quita el estado `COMPLETADO` y los ids `VJ-R1` a `VJ-R4`.
+- **Pruebas** (`tests/roster/Roster.test.tsx`): la prueba de alta busca la unidad nueva en la página donde aparece, porque el roster ahora tiene más unidades.
+- **Especificación:** `.kiro/specs/modo-mock-coherencia-datos/` con `tasks.md` (tareas 1 a 10 cerradas) y `BRECHAS.md` (cada brecha con su fuente).
+
+**Decisiones de mock que no fijaba la especificación:** el listado muestra el origen largo del viaje; `em-001` y `em-002` quedan ligadas a `VJ-1010` y `VJ-1006`; el id de una emergencia activada es `em-<activacion_id>`; cada viaje de la semilla cuenta un cambio de estado en su alta.
+
+**Verificación:** `pnpm typecheck` y `eslint` sin errores. `pnpm vitest run`: 85 archivos y 625 pruebas en verde. `pnpm build:mock` y `pnpm build` correctos. El build normal no contiene la clave del almacén. **Pendiente:** la validación manual de los escenarios 1 a 7 y de la recarga en `pnpm dev:mock` (tarea 11 del spec).
+
+**Archivos modificados:**
+
+- `src/mocks/almacen-viajes.ts` (nuevo)
+- `src/mocks/data.ts`
+- `src/mocks/roster.ts`
+- `src/mocks/emergencias.ts`
+- `src/mocks/handlers.ts`
+- `tests/roster/Roster.test.tsx`
+- `.kiro/specs/modo-mock-coherencia-datos/tasks.md` (tareas 1 a 10 marcadas)
+- `.kiro/specs/modo-mock-coherencia-datos/BRECHAS.md` (nuevo)
+
 ## 2026:11:10 17:00
 
 **Resumen:** E8-T19 cierra todo lo que se puede verificar sin servidor: el aviso de un rechazo `403` o `409` ya sobrevive a una recarga fallida del detalle, la lista de organizaciones se vuelve a leer tras crear o editar, y el alcance de un Monitorista muestra vehículo y custodios legibles. Se fusionó `pf-wfi-d` y se documenta el Bloque B de usuarios, organizaciones, alcance y revocación (sin entrada previa en este archivo).

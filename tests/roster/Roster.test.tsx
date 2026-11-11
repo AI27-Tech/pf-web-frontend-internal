@@ -160,6 +160,16 @@ describe('Roster — lista', () => {
   });
 });
 
+/** La unidad recién creada cae en la última página del roster: avanza hasta encontrarla. */
+async function irAFilaConTexto(texto: string): Promise<HTMLElement | null> {
+  for (let pagina = 0; pagina < 5; pagina++) {
+    const celda = await screen.findByText(texto, {}, { timeout: 500 }).catch(() => null);
+    if (celda) return celda.closest('tr');
+    await userEvent.click(await screen.findByRole('button', { name: 'Página siguiente' }));
+  }
+  throw new Error(`No apareció la fila: ${texto}`);
+}
+
 describe('Roster — alta', () => {
   it('alta feliz: elige vehículo y custodio; el tipo lo deriva el servidor', async () => {
     renderRoster();
@@ -167,7 +177,7 @@ describe('Roster — alta', () => {
     await crearUnidadCon('P-102 · DEF-5678 (coche)', ['María Torres']);
 
     expect(await screen.findByText('Unidad creada.')).toBeInTheDocument();
-    const fila = (await screen.findByText('P-102 · DEF-5678')).closest('tr');
+    const fila = await irAFilaConTexto('P-102 · DEF-5678');
     expect(fila).toHaveTextContent('María Torres');
     expect(fila).toHaveTextContent('Patrulla');
     expect(fila).toHaveTextContent('Activa');
