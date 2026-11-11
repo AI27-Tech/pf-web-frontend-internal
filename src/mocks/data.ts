@@ -10,6 +10,14 @@
 import type { SesionWire } from '@/lib/contracts';
 import { Rol } from '@/lib/contracts';
 import { EstadoViaje, TRANSICIONES_VIAJE } from '@/lib/contracts/viajeDetalle';
+import {
+  ESTADOS_CON_ESCOLTA_MOCK,
+  ESTADOS_TERMINALES_MOCK,
+  obtenerAlmacen,
+  reemplazarAlmacen,
+  type AlmacenViajes,
+  type RegistroViaje,
+} from './almacen-viajes';
 import type { ViajeResumen, PaginaViajesResumen, CrearViajeEntrada } from '@/lib/contracts/viajes';
 import type { Cliente, PaginaClientes } from '@/lib/contracts/clientes';
 import type { ViajeDetalle } from '@/lib/contracts/viajeDetalle';
@@ -35,19 +43,63 @@ import type {
   TrabajoBandeja as TrabajoBandejaWire,
 } from '@/lib/contracts/conversaciones';
 
-/** Credenciales del operador demo. Documentadas en el README. */
-export const DEMO_CREDENTIALS = {
-  usuario: 'operador@demo.ai27',
-  contrasena: 'demo1234',
-} as const;
+/** Contraseña común de las siete cuentas demo. Decisión confirmada por el usuario. */
+const CONTRASENA_DEMO = 'demo1234';
 
-/** Claims del operador demo, los que `decodificarClaims` espera extraer del token. */
-const DEMO_CLAIMS = {
-  sub: 'usr-demo-1',
-  tenant_id: 'tenant-demo',
-  rol: Rol.JefeOperativo,
-  sesion_id: 'ses-demo-1',
-} as const;
+/**
+ * Catálogo de cuentas demo: una fila por rol interno. Es la única fuente de
+ * verdad. El usuario, el `sub` y el `sesion_id` se calculan a partir de la cuenta.
+ */
+export const CUENTAS_DEMO = [
+  { cuenta: 'operador', rol: Rol.JefeOperativo },
+  { cuenta: 'monitorista', rol: Rol.Monitorista },
+  { cuenta: 'supervisor', rol: Rol.Supervisor },
+  { cuenta: 'coordinador', rol: Rol.Coordinador },
+  { cuenta: 'ejecutivo', rol: Rol.Ejecutivo },
+  { cuenta: 'reaccion', rol: Rol.Reaccion },
+  { cuenta: 'administrador', rol: Rol.Administrador },
+] as const;
+
+/** Nombre de una cuenta del catálogo, por ejemplo `operador`. */
+export type CuentaDemo = (typeof CUENTAS_DEMO)[number]['cuenta'];
+
+/** Fila del catálogo: `{ cuenta, rol }`. */
+export type FilaCuentaDemo = (typeof CUENTAS_DEMO)[number];
+
+/** Claim `sub` de la cuenta demo, por ejemplo `usr-demo-operador`. */
+export function sujetoDeCuenta(cuenta: CuentaDemo): string {
+  return `usr-demo-${cuenta}`;
+}
+
+/** Claim `sesion_id` de la cuenta demo. No cambia al renovar la sesión. */
+export function sesionDeCuenta(cuenta: CuentaDemo): string {
+  return `ses-demo-${cuenta}`;
+}
+
+/**
+ * Busca la cuenta por usuario (`<cuenta>@demo.ai27`) y contraseña. La comparación
+ * distingue mayúsculas y minúsculas. Devuelve `undefined` si no hay coincidencia.
+ */
+export function cuentaPorCredenciales(usuario: string, contrasena: string): CuentaDemo | undefined {
+  return CUENTAS_DEMO.find(
+    ({ cuenta }) => usuario === `${cuenta}@demo.ai27` && contrasena === CONTRASENA_DEMO,
+  )?.cuenta;
+}
+
+/** Fila del catálogo para un rol. Supone una cuenta por rol. */
+export function cuentaPorRol(rol: Rol): FilaCuentaDemo | undefined {
+  return CUENTAS_DEMO.find((fila) => fila.rol === rol);
+}
+
+/** Forma del `refresh_token` demo: `mock.refresh.<cuenta>.<uuid>`. */
+const PATRON_REFRESH_DEMO = /^mock\.refresh\.([a-z]+)\.[0-9a-f-]{36}$/;
+
+/** Extrae la cuenta del `refresh_token`. Devuelve `undefined` si el token no es del catálogo. */
+export function cuentaPorRefreshToken(token: string): CuentaDemo | undefined {
+  const coincidencia = PATRON_REFRESH_DEMO.exec(token);
+  if (!coincidencia) return undefined;
+  return CUENTAS_DEMO.find(({ cuenta }) => cuenta === coincidencia[1])?.cuenta;
+}
 
 /**
  * Codifica un segmento como base64url sin padding, igual que un JWT real. El
@@ -60,52 +112,75 @@ function base64Url(valor: string): string {
   return btoa(binario).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+/** Tenant de las cuentas demo. Todas pertenecen al mismo tenant. */
+const TENANT_DEMO = 'tenant-demo';
+
+/** Rol de la cuenta demo. Lanza un error si la cuenta no está en el catálogo. */
+function rolDeCuenta(cuenta: CuentaDemo): Rol {
+  const fila = CUENTAS_DEMO.find((candidata) => candidata.cuenta === cuenta);
+  if (!fila) throw new Error(`Cuenta demo desconocida: ${cuenta}`);
+  return fila.rol;
+}
+
 /**
- * Construye un access_token mock con forma de JWT (header.payload.firma). La
- * firma es de mentira —el mock no verifica nada—, pero el payload es un JSON de
- * claims real que la app puede decodificar. Los handlers que aplican facultades
+ * Construye un access_token mock con forma de JWT (header.payload.firma) para una
+ * cuenta demo. La firma es de mentira: el mock no verifica nada. El payload es un
+ * JSON de claims que la app puede decodificar. Los handlers que aplican facultades
  * leen el rol de aquí, como el `bff` real.
  */
-export function mockAccessToken(rol: Rol = DEMO_CLAIMS.rol): string {
+function accessTokenDeCuenta(cuenta: CuentaDemo, rol: Rol): string {
   const header = base64Url(JSON.stringify({ alg: 'none', typ: 'JWT' }));
-  const payload = base64Url(JSON.stringify({ ...DEMO_CLAIMS, rol }));
+  const payload = base64Url(
+    JSON.stringify({
+      sub: sujetoDeCuenta(cuenta),
+      tenant_id: TENANT_DEMO,
+      rol,
+      sesion_id: sesionDeCuenta(cuenta),
+    }),
+  );
   return `${header}.${payload}.firma-de-mentira`;
 }
 
 /**
- * Construye una respuesta de sesión en forma de wire (contrato `Sesion`). Los
- * tokens son de mentira a propósito: no hay verificación real detrás, solo
- * desbloquean la UI.
+ * Construye un access_token mock para el rol. Toma la cuenta del rol con
+ * `cuentaPorRol`, así que `sub` y `sesion_id` salen de esa cuenta. Lanza un error si
+ * ningún rol de la cuenta coincide con el pedido.
  */
-export function createSessionWire(): SesionWire {
+export function mockAccessToken(rol: Rol = Rol.JefeOperativo): string {
+  const fila = cuentaPorRol(rol);
+  if (!fila) throw new Error(`No hay cuenta demo para el rol: ${rol}`);
+  return accessTokenDeCuenta(fila.cuenta, fila.rol);
+}
+
+/**
+ * Construye una respuesta de sesión en forma de wire (contrato `Sesion`) para una
+ * cuenta demo. `sesion_id` y `access_token` salen de la cuenta. `refresh_token` lleva
+ * la cuenta (`mock.refresh.<cuenta>.<uuid>`) para que `POST /sesion/refresh` la
+ * identifique. Los tokens son de mentira a propósito: no hay verificación real detrás,
+ * solo desbloquean la UI.
+ */
+export function createSessionWire(cuenta: CuentaDemo): SesionWire {
   return {
-    sesion_id: DEMO_CLAIMS.sesion_id,
-    access_token: mockAccessToken(),
-    refresh_token: `mock.refresh.${crypto.randomUUID()}`,
+    sesion_id: sesionDeCuenta(cuenta),
+    access_token: accessTokenDeCuenta(cuenta, rolDeCuenta(cuenta)),
+    refresh_token: `mock.refresh.${cuenta}.${crypto.randomUUID()}`,
     expira_en: new Date(Date.now() + 3600_000).toISOString(),
   };
 }
 
 /*
- * Viajes demo para la bandeja operativa (E8-T7).
- *
- * Forma de contrato del bff: `ViajeResumen = { id, estado, origen }`.
- * Los tokens de estado salen del enum real (ADR 19).
+ * Listado operativo (E8-T7). Las filas salen del almacén (`almacen-viajes.ts`) y
+ * no hay una copia propia: el estado se guarda una sola vez.
  */
 
-/** Catálogo de viajes demo del alcance del operador. */
-const VIAJES_DEMO: ViajeResumen[] = [
-  { id: 'VJ-1001', estado: EstadoViaje.EnTransito, origen: 'CDMX' },
-  { id: 'VJ-1002', estado: EstadoViaje.Solicitado, origen: 'Monterrey' },
-  { id: 'VJ-1003', estado: EstadoViaje.Asignado, origen: 'Guadalajara' },
-  { id: 'VJ-1004', estado: EstadoViaje.EnDestino, origen: 'Querétaro' },
-  { id: 'VJ-1005', estado: EstadoViaje.Aprobado, origen: 'Puebla' },
-  { id: 'VJ-1006', estado: EstadoViaje.EnTransito, origen: 'Toluca' },
-  { id: 'VJ-1007', estado: EstadoViaje.Cerrado, origen: 'León' },
-  { id: 'VJ-1008', estado: EstadoViaje.EnDescarga, origen: 'Veracruz' },
-  // Viaje con incidencia abierta para ejercitar el cierre anticipado (E8-T14).
-  { id: 'VJ-1010', estado: EstadoViaje.EnTransito, origen: 'San Luis Potosí' },
-];
+/** Resumen de cada viaje del almacén, en el orden en que se creó. */
+function resumenesViajes(): ViajeResumen[] {
+  return Object.values(obtenerAlmacen().viajes).map(({ detalle }) => ({
+    id: detalle.viaje.id,
+    estado: detalle.viaje.estado,
+    origen: detalle.viaje.origen,
+  }));
+}
 
 /** Tamaño de página del listado simulado. */
 const TAMANO_PAGINA = 5;
@@ -121,7 +196,8 @@ export function listarViajesMock(
   estado: string | null,
   cursor: string | null,
 ): PaginaViajesResumen {
-  const filtrados = estado ? VIAJES_DEMO.filter((v) => v.estado === estado) : VIAJES_DEMO;
+  const todos = resumenesViajes();
+  const filtrados = estado ? todos.filter((v) => v.estado === estado) : todos;
 
   const inicio = cursor ? Number.parseInt(cursor, 10) || 0 : 0;
   const items = filtrados.slice(inicio, inicio + TAMANO_PAGINA);
@@ -149,170 +225,33 @@ export function listarClientesMock(cursor: string | null): PaginaClientes {
 }
 
 /*
- * los mocks cumplen la forma de `ViajeDetalle` de `@ai27-tech/contracts`.
- *
- * Base de datos simulada: detalles por ID. Cada viaje expone:
- * - estado canónico (EstadoViaje)
- * - origen (dirección como texto)
- * - destinos (array de paradas con nombre y número de envío)
- * - fecha_hora_servicio (opcional, ISO 8601)
- * - eta_estimado (opcional, ISO 8601, si fue fijado)
- * - condiciones_activas (lista de INCIDENCIA, SIN_SENAL, etc.)
+ * Los viajes viven en el almacén (`almacen-viajes.ts`). Las funciones de este
+ * bloque conservan su firma y leen o escriben el registro del viaje.
  */
 
-interface ViajeDetalleStore {
-  [id: string]: ViajeDetalle;
+/** Registro del viaje en el almacén, o `undefined` si no existe. */
+function registroViaje(id: string): RegistroViaje | undefined {
+  return obtenerAlmacen().viajes[id];
 }
 
-/** Catálogo de detalles por ID (estados canónicos, destinos, eta_estimado). */
-const DETALLES_VIAJES: ViajeDetalleStore = {
-  'VJ-1001': {
-    viaje: {
-      id: 'VJ-1001',
-      estado: EstadoViaje.EnTransito,
-      origen: 'Av. Paseo de la Reforma 505, México CDMX',
-      destinos: [
-        { nombre: 'Centro de Distribución A', numero_envio: 'ENV-1001-A' },
-        { nombre: 'Oficina Regional B', numero_envio: 'ENV-1001-B' },
-      ],
-      fecha_hora_servicio: new Date(Date.now() + 3600_000).toISOString(),
-      creado_en: new Date(Date.now() - 86400_000).toISOString(),
-    },
-    condiciones_activas: [],
-  },
-  'VJ-1002': {
-    viaje: {
-      id: 'VJ-1002',
-      estado: EstadoViaje.Solicitado,
-      origen: 'Barrio Antiguo, Monterrey',
-      destinos: [{ nombre: 'Almacén Central Monterrey', numero_envio: 'ENV-1002-A' }],
-      fecha_hora_servicio: new Date(Date.now() + 7200_000).toISOString(),
-      creado_en: new Date(Date.now() - 3600_000).toISOString(),
-    },
-    condiciones_activas: [],
-  },
-  'VJ-1003': {
-    viaje: {
-      id: 'VJ-1003',
-      estado: EstadoViaje.Asignado,
-      origen: 'Centro Histórico, Guadalajara',
-      destinos: [{ nombre: 'Sucursal Guadalajara', numero_envio: 'ENV-1003-A' }],
-      fecha_hora_servicio: new Date(Date.now() + 5400_000).toISOString(),
-      creado_en: new Date(Date.now() - 7200_000).toISOString(),
-    },
-    condiciones_activas: [],
-  },
-  'VJ-1004': {
-    viaje: {
-      id: 'VJ-1004',
-      estado: EstadoViaje.EnDestino,
-      origen: 'Centro de Querétaro',
-      destinos: [
-        { nombre: 'Punto de Entrega 1', numero_envio: 'ENV-1004-A' },
-        { nombre: 'Punto de Entrega 2', numero_envio: 'ENV-1004-B' },
-      ],
-      fecha_hora_servicio: new Date(Date.now() + 1800_000).toISOString(),
-      eta_estimado: new Date(Date.now() + 1800_000).toISOString(),
-      creado_en: new Date(Date.now() - 10800_000).toISOString(),
-    },
-    condiciones_activas: [],
-  },
-  'VJ-1005': {
-    viaje: {
-      id: 'VJ-1005',
-      estado: EstadoViaje.Aprobado,
-      origen: 'Zócalo de Puebla',
-      destinos: [{ nombre: 'Centro de Operaciones Puebla', numero_envio: 'ENV-1005-A' }],
-      fecha_hora_servicio: new Date(Date.now() + 10800_000).toISOString(),
-      creado_en: new Date(Date.now() - 1800_000).toISOString(),
-    },
-    condiciones_activas: [],
-  },
-  'VJ-1006': {
-    viaje: {
-      id: 'VJ-1006',
-      estado: EstadoViaje.EnTransito,
-      origen: 'Centro Toluca',
-      destinos: [{ nombre: 'Depósito Toluca', numero_envio: 'ENV-1006-A' }],
-      fecha_hora_servicio: new Date(Date.now() + 2700_000).toISOString(),
-      creado_en: new Date(Date.now() - 5400_000).toISOString(),
-    },
-    condiciones_activas: [],
-  },
-  'VJ-1007': {
-    viaje: {
-      id: 'VJ-1007',
-      estado: EstadoViaje.Cerrado,
-      origen: 'Centro de León',
-      destinos: [{ nombre: 'Estación Final León', numero_envio: 'ENV-1007-A' }],
-      fecha_hora_servicio: new Date(Date.now() - 3600_000).toISOString(),
-      eta_estimado: new Date(Date.now() - 1800_000).toISOString(),
-      creado_en: new Date(Date.now() - 172800_000).toISOString(),
-    },
-    condiciones_activas: [],
-  },
-  'VJ-1008': {
-    viaje: {
-      id: 'VJ-1008',
-      estado: EstadoViaje.EnDescarga,
-      origen: 'Puerto de Veracruz',
-      destinos: [{ nombre: 'Zona de Descarga Veracruz', numero_envio: 'ENV-1008-A' }],
-      fecha_hora_servicio: new Date(Date.now() - 1800_000).toISOString(),
-      eta_estimado: new Date(Date.now()).toISOString(),
-      creado_en: new Date(Date.now() - 259200_000).toISOString(),
-    },
-    condiciones_activas: [],
-  },
-  // E8-T9: solicitud SIN fecha/hora. Aprobar permanece deshabilitado hasta que el
-  // Jefe Operativo complete `fecha_hora_servicio` vía `completarFechaHoraMock`.
-  'VJ-1009': {
-    viaje: {
-      id: 'VJ-1009',
-      estado: EstadoViaje.Solicitado,
-      origen: 'Zona Centro, Tijuana',
-      destinos: [{ nombre: 'Bodega Frontera Tijuana', numero_envio: 'ENV-1009-A' }],
-      // fecha_hora_servicio ausente a propósito (guard de aprobación, E8-T9).
-      creado_en: new Date(Date.now() - 1200_000).toISOString(),
-    },
-    condiciones_activas: [],
-  },
-  // E8-T14: incidencia abierta que habilita el cierre anticipado.
-  'VJ-1010': {
-    viaje: {
-      id: 'VJ-1010',
-      estado: EstadoViaje.EnTransito,
-      origen: 'Carretera 57, San Luis Potosí',
-      destinos: [{ nombre: 'Centro de Distribución Bajío', numero_envio: 'ENV-1010-A' }],
-      fecha_hora_servicio: new Date(Date.now() - 1800_000).toISOString(),
-      creado_en: new Date(Date.now() - 7200_000).toISOString(),
-    },
-    condiciones_activas: [
-      { tipo: 'INCIDENCIA', abierta_en: new Date(Date.now() - 900_000).toISOString() },
-    ],
-  },
-};
+/** Aplica una mutación sobre el almacén y la persiste con una sola escritura. */
+function mutarAlmacen(mutacion: (almacen: AlmacenViajes) => void): void {
+  const almacen = obtenerAlmacen();
+  mutacion(almacen);
+  reemplazarAlmacen(almacen);
+}
 
-let siguienteViajeDemo = 2000;
+/** Mutación de un solo viaje. No hace nada si el viaje no existe. */
+function mutarRegistro(id: string, mutacion: (registro: RegistroViaje) => void): void {
+  mutarAlmacen((almacen) => {
+    const registro = almacen.viajes[id];
+    if (registro) mutacion(registro);
+  });
+}
 
-/** Fichas demo publicadas por la operación simulada. */
-const FICHAS_DEMO: Record<string, FichaTecnica> = {
-  'VJ-1001': {
-    viaje_id: 'VJ-1001',
-    tracto: {
-      placas: 'ABC-123',
-      economico: 'TR-27',
-      marca: 'Kenworth',
-      modelo: 'T680',
-      color: 'Blanco',
-    },
-    contenedores: [],
-    gps_ids: [],
-  },
-};
-
-/** Recupera la ficha demo; null representa una ficha aún no capturada. */
+/** Recupera la ficha del viaje; null representa una ficha aún no capturada. */
 export function obtenerFichaMock(id: string): FichaTecnica | null {
-  return FICHAS_DEMO[id] ?? null;
+  return registroViaje(id)?.ficha ?? null;
 }
 
 /** Catálogo demo de GPS; incluye un inactivo para demostrar el filtro contractual. */
@@ -327,95 +266,110 @@ export function listarGpsMock() {
   return { items: [...GPS_DEMO], cursor_siguiente: null };
 }
 
-/** Guarda la forma PATCH de la ficha en la base simulada. */
+/** Guarda la forma PATCH de la ficha en el almacén. */
 export function guardarFichaMock(id: string, entrada: FichaTecnicaEntrada): FichaTecnica | null {
-  if (!DETALLES_VIAJES[id]) return null;
+  if (!registroViaje(id)) return null;
 
-  const actual = FICHAS_DEMO[id] ?? { viaje_id: id };
+  const actual = registroViaje(id)?.ficha ?? { viaje_id: id };
   const siguiente: FichaTecnica = { ...actual };
   if ('tracto' in entrada) siguiente.tracto = entrada.tracto;
   if ('contenedores' in entrada) siguiente.contenedores = entrada.contenedores;
   if ('gps_ids' in entrada) siguiente.gps_ids = entrada.gps_ids;
-  FICHAS_DEMO[id] = siguiente;
+  mutarRegistro(id, (registro) => {
+    registro.ficha = siguiente;
+  });
   return siguiente;
 }
 
-/** Crea un viaje APROBADO en la base simulada y deja listo su detalle. */
+/** Crea un viaje APROBADO en el almacén y deja listo su detalle. */
 export function crearViajeMock(entrada: CrearViajeEntrada): ViajeResumen {
-  const id = `VJ-${siguienteViajeDemo++}`;
   const creado_en = new Date().toISOString();
-  const viaje: ViajeResumen = {
-    id,
-    estado: EstadoViaje.Aprobado,
-    origen: entrada.origen,
-  };
-
-  VIAJES_DEMO.push(viaje);
-  DETALLES_VIAJES[id] = {
-    viaje: {
-      id,
-      estado: EstadoViaje.Aprobado,
-      cliente_id: entrada.cliente_id ?? null,
-      origen: entrada.origen,
-      destinos: entrada.destinos,
-      fecha_hora_servicio: entrada.fecha_hora_servicio ?? null,
+  let id = '';
+  mutarAlmacen((almacen) => {
+    id = `VJ-${almacen.siguienteId.viaje++}`;
+    almacen.viajes[id] = {
+      detalle: {
+        viaje: {
+          id,
+          estado: EstadoViaje.Aprobado,
+          cliente_id: entrada.cliente_id ?? null,
+          origen: entrada.origen,
+          destinos: entrada.destinos,
+          fecha_hora_servicio: entrada.fecha_hora_servicio ?? null,
+          creado_en,
+        },
+        condiciones_activas: [],
+      },
+      ficha: null,
+      expediente: { origen: entrada.origen, destino: entrada.destinos.at(-1)?.nombre ?? '' },
+      incidencias: [],
+      escolta: [],
+      emergencias: [],
       creado_en,
-    },
-    condiciones_activas: [],
-  };
-
-  return viaje;
+      cerrado_en: null,
+    };
+    almacen.cambios_estado.push({ viaje_id: id, estado: EstadoViaje.Aprobado, ts: creado_en });
+  });
+  return { id, estado: EstadoViaje.Aprobado, origen: entrada.origen };
 }
 
 /**
  * Recupera el detalle completo de un viaje por ID.
  *
- * Devuelve `null` si el viaje no existe en la base de datos simulada.
+ * Devuelve `null` si el viaje no existe en el almacén.
  */
 export function obtenerDetalleViajeMock(id: string): ViajeDetalle | null {
-  return DETALLES_VIAJES[id] ?? null;
+  return registroViaje(id)?.detalle ?? null;
 }
 
 /**
  * Almacena una mutación de estado del viaje (transición).
  *
- * Valida que la transición sea permitida; si no, devuelve `false`.
- * Si es válida, actualiza el estado y devuelve `true`.
+ * Valida que la transición sea permitida; si no, devuelve `false` y no cambia el
+ * almacén. Si es válida, actualiza el estado y devuelve `true`.
  */
 export function transicionarViajeMock(id: string, a_estado: string): boolean {
-  const detalle = DETALLES_VIAJES[id];
-  if (!detalle) return false;
+  const registro = registroViaje(id);
+  if (!registro) return false;
 
   // Validación directa contra la tabla de transiciones (sin confiar en el tipo)
   const valido = TRANSICIONES_VIAJE.some(
-    ([desde, hacia]) => desde === detalle.viaje.estado && hacia === a_estado,
+    ([desde, hacia]) => desde === registro.detalle.viaje.estado && hacia === a_estado,
   );
+  if (!valido) return false;
+  // Sin escolta reservada no se entra a un estado que la exige (requisito 7.3).
+  if (ESTADOS_CON_ESCOLTA_MOCK.includes(a_estado) && registro.escolta.length === 0) return false;
 
-  if (!valido) {
-    return false;
-  }
-
-  detalle.viaje.estado = a_estado;
+  mutarAlmacen((almacen) => {
+    const registro = almacen.viajes[id];
+    if (!registro) return;
+    const ts = new Date().toISOString();
+    registro.detalle.viaje.estado = a_estado;
+    almacen.cambios_estado.push({ viaje_id: id, estado: a_estado, ts });
+    if (ESTADOS_TERMINALES_MOCK.some((terminal) => terminal === a_estado)) {
+      registro.cerrado_en = ts;
+      // Al entrar en terminal se libera la escolta (requisito 7.2).
+      registro.escolta = [];
+    }
+  });
   return true;
 }
 
 /**
  * Fija el ETA estimado del viaje.
  *
- * Si el viaje está en un estado terminal, devuelve `false`.
- * Si es válido, actualiza el `eta_estimado` y devuelve `true`.
+ * Si el viaje está en un estado terminal, devuelve `false` y no cambia el almacén.
  */
 export function fijarEtaMock(id: string, eta_estimado: string): boolean {
-  const detalle = DETALLES_VIAJES[id];
-  if (!detalle) return false;
-
-  // Validación directa contra los estados terminales (sin confiar en el tipo)
-  const estadosTerminales = ['RECHAZADO_POR_AI27', 'RECHAZADO_POR_CLIENTE', 'CERRADO', 'CANCELADO'];
-  if (estadosTerminales.includes(detalle.viaje.estado)) {
+  const registro = registroViaje(id);
+  if (!registro) return false;
+  if (ESTADOS_TERMINALES_MOCK.some((terminal) => terminal === registro.detalle.viaje.estado)) {
     return false;
   }
 
-  detalle.viaje.eta_estimado = eta_estimado;
+  mutarRegistro(id, (registro) => {
+    registro.detalle.viaje.eta_estimado = eta_estimado;
+  });
   return true;
 }
 
@@ -423,20 +377,18 @@ export function fijarEtaMock(id: string, eta_estimado: string): boolean {
  * Completa/edita la fecha/hora del servicio del viaje (E8-T9).
  *
  * Simula la operación real `completarFechaHora` del `bff` (contrato tracer.15).
- * Valida que la fecha/hora venga no vacía; si es válida, la actualiza y devuelve
- * `true`.
- *
  * Devuelve `false` si el viaje no existe o si la fecha/hora es inválida.
  */
 export function completarFechaHoraMock(id: string, fecha_hora_servicio: string): boolean {
-  const detalle = DETALLES_VIAJES[id];
-  if (!detalle) return false;
+  if (!registroViaje(id)) return false;
 
   if (typeof fecha_hora_servicio !== 'string' || fecha_hora_servicio.trim().length === 0) {
     return false;
   }
 
-  detalle.viaje.fecha_hora_servicio = fecha_hora_servicio;
+  mutarRegistro(id, (registro) => {
+    registro.detalle.viaje.fecha_hora_servicio = fecha_hora_servicio;
+  });
   return true;
 }
 
@@ -474,10 +426,18 @@ function aptitudDemo(recurso: AptitudRecurso['recurso'], recurso_id: string): Ap
  * La aptitud aparece solo aquí, después de reservar, y nunca en el roster.
  */
 export function asignarEscoltaMock(id: string, unidades_ids: string[]): Asignacion | null {
-  const detalle = DETALLES_VIAJES[id];
-  if (!detalle) return null;
+  if (!registroViaje(id)) return null;
 
-  detalle.viaje.estado = EstadoViaje.Asignado;
+  mutarAlmacen((almacen) => {
+    const registro = almacen.viajes[id];
+    if (!registro) return;
+    registro.detalle.viaje.estado = EstadoViaje.Asignado;
+    almacen.cambios_estado.push({
+      viaje_id: id,
+      estado: EstadoViaje.Asignado,
+      ts: new Date().toISOString(),
+    });
+  });
   return {
     viaje_id: id,
     estado: EstadoViaje.Asignado,
@@ -519,7 +479,6 @@ const BITACORA_DEMO: EntradaBitacora[] = [
     ts: new Date(Date.now() - 7_200_000).toISOString(),
   },
 ];
-const INCIDENCIAS_DEMO: Incidencia[] = [];
 const ESTADIAS_DEMO: Estadia[] = [
   {
     id: 'EST-1001',
@@ -570,14 +529,15 @@ export function registrarEntradaBitacoraMock(
  * Devuelve `null` si el viaje no existe.
  */
 export function descargarViajeMock(viajeId: string): DescargaViaje | null {
-  if (obtenerDetalleViajeMock(viajeId) === null) return null;
+  const registro = registroViaje(viajeId);
+  if (!registro) return null;
   return {
     viaje_id: viajeId,
     ficha: {
       estado: 'en_curso',
-      origen: 'Centro de distribución demo',
-      destinos: [{ nombre: 'Destino demo', numero_envio: 'ENV-0001' }],
-      fecha_hora_servicio: null,
+      origen: registro.expediente.origen,
+      destinos: registro.detalle.viaje.destinos,
+      fecha_hora_servicio: registro.detalle.viaje.fecha_hora_servicio ?? null,
       tipo_servicio: 'escolta',
     },
     bitacora: BITACORA_DEMO.filter((entrada) => entrada.viaje_id === viajeId).map((entrada) => ({
@@ -665,17 +625,15 @@ export function descargarAdjuntoMock(viajeId: string, adjuntoId: string): Descar
  */
 export type VarianteFrescuraMock = 'fresca' | 'atrasada' | 'no_informada' | 'sin_datos';
 
-const FILAS_REPORTE_DEMO: FilaViaje[] = [
-  { viaje_id: 'VJ-R1', estado: 'ASIGNADO', creado_en: '2026-11-04T06:00:00.000Z' },
-  { viaje_id: 'VJ-R2', estado: 'EN_EMBARQUE', creado_en: '2026-11-04T07:30:00.000Z' },
-  { viaje_id: 'VJ-R3', estado: 'ASIGNADO', creado_en: '2026-11-03T18:00:00.000Z' },
-  {
-    viaje_id: 'VJ-R4',
-    estado: 'COMPLETADO',
-    creado_en: '2026-10-30T09:00:00.000Z',
-    cerrado_en: '2026-10-30T15:00:00.000Z',
-  },
-];
+/** Filas de reporte derivadas del almacén: una por viaje, con su estado actual. */
+function filasReporte(): FilaViaje[] {
+  return Object.values(obtenerAlmacen().viajes).map(({ detalle, creado_en, cerrado_en }) => ({
+    viaje_id: detalle.viaje.id,
+    estado: detalle.viaje.estado,
+    creado_en,
+    ...(cerrado_en && { cerrado_en }),
+  }));
+}
 
 /** Frescura del reporte según la variante. `stale` se omite cuando el contrato lo omitiría. */
 function frescuraMock(variante: VarianteFrescuraMock): {
@@ -700,29 +658,34 @@ export function reporteViajesMock(
   consulta: { readonly enCurso: boolean },
   variante: VarianteFrescuraMock,
 ): ReporteViajes {
-  const filas = consulta.enCurso
-    ? FILAS_REPORTE_DEMO.filter((fila) => fila.cerrado_en === undefined)
-    : FILAS_REPORTE_DEMO;
-  return { filas: [...filas], total: filas.length, ...frescuraMock(variante) };
+  const todas = filasReporte();
+  const filas = consulta.enCurso ? todas.filter((fila) => fila.cerrado_en === undefined) : todas;
+  return { filas, total: filas.length, ...frescuraMock(variante) };
 }
 
-/** Distribución por estado del periodo: cambios de estado, no viajes actuales (Pregunta 9). */
+/**
+ * Distribución por estado: cuenta los CAMBIOS de estado del almacén, no los viajes que
+ * están hoy en cada estado (respuesta de Producto a la Pregunta 9, E8-T17). El mock no
+ * filtra por periodo. Solo aparecen los estados con al menos un cambio.
+ */
 export function reporteEstadosMock(variante: VarianteFrescuraMock): ReporteEstados {
+  const porEstado = new Map<string, number>();
+  for (const cambio of obtenerAlmacen().cambios_estado) {
+    porEstado.set(cambio.estado, (porEstado.get(cambio.estado) ?? 0) + 1);
+  }
   return {
-    conteos: [
-      { estado: 'ASIGNADO', conteo: 2, permanencia_promedio_seg: null },
-      { estado: 'EN_EMBARQUE', conteo: 1, permanencia_promedio_seg: null },
-      { estado: 'COMPLETADO', conteo: 1, permanencia_promedio_seg: null },
-    ],
+    conteos: [...porEstado].map(([estado, conteo]) => ({
+      estado,
+      conteo,
+      permanencia_promedio_seg: null,
+    })),
     ...frescuraMock(variante),
   };
 }
 
 export function listarIncidenciasMock(viajeId: string, cursor: string | null): PaginaIncidencias {
   return paginaHistorico(
-    INCIDENCIAS_DEMO.filter((incidencia) => incidencia.viaje_id === viajeId).map((incidencia) => ({
-      ...incidencia,
-    })),
+    (registroViaje(viajeId)?.incidencias ?? []).map((incidencia) => ({ ...incidencia })),
     cursor,
   );
 }
@@ -731,11 +694,8 @@ export function abrirIncidenciaMock(
   viajeId: string,
   entrada: IncidenciaEntrada,
 ): Incidencia | 'condicion_ya_abierta' {
-  if (
-    INCIDENCIAS_DEMO.some(
-      (incidencia) => incidencia.viaje_id === viajeId && incidencia.estado === 'en_atencion',
-    )
-  ) {
+  const registro = registroViaje(viajeId);
+  if (registro?.incidencias.some((incidencia) => incidencia.estado === 'en_atencion')) {
     return 'condicion_ya_abierta';
   }
   const incidencia: Incidencia = {
@@ -746,18 +706,36 @@ export function abrirIncidenciaMock(
     abierta_en: new Date().toISOString(),
     resuelta_en: null,
   };
-  INCIDENCIAS_DEMO.push(incidencia);
+  mutarRegistro(viajeId, (r) => {
+    r.incidencias.push(incidencia);
+    r.detalle.condiciones_activas = [
+      ...r.detalle.condiciones_activas,
+      { tipo: 'INCIDENCIA', abierta_en: incidencia.abierta_en },
+    ];
+  });
   return incidencia;
 }
 
 export function resolverIncidenciaMock(viajeId: string, incidenciaId: string): Incidencia | null {
-  const incidencia = INCIDENCIAS_DEMO.find(
-    (item) => item.viaje_id === viajeId && item.id === incidenciaId,
-  );
-  if (!incidencia) return null;
-  incidencia.estado = 'resuelta';
-  incidencia.resuelta_en = new Date().toISOString();
-  return { ...incidencia };
+  const existente = registroViaje(viajeId)?.incidencias.find((item) => item.id === incidenciaId);
+  if (!existente) return null;
+  const resuelta: Incidencia = {
+    ...existente,
+    estado: 'resuelta',
+    resuelta_en: new Date().toISOString(),
+  };
+  mutarRegistro(viajeId, (registro) => {
+    registro.incidencias = registro.incidencias.map((item) =>
+      item.id === incidenciaId ? resuelta : item,
+    );
+    // La condición INCIDENCIA sale cuando ya no queda ninguna abierta.
+    if (!registro.incidencias.some((item) => item.estado === 'en_atencion')) {
+      registro.detalle.condiciones_activas = registro.detalle.condiciones_activas.filter(
+        (condicion) => condicion.tipo !== 'INCIDENCIA',
+      );
+    }
+  });
+  return { ...resuelta };
 }
 
 export function listarEstadiasMock(viajeId: string, cursor: string | null): PaginaEstadias {
@@ -813,7 +791,7 @@ export function cerrarEstadiaMock(
  */
 
 /** Sujeto de la sesión demo (claim `sub` del operador demo). */
-export const SUJETO_CONVERSACIONES_DEMO: string = DEMO_CLAIMS.sub;
+export const SUJETO_CONVERSACIONES_DEMO: string = sujetoDeCuenta('operador');
 /** Otra persona del pool: reclama, libera y responde en los escenarios de concurrencia. */
 export const OTRO_RESPONSABLE_DEMO = 'usr-demo-2';
 /** Cliente sin entrada en `listarClientes` (inactivo o fuera de alcance): el nombre no se resuelve. */

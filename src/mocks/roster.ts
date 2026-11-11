@@ -10,6 +10,10 @@
  *   vehículo, 400 por validación, 409 `vehiculo_en_otra_unidad`,
  *   `custodio_en_otra_unidad` y `unidad_con_reserva_vigente`.
  * - `obtenerAsignacion`: cualquier rol interno; `unidades` vacío sin asignación.
+ * - "Mis unidades" de cada Monitorista (tracer.40, DEC-140 #1, DEC-142 #2): lee
+ *   `administrador`; el `jefe_operativo` solo `rol=monitorista` y el alcance de un
+ *   Monitorista. Fijar: los dos; 400 si una unidad no existe, 409 `rol_sin_alcance`
+ *   y `sujeto_desactivado`. Una unidad puede estar en varios Monitoristas.
  *
  * El estado vive en memoria y se reinicia al recargar (o con `reiniciarRosterMock`).
  */
@@ -21,9 +25,13 @@ import { Rol } from '@/lib/contracts';
 import type { Custodio, Vehiculo } from '@/lib/contracts/catalogos';
 import { decodificarClaims, rolValido } from '@/lib/contracts/jwt';
 import type { Unidad } from '@/lib/contracts/unidades';
-import { esTerminal, type EstadoViaje } from '@/lib/contracts/viajeDetalle';
-
 import { obtenerDetalleViajeMock } from './data';
+import {
+  crearAlmacenSemilla,
+  esEstadoTerminalMock,
+  obtenerAlmacen,
+  reemplazarAlmacen,
+} from './almacen-viajes';
 
 const path = (segmento: string) => `${API_PREFIX}${segmento}`;
 
@@ -74,6 +82,70 @@ function semillaVehiculos(): Vehiculo[] {
       placas: 'GHI-0001',
       estado: 'inactiva',
     },
+    {
+      id: 'VEH-2005',
+      version: 1,
+      tipo: 'coche',
+      economico: 'P-103',
+      placas: 'JKL-0005',
+      estado: 'activa',
+    },
+    {
+      id: 'VEH-2006',
+      version: 1,
+      tipo: 'moto',
+      economico: 'M-08',
+      placas: 'JKL-0006',
+      estado: 'activa',
+    },
+    {
+      id: 'VEH-2007',
+      version: 1,
+      tipo: 'moto',
+      economico: 'M-11',
+      placas: 'JKL-0007',
+      estado: 'activa',
+    },
+    {
+      id: 'VEH-2008',
+      version: 1,
+      tipo: 'coche',
+      economico: 'P-104',
+      placas: 'JKL-0008',
+      estado: 'activa',
+    },
+    {
+      id: 'VEH-2009',
+      version: 1,
+      tipo: 'coche',
+      economico: 'P-105',
+      placas: 'JKL-0009',
+      estado: 'activa',
+    },
+    {
+      id: 'VEH-2010',
+      version: 1,
+      tipo: 'moto',
+      economico: 'M-10',
+      placas: 'JKL-0010',
+      estado: 'activa',
+    },
+    {
+      id: 'VEH-2011',
+      version: 1,
+      tipo: 'coche',
+      economico: 'P-106',
+      placas: 'JKL-0011',
+      estado: 'activa',
+    },
+    {
+      id: 'VEH-2012',
+      version: 1,
+      tipo: 'coche',
+      economico: 'P-107',
+      placas: 'JKL-0012',
+      estado: 'activa',
+    },
   ];
 }
 
@@ -97,6 +169,14 @@ function semillaCustodios(): Custodio[] {
     },
     { id: 'CUS-3005', version: 1, nombre: 'Pedro Gómez', estado: 'activo' },
     { id: 'CUS-3006', version: 1, nombre: 'Rosa Díaz', estado: 'inactivo' },
+    { id: 'CUS-3007', version: 1, nombre: 'Custodio escolta 7', estado: 'activo' },
+    { id: 'CUS-3008', version: 1, nombre: 'Custodio escolta 8', estado: 'activo' },
+    { id: 'CUS-3009', version: 1, nombre: 'Custodio escolta 9', estado: 'activo' },
+    { id: 'CUS-3010', version: 1, nombre: 'Custodio escolta 10', estado: 'activo' },
+    { id: 'CUS-3011', version: 1, nombre: 'Custodio escolta 11', estado: 'activo' },
+    { id: 'CUS-3012', version: 1, nombre: 'Custodio escolta 12', estado: 'activo' },
+    { id: 'CUS-3013', version: 1, nombre: 'Custodio escolta 13', estado: 'activo' },
+    { id: 'CUS-3014', version: 1, nombre: 'Custodio escolta 14', estado: 'activo' },
   ];
 }
 
@@ -109,18 +189,59 @@ function semillaUnidades(): UnidadMock[] {
       activa: true,
     },
     { id: 'UN-1002', vehiculo_id: 'VEH-2002', custodios_ids: ['CUS-3003'], activa: false },
+    { id: 'UN-1003', vehiculo_id: 'VEH-2005', custodios_ids: ['CUS-3007'], activa: true },
+    { id: 'UN-1004', vehiculo_id: 'VEH-2006', custodios_ids: ['CUS-3008'], activa: true },
+    { id: 'UN-1005', vehiculo_id: 'VEH-2007', custodios_ids: ['CUS-3009'], activa: true },
+    { id: 'UN-1006', vehiculo_id: 'VEH-2008', custodios_ids: ['CUS-3010'], activa: true },
+    { id: 'UN-1007', vehiculo_id: 'VEH-2009', custodios_ids: ['CUS-3011'], activa: true },
+    { id: 'UN-1008', vehiculo_id: 'VEH-2010', custodios_ids: ['CUS-3012'], activa: true },
+    { id: 'UN-1009', vehiculo_id: 'VEH-2011', custodios_ids: ['CUS-3013'], activa: true },
+    { id: 'UN-1010', vehiculo_id: 'VEH-2012', custodios_ids: ['CUS-3014'], activa: true },
   ];
 }
 
-/** Escoltas reservadas por viaje. VJ-1001 va en tránsito con UN-1001. */
-function semillaReservas(): Record<string, string[]> {
-  return { 'VJ-1001': ['UN-1001'] };
+interface SujetoMock {
+  id: string;
+  nombre?: string;
+  identificador_usuario?: string;
+  rol: Rol;
+  activo: boolean;
+  unidades_ids: string[];
+}
+
+/** Un Monitorista sin nombre (alta previa a tracer.40), uno desactivado y un Supervisor. */
+function semillaSujetos(): SujetoMock[] {
+  return [
+    {
+      id: 'SUJ-4001',
+      nombre: 'Laura Méndez',
+      identificador_usuario: 'laura.mendez@ai27.mx',
+      rol: Rol.Monitorista,
+      activo: true,
+      unidades_ids: ['UN-1001'],
+    },
+    {
+      id: 'SUJ-4002',
+      identificador_usuario: 'monitorista.dos@ai27.mx',
+      rol: Rol.Monitorista,
+      activo: true,
+      unidades_ids: [],
+    },
+    {
+      id: 'SUJ-4003',
+      nombre: 'Óscar Ruiz',
+      rol: Rol.Monitorista,
+      activo: false,
+      unidades_ids: ['UN-1001'],
+    },
+    { id: 'SUJ-4004', nombre: 'Carmen Vega', rol: Rol.Supervisor, activo: true, unidades_ids: [] },
+  ];
 }
 
 let vehiculos = semillaVehiculos();
 let custodios = semillaCustodios();
 let unidades = semillaUnidades();
-let reservas = semillaReservas();
+let sujetos = semillaSujetos();
 let secuencia = 1;
 
 /** Devuelve el estado a la semilla. Para pruebas que necesitan aislamiento. */
@@ -128,7 +249,14 @@ export function reiniciarRosterMock(): void {
   vehiculos = semillaVehiculos();
   custodios = semillaCustodios();
   unidades = semillaUnidades();
-  reservas = semillaReservas();
+  // Solo la parte de roster del almacén: la escolta de cada viaje vuelve a la semilla.
+  const semilla = crearAlmacenSemilla().viajes;
+  const almacen = obtenerAlmacen();
+  for (const [id, registro] of Object.entries(almacen.viajes)) {
+    registro.escolta = [...(semilla[id]?.escolta ?? [])];
+  }
+  reemplazarAlmacen(almacen);
+  sujetos = semillaSujetos();
   secuencia = 1;
 }
 
@@ -179,17 +307,34 @@ export function unidadDelRosterMock(id: string): Unidad | null {
   return unidad ? legible(unidad) : null;
 }
 
-/** Registra la escolta reservada al asignar el viaje. */
-export function reservarEscoltaMock(viajeId: string, unidadesIds: string[]): void {
-  reservas[viajeId] = [...unidadesIds];
+/**
+ * La unidad está reservada en otro viaje no terminal (requisito 7.1). El viaje
+ * indicado no cuenta, para que reasignar la misma escolta no choque consigo misma.
+ */
+export function unidadReservadaEnOtroViaje(unidadId: string, viajeId: string): boolean {
+  return Object.entries(obtenerAlmacen().viajes).some(
+    ([id, registro]) =>
+      id !== viajeId &&
+      registro.escolta.includes(unidadId) &&
+      !esEstadoTerminalMock(registro.detalle.viaje.estado),
+  );
 }
 
+/** Registra la escolta reservada en el almacén. Sin efecto si el viaje no existe. */
+export function reservarEscoltaMock(viajeId: string, unidadesIds: string[]): void {
+  const almacen = obtenerAlmacen();
+  const registro = almacen.viajes[viajeId];
+  if (!registro) return;
+  registro.escolta = [...unidadesIds];
+  reemplazarAlmacen(almacen);
+}
+
+/** Unidad con reserva en un viaje no terminal. Impide editarla (DEC-142 #5). */
 function tieneReservaVigente(unidadId: string): boolean {
-  return Object.entries(reservas).some(([viajeId, ids]) => {
-    if (!ids.includes(unidadId)) return false;
-    const estado = obtenerDetalleViajeMock(viajeId)?.viaje.estado;
-    return estado !== undefined && !esTerminal(estado as EstadoViaje);
-  });
+  return Object.values(obtenerAlmacen().viajes).some(
+    (registro) =>
+      registro.escolta.includes(unidadId) && !esEstadoTerminalMock(registro.detalle.viaje.estado),
+  );
 }
 
 async function leerCuerpo(request: Request): Promise<Record<string, unknown> | null> {
@@ -375,6 +520,72 @@ export const handlersRoster = [
     return HttpResponse.json(legible(siguiente));
   }),
 
+  // --- "Mis unidades" de cada Monitorista (tracer.40) ---
+  http.get(path('/sujetos'), ({ request }) => {
+    const rol = rolDe(request);
+    if (rol === null) return error(401, 'no_autorizado', 'token ausente o inválido');
+    const query = new URL(request.url).searchParams;
+    const filtroRol = query.get('rol');
+    const soloMonitoristas = rol === Rol.JefeOperativo && filtroRol === Rol.Monitorista;
+    if (rol !== Rol.Administrador && !soloMonitoristas) {
+      return error(403, 'prohibido', `el rol ${rol} no puede invocar listarSujetos`);
+    }
+    const activo = query.get('activo');
+    const items = sujetos
+      .filter((s) => filtroRol === null || s.rol === filtroRol)
+      .filter((s) => activo === null || s.activo === (activo === 'true'))
+      .map((s) => ({
+        id: s.id,
+        ...(s.nombre && { nombre: s.nombre }),
+        ...(s.identificador_usuario && { identificador_usuario: s.identificador_usuario }),
+        rol: s.rol,
+        activo: s.activo,
+        es_propio: false,
+      }));
+    return HttpResponse.json(paginar(items, request));
+  }),
+
+  http.get(path('/sujetos/:id/alcance'), ({ params, request }) => {
+    const rechazo = exigirRol(request, ROLES_ROSTER, 'obtenerAlcanceSujeto');
+    if (rechazo) return rechazo;
+    const sujeto = sujetos.find((s) => s.id === params.id);
+    if (!sujeto) return error(404, 'no_encontrado', 'sujeto');
+    if (rolDe(request) === Rol.JefeOperativo && sujeto.rol !== Rol.Monitorista) {
+      return error(403, 'prohibido', 'el jefe_operativo solo lee el alcance de un Monitorista');
+    }
+    return HttpResponse.json({
+      unidades_ids: [...sujeto.unidades_ids],
+      subordinados_ids: [],
+      unidades_efectivas_ids: [...sujeto.unidades_ids],
+    });
+  }),
+
+  http.put(path('/sujetos/:id/alcance/unidades'), async ({ params, request }) => {
+    const rechazo = exigirRol(request, ROLES_ROSTER, 'fijarUnidadesSujeto');
+    if (rechazo) return rechazo;
+    const sujeto = sujetos.find((s) => s.id === params.id);
+    if (!sujeto) return error(404, 'no_encontrado', 'sujeto');
+    const cuerpo = await leerCuerpo(request);
+    const ids = cuerpo?.unidades_ids;
+    if (
+      !cuerpo ||
+      camposDesconocidos(cuerpo, ['unidades_ids']).length > 0 ||
+      !Array.isArray(ids) ||
+      ids.some((id) => typeof id !== 'string')
+    ) {
+      return error(400, 'validacion', 'unidades_ids debe ser una lista de identificadores');
+    }
+    if (ids.some((id) => !unidades.some((u) => u.id === id))) {
+      return error(400, 'validacion', 'alguna unidad no existe en el roster');
+    }
+    if (sujeto.rol !== Rol.Monitorista) {
+      return error(409, 'rol_sin_alcance', 'el usuario no tiene rol activo monitorista');
+    }
+    if (!sujeto.activo) return error(409, 'sujeto_desactivado', 'el usuario está desactivado');
+    sujeto.unidades_ids = [...new Set(ids as string[])];
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   // --- Escolta vigente del viaje (E8-T12): cualquier rol interno ---
   http.get(path('/viajes/:id/asignacion'), ({ params, request }) => {
     const rol = rolDe(request);
@@ -383,7 +594,7 @@ export const handlersRoster = [
     if (rol === Rol.Cliente || !obtenerDetalleViajeMock(id)) {
       return error(404, 'no_encontrado', 'viaje');
     }
-    const ids = [...(reservas[id] ?? [])].sort();
+    const ids = [...(obtenerAlmacen().viajes[id]?.escolta ?? [])].sort();
     return HttpResponse.json({
       viaje_id: id,
       unidades: ids.flatMap((uid) => {

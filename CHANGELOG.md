@@ -1,4 +1,145 @@
-﻿# CHANGELOG
+# CHANGELOG
+
+## 2026:11:11 11:24
+
+**Resumen:** Modo mock con datos coherentes (spec `modo-mock-coherencia-datos`, tareas 1 a 10). Un solo almacén de viajes alimenta listado, detalle, ficha, expediente, incidencias, escolta, emergencias y reportes. Así una transición, una reserva o una emergencia se ve igual en todas las pantallas del mock. Los datos se guardan en `localStorage` solo en modo mock.
+
+**Cambios:**
+
+- **Almacén único** (`src/mocks/almacen-viajes.ts`, nuevo): estado de viajes, semilla con un viaje por cada valor de `EstadoViaje`, lista de estados terminales, persistencia en `localStorage` con clave versionada (`ai27.mock.almacen-viajes.v2`) y `reiniciarAlmacenMock()`. Solo guarda cuando `VITE_ENABLE_MOCKS === 'true'`.
+- **Fachadas** (`src/mocks/data.ts`): se quitan `VIAJES_DEMO`, `DETALLES_VIAJES`, `FICHAS_DEMO`, `INCIDENCIAS_DEMO` y `FILAS_REPORTE_DEMO`. Las funciones exportadas conservan su firma. Cada mutación escribe una vez en el almacén y lo guarda.
+- **Incidencias:** abrir una incidencia agrega la condición `INCIDENCIA`; resolver la última la quita. Un rechazo no cambia el almacén.
+- **Escolta** (`src/mocks/roster.ts`): la reserva vive en el viaje. Una unidad reservada en otro viaje no terminal responde `409 recurso_no_disponible`. Al entrar en estado terminal se libera. Con datos de roster nuevos (`UN-1003` a `UN-1010`) cada viaje en `ASIGNADO` o posterior tiene escolta. Una transición a un estado que la exige sin escolta se rechaza.
+- **Emergencias** (`src/mocks/emergencias.ts`): casos y emergencias por viaje salen del almacén. Se quitan `VIAJE_DEMO` y los ids `viaje-001` y `viaje-terminal`. El detalle de Reacción toma los datos del viaje (`ViajeEmergencia`), incluido el nombre del cliente. Activar en viaje terminal responde `409 viaje_en_estado_terminal` según el estado real.
+- **Ficha** (`src/mocks/handlers.ts`): un viaje sin ficha responde `200` con la forma vacía del contrato. El `404` queda para viaje inexistente. Se quitó el handler duplicado.
+- **Reportes:** `reporteViajesMock` deriva filas del almacén. `reporteEstadosMock` cuenta cambios de estado, según la respuesta de Producto a la Pregunta 9 de E8-T17. Se quita el estado `COMPLETADO` y los ids `VJ-R1` a `VJ-R4`.
+- **Pruebas** (`tests/roster/Roster.test.tsx`): la prueba de alta busca la unidad nueva en la página donde aparece, porque el roster ahora tiene más unidades.
+- **Especificación:** `.kiro/specs/modo-mock-coherencia-datos/` con `tasks.md` (tareas 1 a 10 cerradas) y `BRECHAS.md` (cada brecha con su fuente).
+
+**Decisiones de mock que no fijaba la especificación:** el listado muestra el origen largo del viaje; `em-001` y `em-002` quedan ligadas a `VJ-1010` y `VJ-1006`; el id de una emergencia activada es `em-<activacion_id>`; cada viaje de la semilla cuenta un cambio de estado en su alta.
+
+**Verificación:** `pnpm typecheck` y `eslint` sin errores. `pnpm vitest run`: 85 archivos y 625 pruebas en verde. `pnpm build:mock` y `pnpm build` correctos. El build normal no contiene la clave del almacén. **Pendiente:** la validación manual de los escenarios 1 a 7 y de la recarga en `pnpm dev:mock` (tarea 11 del spec).
+
+**Archivos modificados:**
+
+- `src/mocks/almacen-viajes.ts` (nuevo)
+- `src/mocks/data.ts`
+- `src/mocks/roster.ts`
+- `src/mocks/emergencias.ts`
+- `src/mocks/handlers.ts`
+- `tests/roster/Roster.test.tsx`
+- `.kiro/specs/modo-mock-coherencia-datos/tasks.md` (tareas 1 a 10 marcadas)
+- `.kiro/specs/modo-mock-coherencia-datos/BRECHAS.md` (nuevo)
+
+## 2026:11:10 17:00
+
+**Resumen:** E8-T19 cierra todo lo que se puede verificar sin servidor: el aviso de un rechazo `403` o `409` ya sobrevive a una recarga fallida del detalle, la lista de organizaciones se vuelve a leer tras crear o editar, y el alcance de un Monitorista muestra vehículo y custodios legibles. Se fusionó `pf-wfi-d` y se documenta el Bloque B de usuarios, organizaciones, alcance y revocación (sin entrada previa en este archivo).
+
+**Cambios:**
+
+- **Bloque B de `/administracion`** (`src/features/administracion/`): `SeccionUsuarios`, `PanelUsuario`, `AltaUsuarioDialog`, `AlcanceEditor`, `SeccionOrganizaciones`, `DesactivarOrganizacionDialog` y los diálogos de rol, desactivar, organización y revocación, con el adaptador real inyectado en la ruta y los handlers MSW de `src/mocks/administracion.ts`.
+- **Rechazos del servidor** (`PanelUsuario`, `CambioRolDialog`, `DesactivarUsuarioDialog`): un `403` o `409` muestra su aviso en el panel y vuelve a leer el detalle; si esa lectura falla, el aviso se conserva (R7.3, R7.4).
+- **Organizaciones** (`SeccionOrganizaciones`): crear o editar ya recarga la lista.
+- **Alcance** (`AlcanceEditor`, `opcionesUnidades.ts`): las unidades se muestran con económico, placas y custodios (B-16, `tracer.38`); la tabla titula sus columnas según lo que se elige.
+- **Fusión con `pf-wfi-d`**: se retiró la credencial propia `DEMO_ADMINISTRADOR`; el administrador demo sale de las cuentas por rol.
+- Pruebas: `tests/administracion/panel-y-secciones.test.tsx` (8, incluye la tarea 17.6) y `propiedades.test.ts` (17, fast-check).
+
+**Verificación:** `tsc --build`, `eslint .`, `vite build --mode mock` y `vitest run` (625) en verde. Sin prueba contra el servidor real: `identidad`, `bff` y core responden 404 (DEC-144). Quedan sin escribir las pruebas opcionales 4.7, 5.2, 6.3, 13.2, 17.1 a 17.5 y 17.7.
+
+## 2026:11:10 16:48
+
+**Resumen:** La administración de E8-T19 usa `@ai27-tech/ui` como fuente de verdad. Se eliminan los componentes propios que reimplementaban la librería: los diálogos usan `Modal` directo y las listas usan `Table` con sus estados de carga y vacío. Se corrige una doble codificación de acentos en las pruebas del Bloque B.
+**Cambios:**
+
+- **Componentes eliminados** (`src/features/administracion/`): `EstadoBadge` (pasa a `Badge`), `RegionConsulta` (pasa a `Card`, y `Table` lleva `loading` y `emptyState`), `DialogoAdministracion` (pasa a `Modal`), `SelectorRol` y `SelectorOrganizacion` (pasan a `FormSection` y `Radio` dentro de cada diálogo) y `AvisoBloqueo` (pasa a `Card`).
+- **Diálogos** (`AltaUsuarioDialog`, `CambioRolDialog`, `DesactivarUsuarioDialog`, `DesactivarOrganizacionDialog`, `OrganizacionFormDialog`, `RevocarSesionesDialog`): usan `Modal` con `closeOnEsc`, `closeOnOverlayClick` y `showCloseButton` según haya una solicitud pendiente. Se quita la prop `idEncabezadoSeccion`, que `Modal` ya no necesita.
+- **Pruebas** (`tests/administracion/dialogos-bloque-b.test.tsx` y `flujos-bloque-b.test.tsx`): se corrigen acentos dañados por una doble codificación (UTF-8 leído como Windows-1252 y guardado otra vez en UTF-8). No cambia ninguna prueba.
+  **Pendiente:** al cerrar un diálogo no hay respaldo de foco al encabezado de la sección; `Modal` solo devuelve el foco al elemento que abrió el diálogo. La paginación por cursor usa botones Anterior y Siguiente, porque `Pagination` de la librería es numérica. La librería no trae componentes de texto, encabezado ni layout, así que se usan `p`, `h2`, `h3` y clases utilitarias.
+  **Verificación:** `tsc --build` y `eslint .` sin errores. `vitest run`: 85 archivos y 625 pruebas en verde. Sin prueba contra el servidor real (DEC-144).
+
+## 2026:11:10 15:30
+
+**Resumen:** "Mis unidades" de cada Monitorista en `/roster` (E8-T21, DEC-140 #1, DEC-142 #2, DEC-145). La tarjeta "Unidades de cada Monitorista" deja de ser un aviso de pendiente: lista los Monitoristas activos con sus unidades legibles y permite reemplazar el conjunto con "Editar unidades". Sube el pin de `@ai27-tech/contracts` a `0.1.0-tracer.40`. Para funcionar de punta a punta necesita core con la ola tracer.40 (pf-svc-core #78).
+
+**Cambios:**
+
+- `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`: `@ai27-tech/contracts` pasa de `0.1.0-tracer.39` a `0.1.0-tracer.40`; la versión nueva entra en `minimumReleaseAgeExclude`. No rompió typecheck.
+- `src/lib/api/alcance.ts` y `src/lib/contracts/alcance.ts` (nuevos): `listarMonitoristasActivos` (`GET /sujetos?rol=monitorista&activo=true`), `obtenerAlcanceSujeto` y `fijarUnidadesSujeto` (`PUT`, 204), con los tipos generados del `bff`. Quedan aparte del módulo de administración de E8-T19.
+- `src/lib/api/client.ts`: el cliente acepta `PUT`.
+- `src/features/roster/useUnidadesMonitoristas.ts` (nuevo): lee todas las páginas de Monitoristas activos con su alcance y el roster completo. Fijar invalida `['alcance']` y espera la recarga.
+- `src/features/roster/UnidadesMonitoristas.tsx` y `UnidadesMonitoristaForm.tsx` (nuevos): tabla con el nombre del Monitorista (o su identificador, o "Monitorista sin nombre") y cada unidad como en el roster (`P-101 · ABC-1234`); una unidad inactiva asignada sale marcada "Inactiva". El diálogo ofrece las unidades activas y las ya asignadas aunque estén inactivas, para poder quitarlas. Envío único (también con doble clic) y sin cambios no se guarda. Estados de carga, vacío ("No hay Monitoristas activos."), error con reintento y 403 sin cerrar la sesión.
+- `src/features/roster/mensajes.ts`: `mensajeErrorAlcance` para `409 rol_sin_alcance`, `409 sujeto_desactivado`, `403 autoescalamiento`, `400` (unidad inexistente) y `403`.
+- `src/features/roster/Roster.tsx`: usa la tarjeta nueva en lugar del aviso.
+- `src/mocks/roster.ts`: handlers MSW de las tres operaciones con las reglas del `bff` (el `jefe_operativo` solo con `rol=monitorista`; 400, 409 y 404).
+- `tests/roster/Roster.test.tsx`: 10 pruebas nuevas (lista legible, filtro y paginación, vacío, 403 al listar y al guardar, conjunto completo con un solo PUT, unidad inactiva marcada y quitada, 409 `rol_sin_alcance` y `sujeto_desactivado`, administrador). La prueba de paginación del roster descuenta la lectura completa que hace la tarjeta nueva.
+
+**Verificación:** `pnpm lint` y `pnpm typecheck` sin errores. `pnpm test`: 77 archivos y 533 pruebas en verde. `pnpm build` correcto. `pnpm test:e2e`: 5 de 5. En navegador contra el demo (core tracer.40): `demo-jefe_operativo` y `demo-administrador` asignan y quitan la unidad sembrada a `demo-monitorista`; `identidad.alcance_unidad` lo refleja. `./demo.sh recorrido`: 46 pasos, 0 fallas.
+
+**Archivos modificados:**
+
+- `package.json`
+- `pnpm-lock.yaml`
+- `pnpm-workspace.yaml`
+- `src/lib/api/alcance.ts`
+- `src/lib/api/client.ts`
+- `src/lib/contracts/alcance.ts`
+- `src/features/roster/Roster.tsx`
+- `src/features/roster/UnidadesMonitoristas.tsx`
+- `src/features/roster/UnidadesMonitoristaForm.tsx`
+- `src/features/roster/mensajes.ts`
+- `src/features/roster/useUnidadesMonitoristas.ts`
+- `src/mocks/roster.ts`
+- `tests/roster/Roster.test.tsx`
+- `CHANGELOG.md`
+
+## 2026:11:10 13:54
+
+**Resumen:** E8-T19 sube el pin a `@ai27-tech/contracts@0.1.0-tracer.40` y escribe el adaptador HTTP real de `AdministracionPort` sobre los tipos generados (tareas 19.1 y 19.2). El servidor (`identidad`, `bff`, core) aún no sirve las rutas: responden 404 y no pasan a `-m` antes del demo del 11 (DEC-144). Por eso el adaptador no se inyecta por omisión; se cablea en la tarea 16.1.
+
+**Cambios:**
+
+- **Pin:** `package.json`, `pnpm-lock.yaml` y `minimumReleaseAgeExclude` de `pnpm-workspace.yaml` pasan de `tracer.39` a `tracer.40`.
+- **Adaptador real** (`src/lib/api/administracion.ts`): `crearAdministracionHttp()` con las 15 operaciones del tag `administracion` del `bff`. Traduce wire a modelo de vista sin inventar `nombre` ni `identificador_usuario`. `fijarAlcance` hace el `PUT` (204) y vuelve a leer el alcance. `revocarSesiones` limita la espera con `AbortSignal.timeout`.
+- **Cliente HTTP** (`src/lib/api/client.ts`): admite `PUT` y `AbortSignal` (B-18).
+- **Modelos** (`src/lib/contracts/administracion.ts`): `esPropio` reemplaza a `idpSubject` (B-14); `nombre` e `identificadorUsuario` son opcionales (B-15); `Organizacion` pierde `tenant` (el id es el tenant, DEC-112) y gana `usuariosActivos`; el alcance y el cambio de alcance siguen la forma del wire; `ResultadoRevocacion` trae `sesionesRevocadas`.
+- **`relacionConSesion`** toma `es_propio` del servidor; ya no compara identificadores.
+- **`clasificarError`**: `sujeto_desactivado`, `rol_cruza_audiencia`, `autoescalamiento` (403), los tres códigos de alcance y `organizacion_desactivada`.
+- **Diálogos:** texto de respaldo para usuarios sin nombre (`etiquetas.ts`); el alta de organización genera un `id` con `crypto.randomUUID()` al abrir y lo reutiliza al reintentar (DEC-144 #2).
+- Pruebas: `tests/administracion/adaptadorHttp.test.ts` (17) y ajustes en `dialogos-bloque-b` y `dod-autoescalada`.
+- Spec de E8-T19 (`BRECHAS.md`, `requirements.md`, `design.md`, `tasks.md`) actualizado con `tracer.40` y las decisiones DEC-139 a DEC-145.
+
+**Verificación:** con los tipos de `tracer.40`: `tsc --build`, `eslint .`, `vite build --mode mock` y `vitest run` (559) en verde. No hay prueba de punta a punta: el servidor no sirve las rutas todavía.
+
+## 2026:11:10 12:15
+
+**Resumen:** Modo mock con inicio de sesión para los siete roles internos (spec `modo-mock-roles-internos`). Cada rol entra con su cuenta `<cuenta>@demo.ai27` y la contraseña `demo1234`. Cada cuenta tiene su propio `sub` y su `sesion_id`. La renovación conserva rol, `sub` y `sesion_id`, y las conversaciones mock siguen a la cuenta que inició sesión.
+
+**Cambios:**
+
+- `src/mocks/data.ts`: catálogo `CUENTAS_DEMO` con las siete cuentas. Sustituye `DEMO_CREDENTIALS` y `DEMO_CLAIMS`. Nuevas funciones `sujetoDeCuenta`, `sesionDeCuenta`, `cuentaPorCredenciales`, `cuentaPorRol` y `cuentaPorRefreshToken`. `createSessionWire(cuenta)` emite el `refresh_token` como `mock.refresh.<cuenta>.<uuid>`. `SUJETO_CONVERSACIONES_DEMO` pasa de `usr-demo-1` a `usr-demo-operador`.
+- `src/mocks/handlers.ts`: `POST /sesion` valida contra el catálogo y responde 401 sin `access_token` si las credenciales son inválidas, vacías, ausentes o si el cuerpo no es JSON. Al iniciar sesión reinicia el estado de conversaciones con el sujeto de la cuenta. `POST /sesion/refresh` toma la cuenta del `refresh_token` y responde 401 si el token no corresponde a ninguna cuenta. Se reparó el texto con codificación doble en las líneas de sesión.
+- Pruebas nuevas: `tests/sesion/cuentasDemo.test.ts` (login, refresh, unicidad de `sub` y `sesion_id`, y 401) y `tests/conversaciones/sujetoSesion.test.ts`. Se ajustaron `tests/contracts/sesion.test.ts` y `tests/sesion/SessionContext.test.tsx` a la nueva firma de `createSessionWire`.
+- `README.md` y `.env.example`: documentan las siete cuentas y la contraseña común.
+- Spec `.kiro/specs/modo-mock-roles-internos/`: requisitos, diseño, tareas, línea base de verificación y metadatos.
+
+**Verificación:** `pnpm typecheck` y `pnpm lint` sin errores. `pnpm test`: 77 archivos y 523 pruebas en verde. `pnpm test:e2e` (login, roster y session-cut): 5 de 5. `pnpm build` produce un `dist/` sin `demo1234` ni `@demo.ai27`.
+
+**Archivos modificados:**
+
+- `.env.example`
+- `README.md`
+- `src/mocks/data.ts`
+- `src/mocks/handlers.ts`
+- `tests/contracts/sesion.test.ts`
+- `tests/sesion/SessionContext.test.tsx`
+- `tests/sesion/cuentasDemo.test.ts`
+- `tests/conversaciones/sujetoSesion.test.ts`
+- `.kiro/specs/modo-mock-roles-internos/.config.kiro`
+- `.kiro/specs/modo-mock-roles-internos/design.md`
+- `.kiro/specs/modo-mock-roles-internos/linea-base.md`
+- `.kiro/specs/modo-mock-roles-internos/requirements.md`
+- `.kiro/specs/modo-mock-roles-internos/tasks.md`
+- `.kiro/specs/modo-mock-roles-internos/tasks.meta.json`
 
 ## 2026:11:09 13:11
 

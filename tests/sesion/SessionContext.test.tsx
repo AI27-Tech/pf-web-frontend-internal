@@ -39,7 +39,7 @@ describe('SessionProvider', () => {
   it.each(['degradado', 'red'] as const)(
     'conserva la sesión ante un fallo de refresco %s',
     async (kind) => {
-      const sesion = { ...parseSesion(createSessionWire()), expiraEn: Date.now() };
+      const sesion = { ...parseSesion(createSessionWire('operador')), expiraEn: Date.now() };
       tokenStore.guardar(sesion);
       refreshMock.mockRejectedValue(new ApiError(kind, 'indisponible'));
 
@@ -59,7 +59,7 @@ describe('SessionProvider', () => {
   );
 
   it('cierra la sesión ante un fallo de refresco no autorizado', async () => {
-    const sesion = { ...parseSesion(createSessionWire()), expiraEn: Date.now() };
+    const sesion = { ...parseSesion(createSessionWire('operador')), expiraEn: Date.now() };
     tokenStore.guardar(sesion);
     refreshMock.mockRejectedValue(new ApiError('noAutorizado', 'sesión vencida'));
 

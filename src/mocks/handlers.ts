@@ -1,18 +1,18 @@
-﻿/*
+/*
  * Handlers del bff simulado (MSW).
  *
- * Solo cubren la sesi├│n por ahora. Devuelven forma de contrato (snake_case) y
- * los c├│digos que la app clasifica en su taxonom├¡a de errores: un 401 en login
- * se presenta como credenciales inv├ílidas.
+ * Solo cubren la sesión por ahora. Devuelven forma de contrato (snake_case) y
+ * los códigos que la app clasifica en su taxonomía de errores: un 401 en login
+ * se presenta como credenciales inválidas.
  */
 
 import { http, HttpResponse } from 'msw';
 
 import { API_PREFIX } from '@/lib/constants';
-import type { CredencialesEntrada } from '@/lib/contracts';
 import {
-  DEMO_CREDENTIALS,
   crearViajeMock,
+  cuentaPorCredenciales,
+  cuentaPorRefreshToken,
   listarClientesMock,
   createSessionWire,
   listarViajesMock,
@@ -49,6 +49,8 @@ import {
   reclamarConversacionMock,
   registrarReciboLeidoMock,
   registrarSolicitudConversaciones,
+  reiniciarConversacionesMock,
+  sujetoDeCuenta,
   tomarFalloConversaciones,
   type FalloConversaciones,
   type OperacionConversaciones,
@@ -56,7 +58,13 @@ import {
 import type { TransicionEntrada, EtaEntrada, FechaHoraEntrada } from '@/lib/contracts/viajeDetalle';
 import { EstadoViaje } from '@/lib/contracts/viajeDetalle';
 import { handlersEmergencias } from './emergencias';
-import { handlersRoster, reservarEscoltaMock, unidadDelRosterMock } from './roster';
+import {
+  handlersRoster,
+  reservarEscoltaMock,
+  unidadDelRosterMock,
+  unidadReservadaEnOtroViaje,
+} from './roster';
+import { handlersAdministracion } from './administracion';
 import type { CrearViajeEntrada } from '@/lib/contracts/viajes';
 import type {
   EntradaBitacoraEntrada,
@@ -235,6 +243,7 @@ export const handlersConversaciones = [
 
 export const handlers = [
   ...handlersRoster,
+  ...handlersAdministracion,
   ...handlersEmergencias,
   ...handlersConversaciones,
   // GET /clientes ÔÇö cat├ílogo proyectado por el BFF (tracer.20). El mock devuelve
@@ -272,11 +281,16 @@ export const handlers = [
   // GET /viajes/{id}/ficha — lectura de la ficha técnica (E8-T12).
   http.get(path('/viajes/:id/ficha'), ({ params }) => {
     const { id } = params as { id: string };
-    const ficha = obtenerFichaMock(id);
-
-    if (!ficha) {
-      return HttpResponse.json({ mensaje: 'Ficha no encontrada' }, { status: 404 });
+    if (!obtenerDetalleViajeMock(id)) {
+      return HttpResponse.json({ mensaje: 'Viaje no encontrado' }, { status: 404 });
     }
+    // Ficha sin captura: 200 con la forma vacía del contrato (tracer.40).
+    const ficha = obtenerFichaMock(id) ?? {
+      viaje_id: id,
+      tracto: null,
+      contenedores: [],
+      gps_ids: [],
+    };
 
     return HttpResponse.json(ficha, { status: 200 });
   }),
@@ -297,31 +311,6 @@ export const handlers = [
   // GET /gps — catálogo registrado; el wrapper vuelve a filtrar activos como defensa.
   http.get(path('/gps'), () => {
     return HttpResponse.json(listarGpsMock(), { status: 200 });
-  }),
-
-  // GET /viajes/{id}/ficha — lectura de la ficha técnica (E8-T12).
-  http.get(path('/viajes/:id/ficha'), ({ params }) => {
-    const { id } = params as { id: string };
-    const ficha = obtenerFichaMock(id);
-
-    if (!ficha) {
-      return HttpResponse.json({ mensaje: 'Ficha no encontrada' }, { status: 404 });
-    }
-
-    return HttpResponse.json(ficha, { status: 200 });
-  }),
-
-  // PATCH /viajes/{id}/ficha — guardado parcial de la ficha (E8-T12).
-  http.patch(path('/viajes/:id/ficha'), async ({ params, request }) => {
-    const { id } = params as { id: string };
-    const body = (await request.json()) as FichaTecnicaEntrada;
-    const ficha = guardarFichaMock(id, body);
-
-    if (!ficha) {
-      return HttpResponse.json({ mensaje: 'Viaje no encontrado' }, { status: 404 });
-    }
-
-    return HttpResponse.json(ficha, { status: 200 });
   }),
 
   // GET /viajes/{id}/detalle ÔÇö detalle del viaje con estado can├│nico, destinos y eta_estimado.
@@ -476,7 +465,9 @@ export const handlers = [
       request.headers.get('x-mock-asignacion-conflicto') === 'true' ||
       url.searchParams.get('conflicto') === '1';
     const unidadNoDisponible = unidades_ids.some(
-      (unidad_id) => unidadDelRosterMock(unidad_id)?.activa !== true,
+      (unidad_id) =>
+        unidadDelRosterMock(unidad_id)?.activa !== true ||
+        unidadReservadaEnOtroViaje(unidad_id, id),
     );
     if (conflictoForzado || unidadNoDisponible) {
       return HttpResponse.json({ error: { codigo: 'recurso_no_disponible' } }, { status: 409 });
@@ -678,29 +669,61 @@ export const handlers = [
     return HttpResponse.json(resultado, { status: 200 });
   }),
 
-  // POST /sesion ÔÇö login. Solo el operador demo entra.
+  // POST /sesion — login. Valida contra el catálogo de cuentas demo.
   http.post(path('/sesion'), async ({ request }) => {
-    const body = (await request.json()) as Partial<CredencialesEntrada>;
-    const ok =
-      body.usuario === DEMO_CREDENTIALS.usuario && body.contrasena === DEMO_CREDENTIALS.contrasena;
-
-    if (!ok) {
-      return HttpResponse.json({ mensaje: 'Credenciales inv├ílidas' }, { status: 401 });
+    // Un cuerpo que no es JSON se trata como credenciales vacías.
+    let cuerpo: unknown = null;
+    try {
+      cuerpo = await request.json();
+    } catch {
+      // Sin cuerpo JSON: `cuerpo` queda en null.
     }
-    return HttpResponse.json(createSessionWire(), { status: 200 });
+    const campos: Record<string, unknown> =
+      typeof cuerpo === 'object' && cuerpo !== null ? (cuerpo as Record<string, unknown>) : {};
+    const { usuario, contrasena } = campos;
+    const cuenta =
+      typeof usuario === 'string' &&
+      typeof contrasena === 'string' &&
+      usuario !== '' &&
+      contrasena !== ''
+        ? cuentaPorCredenciales(usuario, contrasena)
+        : undefined;
+
+    if (!cuenta) {
+      return HttpResponse.json({ mensaje: 'Credenciales inválidas' }, { status: 401 });
+    }
+    reiniciarConversacionesMock({ sujetoId: sujetoDeCuenta(cuenta) });
+    return HttpResponse.json(createSessionWire(cuenta), { status: 200 });
   }),
 
-  // POST /sesion/refresh ÔÇö renueva la sesi├│n. El mock no valida el refresh_token.
-  http.post(path('/sesion/refresh'), ({ request }) => {
+  // POST /sesion/refresh — renueva la sesión. La cuenta sale del refresh_token, así que
+  // el rol, el sub y el sesion_id de la sesión original se conservan.
+  http.post(path('/sesion/refresh'), async ({ request }) => {
     if (
       request.headers.get('x-mock-session-cut') === '1' ||
       request.headers.get('cookie')?.includes('ai27-mock-session-cut=1')
     ) {
-      return HttpResponse.json({ mensaje: 'Sesi├│n revocada' }, { status: 401 });
+      return HttpResponse.json({ mensaje: 'Sesión revocada' }, { status: 401 });
     }
-    return HttpResponse.json(createSessionWire(), { status: 200 });
+    // Un cuerpo que no es JSON se trata como refresh_token ausente.
+    let cuerpo: unknown = null;
+    try {
+      cuerpo = await request.json();
+    } catch {
+      // Sin cuerpo JSON: `cuerpo` queda en null.
+    }
+    const campos: Record<string, unknown> =
+      typeof cuerpo === 'object' && cuerpo !== null ? (cuerpo as Record<string, unknown>) : {};
+    const { refresh_token } = campos;
+    const cuenta =
+      typeof refresh_token === 'string' ? cuentaPorRefreshToken(refresh_token) : undefined;
+
+    if (!cuenta) {
+      return HttpResponse.json({ mensaje: 'Refresh token inválido' }, { status: 401 });
+    }
+    return HttpResponse.json(createSessionWire(cuenta), { status: 200 });
   }),
 
-  // DELETE /sesion ÔÇö cierre de sesi├│n. Sin cuerpo.
+  // DELETE /sesion — cierre de sesión. Sin cuerpo.
   http.delete(path('/sesion'), () => new HttpResponse(null, { status: 204 })),
 ];

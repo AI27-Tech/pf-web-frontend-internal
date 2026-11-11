@@ -147,15 +147,28 @@ describe('Roster — lista', () => {
     renderRoster();
 
     expect(await screen.findByText('P-201')).toBeInTheDocument();
+    // La tarjeta de Monitoristas lee el roster completo: se descuenta esa lectura.
+    await screen.findByRole('table', { name: 'Unidades de cada Monitorista' });
+    const antes = cursores.length;
     await userEvent.click(screen.getByRole('button', { name: 'Página siguiente' }));
     expect(await screen.findByText('P-202')).toBeInTheDocument();
     expect(screen.getByText('Página 2')).toBeInTheDocument();
-    expect(cursores).toEqual([null, 'c2']);
+    expect(cursores.slice(antes)).toEqual(['c2']);
 
     await userEvent.click(screen.getByRole('button', { name: 'Página anterior' }));
     expect(await screen.findByText('P-201')).toBeInTheDocument();
   });
 });
+
+/** La unidad recién creada cae en la última página del roster: avanza hasta encontrarla. */
+async function irAFilaConTexto(texto: string): Promise<HTMLElement | null> {
+  for (let pagina = 0; pagina < 5; pagina++) {
+    const celda = await screen.findByText(texto, {}, { timeout: 500 }).catch(() => null);
+    if (celda) return celda.closest('tr');
+    await userEvent.click(await screen.findByRole('button', { name: 'Página siguiente' }));
+  }
+  throw new Error(`No apareció la fila: ${texto}`);
+}
 
 describe('Roster — alta', () => {
   it('alta feliz: elige vehículo y custodio; el tipo lo deriva el servidor', async () => {
@@ -164,7 +177,7 @@ describe('Roster — alta', () => {
     await crearUnidadCon('P-102 · DEF-5678 (coche)', ['María Torres']);
 
     expect(await screen.findByText('Unidad creada.')).toBeInTheDocument();
-    const fila = (await screen.findByText('P-102 · DEF-5678')).closest('tr');
+    const fila = await irAFilaConTexto('P-102 · DEF-5678');
     expect(fila).toHaveTextContent('María Torres');
     expect(fila).toHaveTextContent('Patrulla');
     expect(fila).toHaveTextContent('Activa');
@@ -285,5 +298,187 @@ describe('Roster — edición', () => {
       await screen.findByRole('button', { name: 'Editar unidad M-07 · XYZ-987' }),
     );
     expect(await screen.findByRole('button', { name: 'Guardar cambios' })).toBeDisabled();
+  });
+});
+
+describe('Roster — unidades de cada Monitorista', () => {
+  async function filaDe(nombre: string) {
+    const tabla = await screen.findByRole('table', { name: 'Unidades de cada Monitorista' });
+    const fila = within(tabla).getByText(nombre).closest('tr');
+    if (!fila) throw new Error(`sin fila para ${nombre}`);
+    return fila;
+  }
+
+  it('lista los Monitoristas activos con sus unidades legibles, no como id', async () => {
+    renderRoster();
+
+    expect(await filaDe('Laura Méndez')).toHaveTextContent('P-101 · ABC-1234');
+    expect(await filaDe('Laura Méndez')).not.toHaveTextContent('UN-1001');
+    // Sin nombre: se muestra su identificador de usuario.
+    expect(await filaDe('monitorista.dos@ai27.mx')).toHaveTextContent('Sin unidades');
+    const tabla = screen.getByRole('table', { name: 'Unidades de cada Monitorista' });
+    expect(within(tabla).queryByText('Óscar Ruiz')).toBeNull();
+    expect(within(tabla).queryByText('Carmen Vega')).toBeNull();
+  });
+
+  it('pide solo Monitoristas activos y recorre todas las páginas', async () => {
+    const consultas: string[] = [];
+    const usuario = (id: string, nombre: string) => ({
+      id,
+      nombre,
+      activo: true,
+      es_propio: false,
+    });
+    server.use(
+      http.get(path('/sujetos'), ({ request }) => {
+        const query = new URL(request.url).searchParams;
+        consultas.push(query.toString());
+        return HttpResponse.json(
+          query.get('cursor') === 'p2'
+            ? { items: [usuario('SUJ-4002', 'Segunda Página')], cursor_siguiente: null }
+            : { items: [usuario('SUJ-4001', 'Primera Página')], cursor_siguiente: 'p2' },
+        );
+      }),
+    );
+    renderRoster();
+
+    expect(await filaDe('Primera Página')).toBeInTheDocument();
+    expect(await filaDe('Segunda Página')).toBeInTheDocument();
+    expect(consultas).toEqual([
+      'rol=monitorista&activo=true',
+      'rol=monitorista&activo=true&cursor=p2',
+    ]);
+  });
+
+  it('sin Monitoristas activos lo dice', async () => {
+    server.use(
+      http.get(path('/sujetos'), () => HttpResponse.json({ items: [], cursor_siguiente: null })),
+    );
+    renderRoster();
+
+    expect(await screen.findByText('No hay Monitoristas activos.')).toBeInTheDocument();
+  });
+
+  it('un 403 al listar se dice como falta de permiso y no cierra la sesión', async () => {
+    server.use(
+      http.get(path('/sujetos'), () =>
+        HttpResponse.json({ codigo: 'prohibido', mensaje: 'x' }, { status: 403 }),
+      ),
+    );
+    renderRoster();
+
+    expect(
+      await screen.findByText('No tienes permiso para consultar las unidades de los Monitoristas.'),
+    ).toBeInTheDocument();
+    expect(logoutSpy).not.toHaveBeenCalled();
+  });
+
+  it('el diálogo envía el conjunto completo una sola vez y la lista se recarga', async () => {
+    renderRoster();
+    await crearUnidadCon('P-102 · DEF-5678 (coche)', ['María Torres']);
+    await screen.findByText('Unidad creada.');
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Editar unidades de Laura Méndez' }),
+    );
+    const dialogo = await screen.findByRole('dialog');
+    // Solo activas: la moto inactiva UN-1002 no se ofrece.
+    expect(within(dialogo).queryByRole('checkbox', { name: /M-07/ })).toBeNull();
+    expect(within(dialogo).getByRole('checkbox', { name: 'P-101 · ABC-1234' })).toBeChecked();
+    await userEvent.click(within(dialogo).getByRole('checkbox', { name: 'P-102 · DEF-5678' }));
+    cuerpos.length = 0;
+    await userEvent.dblClick(within(dialogo).getByRole('button', { name: 'Guardar unidades' }));
+
+    expect(await screen.findByText('Unidades de Laura Méndez guardadas.')).toBeInTheDocument();
+    expect(cuerpos).toEqual([{ unidades_ids: ['UN-1001', 'UN-N1'] }]);
+    expect(peticiones.filter((p) => p.startsWith('PUT'))).toEqual([
+      'PUT /api/v1/sujetos/SUJ-4001/alcance/unidades',
+    ]);
+    await waitFor(async () => expect(await filaDe('Laura Méndez')).toHaveTextContent('P-102'));
+  });
+
+  it('una unidad inactiva asignada se muestra marcada y se puede quitar', async () => {
+    server.use(
+      http.get(path('/sujetos/SUJ-4002/alcance'), () =>
+        HttpResponse.json({
+          unidades_ids: ['UN-1002'],
+          subordinados_ids: [],
+          unidades_efectivas_ids: ['UN-1002'],
+        }),
+      ),
+    );
+    renderRoster();
+
+    const fila = await filaDe('monitorista.dos@ai27.mx');
+    expect(fila).toHaveTextContent('M-07 · XYZ-987');
+    expect(fila).toHaveTextContent('Inactiva');
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Editar unidades de monitorista.dos@ai27.mx' }),
+    );
+    const inactiva = await screen.findByRole('checkbox', { name: 'M-07 · XYZ-987 (inactiva)' });
+    expect(inactiva).toBeChecked();
+    await userEvent.click(inactiva);
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar unidades' }));
+
+    await screen.findByText('Unidades de monitorista.dos@ai27.mx guardadas.');
+    expect(cuerpos).toEqual([{ unidades_ids: [] }]);
+  });
+
+  it.each([
+    [
+      'rol_sin_alcance',
+      'El usuario ya no es Monitorista y no puede tener unidades asignadas. Recarga la lista.',
+    ],
+    ['sujeto_desactivado', 'El Monitorista está desactivado. Recarga la lista.'],
+  ])('409 %s al guardar: lo dice y conserva la selección', async (codigo, texto) => {
+    server.use(
+      http.put(path('/sujetos/:id/alcance/unidades'), () =>
+        HttpResponse.json({ codigo, mensaje: 'x' }, { status: 409 }),
+      ),
+    );
+    renderRoster();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Editar unidades de Laura Méndez' }),
+    );
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'P-101 · ABC-1234' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar unidades' }));
+
+    expect(await screen.findByText(texto)).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'P-101 · ABC-1234' })).not.toBeChecked();
+  });
+
+  it('403 al guardar: falta de permiso, sin cerrar la sesión', async () => {
+    server.use(
+      http.put(path('/sujetos/:id/alcance/unidades'), () =>
+        HttpResponse.json({ codigo: 'prohibido', mensaje: 'x' }, { status: 403 }),
+      ),
+    );
+    renderRoster();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Editar unidades de Laura Méndez' }),
+    );
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'P-101 · ABC-1234' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar unidades' }));
+
+    expect(
+      await screen.findByText('No tienes permiso para asignar unidades a los Monitoristas.'),
+    ).toBeInTheDocument();
+    expect(logoutSpy).not.toHaveBeenCalled();
+  });
+
+  it('el administrador también asigna unidades', async () => {
+    rolActual = Rol.Administrador;
+    renderRoster();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Editar unidades de monitorista.dos@ai27.mx' }),
+    );
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'P-101 · ABC-1234' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar unidades' }));
+
+    await screen.findByText('Unidades de monitorista.dos@ai27.mx guardadas.');
+    expect(cuerpos).toEqual([{ unidades_ids: ['UN-1001'] }]);
+    // Una unidad puede estar en varios Monitoristas (DEC-145 #1).
+    expect(await filaDe('Laura Méndez')).toHaveTextContent('P-101 · ABC-1234');
+    expect(await filaDe('monitorista.dos@ai27.mx')).toHaveTextContent('P-101 · ABC-1234');
   });
 });

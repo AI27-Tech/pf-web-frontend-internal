@@ -29,5 +29,13 @@ test('el Jefe Operativo entra a Roster por la navegación y da de alta una unida
   await page.getByRole('button', { name: 'Crear unidad' }).click();
 
   await expect(page.getByText('Unidad creada.')).toBeVisible();
-  await expect(roster.getByRole('row', { name: /P-102 · DEF-5678/ })).toContainText('María Torres');
+
+  // La unidad nueva es la última del roster y la página tiene cinco filas: avanza hasta encontrarla.
+  const fila = roster.getByRole('row', { name: /P-102 · DEF-5678/ });
+  const siguiente = page.getByRole('button', { name: 'Página siguiente' });
+  for (let pagina = 2; pagina <= 5 && !(await fila.isVisible()); pagina++) {
+    await siguiente.click();
+    await expect(page.getByText(`Página ${pagina}`)).toBeVisible();
+  }
+  await expect(fila).toContainText('María Torres');
 });
