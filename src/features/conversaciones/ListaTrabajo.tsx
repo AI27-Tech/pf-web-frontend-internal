@@ -1,4 +1,5 @@
-import { Badge, Button, Card } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Card } from '@ai27-tech/ui';
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { ErrorSinAcceso, ErrorSinBandeja } from '@/lib/api/conversaciones';
 import type { Conversacion } from '@/lib/contracts/conversaciones';
 import { capacidades } from './afordancias';
@@ -46,20 +47,19 @@ export function ListaTrabajo({
   if (error instanceof ErrorSinBandeja)
     return (
       <Card variant="outlined">
-        <p role="status">No tienes una bandeja asignada.</p>
+        <Alert variant="info">No tienes una bandeja asignada.</Alert>
       </Card>
     );
   if (error instanceof ErrorSinAcceso)
     return (
       <Card variant="outlined">
-        <p role="alert">No tienes autorización para esta bandeja.</p>
+        <Alert variant="danger">No tienes autorización para esta bandeja.</Alert>
       </Card>
     );
   if (error && !items.length)
     return (
       <Card variant="outlined">
-        <p role="alert">{error.message}</p>
-        <Button onClick={reintentar}>Reintentar</Button>
+        <BloqueError mensaje={error.message} onReintentar={reintentar} />
       </Card>
     );
   return (
@@ -110,7 +110,7 @@ export function ListaTrabajo({
             );
           })
         )}
-        {error && items.length > 0 && <p role="alert">{error.message}</p>}
+        {error && items.length > 0 && <Alert variant="danger">{error.message}</Alert>}
         {hayMas && (
           <Button variant="outline" onClick={onMas} disabled={cargandoMas}>
             {cargandoMas ? 'Cargando...' : 'Cargar más'}

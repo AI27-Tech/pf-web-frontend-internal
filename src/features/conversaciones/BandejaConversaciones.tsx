@@ -1,5 +1,6 @@
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { Button } from '@ai27-tech/ui';
+import { Alert } from '@ai27-tech/ui';
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { ErrorConversacionNoDisponible } from '@/lib/api/conversaciones';
 import { useSession } from '@/context/SessionContext';
 import { useTrabajoBandeja } from './useTrabajoBandeja';
@@ -71,17 +72,17 @@ export function BandejaConversaciones() {
           />
         ) : (
           <div>
-            <p>
-              {detalle.error ? (
-                <span role="alert">{detalle.error.message}</span>
-              ) : id ? (
-                'Cargando conversación...'
+            {detalle.error ? (
+              detalle.error instanceof ErrorConversacionNoDisponible ? (
+                <Alert variant="danger">{detalle.error.message}</Alert>
               ) : (
-                'Selecciona una conversación para leerla.'
-              )}
-            </p>
-            {detalle.error && !(detalle.error instanceof ErrorConversacionNoDisponible) && (
-              <Button onClick={() => void detalle.recargar()}>Reintentar</Button>
+                <BloqueError
+                  mensaje={detalle.error.message}
+                  onReintentar={() => void detalle.recargar()}
+                />
+              )
+            ) : (
+              <p>{id ? 'Cargando conversación...' : 'Selecciona una conversación para leerla.'}</p>
             )}
           </div>
         )}

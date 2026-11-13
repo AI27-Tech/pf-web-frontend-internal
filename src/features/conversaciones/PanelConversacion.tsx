@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   Button,
   MessageBubble,
   MessageComposer,
@@ -65,9 +66,9 @@ export function PanelConversacion({
         actualizadoEn={actualizadoEn}
       />
       {error && (
-        <p role="alert" aria-live="assertive">
+        <Alert variant="danger" aria-live="assertive">
           {error.message}
-        </p>
+        </Alert>
       )}
       <div style={{ display: 'flex', gap: 'var(--ui-space-2)', padding: 'var(--ui-space-2)' }}>
         {c.puedeReclamar && (
