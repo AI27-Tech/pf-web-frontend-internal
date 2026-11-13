@@ -40,12 +40,12 @@ Las decisiones D1 a D6 están resueltas en `requirements.md` (sección 5).
   - [x] 6.2 `PanelUsuario` (`filas` → `items`)
   - [x] 6.3 Revisar `DetalleViaje` (destinos, condiciones) y `ExpedienteViaje` por etiqueta-valor manual. `ExpedienteViaje` sin cambios; `DetalleViaje` pendiente de decisión (BRECHAS.md, 6.3)
 
-- [ ] 7. `DateTimeInput` (R7)
-  - [ ] 7.1 Prueba de humo: cómo se simula el cambio de valor de `DateTimeInput` en Testing Library; dejar un helper en `tests/helpers/`
-  - [ ] 7.2 `CrearViaje.tsx`
-  - [ ] 7.3 `etaForm.tsx` y `fechaHoraForm.tsx`; quitar el comentario "la librería no publica un selector de fecha"
-  - [ ] 7.4 Actualizar `CrearViaje.test.tsx` y `DecisionSolicitud.test.tsx` (el `PATCH fecha-hora` sigue esperando `new Date('2026-10-21T10:00').toISOString()`)
-  - [ ] 7.5 Verificar que `fechaHoraAISO` no cambió y que vacío `""` produce el error de validación existente
+- [x] 7. `DateTimeInput` (R7). Detalle en BRECHAS.md, sección 7
+  - [x] 7.1 Prueba de humo: cómo se simula el cambio de valor de `DateTimeInput` en Testing Library; helper en `tests/helpers/fechaHora.ts`
+  - [x] 7.2 `CrearViaje.tsx`
+  - [x] 7.3 `etaForm.tsx` y `fechaHoraForm.tsx`; comentario obsoleto quitado
+  - [x] 7.4 Actualizar `CrearViaje.test.tsx` y `DecisionSolicitud.test.tsx`. La expectativa del `PATCH fecha-hora` no cambió
+  - [x] 7.5 `fechaHoraAISO` sin cambios; caso vacío cubierto con una prueba nueva
 
 - [ ] 8. `Timeline` (R6)
   - [ ] 8.1 `HistoricoViaje`: bitácora (D-D)

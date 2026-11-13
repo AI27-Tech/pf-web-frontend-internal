@@ -220,3 +220,28 @@ Resultado: `tsc --build` sin errores, `vitest run` 629 de 629 en verde, `eslint`
 ### 6.4 Pendiente
 
 - D-E menciona «Section en fichas», pero las tareas 6.x solo piden `DescriptionList`. Los encabezados de las tarjetas de `FichaTecnicaViaje` (`CardHeader` con `p`) siguen igual. Confirmar si deben pasar a `Section`.
+
+## 7. Bloque 7: `DateTimeInput` (tareas 7.1 a 7.5, 2026-11-13)
+
+Resultado: `tsc --build` sin errores. `vitest run` 631 de 631 en verde (629 previas más 2 nuevas). `eslint src tests e2e` sin avisos. `playwright test` 5 de 5 en verde. Ya no hay `datetime-local` en `src`.
+
+### 7.1 Cómo se escribe en `DateTimeInput` en las pruebas
+
+`DateTimeInput` tiene dos partes: `DateInput` (texto DD/MM/AAAA) y `TimePicker` (segmentos «Horas» y «Minutos»). `fireEvent.change` no sirve: la fecha solo emite al salir de su campo. El helper `tests/helpers/fechaHora.ts` (`escribirFechaHora(user, control, 'YYYY-MM-DDTHH:mm')`) escribe la fecha, confirma con un clic en la hora y luego escribe cada segmento, borrando antes el valor previo. Enter no se usa, porque en un formulario dispara el envío. La prueba de humo está en `tests/helpers/fechaHora.test.tsx`.
+
+### 7.2 a 7.4 Cambios
+
+- `CrearViaje.tsx`, `etaForm.tsx` y `fechaHoraForm.tsx` usan `DateTimeInput` con `value` y `onChange` de cadena. Se quitó el comentario que decía que la librería no publica un selector de fecha.
+- `CrearViaje.test.tsx` y `DecisionSolicitud.test.tsx` usan el helper. La expectativa del `PATCH fecha-hora` (`new Date('2026-10-21T10:00').toISOString()`) no cambió.
+
+### 7.5 Verificación de la conversión
+
+- `fechaHoraAISO` no cambió (`git diff` vacío en `adaptadorCrearViaje.ts`). Solo se corrigió el comentario de `fechaHora`, que decía «datetime-local».
+- Una prueba nueva en `CrearViaje.test.tsx` vacía la hora después de escribirla y verifica el error «Ingresa una fecha y hora válida.» y que no se llama a `crear`.
+
+### 7.6 Pendiente
+
+- **Texto visible cambiado:** los placeholders «DD/MM/YYYY HH:MM» de ETA y fecha-hora se quitaron, porque `DateTimeInput` no acepta un placeholder a nivel superior. Ahora la fecha muestra «DD/MM/AAAA». Confirmar que el texto nuevo es aceptable.
+- **Enter en el campo de fecha:** puede enviar el formulario, como cualquier `Input`. Comprobar en el navegador.
+- **Precarga con zona horaria (no nuevo):** la precarga de ETA y fecha-hora recibe una marca ISO con `Z`. `DateTimeInput` espera `YYYY-MM-DDTHH:mm`, así que el valor no se muestra. Ya pasaba con `datetime-local`. Revisar si corresponde convertir la marca a hora local antes de mostrarla.
+- Revisión visual en claro y oscuro, y del `FormRow` con el control nuevo (tarea 12.2).

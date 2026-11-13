@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026:11:13 18:15
+
+**Resumen:** Bloque 7 del spec `adopcion-ui-0-3-0` (R7): los `input type="datetime-local"` de crear viaje, ETA y fecha-hora pasan a `DateTimeInput` de `@ai27-tech/ui`. Se añadió un helper de pruebas para escribir en ese control, porque tiene dos partes (fecha y hora) que no responden a `fireEvent`.
+
+**Cambios:**
+
+- **Crear viaje y detalle:** `CrearViaje.tsx`, `etaForm.tsx` y `fechaHoraForm.tsx` usan `DateTimeInput`. Se quitó el comentario que decía que la librería no tenía selector de fecha. El placeholder «DD/MM/YYYY HH:MM» se quitó (ahora se ve «DD/MM/AAAA»).
+- **Pruebas:** nuevo `tests/helpers/fechaHora.ts` con `escribirFechaHora`, y su prueba de humo. `CrearViaje.test.tsx` y `DecisionSolicitud.test.tsx` usan el helper. Una prueba nueva verifica el error de fecha vacía.
+- **Comentario:** `adaptadorCrearViaje.ts` ya no dice «datetime-local». `fechaHoraAISO` no cambió.
+- **Especificación:** `tasks.md` con bloque 7 marcado y `BRECHAS.md` con la sección 7.
+
+**Verificación:** `tsc --build` sin errores. `vitest run`: 631 de 631 en verde. `eslint src tests e2e` sin avisos. `playwright test`: 5 de 5 en verde.
+
+**Pendiente:** confirmar el texto del placeholder nuevo, revisar en navegador si Enter en el campo de fecha envía el formulario, y decidir cómo mostrar la precarga de ETA y fecha-hora que llega con zona horaria (BRECHAS.md, sección 7.6).
+
 ## 2026:11:13 17:30
 
 **Resumen:** Bloque 6 del spec `adopcion-ui-0-3-0` (R5): los pares etiqueta-valor de la ficha técnica y del panel de usuario pasan a `DescriptionList`. Se eliminó la función local `Dato`. `DetalleViaje` queda sin cambios por una decisión pendiente, y `ExpedienteViaje` no tenía pares manuales.
