@@ -6,7 +6,7 @@
 import type { ReactNode } from 'react';
 
 import {
-  Button,
+  Alert,
   Card,
   CardBody,
   CardHeader,
@@ -15,6 +15,7 @@ import {
   type FilterDefinition,
 } from '@ai27-tech/ui';
 
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { useSession } from '@/context/SessionContext';
 import { puedeUsarMonitoreo } from '@/features/monitoreo/puedeUsarMonitoreo';
 import type { FilaViaje } from '@/lib/contracts/reportes';
@@ -58,7 +59,7 @@ export function DashboardMonitoreo() {
       {autorizado ? (
         <DashboardAutorizado />
       ) : (
-        <Mensaje>Este dashboard no está disponible para tu rol.</Mensaje>
+        <Alert variant="danger">Este dashboard no está disponible para tu rol.</Alert>
       )}
     </div>
   );
@@ -80,23 +81,24 @@ function DashboardAutorizado() {
         showActiveFilterChips={false}
       />
 
-      {d.esProhibido && <Mensaje>No tienes autorización para ver este reporte.</Mensaje>}
+      {d.esProhibido && (
+        <Alert variant="danger">No tienes autorización para ver este reporte.</Alert>
+      )}
 
       {!d.esProhibido && d.error && (
         <Card variant="outlined">
           <CardBody>
-            <Mensaje>No se pudo cargar el dashboard.</Mensaje>
-            <Button variant="primary" type="button" onClick={d.reintentar}>
-              Reintentar
-            </Button>
+            <BloqueError mensaje="No se pudo cargar el dashboard." onReintentar={d.reintentar} />
           </CardBody>
         </Card>
       )}
 
-      {!d.esProhibido && !d.error && d.cargando && <Mensaje>Cargando el dashboard...</Mensaje>}
+      {!d.esProhibido && !d.error && d.cargando && (
+        <MensajeCarga>Cargando el dashboard...</MensajeCarga>
+      )}
 
       {!d.esProhibido && !d.error && !d.cargando && d.vacio && (
-        <Mensaje>Sin viajes para mostrar.</Mensaje>
+        <Alert variant="info">Sin viajes para mostrar.</Alert>
       )}
 
       {!d.esProhibido && !d.error && !d.cargando && d.viajes && !d.vacio && (
@@ -198,7 +200,8 @@ function ConteosCard({
   );
 }
 
-function Mensaje({ children }: { readonly children: ReactNode }) {
+/** Texto de carga. Sigue como `role="status"` hasta el bloque 9 (decisión D6). */
+function MensajeCarga({ children }: { readonly children: ReactNode }) {
   return (
     <p
       className="ui-text-body-sm"

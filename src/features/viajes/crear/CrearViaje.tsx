@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import {
+  Alert,
   Badge,
   Button,
   Card,
@@ -23,6 +24,7 @@ import {
 } from '@ai27-tech/ui';
 import { useNavigate } from '@tanstack/react-router';
 
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { useSession } from '@/context/SessionContext';
 import { ApiError } from '@/lib/api/errors';
 import { onCut } from '@/lib/api/sessionCut';
@@ -117,9 +119,7 @@ export function CrearViaje() {
     >
       <header>
         {avisoSesionFinalizada && (
-          <p role="alert" style={{ color: 'var(--ui-color-error)', margin: 0 }}>
-            Tu sesión finalizó. La información capturada no se envió.
-          </p>
+          <Alert variant="danger">Tu sesión finalizó. La información capturada no se envió.</Alert>
         )}
         <Button variant="ghost" type="button" onClick={volver}>
           Volver a viajes
@@ -230,11 +230,7 @@ export function CrearViaje() {
                     )}
                   </div>
                 ))}
-                {errores.destinos && (
-                  <p role="alert" style={{ color: 'var(--ui-color-error)', margin: 0 }}>
-                    {errores.destinos}
-                  </p>
-                )}
+                {errores.destinos && <Alert variant="danger">{errores.destinos}</Alert>}
                 <Button
                   variant="secondary"
                   type="button"
@@ -267,11 +263,7 @@ export function CrearViaje() {
               />
             </fieldset>
 
-            {errorEnvio && (
-              <p role="alert" style={{ color: 'var(--ui-color-error)', margin: 0 }}>
-                {errorEnvio}
-              </p>
-            )}
+            {errorEnvio && <Alert variant="danger">{errorEnvio}</Alert>}
             {resultado && (
               <Resultado
                 resultado={resultado}
@@ -328,18 +320,11 @@ function Roster({
   if (cargando) return <p role="status">Cargando unidades del roster...</p>;
   if (error) {
     return (
-      <Card variant="outlined">
-        <CardBody>
-          <p role="alert">No se pudo cargar el roster de unidades.</p>
-          <Button variant="secondary" type="button" onClick={onReintentar}>
-            Reintentar
-          </Button>
-        </CardBody>
-      </Card>
+      <BloqueError mensaje="No se pudo cargar el roster de unidades." onReintentar={onReintentar} />
     );
   }
   if (unidades.length === 0)
-    return <p role="status">No hay unidades disponibles para seleccionar.</p>;
+    return <Alert variant="info">No hay unidades disponibles para seleccionar.</Alert>;
 
   return (
     <div aria-label={`${seleccionadas.size} unidades seleccionadas`}>
@@ -433,7 +418,7 @@ function AccesoNoAutorizado({ onVolver }: { readonly onVolver: () => void }) {
   return (
     <Card variant="outlined">
       <CardBody>
-        <p role="alert">Este flujo está disponible para el rol Jefe Operativo.</p>
+        <Alert variant="danger">Este flujo está disponible para el rol Jefe Operativo.</Alert>
       </CardBody>
       <CardFooter>
         <Button variant="secondary" onClick={onVolver}>

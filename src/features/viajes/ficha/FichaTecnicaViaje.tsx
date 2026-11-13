@@ -8,9 +8,10 @@
 
 import { useEffect } from 'react';
 
-import { Button, Card, CardBody, CardFooter, CardHeader } from '@ai27-tech/ui';
+import { Alert, Button, Card, CardBody, CardFooter, CardHeader, Stack } from '@ai27-tech/ui';
 import { useNavigate } from '@tanstack/react-router';
 
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { useSession } from '@/context/SessionContext';
 import type { FichaTecnica } from '@/lib/contracts/fichaTecnica';
 import type { Unidad } from '@/lib/contracts/unidades';
@@ -196,18 +197,15 @@ function Escolta({
             Cargando la escolta...
           </p>
         ) : error ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
-            <p
-              role="alert"
-              className="ui-text-body-sm"
-              style={{ margin: 0, color: 'var(--ui-color-error)' }}
-            >
-              No se pudo cargar la escolta.
-            </p>
-            <Button variant="secondary" type="button" onClick={onReintentar}>
-              Reintentar escolta
-            </Button>
-          </div>
+          // BloqueError fija la etiqueta "Reintentar"; esta prueba exige "Reintentar escolta".
+          <Alert variant="danger">
+            <Stack gap={2} align="start">
+              <span>No se pudo cargar la escolta.</span>
+              <Button variant="secondary" type="button" onClick={onReintentar}>
+                Reintentar escolta
+              </Button>
+            </Stack>
+          </Alert>
         ) : unidades.length === 0 ? (
           <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
             Este viaje no tiene escolta asignada.
@@ -292,15 +290,11 @@ function EstadoError({ onReintentar }: { readonly onReintentar: () => void }) {
   return (
     <Card variant="outlined">
       <CardBody>
-        <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-          No se pudo cargar la ficha técnica del viaje.
-        </p>
+        <BloqueError
+          mensaje="No se pudo cargar la ficha técnica del viaje."
+          onReintentar={onReintentar}
+        />
       </CardBody>
-      <CardFooter>
-        <Button variant="primary" onClick={onReintentar}>
-          Reintentar
-        </Button>
-      </CardFooter>
     </Card>
   );
 }
@@ -338,13 +332,7 @@ function SinPermiso({ onVolver }: { readonly onVolver: () => void }) {
   return (
     <Card variant="outlined">
       <CardBody>
-        <p
-          role="alert"
-          className="ui-text-body-sm"
-          style={{ margin: 0, color: 'var(--ui-color-text)' }}
-        >
-          No tienes permiso para ver la ficha técnica de este viaje.
-        </p>
+        <Alert variant="danger">No tienes permiso para ver la ficha técnica de este viaje.</Alert>
       </CardBody>
       <CardFooter>
         <Button variant="secondary" type="button" onClick={onVolver}>

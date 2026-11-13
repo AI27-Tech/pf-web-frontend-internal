@@ -9,6 +9,7 @@
 import { useRef, useState } from 'react';
 
 import {
+  Alert,
   Badge,
   Button,
   Card,
@@ -22,6 +23,7 @@ import {
   ToastContainer,
 } from '@ai27-tech/ui';
 
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { useSession } from '@/context/SessionContext';
 import {
   ErrorAutorizacionInsuficiente,
@@ -75,9 +77,9 @@ function DelegacionSesion() {
   return (
     <Card variant="outlined">
       <CardBody>
-        <p role="alert" className="ui-text-body-sm" style={{ margin: 0, color: COLOR_TEXT }}>
+        <Alert variant="danger">
           Tu sesión no está autorizada. Vuelve a iniciar sesión para ver el histórico.
-        </p>
+        </Alert>
       </CardBody>
     </Card>
   );
@@ -88,9 +90,7 @@ function SinPermiso() {
   return (
     <Card variant="outlined">
       <CardBody>
-        <p role="alert" className="ui-text-body-sm" style={{ margin: 0, color: COLOR_TEXT }}>
-          No tienes permiso para ver el histórico de este viaje.
-        </p>
+        <Alert variant="danger">No tienes permiso para ver el histórico de este viaje.</Alert>
       </CardBody>
     </Card>
   );
@@ -278,26 +278,12 @@ function BitacoraLista({
   }
   if (estado.error) {
     return (
-      <div
-        role="alert"
-        style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}
-      >
-        <p className="ui-text-body-sm" style={{ margin: 0, color: COLOR_TEXT }}>
-          No se pudo cargar la bitácora.
-        </p>
-        <Button variant="secondary" type="button" onClick={estado.reintentar}>
-          Reintentar
-        </Button>
-      </div>
+      <BloqueError mensaje="No se pudo cargar la bitácora." onReintentar={estado.reintentar} />
     );
   }
   const items = estado.datos?.items ?? [];
   if (items.length === 0) {
-    return (
-      <p role="status" className="ui-text-body-sm" style={{ margin: 0, color: COLOR_MUTED }}>
-        Aún no hay notas en la bitácora.
-      </p>
-    );
+    return <Alert variant="info">Aún no hay notas en la bitácora.</Alert>;
   }
   return (
     <ul
@@ -349,26 +335,12 @@ function EstadiasLista({
   }
   if (estado.error) {
     return (
-      <div
-        role="alert"
-        style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}
-      >
-        <p className="ui-text-body-sm" style={{ margin: 0, color: COLOR_TEXT }}>
-          No se pudieron cargar las estadías.
-        </p>
-        <Button variant="secondary" type="button" onClick={estado.reintentar}>
-          Reintentar
-        </Button>
-      </div>
+      <BloqueError mensaje="No se pudieron cargar las estadías." onReintentar={estado.reintentar} />
     );
   }
   const items = estado.datos?.items ?? [];
   if (items.length === 0) {
-    return (
-      <p role="status" className="ui-text-body-sm" style={{ margin: 0, color: COLOR_MUTED }}>
-        Aún no hay estadías registradas.
-      </p>
-    );
+    return <Alert variant="info">Aún no hay estadías registradas.</Alert>;
   }
   return (
     <ul
@@ -443,26 +415,15 @@ function IncidenciasLista({
   }
   if (estado.error) {
     return (
-      <div
-        role="alert"
-        style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}
-      >
-        <p className="ui-text-body-sm" style={{ margin: 0, color: COLOR_TEXT }}>
-          No se pudieron cargar las incidencias.
-        </p>
-        <Button variant="secondary" type="button" onClick={estado.reintentar}>
-          Reintentar
-        </Button>
-      </div>
+      <BloqueError
+        mensaje="No se pudieron cargar las incidencias."
+        onReintentar={estado.reintentar}
+      />
     );
   }
   const items = estado.datos?.items ?? [];
   if (items.length === 0) {
-    return (
-      <p role="status" className="ui-text-body-sm" style={{ margin: 0, color: COLOR_MUTED }}>
-        No hay incidencias registradas en este viaje.
-      </p>
-    );
+    return <Alert variant="info">No hay incidencias registradas en este viaje.</Alert>;
   }
   return (
     <ul

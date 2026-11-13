@@ -17,6 +17,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 
 import {
+  Alert,
   Badge,
   Button,
   Card,
@@ -27,6 +28,7 @@ import {
   Toast,
   ToastContainer,
 } from '@ai27-tech/ui';
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { useSession } from '@/context/SessionContext';
 import { puedeUsarMonitoreo } from '@/features/monitoreo/puedeUsarMonitoreo';
 import { ApiError } from '@/lib/api/errors';
@@ -730,18 +732,7 @@ function EstadoCargando() {
  */
 function EstadoError({ onReintentar }: { readonly onReintentar: () => void }) {
   return (
-    <Card variant="outlined">
-      <CardBody>
-        <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
-          No se pudo cargar el detalle del viaje.
-        </p>
-      </CardBody>
-      <CardFooter>
-        <Button variant="primary" onClick={onReintentar}>
-          Reintentar
-        </Button>
-      </CardFooter>
-    </Card>
+    <BloqueError mensaje="No se pudo cargar el detalle del viaje." onReintentar={onReintentar} />
   );
 }
 
@@ -749,19 +740,7 @@ function EstadoError({ onReintentar }: { readonly onReintentar: () => void }) {
  * Sin permiso (403): la sesión es válida pero el rol o el alcance no llega a este viaje.
  */
 function SinPermiso() {
-  return (
-    <Card variant="outlined">
-      <CardBody>
-        <p
-          role="alert"
-          className="ui-text-body-sm"
-          style={{ color: 'var(--ui-color-text)', margin: 0 }}
-        >
-          No tienes permiso para ver el detalle de este viaje.
-        </p>
-      </CardBody>
-    </Card>
-  );
+  return <Alert variant="danger">No tienes permiso para ver el detalle de este viaje.</Alert>;
 }
 
 /**

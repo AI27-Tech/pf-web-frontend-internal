@@ -9,6 +9,7 @@
 import { useState, type ReactNode } from 'react';
 
 import {
+  Alert,
   Button,
   Card,
   CardBody,
@@ -125,15 +126,7 @@ function DescargaExpediente({
 }
 
 function Mensaje({ children }: { readonly children: ReactNode }) {
-  return (
-    <p
-      className="ui-text-body-sm"
-      role="alert"
-      style={{ margin: 'var(--ui-space-2) 0 0', color: 'var(--ui-color-text)' }}
-    >
-      {children}
-    </p>
-  );
+  return <Alert variant="danger">{children}</Alert>;
 }
 
 function AccesoNoAutorizado({ onVolver }: { readonly onVolver: () => void }) {

@@ -1,6 +1,6 @@
 import { useState, type ChangeEvent } from 'react';
 
-import { Button, FormField, Input } from '@ai27-tech/ui';
+import { Alert, Button, FormField, Input } from '@ai27-tech/ui';
 
 import {
   ErrorAdjuntosProhibido,
@@ -65,16 +65,8 @@ export function SubirEvidencia({ subiendo, error, onSubir }: SubirEvidenciaProps
           Subir evidencia
         </Button>
       </div>
-      {aviso && (
-        <p className="ui-text-body-sm" role="alert" style={{ margin: 0 }}>
-          {aviso}
-        </p>
-      )}
-      {error && (
-        <p className="ui-text-body-sm" role="alert" style={{ margin: 0 }}>
-          {mensajeErrorSubida(error)}
-        </p>
-      )}
+      {aviso && <Alert variant="danger">{aviso}</Alert>}
+      {error && <Alert variant="danger">{mensajeErrorSubida(error)}</Alert>}
     </div>
   );
 }

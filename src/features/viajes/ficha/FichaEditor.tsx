@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 
 import {
+  Alert,
   Button,
   Card,
   CardBody,
@@ -12,6 +13,7 @@ import {
   FormField,
   FormRow,
   Input,
+  Stack,
   Table,
 } from '@ai27-tech/ui';
 
@@ -322,15 +324,11 @@ export function FichaEditor({
             />
           </section>
 
-          {errorEnvio && (
-            <p role="alert" style={{ color: 'var(--ui-color-error)', margin: 0 }}>
-              {errorEnvio}
-            </p>
-          )}
+          {errorEnvio && <Alert variant="danger">{errorEnvio}</Alert>}
           {avisoExito && (
-            <p role="status" style={{ color: 'var(--ui-color-success)', margin: 0 }}>
+            <Alert variant="success">
               Ficha guardada. La vista refleja la respuesta confirmada por el BFF.
-            </p>
+            </Alert>
           )}
 
           <CardFooter
@@ -372,23 +370,20 @@ function GpsSelector({
   }
 
   if (esProhibido(error)) {
-    return (
-      <p role="alert" className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)' }}>
-        No tienes permiso para consultar el catálogo GPS.
-      </p>
-    );
+    return <Alert variant="danger">No tienes permiso para consultar el catálogo GPS.</Alert>;
   }
 
   if (error) {
+    // BloqueError no admite `disabled` ni la etiqueta "Reintentar catálogo": se mantiene el botón.
     return (
-      <div>
-        <p role="alert" className="ui-text-body-sm" style={{ color: 'var(--ui-color-error)' }}>
-          No se pudo cargar el catálogo GPS.
-        </p>
-        <Button variant="secondary" type="button" onClick={onReintentar} disabled={disabled}>
-          Reintentar catálogo
-        </Button>
-      </div>
+      <Alert variant="danger">
+        <Stack gap={2} align="start">
+          <span>No se pudo cargar el catálogo GPS.</span>
+          <Button variant="secondary" type="button" onClick={onReintentar} disabled={disabled}>
+            Reintentar catálogo
+          </Button>
+        </Stack>
+      </Alert>
     );
   }
 
