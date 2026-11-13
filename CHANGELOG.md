@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 2026:11:13 16:00
+
+**Resumen:** Bloque 4 del spec `adopcion-ui-0-3-0`: los encabezados de página pasan a `PageHeader`, las rutas de detalle usan `Breadcrumb` con navegación TanStack, y los bloques con `h2` pasan a `Section`. Se corrigió el selector del vehículo en la prueba e2e de roster. `Section` no pinta encabezado fuera del modo plegable, así que sus títulos llevan `role="heading" aria-level={2}`; esto se propone a la librería en `BRECHAS.md`, sección 4.
+
+**Cambios:**
+
+- **Encabezados (4.1 y 4.2):** `PageHeader` en Catálogos, Roster, BandejaViajes, BandejaEmergencias, BandejaConversaciones, DashboardMonitoreo, StubPage y Administración. En Administración, el foco y `aria-labelledby` se conservan con un `span` dentro del título.
+- **Breadcrumb (4.3):** DetalleViaje, FichaTecnicaViaje, HistoricoViaje y ExpedienteViaje. Nuevo `src/components/layout/EnlaceRuta.tsx`, que pasa `href` como `to` a `Link`.
+- **Section (4.4):** Catálogos, Roster, UnidadesMonitoristas, PanelCaso, SeccionEmergenciasViaje, SeccionUsuarios y PanelUsuario. Se quitaron los `aria-label` que la librería ignoraba.
+- **Pruebas:** 9 archivos en `tests/viajes/` con stub de `Link`; prueba nueva de encabezados de Administración (3 casos) y de enlaces del breadcrumb (1 caso). `e2e/roster.spec.ts`: selector del vehículo corregido.
+- **Especificación:** `tasks.md` con bloque 4 marcado y `BRECHAS.md` con la sección 4.
+
+**Verificación:** `tsc --build`, `eslint src tests e2e` y `vite build --mode mock` sin errores. `vitest run`: 629 de 629 en verde. `playwright test`: 5 de 5 en verde.
+
+**Pendiente:** revisión visual en claro y oscuro (tarea 12.2). Decidir si los nombres de las secciones pasan a «Datos del viaje» y «Emergencias del viaje» (BRECHAS.md, sección 4.3).
+
 ## 2026:11:13 13:40
 
 **Resumen:** Bloque 3 del spec `adopcion-ui-0-3-0`: los mensajes `role="alert|status"` escritos a mano pasan al componente `Alert` de `@ai27-tech/ui`, por área. Se migraron 80 de 99 usos. Los 19 que quedan son textos de carga (bloque 9), una región `aria-live`, un error de campo y cuatro bloques de resultado en `CrearViaje`; todos están documentados en `BRECHAS.md`, sección 3.

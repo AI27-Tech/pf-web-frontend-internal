@@ -115,3 +115,46 @@ Conteo medido con grep sobre `src/**/*.tsx`: antes del bloque había 99 usos rea
 - `type="datetime-local"` en `CrearViaje.tsx`: ya existía y no se tocó. Lo cubre el bloque 7.2 (`DateTimeInput`).
 - Prettier marca archivos que no se tocaron en `administracion` (p. ej. `AccionesUsuario.tsx`) por los finales de línea CRLF del repo. Problema anterior; no se reformatearon.
 - Un proceso `vite --mode mock` (PID 17748, iniciado a las 12:32) sigue corriendo en el repo. No lo inicié yo; conviene detenerlo si nadie lo usa.
+
+## 4. Bloque 4: `PageHeader`, `Breadcrumb` y `Section` (tareas 4.1 a 4.5, 2026-11-13)
+
+Resultado: `vitest run` 629 de 629 en verde (625 previas más 4 pruebas nuevas). `tsc --build`, `eslint src tests e2e` y `vite build --mode mock` pasan. `playwright test`: 5 de 5 en verde, incluido el login que espera el título «Dashboard de Monitoreo».
+
+### 4.1 Encabezados de página
+
+- `PageHeader` sustituye el `h1` manual en Catálogos, Roster, BandejaViajes, BandejaEmergencias, BandejaConversaciones, DashboardMonitoreo y StubPage. El `h1` lo genera la librería.
+- En `Administracion.tsx`, el id y el `tabIndex={-1}` se pusieron en un `span` dentro del título, que se pasa como `title`. El foco y `aria-labelledby` siguen funcionando. No quedó ninguna `BRECHA-UI`.
+- Breadcrumb en DetalleViaje, FichaTecnicaViaje, HistoricoViaje y ExpedienteViaje. Items: `Viajes` → `/viajes`, luego `Viaje {id}` → `/viajes/{id}` en ficha, histórico y expediente. El último item es la pantalla actual, sin enlace.
+- Para el enlace se creó `src/components/layout/EnlaceRuta.tsx`. La librería renderiza cada item con `href`, pero `Link` de TanStack espera `to`; el componente traduce uno al otro.
+
+### 4.2 Problema de la librería: `Section` sin encabezado
+
+`Section` pinta el título en un `span` cuando no es `collapsible`. Un `h2` solo aparece en el modo plegable. Para no perder la estructura de encabezados, cada título de `Section` se envuelve así: `<span role="heading" aria-level={2}>Texto</span>`. Se aplicó en 9 lugares: `Catalogos` (2), `Roster`, `UnidadesMonitoristas`, `SeccionEmergenciasViaje`, `PanelCaso` (3), `PanelUsuario` y `SeccionUsuarios`.
+
+**Propuesta para el equipo de la librería:** que `Section` acepte `titleAs` (`h2` o `h3`), como ya lo hace `PageHeader`. Así desaparece el envoltorio.
+
+### 4.3 Nombre accesible de las secciones
+
+La librería pone `aria-labelledby` apuntando al título, así que el `aria-label` de `Section` no tiene efecto. Se quitó en `PanelCaso` y `SeccionEmergenciasViaje`. Los nombres ahora son los títulos visibles:
+
+- `PanelCaso`: «Viaje» (antes se anunciaba «Datos del viaje»).
+- `SeccionEmergenciasViaje`: «Emergencias» (antes «Emergencias del viaje»).
+
+**Decisión a revisar:** cambiar el título visible a «Datos del viaje» y «Emergencias del viaje», o aceptar los nombres cortos.
+
+### 4.4 Revisiones visuales pendientes (tarea 12.2)
+
+- En `DetalleViaje`, los tres botones de navegación pasaron a la zona `actions` del `PageHeader`. Ahora «Expediente y evidencia» aparece antes del bloque de emergencias.
+- `Section` no pone separador bajo el encabezado. Se quitó la separación que daba `CardHeader` en Catálogos y Roster. Si hace falta, usar `divider`.
+- Los botones «Reintentar» de los `BloqueError` ya se revisaron en el bloque 3.
+
+### 4.5 Fuera de la lista de tareas
+
+- `login.tsx` (panel de marca con `h2`), `LoginForm.tsx` (`h1` con clases de Tailwind) y `two-factor.tsx` (`h1`). Siguen con encabezados manuales. No están en las tareas 4.x; quedan para decidir.
+- `BandejaViajes.tsx`: los comentarios tienen texto corrupto por codificación (anterior a este bloque, no tocado).
+
+### 4.6 Pruebas
+
+- 9 archivos de `tests/viajes/` añadieron un stub de `Link` a sus mocks de `@tanstack/react-router`, porque el breadcrumb lo usa.
+- Nueva prueba en `tests/administracion/encabezado-administracion.test.tsx` (3 casos) y en `HistoricoViaje.test.tsx` (enlaces del breadcrumb).
+- `e2e/roster.spec.ts`: el selector del vehículo buscaba «Elige un vehículo». Ahora busca «Vehículo», como las pruebas unitarias del bloque anterior.

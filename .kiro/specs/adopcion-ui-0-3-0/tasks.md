@@ -22,12 +22,12 @@ Las decisiones D1 a D6 están resueltas en `requirements.md` (sección 5).
   - [x] 3.6 `viajes/` (`BandejaViajes`, `FichaTecnicaViaje`, `FichaEditor`, `ExpedienteViaje`, `HistoricoViaje`, `DetalleViaje`, `etaForm`) y `monitoreo/dashboard`
   - [x] 3.7 Revisar a mano que no queden `role="alert|status"` sobre `<p>` fuera de errores de campo. Quedan 19 usos, todos documentados en BRECHAS.md, sección 3 (carga para bloque 9, aria-live, un error de campo y cuatro `CardBody` de resultado en CrearViaje por decidir)
 
-- [ ] 4. `PageHeader` y `Breadcrumb` (R3)
-  - [ ] 4.1 Pantallas sin jerarquía: `Catalogos`, `Roster`, `BandejaViajes`, `BandejaEmergencias`, `BandejaConversaciones`, `DashboardMonitoreo`, `StubPage`
-  - [ ] 4.2 `Administracion.tsx`: resolver foco y `aria-labelledby` (ver riesgo en el diseño)
-  - [ ] 4.3 Pantallas con jerarquía y `Breadcrumb` con `as={Link}`: `DetalleViaje`, `FichaTecnicaViaje`, `HistoricoViaje`, `ExpedienteViaje`
-  - [ ] 4.4 `h2` de bloque a `Section`: `Catalogos`, `Roster`, `UnidadesMonitoristas`, `PanelCaso`, `SeccionEmergenciasViaje`, `SeccionUsuarios`, `PanelUsuario`
-  - [ ] 4.5 `test:e2e` (el login espera el título «Dashboard de Monitoreo»)
+- [x] 4. `PageHeader` y `Breadcrumb` (R3). Detalle en BRECHAS.md, sección 4
+  - [x] 4.1 Pantallas sin jerarquía: `Catalogos`, `Roster`, `BandejaViajes`, `BandejaEmergencias`, `BandejaConversaciones`, `DashboardMonitoreo`, `StubPage`
+  - [x] 4.2 `Administracion.tsx`: resolver foco y `aria-labelledby` (id y `tabIndex` en un `span` dentro del título; sin BRECHA-UI)
+  - [x] 4.3 Pantallas con jerarquía y `Breadcrumb` con `as={Link}`: `DetalleViaje`, `FichaTecnicaViaje`, `HistoricoViaje`, `ExpedienteViaje` (con `EnlaceRuta` para pasar `href` como `to`)
+  - [x] 4.4 `h2` de bloque a `Section`: `Catalogos`, `Roster`, `UnidadesMonitoristas`, `PanelCaso`, `SeccionEmergenciasViaje`, `SeccionUsuarios`, `PanelUsuario`. El título va en `span role="heading" aria-level={2}` porque `Section` no pinta encabezado
+  - [x] 4.5 `test:e2e` (el login espera el título «Dashboard de Monitoreo»). 5 de 5 en verde
 
 - [ ] 5. `Stack`, `Inline`, `Grid` (R4)
   - [ ] 5.1 Archivos con más ocurrencias: `HistoricoViaje`, `PanelCaso`, `DetalleViaje`, `CrearViaje`, `FichaTecnicaViaje`, `FichaEditor`
