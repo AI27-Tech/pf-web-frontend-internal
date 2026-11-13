@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## 2026:11:13 17:00
+
+**Resumen:** Bloque 5 del spec `adopcion-ui-0-3-0` (R4): los `div` con `display: flex` o `grid` en línea pasan a `Stack`, `Inline` y `Grid` de `@ai27-tech/ui`, en `src/features` y en los componentes compartidos de `components/layout` y de la ruta de panel. Quedan 11 apariciones de 97: 3 en `AppShell` (fuera de alcance por D3) y 8 en `Form` o `CardFooter`, que son componentes de la librería sin props de disposición.
+
+**Cambios:**
+
+- **Viajes:** historico (`HistoricoViaje` y formularios), detalle (`DetalleViaje` y formularios), evidencia, expediente, crear, ficha y bandeja.
+- **Emergencias:** `PanelCaso`, bandeja, lista, diálogo, banner y activación.
+- **Roster y catálogos:** unidades, formularios, vehículos y custodios.
+- **Conversaciones y monitoreo:** lista, banner, bandeja, dashboard, indicador de frescura.
+- **Layout y ruta:** `SessionTopbar`, `StubPage` y `routes/_private/jefe-operativo/panel.tsx`.
+- **Especificación:** `tasks.md` con bloque 5 marcado y `BRECHAS.md` con la sección 5.
+
+**Verificación:** `tsc --build` sin errores. `vitest run`: 629 de 629 en verde. `eslint` sin avisos en `src`, `tests` y `e2e`. `playwright test`: 5 de 5 en verde.
+
+**Pendiente:** unificar el enfoque de los formularios (`Stack as={Form}` frente a `Stack` dentro de `Form`), y la revisión visual en claro y oscuro (tarea 12.2).
+
 ## 2026:11:13 16:00
 
 **Resumen:** Bloque 4 del spec `adopcion-ui-0-3-0`: los encabezados de página pasan a `PageHeader`, las rutas de detalle usan `Breadcrumb` con navegación TanStack, y los bloques con `h2` pasan a `Section`. Se corrigió el selector del vehículo en la prueba e2e de roster. `Section` no pinta encabezado fuera del modo plegable, así que sus títulos llevan `role="heading" aria-level={2}`; esto se propone a la librería en `BRECHAS.md`, sección 4.

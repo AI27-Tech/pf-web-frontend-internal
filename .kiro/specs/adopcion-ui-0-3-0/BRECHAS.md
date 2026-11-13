@@ -158,3 +158,39 @@ La librería pone `aria-labelledby` apuntando al título, así que el `aria-labe
 - 9 archivos de `tests/viajes/` añadieron un stub de `Link` a sus mocks de `@tanstack/react-router`, porque el breadcrumb lo usa.
 - Nueva prueba en `tests/administracion/encabezado-administracion.test.tsx` (3 casos) y en `HistoricoViaje.test.tsx` (enlaces del breadcrumb).
 - `e2e/roster.spec.ts`: el selector del vehículo buscaba «Elige un vehículo». Ahora busca «Vehículo», como las pruebas unitarias del bloque anterior.
+
+## 5. Bloque 5: `Stack`, `Inline` y `Grid` (tareas 5.1 a 5.4, 2026-11-13)
+
+Conteo con grep sobre `src/**/*.ts(x)` del patrón `display: 'flex' | 'grid'`. Al empezar el bloque había 97 líneas en 42 archivos. Al terminar quedan 11 líneas en 7 archivos:
+
+- 3 en `components/layout/AppShell.tsx`: fuera de alcance por D3.
+- 6 en `Form` y 2 en `CardFooter`: componentes de la librería sin props de disposición (`FormProps` solo tiene atributos HTML; `CardFooter` tampoco). Se dejaron en `style` y se justifican aquí. Si se quieren migrar, ver la decisión 5.2.
+
+Resultado: `tsc --build` sin errores, `vitest run` 629 de 629 en verde, `eslint` sin avisos en `src`, `tests` y `e2e`, `playwright test` 5 de 5 en verde.
+
+### 5.1 Decisiones de equivalencia
+
+- `Inline` por defecto centra (`align="center"`) y envuelve (`wrap`). Para conservar la disposición original, donde el `div` no tenía `alignItems` se usó `align="stretch"`, y donde no tenía `flexWrap`, `wrap={false}`. Afecta a historico, detalle, emergencias, roster, conversaciones y viajes. Si se prefieren los defaults de la librería, quitar esos props en una sola pasada.
+- Los `div` que solo tenían `marginTop`, `margin`, `padding` u otras propiedades sin equivalente se dejaron en `style`.
+
+### 5.2 Formularios: enfoque no unificado (decisión pendiente)
+
+`Form` de la librería ya es columna flex con gap, pero con un gap distinto al de los formularios actuales. Los agentes usaron tres enfoques:
+
+- **Historico** (`EstadiaForm`, `IncidenciaForm`, `NotaForm`): `Stack gap={3}` dentro de `Form`. Añade un `div` por formulario.
+- **Detalle** (`asignacionForm`, `fechaHoraForm`, `causaForm`, `etaForm`): `Stack as={Form}`, salvo `cierreForm`, donde `Form` conserva `noValidate`, que `Stack` no acepta; ahí el `Stack` va dentro.
+- **Roster, catálogos, `CrearViaje`, `FichaEditor`**: sin cambios. El `display:flex` queda en `style` de `Form`.
+
+Propuesta: usar `Stack as={Form}` en todos, y para `noValidate`, un `Stack` interno. Decidir antes de la revisión visual (tarea 12.2).
+
+### 5.3 Restos sin equivalente en la librería
+
+- `gridTemplateColumns: 'minmax(260px, 1fr) 2fr'` en `BandejaEmergencias` y en `BandejaConversaciones`: `Grid` con `columns` o `minItemWidth` no da esa proporción.
+- `alignItems: 'baseline'` en el nombre de `SessionTopbar`.
+- `height`, `flex`, `padding` y `marginTop` en otros elementos.
+
+### 5.4 Revisión pendiente
+
+- Diseño visual en claro y oscuro (tarea 12.2): separación de formularios y listas, y el `inline-flex` de las condiciones de `DetalleViaje`, que pasó a `Inline` (flex de bloque); puede mover unos píxeles.
+- `Prettier --check` marca `BannerEstado`, `BannerActualizacion`, `IndicadorFrescura`, `SessionTopbar`, `SelectorCaso` y `panel.tsx` por finales de línea CRLF en disco y LF en el índice. Problema previo del repo; no se cambió.
+- `etaForm.tsx`, `fechaHoraForm.tsx` y `CrearViaje.tsx` siguen con `datetime-local`. Lo cubre el bloque 7.

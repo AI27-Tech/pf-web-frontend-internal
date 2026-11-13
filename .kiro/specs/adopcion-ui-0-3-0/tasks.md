@@ -29,11 +29,11 @@ Las decisiones D1 a D6 están resueltas en `requirements.md` (sección 5).
   - [x] 4.4 `h2` de bloque a `Section`: `Catalogos`, `Roster`, `UnidadesMonitoristas`, `PanelCaso`, `SeccionEmergenciasViaje`, `SeccionUsuarios`, `PanelUsuario`. El título va en `span role="heading" aria-level={2}` porque `Section` no pinta encabezado
   - [x] 4.5 `test:e2e` (el login espera el título «Dashboard de Monitoreo»). 5 de 5 en verde
 
-- [ ] 5. `Stack`, `Inline`, `Grid` (R4)
-  - [ ] 5.1 Archivos con más ocurrencias: `HistoricoViaje`, `PanelCaso`, `DetalleViaje`, `CrearViaje`, `FichaTecnicaViaje`, `FichaEditor`
-  - [ ] 5.2 Resto de `src/features` (roster, catalogos, administracion, conversaciones, dashboard)
+- [x] 5. `Stack`, `Inline`, `Grid` (R4). Detalle en BRECHAS.md, sección 5
+  - [x] 5.1 Archivos con más ocurrencias: `HistoricoViaje`, `PanelCaso`, `DetalleViaje`, `CrearViaje`, `FichaTecnicaViaje`, `FichaEditor`
+  - [x] 5.2 Resto de `src/features` (roster, catalogos, administracion, conversaciones, dashboard). Administración no tenía `display:`. Los formularios quedaron con tres enfoques, pendiente de unificar (BRECHAS.md, sección 5.2)
   - [-] 5.3 `AppShell.tsx`: fuera de este spec por D3 (se hará después de una revisión visual en claro y oscuro)
-  - [ ] 5.4 Medir el conteo final y justificar cada `display:` restante
+  - [x] 5.4 Medir el conteo final y justificar cada `display:` restante. Inicio 97 líneas; final 11 (3 en AppShell por D3, 8 en `Form` y `CardFooter` sin props de disposición). Detalle en BRECHAS.md, sección 5
 
 - [ ] 6. `DescriptionList` y `Section` en fichas (R5)
   - [ ] 6.1 `FichaTecnicaViaje.DatosViaje` y `FichaConfirmada`: eliminar `Dato`
