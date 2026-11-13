@@ -9,7 +9,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { Button, Checkbox, Form } from '@ai27-tech/ui';
+import { Alert, Button, Checkbox, Form } from '@ai27-tech/ui';
 
 import type { Unidad } from '@/lib/contracts/unidades';
 
@@ -103,15 +103,7 @@ export function UnidadesMonitoristaForm({
         )}
       </fieldset>
 
-      {error && (
-        <p
-          role="alert"
-          className="ui-text-body-sm"
-          style={{ margin: 0, color: 'var(--ui-color-error)' }}
-        >
-          {error}
-        </p>
-      )}
+      {error && <Alert variant="danger">{error}</Alert>}
 
       <div style={{ display: 'flex', gap: 'var(--ui-space-2)', justifyContent: 'flex-end' }}>
         <Button variant="secondary" type="button" onClick={onCancelar} disabled={enviando}>

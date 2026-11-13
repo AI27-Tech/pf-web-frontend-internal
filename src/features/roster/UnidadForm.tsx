@@ -9,7 +9,7 @@
 
 import { useState } from 'react';
 
-import { Button, Checkbox, Form, FormField, Select, Switch } from '@ai27-tech/ui';
+import { Alert, Button, Checkbox, Form, FormField, Select, Switch } from '@ai27-tech/ui';
 
 import type { Custodio, Vehiculo } from '@/lib/contracts/catalogos';
 import type { Unidad, UnidadModificacion } from '@/lib/contracts/unidades';
@@ -124,15 +124,7 @@ export function UnidadForm({
             })}
           </div>
         )}
-        {excedido && (
-          <p
-            role="alert"
-            className="ui-text-body-xs"
-            style={{ margin: 0, color: 'var(--ui-color-error)' }}
-          >
-            Una moto lleva un solo custodio. Quita uno.
-          </p>
-        )}
+        {excedido && <Alert variant="danger">Una moto lleva un solo custodio. Quita uno.</Alert>}
       </fieldset>
 
       {unidad && (
@@ -144,15 +136,7 @@ export function UnidadForm({
         />
       )}
 
-      {error && (
-        <p
-          role="alert"
-          className="ui-text-body-sm"
-          style={{ margin: 0, color: 'var(--ui-color-error)' }}
-        >
-          {error}
-        </p>
-      )}
+      {error && <Alert variant="danger">{error}</Alert>}
 
       <div style={{ display: 'flex', gap: 'var(--ui-space-2)', justifyContent: 'flex-end' }}>
         <Button variant="secondary" type="button" onClick={onCancelar} disabled={enviando}>

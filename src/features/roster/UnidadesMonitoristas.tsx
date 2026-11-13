@@ -8,9 +8,10 @@
 
 import { useState } from 'react';
 
-import { Badge, Button, Card, CardBody, CardHeader, Modal, Table } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Card, CardBody, CardHeader, Modal, Table } from '@ai27-tech/ui';
 import type { Column } from '@ai27-tech/ui';
 
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { esProhibido } from '@/lib/api/errors';
 import type { UsuarioAdmin } from '@/lib/contracts/alcance';
 import type { Unidad } from '@/lib/contracts/unidades';
@@ -107,31 +108,19 @@ export function UnidadesMonitoristas() {
         </CardHeader>
         <CardBody>
           {aviso && (
-            <p
-              role="status"
-              className="ui-text-body-sm"
-              style={{ margin: '0 0 var(--ui-space-2)', color: 'var(--ui-color-success)' }}
-            >
+            <Alert variant="success" style={{ marginBottom: 'var(--ui-space-2)' }}>
               {aviso}
-            </p>
+            </Alert>
           )}
           {esProhibido(r.error) ? (
-            <p role="alert" className="ui-text-body-sm" style={{ margin: 0, color: TEXTO }}>
+            <Alert variant="danger">
               No tienes permiso para consultar las unidades de los Monitoristas.
-            </p>
+            </Alert>
           ) : r.error ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
-              <p
-                role="alert"
-                className="ui-text-body-sm"
-                style={{ margin: 0, color: 'var(--ui-color-error)' }}
-              >
-                No se pudieron cargar las unidades de los Monitoristas.
-              </p>
-              <Button variant="secondary" onClick={r.reintentar}>
-                Reintentar
-              </Button>
-            </div>
+            <BloqueError
+              mensaje="No se pudieron cargar las unidades de los Monitoristas."
+              onReintentar={r.reintentar}
+            />
           ) : r.cargando ? (
             <p className="ui-text-body-sm" style={{ margin: 0, color: TEXTO_TENUE }}>
               Cargando los Monitoristas...
