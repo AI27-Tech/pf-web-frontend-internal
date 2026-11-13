@@ -9,7 +9,7 @@
 
 import { useState, type ReactNode } from 'react';
 
-import { Alert, Badge, Button, Card, CardBody, CardHeader, Modal, Table } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Card, Modal, PageHeader, Section, Table } from '@ai27-tech/ui';
 import type { Column } from '@ai27-tech/ui';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
@@ -23,7 +23,6 @@ import { etiquetaVehiculo, mensajeErrorCatalogo } from './mensajes';
 import { useCustodios, useGuardarCustodio, useGuardarVehiculo, useVehiculos } from './useCatalogos';
 import { VehiculoForm } from './VehiculoForm';
 
-const TEXTO = 'var(--ui-color-text)';
 const TEXTO_TENUE = 'var(--ui-color-text-muted)';
 
 export function Catalogos() {
@@ -32,9 +31,7 @@ export function Catalogos() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-      <h1 className="ui-text-headline-lg" style={{ margin: 0, color: TEXTO }}>
-        Catálogos
-      </h1>
+      <PageHeader title="Catálogos" />
       {puedeArmarRoster(rol) ? (
         <>
           <SeccionVehiculos escribe={puedeEscribirCatalogos(rol)} />
@@ -97,16 +94,20 @@ function SeccionVehiculos({ escribe }: { readonly escribe: boolean }) {
 
   return (
     <Card variant="outlined">
-      <CardHeader>
-        <Encabezado titulo="Vehículos">
-          {escribe && (
+      <Section
+        title={
+          <span role="heading" aria-level={2}>
+            Vehículos
+          </span>
+        }
+        actions={
+          escribe && (
             <Button variant="primary" onClick={() => abrir({ modo: 'alta' })}>
               Nuevo vehículo
             </Button>
-          )}
-        </Encabezado>
-      </CardHeader>
-      <CardBody>
+          )
+        }
+      >
         {aviso && <Confirmacion texto={aviso} />}
         <ContenidoLista
           cargando={lista.isPending}
@@ -123,7 +124,7 @@ function SeccionVehiculos({ escribe }: { readonly escribe: boolean }) {
             density="compact"
           />
         </ContenidoLista>
-      </CardBody>
+      </Section>
       <Modal
         open={edicion !== null}
         onClose={() => setEdicion(null)}
@@ -193,16 +194,20 @@ function SeccionCustodios({ escribe }: { readonly escribe: boolean }) {
 
   return (
     <Card variant="outlined">
-      <CardHeader>
-        <Encabezado titulo="Custodios">
-          {escribe && (
+      <Section
+        title={
+          <span role="heading" aria-level={2}>
+            Custodios
+          </span>
+        }
+        actions={
+          escribe && (
             <Button variant="primary" onClick={() => abrir({ modo: 'alta' })}>
               Nuevo custodio
             </Button>
-          )}
-        </Encabezado>
-      </CardHeader>
-      <CardBody>
+          )
+        }
+      >
         {aviso && <Confirmacion texto={aviso} />}
         <ContenidoLista
           cargando={lista.isPending}
@@ -219,7 +224,7 @@ function SeccionCustodios({ escribe }: { readonly escribe: boolean }) {
             density="compact"
           />
         </ContenidoLista>
-      </CardBody>
+      </Section>
       <Modal
         open={edicion !== null}
         onClose={() => setEdicion(null)}
@@ -244,23 +249,6 @@ function SeccionCustodios({ escribe }: { readonly escribe: boolean }) {
         )}
       </Modal>
     </Card>
-  );
-}
-
-function Encabezado({
-  titulo,
-  children,
-}: {
-  readonly titulo: string;
-  readonly children?: ReactNode;
-}) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <h2 className="ui-text-body-md" style={{ margin: 0, color: TEXTO }}>
-        {titulo}
-      </h2>
-      {children}
-    </div>
   );
 }
 

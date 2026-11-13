@@ -1,5 +1,5 @@
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { Alert } from '@ai27-tech/ui';
+import { Alert, PageHeader } from '@ai27-tech/ui';
 import { BloqueError } from '@/components/feedback/BloqueError';
 import { ErrorConversacionNoDisponible } from '@/lib/api/conversaciones';
 import { useSession } from '@/context/SessionContext';
@@ -31,7 +31,7 @@ export function BandejaConversaciones() {
       }}
     >
       <section>
-        <h1 className="ui-text-headline-lg">Bandeja de conversaciones</h1>
+        <PageHeader title="Bandeja de conversaciones" />
         <ListaTrabajo
           items={bandeja.items}
           sujetoId={usuario?.id ?? ''}

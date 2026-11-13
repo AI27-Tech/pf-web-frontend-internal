@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Alert, Badge, Button, Card, CardBody, Table, type Column } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Card, CardBody, Section, Table, type Column } from '@ai27-tech/ui';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
 import { ApiError } from '@/lib/api/errors';
@@ -175,27 +175,37 @@ export function PanelUsuario({ usuarioId, envio, onVolver, onAviso }: PanelUsuar
   return (
     <div className="flex flex-col gap-4">
       {volver}
-      <h2 className="text-lg font-semibold">{etiquetaUsuario(usuario)}</h2>
-      {avisoRechazo}
-      {tabla}
+      {/* Section pinta el título en un span: role y aria-level conservan el encabezado nivel 2. */}
+      <Section
+        title={
+          <span role="heading" aria-level={2}>
+            {etiquetaUsuario(usuario)}
+          </span>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          {avisoRechazo}
+          {tabla}
 
-      <AccionesUsuario
-        usuario={usuario}
-        relacion={relacion}
-        enCurso={enCurso}
-        onAccion={(accion: AccionUsuario) => {
-          setRechazo(null);
-          if (accion === 'editarAlcance') setAlcanceAbierto(true);
-          if (accion === 'cambiarRol') setDialogo('cambiarRol');
-          if (accion === 'desactivar') setDialogo('desactivar');
-          if (accion === 'reactivar') setDialogo('reactivar');
-          if (accion === 'revocarSesiones') setDialogo('revocar');
-        }}
-      />
+          <AccionesUsuario
+            usuario={usuario}
+            relacion={relacion}
+            enCurso={enCurso}
+            onAccion={(accion: AccionUsuario) => {
+              setRechazo(null);
+              if (accion === 'editarAlcance') setAlcanceAbierto(true);
+              if (accion === 'cambiarRol') setDialogo('cambiarRol');
+              if (accion === 'desactivar') setDialogo('desactivar');
+              if (accion === 'reactivar') setDialogo('reactivar');
+              if (accion === 'revocarSesiones') setDialogo('revocar');
+            }}
+          />
 
-      {tieneAlcance && alcanceAbierto && port.capacidades.alcance && (
-        <AlcanceEditor usuario={usuario} envio={envio} onAviso={onAviso} />
-      )}
+          {tieneAlcance && alcanceAbierto && port.capacidades.alcance && (
+            <AlcanceEditor usuario={usuario} envio={envio} onAviso={onAviso} />
+          )}
+        </div>
+      </Section>
 
       <CambioRolDialog
         abierto={dialogo === 'cambiarRol'}

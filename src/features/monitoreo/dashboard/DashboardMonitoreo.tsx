@@ -11,6 +11,7 @@ import {
   CardBody,
   CardHeader,
   FilterBar,
+  PageHeader,
   Table,
   type FilterDefinition,
 } from '@ai27-tech/ui';
@@ -53,9 +54,7 @@ export function DashboardMonitoreo() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-      <h1 className="ui-text-headline-lg" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-        Dashboard de Monitoreo
-      </h1>
+      <PageHeader title="Dashboard de Monitoreo" />
       {autorizado ? (
         <DashboardAutorizado />
       ) : (

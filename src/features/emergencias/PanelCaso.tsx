@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Badge, Button, Card, Modal } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Card, Modal, Section, Stack } from '@ai27-tech/ui';
 import { useSession } from '@/context/SessionContext';
 import type {
   DetalleEmergenciaReaccion,
@@ -113,73 +113,88 @@ export function PanelCaso({
           )}
         </div>
 
-        <section aria-label="Datos del viaje" style={{ display: 'grid', gap: 'var(--ui-space-1)' }}>
-          <h2 className="ui-text-headline-sm" style={{ margin: 0 }}>
-            Viaje
-          </h2>
-          <p>Cliente: {viaje.cliente_nombre}</p>
-          <p>Estado del viaje: {viaje.estado}</p>
-          <p>Origen: {viaje.origen}</p>
-          <h3 className="ui-text-body-sm" style={{ margin: 0 }}>
-            Destinos
-          </h3>
-          {viaje.destinos.length === 0 && <p>Sin destinos.</p>}
-          <ul style={{ margin: 0 }}>
-            {viaje.destinos.map((destino, indice) => (
-              <li key={indice}>
-                {destino.nombre}
-                {destino.fecha_cita
-                  ? ` · Cita ${new Date(destino.fecha_cita).toLocaleString()}`
-                  : ' · Sin fecha de cita'}
-                {' · '}
-                {destino.arribo ? 'Arribó' : 'Sin arribo'}
-              </li>
+        <Section
+          title={
+            <span role="heading" aria-level={2}>
+              Viaje
+            </span>
+          }
+        >
+          <Stack gap={1}>
+            <p>Cliente: {viaje.cliente_nombre}</p>
+            <p>Estado del viaje: {viaje.estado}</p>
+            <p>Origen: {viaje.origen}</p>
+            <h3 className="ui-text-body-sm" style={{ margin: 0 }}>
+              Destinos
+            </h3>
+            {viaje.destinos.length === 0 && <p>Sin destinos.</p>}
+            <ul style={{ margin: 0 }}>
+              {viaje.destinos.map((destino, indice) => (
+                <li key={indice}>
+                  {destino.nombre}
+                  {destino.fecha_cita
+                    ? ` · Cita ${new Date(destino.fecha_cita).toLocaleString()}`
+                    : ' · Sin fecha de cita'}
+                  {' · '}
+                  {destino.arribo ? 'Arribó' : 'Sin arribo'}
+                </li>
+              ))}
+            </ul>
+            {viaje.tipo_servicio && <p>Tipo de servicio: {viaje.tipo_servicio}</p>}
+            {viaje.fecha_hora_servicio && (
+              <p>Fecha y hora: {new Date(viaje.fecha_hora_servicio).toLocaleString()}</p>
+            )}
+            {viaje.eta_estimado && (
+              <p>ETA estimado: {new Date(viaje.eta_estimado).toLocaleString()}</p>
+            )}
+          </Stack>
+        </Section>
+
+        <Section
+          title={
+            <span role="heading" aria-level={2}>
+              Escolta
+            </span>
+          }
+        >
+          <Stack gap={1}>
+            {viaje.escolta.length === 0 ? (
+              <p>El viaje aún no tiene escolta asignada.</p>
+            ) : (
+              viaje.escolta.map((unidad, indice) => <EscoltaUnidad key={indice} unidad={unidad} />)
+            )}
+          </Stack>
+        </Section>
+
+        <Section
+          title={
+            <span role="heading" aria-level={2}>
+              Notas
+            </span>
+          }
+        >
+          <Stack gap={2}>
+            {notas.length === 0 && <p>Aún no hay notas.</p>}
+            {notas.map((nota) => (
+              <article
+                key={nota.id}
+                style={{ border: '1px solid var(--ui-color-border)', padding: 'var(--ui-space-2)' }}
+              >
+                <div style={{ display: 'flex', gap: 'var(--ui-space-2)' }}>
+                  <small>{ETIQUETA_AUTOR[nota.audiencia_autor]}</small>
+                  <small>{new Date(nota.creado_en).toLocaleString()}</small>
+                  {nota.es_resolucion && <Badge variant="secure">Nota de resolución</Badge>}
+                </div>
+                <p style={{ whiteSpace: 'pre-wrap' }}>{nota.cuerpo}</p>
+              </article>
             ))}
-          </ul>
-          {viaje.tipo_servicio && <p>Tipo de servicio: {viaje.tipo_servicio}</p>}
-          {viaje.fecha_hora_servicio && (
-            <p>Fecha y hora: {new Date(viaje.fecha_hora_servicio).toLocaleString()}</p>
-          )}
-          {viaje.eta_estimado && (
-            <p>ETA estimado: {new Date(viaje.eta_estimado).toLocaleString()}</p>
-          )}
-        </section>
-
-        <section aria-label="Escolta" style={{ display: 'grid', gap: 'var(--ui-space-1)' }}>
-          <h2 className="ui-text-headline-sm" style={{ margin: 0 }}>
-            Escolta
-          </h2>
-          {viaje.escolta.length === 0 ? (
-            <p>El viaje aún no tiene escolta asignada.</p>
-          ) : (
-            viaje.escolta.map((unidad, indice) => <EscoltaUnidad key={indice} unidad={unidad} />)
-          )}
-        </section>
-
-        <section aria-label="Notas" style={{ display: 'grid', gap: 'var(--ui-space-2)' }}>
-          <h2 className="ui-text-headline-sm" style={{ margin: 0 }}>
-            Notas
-          </h2>
-          {notas.length === 0 && <p>Aún no hay notas.</p>}
-          {notas.map((nota) => (
-            <article
-              key={nota.id}
-              style={{ border: '1px solid var(--ui-color-border)', padding: 'var(--ui-space-2)' }}
-            >
-              <div style={{ display: 'flex', gap: 'var(--ui-space-2)' }}>
-                <small>{ETIQUETA_AUTOR[nota.audiencia_autor]}</small>
-                <small>{new Date(nota.creado_en).toLocaleString()}</small>
-                {nota.es_resolucion && <Badge variant="secure">Nota de resolución</Badge>}
-              </div>
-              <p style={{ whiteSpace: 'pre-wrap' }}>{nota.cuerpo}</p>
-            </article>
-          ))}
-          {hayMasNotas && (
-            <Button variant="outline" onClick={onCargarMasNotas} disabled={cargandoMasNotas}>
-              {cargandoMasNotas ? 'Cargando...' : 'Cargar más notas'}
-            </Button>
-          )}
-        </section>
+            {hayMasNotas && (
+              <Button variant="outline" onClick={onCargarMasNotas} disabled={cargandoMasNotas}>
+                {cargandoMasNotas ? 'Cargando...' : 'Cargar más notas'}
+              </Button>
+            )}
+          </Stack>
+        </Section>
       </div>
 
       {resolviendo && (

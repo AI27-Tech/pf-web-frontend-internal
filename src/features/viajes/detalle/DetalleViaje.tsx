@@ -19,16 +19,20 @@ import { useNavigate } from '@tanstack/react-router';
 import {
   Alert,
   Badge,
+  Breadcrumb,
   Button,
   Card,
   CardBody,
   CardFooter,
   CardHeader,
+  Inline,
   Modal,
+  PageHeader,
   Toast,
   ToastContainer,
 } from '@ai27-tech/ui';
 import { BloqueError } from '@/components/feedback/BloqueError';
+import { EnlaceRuta } from '@/components/layout/EnlaceRuta';
 import { useSession } from '@/context/SessionContext';
 import { puedeUsarMonitoreo } from '@/features/monitoreo/puedeUsarMonitoreo';
 import { ApiError } from '@/lib/api/errors';
@@ -335,26 +339,43 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-      <h1 className="ui-text-headline-lg" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-        Detalle del Viaje: {viajeInterno.id}
-      </h1>
-      {usuario?.rol === 'monitorista' && (
-        <Button
-          variant="secondary"
-          type="button"
-          onClick={() => void navigate({ to: '/viajes/$id/ficha', params: { id } })}
-        >
-          Abrir ficha técnica
-        </Button>
-      )}
-
-      <Button
-        variant="secondary"
-        type="button"
-        onClick={() => void navigate({ to: '/viajes/$id/historico', params: { id } })}
-      >
-        Ver histórico del viaje
-      </Button>
+      <PageHeader
+        title={`Detalle del Viaje: ${viajeInterno.id}`}
+        breadcrumb={
+          <Breadcrumb
+            items={[{ label: 'Viajes', href: '/viajes', as: EnlaceRuta }, { label: `Viaje ${id}` }]}
+          />
+        }
+        actions={
+          <Inline gap={2}>
+            {usuario?.rol === 'monitorista' && (
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => void navigate({ to: '/viajes/$id/ficha', params: { id } })}
+              >
+                Abrir ficha técnica
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={() => void navigate({ to: '/viajes/$id/historico', params: { id } })}
+            >
+              Ver histórico del viaje
+            </Button>
+            {usuario && puedeUsarMonitoreo(usuario.rol) && (
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => void navigate({ to: '/viajes/$id/expediente', params: { id } })}
+              >
+                Expediente y evidencia
+              </Button>
+            )}
+          </Inline>
+        }
+      />
       {usuario && (
         <SeccionEmergenciasViaje
           viajeId={id}
@@ -362,16 +383,6 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
           rol={usuario.rol}
           onViajeCambio={() => void d.reintentar()}
         />
-      )}
-
-      {usuario && puedeUsarMonitoreo(usuario.rol) && (
-        <Button
-          variant="secondary"
-          type="button"
-          onClick={() => void navigate({ to: '/viajes/$id/expediente', params: { id } })}
-        >
-          Expediente y evidencia
-        </Button>
       )}
 
       {/* Cabecera: estado y condiciones en columnas separadas (P15, Req 1.2, 1.3) */}

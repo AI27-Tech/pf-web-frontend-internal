@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { Alert, Toast } from '@ai27-tech/ui';
+import { Alert, PageHeader, Toast } from '@ai27-tech/ui';
 import { BloqueError } from '@/components/feedback/BloqueError';
 import { ErrorEmergenciaNoDisponible, ErrorSinAccesoEmergencias } from '@/lib/api/emergencias';
 import { ListaCasos } from './ListaCasos';
@@ -62,9 +62,7 @@ export function BandejaEmergencias({ casoAbierto }: { casoAbierto?: string | und
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-      <h1 className="ui-text-headline-lg" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-        Bandeja de Emergencias
-      </h1>
+      <PageHeader title="Bandeja de Emergencias" />
       {aviso && (
         <Toast variant="success" title={aviso} onClose={() => setAviso(null)}>
           Los cambios ya están aplicados.

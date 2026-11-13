@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Alert, Button } from '@ai27-tech/ui';
+import { Alert, Button, Section, Stack } from '@ai27-tech/ui';
 import type { Rol } from '@ai27-tech/contracts/roles';
 import type { EmergenciaViaje } from '@/lib/contracts/emergencias';
 import { ErrorEmergenciaCerrada, ErrorAccionNoPermitida } from '@/lib/api/emergencias';
@@ -94,46 +94,48 @@ function CarrilEmergencias({
   };
 
   return (
-    <section
-      aria-label="Emergencias del viaje"
-      style={{ display: 'grid', gap: 'var(--ui-space-3)' }}
+    <Section
+      title={
+        <span role="heading" aria-level={2}>
+          Emergencias
+        </span>
+      }
     >
-      <h2 className="ui-text-headline-sm" style={{ margin: 0 }}>
-        Emergencias
-      </h2>
-      {puedeActivar(rol, estadoViaje) && (
-        <AccionEmergencia
-          viajeId={viajeId}
-          onActivada={alActivar}
-          onViajeTerminal={onViajeCambio}
-        />
-      )}
-      {aviso && <Alert variant="success">{aviso}</Alert>}
-      {emergencias.error && <Alert variant="danger">{emergencias.error.message}</Alert>}
-      {emergencias.cargando ? (
-        <p role="status">Cargando emergencias...</p>
-      ) : (
-        <SelectorCaso
-          casos={emergencias.casos}
-          seleccionado={seleccionado}
-          onSelect={(id) => {
-            setSeleccionado(id);
-            setErrorNota(null);
-            setErrorCierre(null);
-          }}
-        />
-      )}
-      {casoActual && puedeAnotar(rol, casoActual) && (
-        <NotaEmergencia enviando={enviandoNota} onEnviar={enviarNota} error={errorNota} />
-      )}
-      {casoActual && sujetoPuedeCerrar && (
-        <div style={{ display: 'grid', gap: 'var(--ui-space-1)' }}>
-          <Button variant="secondary" onClick={() => void cerrarCaso()}>
-            Cerrar emergencia
-          </Button>
-          {errorCierre && <Alert variant="danger">{errorCierre.message}</Alert>}
-        </div>
-      )}
-    </section>
+      <Stack gap={3}>
+        {puedeActivar(rol, estadoViaje) && (
+          <AccionEmergencia
+            viajeId={viajeId}
+            onActivada={alActivar}
+            onViajeTerminal={onViajeCambio}
+          />
+        )}
+        {aviso && <Alert variant="success">{aviso}</Alert>}
+        {emergencias.error && <Alert variant="danger">{emergencias.error.message}</Alert>}
+        {emergencias.cargando ? (
+          <p role="status">Cargando emergencias...</p>
+        ) : (
+          <SelectorCaso
+            casos={emergencias.casos}
+            seleccionado={seleccionado}
+            onSelect={(id) => {
+              setSeleccionado(id);
+              setErrorNota(null);
+              setErrorCierre(null);
+            }}
+          />
+        )}
+        {casoActual && puedeAnotar(rol, casoActual) && (
+          <NotaEmergencia enviando={enviandoNota} onEnviar={enviarNota} error={errorNota} />
+        )}
+        {casoActual && sujetoPuedeCerrar && (
+          <Stack gap={1}>
+            <Button variant="secondary" onClick={() => void cerrarCaso()}>
+              Cerrar emergencia
+            </Button>
+            {errorCierre && <Alert variant="danger">{errorCierre.message}</Alert>}
+          </Stack>
+        )}
+      </Stack>
+    </Section>
   );
 }

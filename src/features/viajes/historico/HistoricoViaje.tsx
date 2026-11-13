@@ -11,6 +11,7 @@ import { useRef, useState } from 'react';
 import {
   Alert,
   Badge,
+  Breadcrumb,
   Button,
   Card,
   CardBody,
@@ -18,12 +19,14 @@ import {
   Form,
   FormField,
   Modal,
+  PageHeader,
   Textarea,
   Toast,
   ToastContainer,
 } from '@ai27-tech/ui';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
+import { EnlaceRuta } from '@/components/layout/EnlaceRuta';
 import { useSession } from '@/context/SessionContext';
 import {
   ErrorAutorizacionInsuficiente,
@@ -193,9 +196,18 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-      <h1 className="ui-text-headline-lg" style={{ margin: 0, color: COLOR_TEXT }}>
-        Histórico del viaje: {id}
-      </h1>
+      <PageHeader
+        title={`Histórico del viaje: ${id}`}
+        breadcrumb={
+          <Breadcrumb
+            items={[
+              { label: 'Viajes', href: '/viajes', as: EnlaceRuta },
+              { label: `Viaje ${id}`, href: `/viajes/${id}`, as: EnlaceRuta },
+              { label: 'Histórico' },
+            ]}
+          />
+        }
+      />
 
       <Card variant="outlined">
         <CardHeader>Bitácora</CardHeader>

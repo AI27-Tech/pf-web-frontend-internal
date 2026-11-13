@@ -23,7 +23,14 @@ vi.mock('@/context/SessionContext', () => ({
     logout: logoutSpy,
   }),
 }));
-vi.mock('@tanstack/react-router', () => ({ useNavigate: () => navigateSpy }));
+vi.mock('@tanstack/react-router', async () => {
+  const { createElement } = await import('react');
+  return {
+    useNavigate: () => navigateSpy,
+    Link: ({ to, children }: { to: string; children?: unknown }) =>
+      createElement('a', { href: to }, children as never),
+  };
+});
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {

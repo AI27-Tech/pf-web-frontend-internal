@@ -9,7 +9,17 @@
 
 import { useState } from 'react';
 
-import { Alert, Badge, Button, Card, CardBody, CardHeader, Modal, Table } from '@ai27-tech/ui';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  Modal,
+  PageHeader,
+  Section,
+  Table,
+} from '@ai27-tech/ui';
 import type { Column } from '@ai27-tech/ui';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
@@ -25,7 +35,6 @@ import { UnidadForm } from './UnidadForm';
 import { UnidadesMonitoristas } from './UnidadesMonitoristas';
 import { useRoster } from './useRoster';
 
-const TEXTO = 'var(--ui-color-text)';
 const TEXTO_TENUE = 'var(--ui-color-text-muted)';
 
 export function Roster() {
@@ -33,9 +42,7 @@ export function Roster() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-      <h1 className="ui-text-headline-lg" style={{ margin: 0, color: TEXTO }}>
-        Roster de unidades
-      </h1>
+      <PageHeader title="Roster de unidades" />
       {puedeArmarRoster(usuario?.rol) ? (
         <RosterAutorizado />
       ) : (
@@ -98,17 +105,18 @@ function RosterAutorizado() {
   return (
     <>
       <Card variant="outlined">
-        <CardHeader>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 className="ui-text-body-md" style={{ margin: 0, color: TEXTO }}>
+        <Section
+          title={
+            <span role="heading" aria-level={2}>
               Unidades
-            </h2>
+            </span>
+          }
+          actions={
             <Button variant="primary" onClick={() => abrir({ modo: 'alta' })}>
               Nueva unidad
             </Button>
-          </div>
-        </CardHeader>
-        <CardBody>
+          }
+        >
           {aviso && (
             <Alert variant="success" style={{ marginBottom: 'var(--ui-space-2)' }}>
               {aviso}
@@ -163,7 +171,7 @@ function RosterAutorizado() {
               )}
             </>
           )}
-        </CardBody>
+        </Section>
       </Card>
 
       <UnidadesMonitoristas />

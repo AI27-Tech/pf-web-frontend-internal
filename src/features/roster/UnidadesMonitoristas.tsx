@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 
-import { Alert, Badge, Button, Card, CardBody, CardHeader, Modal, Table } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Card, Modal, Section, Table } from '@ai27-tech/ui';
 import type { Column } from '@ai27-tech/ui';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
@@ -21,7 +21,6 @@ import { mensajeErrorAlcance } from './mensajes';
 import { UnidadesMonitoristaForm } from './UnidadesMonitoristaForm';
 import { useUnidadesMonitoristas, type MonitoristaConUnidades } from './useUnidadesMonitoristas';
 
-const TEXTO = 'var(--ui-color-text)';
 const TEXTO_TENUE = 'var(--ui-color-text-muted)';
 
 /** `nombre` e `identificador_usuario` son opcionales en el contrato. */
@@ -101,12 +100,13 @@ export function UnidadesMonitoristas() {
   return (
     <>
       <Card variant="outlined">
-        <CardHeader>
-          <h2 className="ui-text-body-md" style={{ margin: 0, color: TEXTO }}>
-            Unidades de cada Monitorista
-          </h2>
-        </CardHeader>
-        <CardBody>
+        <Section
+          title={
+            <span role="heading" aria-level={2}>
+              Unidades de cada Monitorista
+            </span>
+          }
+        >
           {aviso && (
             <Alert variant="success" style={{ marginBottom: 'var(--ui-space-2)' }}>
               {aviso}
@@ -135,7 +135,7 @@ export function UnidadesMonitoristas() {
               density="compact"
             />
           )}
-        </CardBody>
+        </Section>
       </Card>
 
       <Modal

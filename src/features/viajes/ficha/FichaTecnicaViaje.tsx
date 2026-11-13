@@ -8,10 +8,21 @@
 
 import { useEffect } from 'react';
 
-import { Alert, Button, Card, CardBody, CardFooter, CardHeader, Stack } from '@ai27-tech/ui';
+import {
+  Alert,
+  Breadcrumb,
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  PageHeader,
+  Stack,
+} from '@ai27-tech/ui';
 import { useNavigate } from '@tanstack/react-router';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
+import { EnlaceRuta } from '@/components/layout/EnlaceRuta';
 import { useSession } from '@/context/SessionContext';
 import type { FichaTecnica } from '@/lib/contracts/fichaTecnica';
 import type { Unidad } from '@/lib/contracts/unidades';
@@ -60,30 +71,28 @@ export function FichaTecnicaViaje({ id }: FichaTecnicaViajeProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 'var(--ui-space-3)',
-        }}
-      >
-        <div>
-          <h1 className="ui-text-headline-lg" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-            Ficha técnica del viaje
-          </h1>
-          <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
-            Viaje: {viaje.id}
-          </p>
-        </div>
-        <Button
-          variant="secondary"
-          type="button"
-          onClick={() => void navigate({ to: '/viajes/$id', params: { id } })}
-        >
-          Volver al detalle
-        </Button>
-      </div>
+      <PageHeader
+        title="Ficha técnica del viaje"
+        description={`Viaje: ${viaje.id}`}
+        breadcrumb={
+          <Breadcrumb
+            items={[
+              { label: 'Viajes', href: '/viajes', as: EnlaceRuta },
+              { label: `Viaje ${id}`, href: `/viajes/${id}`, as: EnlaceRuta },
+              { label: 'Ficha técnica' },
+            ]}
+          />
+        }
+        actions={
+          <Button
+            variant="secondary"
+            type="button"
+            onClick={() => void navigate({ to: '/viajes/$id', params: { id } })}
+          >
+            Volver al detalle
+          </Button>
+        }
+      />
 
       <DatosViaje viaje={viaje} />
 

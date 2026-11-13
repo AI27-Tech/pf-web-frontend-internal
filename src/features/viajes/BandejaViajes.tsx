@@ -13,7 +13,16 @@
 
 import { useEffect } from 'react';
 
-import { Alert, Button, Card, CardBody, FilterBar, Pagination, Table } from '@ai27-tech/ui';
+import {
+  Alert,
+  Button,
+  Card,
+  CardBody,
+  FilterBar,
+  PageHeader,
+  Pagination,
+  Table,
+} from '@ai27-tech/ui';
 import type { FilterDefinition } from '@ai27-tech/ui';
 import { useNavigate } from '@tanstack/react-router';
 
@@ -76,27 +85,20 @@ export function BandejaViajes() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 'var(--ui-space-3)',
-        }}
-      >
-        <h1 className="ui-text-headline-lg" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-          Viajes
-        </h1>
-        {usuario?.rol === 'jefe_operativo' && (
-          <Button
-            variant="primary"
-            type="button"
-            onClick={() => void navigate({ to: '/viajes/crear' })}
-          >
-            Crear viaje
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Viajes"
+        actions={
+          usuario?.rol === 'jefe_operativo' && (
+            <Button
+              variant="primary"
+              type="button"
+              onClick={() => void navigate({ to: '/viajes/crear' })}
+            >
+              Crear viaje
+            </Button>
+          )
+        }
+      />
 
       {/*
         Barra de filtros de la librerÃ­a (FilterBar). Siempre montada (Req 3.5/6.2).

@@ -10,16 +10,19 @@ import { useState, type ReactNode } from 'react';
 
 import {
   Alert,
+  Breadcrumb,
   Button,
   Card,
   CardBody,
   CardFooter,
   CardHeader,
+  PageHeader,
   Toast,
   ToastContainer,
 } from '@ai27-tech/ui';
 import { useNavigate } from '@tanstack/react-router';
 
+import { EnlaceRuta } from '@/components/layout/EnlaceRuta';
 import { useSession } from '@/context/SessionContext';
 import { puedeUsarMonitoreo } from '@/features/monitoreo/puedeUsarMonitoreo';
 
@@ -61,26 +64,24 @@ function DescargaExpediente({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 'var(--ui-space-3)',
-        }}
-      >
-        <div>
-          <h1 className="ui-text-headline-lg" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-            Expediente del viaje
-          </h1>
-          <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
-            Viaje: {id}
-          </p>
-        </div>
-        <Button variant="secondary" type="button" onClick={onVolver}>
-          Volver al detalle
-        </Button>
-      </div>
+      <PageHeader
+        title="Expediente del viaje"
+        description={`Viaje: ${id}`}
+        breadcrumb={
+          <Breadcrumb
+            items={[
+              { label: 'Viajes', href: '/viajes', as: EnlaceRuta },
+              { label: `Viaje ${id}`, href: `/viajes/${id}`, as: EnlaceRuta },
+              { label: 'Expediente' },
+            ]}
+          />
+        }
+        actions={
+          <Button variant="secondary" type="button" onClick={onVolver}>
+            Volver al detalle
+          </Button>
+        }
+      />
 
       <Card>
         <CardHeader>

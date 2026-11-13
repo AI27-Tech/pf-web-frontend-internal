@@ -24,9 +24,14 @@ vi.mock('@/context/SessionContext', () => ({
   }),
 }));
 
-vi.mock('@tanstack/react-router', () => ({
-  useNavigate: () => vi.fn(),
-}));
+vi.mock('@tanstack/react-router', async () => {
+  const { createElement } = await import('react');
+  return {
+    useNavigate: () => vi.fn(),
+    Link: ({ to, children }: { to: string; children?: unknown }) =>
+      createElement('a', { href: to }, children as never),
+  };
+});
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {
