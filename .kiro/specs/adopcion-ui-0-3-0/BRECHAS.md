@@ -194,3 +194,29 @@ Propuesta: usar `Stack as={Form}` en todos, y para `noValidate`, un `Stack` inte
 - Diseño visual en claro y oscuro (tarea 12.2): separación de formularios y listas, y el `inline-flex` de las condiciones de `DetalleViaje`, que pasó a `Inline` (flex de bloque); puede mover unos píxeles.
 - `Prettier --check` marca `BannerEstado`, `BannerActualizacion`, `IndicadorFrescura`, `SessionTopbar`, `SelectorCaso` y `panel.tsx` por finales de línea CRLF en disco y LF en el índice. Problema previo del repo; no se cambió.
 - `etaForm.tsx`, `fechaHoraForm.tsx` y `CrearViaje.tsx` siguen con `datetime-local`. Lo cubre el bloque 7.
+
+## 6. Bloque 6: `DescriptionList` en fichas (tareas 6.1 a 6.3, 2026-11-13)
+
+Resultado: `tsc --build` sin errores, `vitest run` 629 de 629 en verde, `eslint` sin avisos en `src/features/viajes/ficha`, `src/features/administracion` y `tests`.
+
+### 6.1 `FichaTecnicaViaje`
+
+- `DatosViaje`: `Dato` ×2 y el bloque de destinos pasaron a un `DescriptionList` de 2 columnas. Destinos es un ítem de ancho completo (`span: 2`) con la lista numerada como valor.
+- `FichaConfirmada`: `Dato` ×3 pasó a un `DescriptionList` de 2 columnas (Tracto, Contenedores, GPS registrados; queda 2 + 1).
+- Se eliminó la función local `Dato`.
+- Cambio visual: las etiquetas ahora usan el estilo de `dt` de la librería. Revisar en claro y oscuro (tarea 12.2).
+
+### 6.2 `PanelUsuario`
+
+- La `Table` de dos columnas (Dato y Valor) pasó a `DescriptionList` con `items`, como indica D-E.
+- Efectos: el `aria-label` de la tabla desapareció (el nombre de la sección ya lo da el título de `Section`). Los valores vacíos ahora muestran «—» (`emptyValue` por defecto) en lugar de quedar en blanco.
+- Se eliminaron `datoCampo` y `datoValor` de `mensajes.ts`, que ya no se usan.
+
+### 6.3 Revisión de `DetalleViaje` y `ExpedienteViaje`
+
+- `ExpedienteViaje`: no tiene pares etiqueta-valor manuales. Sin cambios.
+- `DetalleViaje`: la cabecera (Estado, Condiciones, Origen, Paradas y ETA estimado) mezcla badges, listas y el formulario de ETA dentro de columnas. Un `DescriptionList` obligaría a rediseñar esa cabecera. **Decisión pendiente:** dejarla así o rediseñarla en un bloque aparte.
+
+### 6.4 Pendiente
+
+- D-E menciona «Section en fichas», pero las tareas 6.x solo piden `DescriptionList`. Los encabezados de las tarjetas de `FichaTecnicaViaje` (`CardHeader` con `p`) siguen igual. Confirmar si deben pasar a `Section`.

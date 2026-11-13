@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 2026:11:13 17:30
+
+**Resumen:** Bloque 6 del spec `adopcion-ui-0-3-0` (R5): los pares etiqueta-valor de la ficha técnica y del panel de usuario pasan a `DescriptionList`. Se eliminó la función local `Dato`. `DetalleViaje` queda sin cambios por una decisión pendiente, y `ExpedienteViaje` no tenía pares manuales.
+
+**Cambios:**
+
+- **Ficha técnica** (`FichaTecnicaViaje.tsx`): `DatosViaje` y `FichaConfirmada` usan `DescriptionList` de 2 columnas. Destinos ocupa el ancho completo. Se quitó `Dato`.
+- **Panel de usuario** (`PanelUsuario.tsx`): la tabla de dato y valor pasa a `DescriptionList`. Se quitaron `datoCampo` y `datoValor` de `mensajes.ts`.
+- **Especificación:** `tasks.md` con bloque 6 marcado y `BRECHAS.md` con la sección 6.
+
+**Verificación:** `tsc --build` sin errores. `vitest run`: 629 de 629 en verde. `eslint` sin avisos en `src/features/viajes/ficha`, `src/features/administracion` y `tests`.
+
+**Pendiente:** decidir la cabecera de `DetalleViaje` (BRECHAS.md, 6.3) y si los encabezados de las tarjetas de ficha pasan a `Section` (6.4). Revisión visual en claro y oscuro (tarea 12.2).
+
 ## 2026:11:13 17:00
 
 **Resumen:** Bloque 5 del spec `adopcion-ui-0-3-0` (R4): los `div` con `display: flex` o `grid` en línea pasan a `Stack`, `Inline` y `Grid` de `@ai27-tech/ui`, en `src/features` y en los componentes compartidos de `components/layout` y de la ruta de panel. Quedan 11 apariciones de 97: 3 en `AppShell` (fuera de alcance por D3) y 8 en `Form` o `CardFooter`, que son componentes de la librería sin props de disposición.

@@ -35,10 +35,10 @@ Las decisiones D1 a D6 están resueltas en `requirements.md` (sección 5).
   - [-] 5.3 `AppShell.tsx`: fuera de este spec por D3 (se hará después de una revisión visual en claro y oscuro)
   - [x] 5.4 Medir el conteo final y justificar cada `display:` restante. Inicio 97 líneas; final 11 (3 en AppShell por D3, 8 en `Form` y `CardFooter` sin props de disposición). Detalle en BRECHAS.md, sección 5
 
-- [ ] 6. `DescriptionList` y `Section` en fichas (R5)
-  - [ ] 6.1 `FichaTecnicaViaje.DatosViaje` y `FichaConfirmada`: eliminar `Dato`
-  - [ ] 6.2 `PanelUsuario` (`filas` → `items`)
-  - [ ] 6.3 Revisar `DetalleViaje` (destinos, condiciones) y `ExpedienteViaje` por etiqueta-valor manual
+- [x] 6. `DescriptionList` y `Section` en fichas (R5). Detalle en BRECHAS.md, sección 6
+  - [x] 6.1 `FichaTecnicaViaje.DatosViaje` y `FichaConfirmada`: eliminar `Dato` (ahora son dos `DescriptionList`)
+  - [x] 6.2 `PanelUsuario` (`filas` → `items`)
+  - [x] 6.3 Revisar `DetalleViaje` (destinos, condiciones) y `ExpedienteViaje` por etiqueta-valor manual. `ExpedienteViaje` sin cambios; `DetalleViaje` pendiente de decisión (BRECHAS.md, 6.3)
 
 - [ ] 7. `DateTimeInput` (R7)
   - [ ] 7.1 Prueba de humo: cómo se simula el cambio de valor de `DateTimeInput` en Testing Library; dejar un helper en `tests/helpers/`
