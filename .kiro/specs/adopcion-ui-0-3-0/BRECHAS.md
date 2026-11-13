@@ -81,3 +81,37 @@ Fuente: `repos/pf-library-frontend-components/CHANGELOG.md`, sección `[0.3.0-be
 Ver CHANGELOG de la librería: `Visor`, `ImageCarousel`, `ImageGrid`, `Tooltip`, `Badge.truncate`, `ImageCard`, `Muelle` (`MessageDock`), y la integración de Storybook y CI de la librería. Este spec no los usa (`MessageDock` y `useMessageDock` están excluidos en el spec, sección 4).
 
 **Dato sin verificar:** el CHANGELOG de la librería contiene una sección `[0.2.1] — 2026-10-01` después de una segunda sección `[Unreleased]` (línea 214 del archivo). No se revisó porque queda fuera del rango 0.2 a 0.3.0-beta.1 pedido en la tarea 1.4.
+
+## 3. Bloque 3: `Alert` por área (tareas 3.1 a 3.7, 2026-11-13)
+
+Conteo medido con grep sobre `src/**/*.tsx`: antes del bloque había 99 usos reales de `role="alert|status"` (sin contar dos comentarios de `BloqueError`). Después quedan 19, así que se migraron 80. Los 19 restantes se describen abajo. `vitest run` da 625 de 625 en verde; `tsc --build`, `eslint .` y `vite build --mode mock` pasan.
+
+### 3.1 Restos que se quedan por decisión de bloque posterior
+
+- **Carga con `role="status"` (bloque 9, decisión D6):** 13 usos en `PanelUsuario`, `DesactivarOrganizacionDialog`, `RevocarSesionesDialog`, `ListaTrabajo`, `SeccionEmergenciasViaje`, `BandejaEmergencias` ("Cargando emergencia..."), `ListaCasos`, `DashboardMonitoreo`, `ClienteSelector`, `CrearViaje` (roster) y tres en `HistoricoViaje` ("Cargando bitácora/estadías/incidencias...").
+- **Región `aria-live` (Req 10.8, no es aviso visual):** `BandejaEmergencias.tsx` (`role="status" aria-live="polite"`) y `BannerEstado.tsx` (`aria-live="polite"`, fuera de la lista de tareas). Se dejan sin cambios.
+
+### 3.2 Restos que requieren decisión
+
+- **`AltaUsuarioDialog.tsx`:** `<p role="alert">{errores.organizacionId}</p>` es un error de validación del grupo de organizaciones (radio group dentro de `FormSection`, no dentro de `FormField`). Se trató como error de campo y se dejó. Confirmar si debe ir dentro de `FormField`.
+- **`CrearViaje.tsx` (Resultado):** cuatro `CardBody role="status|alert"` (éxito, escolta confirmada, respuesta insuficiente y error). Son `CardBody`, no `<p>`, y el Card tiene encabezado e información útil. Se dejaron. Si se quieren migrar a `Alert`, habría que rediseñar el bloque de resultado.
+
+### 3.3 Decisiones de variante tomadas al migrar (revisar)
+
+- Errores sin `role` previo que ahora sí lo anuncian: `asignacionForm` y `EstadoError` de `DetalleViaje`. Cambio positivo de accesibilidad.
+- Avisos que tenían `role="status"` y ahora son `danger` (`role="alert"`): errores 403 y de "rol sin acceso" en `ficha` e `histórico`. Se anuncian de forma más intensa.
+- Mensaje "solo disponibles para el Jefe Operativo" en `catalogos`: `danger` para conservar `role="alert"`. `warning` también lo emite; si se prefiere un tono informativo, cambiarlo.
+- `datos_desactualizado` (administración) y "no se determinó el nombre del archivo" (`SubirEvidencia`): `danger`. `warning` sería más preciso.
+- Estado `brecha` de `PanelUsuario`: `Alert info` con botón "Reintentar" a mano, para no cambiar el comportamiento.
+
+### 3.4 Otros cambios de presentación
+
+- `BloqueError` usa botón `outline` `sm`. Los sitios que tenían `secondary` ahora se ven distintos. Revisión visual en claro y oscuro pendiente (tarea 12.2).
+- Los avisos de éxito en `roster` conservan su separación con `marginBottom: var(--ui-space-2)`. El aviso de confirmación de `catalogos` perdió su `margin` inferior al quitar `style`; revisar visualmente.
+- Excepciones a la regla "usar `BloqueError`": la escolta de `FichaTecnicaViaje` y el error de catálogo GPS de `FichaEditor` siguen con `Alert` y botón a mano, porque `BloqueError` no acepta `disabled` ni una etiqueta distinta de "Reintentar" (la prueba de la escolta busca "Reintentar escolta").
+
+### 3.5 Pendientes fuera de este bloque
+
+- `type="datetime-local"` en `CrearViaje.tsx`: ya existía y no se tocó. Lo cubre el bloque 7.2 (`DateTimeInput`).
+- Prettier marca archivos que no se tocaron en `administracion` (p. ej. `AccionesUsuario.tsx`) por los finales de línea CRLF del repo. Problema anterior; no se reformatearon.
+- Un proceso `vite --mode mock` (PID 17748, iniciado a las 12:32) sigue corriendo en el repo. No lo inicié yo; conviene detenerlo si nadie lo usa.

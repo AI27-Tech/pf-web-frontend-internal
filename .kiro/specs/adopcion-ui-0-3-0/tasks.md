@@ -14,13 +14,13 @@ Las decisiones D1 a D6 están resueltas en `requirements.md` (sección 5).
   - [x] 2.2 Prueba: rol `alert`, mensaje y callback de reintento
 
 - [ ] 3. `Alert` (R2), por área, un commit por área
-  - [ ] 3.1 `roster/` (`Roster`, `UnidadForm`, `UnidadesMonitoristas`, `UnidadesMonitoristaForm`)
-  - [ ] 3.2 `catalogos/` (`Catalogos`, `CustodioForm`, `VehiculoForm`)
-  - [ ] 3.3 `administracion/` (diálogos, `PanelUsuario`, `Administracion*`, `AlcanceEditor`)
-  - [ ] 3.4 `emergencias/` (bandeja, panel, acciones, lista, diálogo)
-  - [ ] 3.5 `conversaciones/` (bandeja, lista de trabajo, panel; el panel se vuelve a tocar en el bloque 10)
-  - [ ] 3.6 `viajes/` (`BandejaViajes`, `FichaTecnicaViaje`, `FichaEditor`, `ExpedienteViaje`, `HistoricoViaje`, `DetalleViaje`, `etaForm`) y `monitoreo/dashboard`
-  - [ ] 3.7 Revisar a mano que no queden `role="alert|status"` sobre `<p>` fuera de errores de campo
+  - [x] 3.1 `roster/` (`Roster`, `UnidadForm`, `UnidadesMonitoristas`, `UnidadesMonitoristaForm`)
+  - [x] 3.2 `catalogos/` (`Catalogos`, `CustodioForm`, `VehiculoForm`)
+  - [x] 3.3 `administracion/` (diálogos, `PanelUsuario`, `Administracion*`, `AlcanceEditor`)
+  - [x] 3.4 `emergencias/` (bandeja, panel, acciones, lista, diálogo)
+  - [x] 3.5 `conversaciones/` (bandeja, lista de trabajo, panel; el panel se vuelve a tocar en el bloque 10)
+  - [x] 3.6 `viajes/` (`BandejaViajes`, `FichaTecnicaViaje`, `FichaEditor`, `ExpedienteViaje`, `HistoricoViaje`, `DetalleViaje`, `etaForm`) y `monitoreo/dashboard`
+  - [x] 3.7 Revisar a mano que no queden `role="alert|status"` sobre `<p>` fuera de errores de campo. Quedan 19 usos, todos documentados en BRECHAS.md, sección 3 (carga para bloque 9, aria-live, un error de campo y cuatro `CardBody` de resultado en CrearViaje por decidir)
 
 - [ ] 4. `PageHeader` y `Breadcrumb` (R3)
   - [ ] 4.1 Pantallas sin jerarquía: `Catalogos`, `Roster`, `BandejaViajes`, `BandejaEmergencias`, `BandejaConversaciones`, `DashboardMonitoreo`, `StubPage`

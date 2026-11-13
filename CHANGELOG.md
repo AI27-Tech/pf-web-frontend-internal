@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 2026:11:13 13:40
+
+**Resumen:** Bloque 3 del spec `adopcion-ui-0-3-0`: los mensajes `role="alert|status"` escritos a mano pasan al componente `Alert` de `@ai27-tech/ui`, por área. Se migraron 80 de 99 usos. Los 19 que quedan son textos de carga (bloque 9), una región `aria-live`, un error de campo y cuatro bloques de resultado en `CrearViaje`; todos están documentados en `BRECHAS.md`, sección 3.
+
+**Cambios:**
+
+- **Roster** (`roster/`): `Alert` en `Roster`, `UnidadForm`, `UnidadesMonitoristas` y `UnidadesMonitoristaForm`. Errores con reintento usan `BloqueError`.
+- **Catálogos** (`catalogos/`): `Alert` en `Catalogos`, `CustodioForm` y `VehiculoForm`.
+- **Administración** (`administracion/`): 12 archivos. Diálogos, `PanelUsuario`, `AlcanceEditor` y secciones.
+- **Emergencias** (`emergencias/`): `Alert` en bandeja, panel, lista, diálogo y activación. Región `aria-live` sin cambios.
+- **Conversaciones** (`conversaciones/`): `Alert` y `BloqueError` en bandeja, lista y panel. El panel vuelve a tocarse en el bloque 10.
+- **Viajes y monitoreo** (`viajes/`, `monitoreo/dashboard/`): `Alert` y `BloqueError` en crear, detalle, evidencia, expediente, ficha, histórico, bandeja y dashboard.
+- **Especificación:** `tasks.md` con bloque 3 marcado y `BRECHAS.md` con la sección 3.
+
+**Verificación:** `tsc --build`, `eslint .` y `vite build --mode mock` sin errores. `vitest run`: 625 de 625 en verde. No se cambiaron pruebas en este bloque.
+
+**Archivos modificados:** 40 archivos bajo `src/features/` (listados en el commit de cada área), `.kiro/specs/adopcion-ui-0-3-0/tasks.md`, `.kiro/specs/adopcion-ui-0-3-0/BRECHAS.md` y `CHANGELOG.md`.
+
 ## 2026:11:13 12:45
 
 **Resumen:** Se corrigieron las 21 pruebas en rojo. La causa era la librería `0.3.0-beta.1`: el `Select` dentro de `FormField` toma como nombre accesible la etiqueta del campo y ya no el placeholder. Las pruebas ahora buscan el selector por su etiqueta. También se eliminaron los wrappers locales `components/ui/Button.tsx` y `Input.tsx`, porque el portal debe usar solo `@ai27-tech/ui`.
