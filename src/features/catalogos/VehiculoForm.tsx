@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 
-import { Button, Form, FormField, Input, Radio, Switch } from '@ai27-tech/ui';
+import { Alert, Button, Form, FormField, Input, Radio, Switch } from '@ai27-tech/ui';
 
 import type { Vehiculo, VehiculoCambios, VehiculoEntrada } from '@/lib/contracts/catalogos';
 
@@ -115,15 +115,7 @@ export function VehiculoForm({
         onChange={(event) => setActiva(event.target.checked)}
       />
 
-      {error && (
-        <p
-          role="alert"
-          className="ui-text-body-sm"
-          style={{ margin: 0, color: 'var(--ui-color-error)' }}
-        >
-          {error}
-        </p>
-      )}
+      {error && <Alert variant="danger">{error}</Alert>}
 
       <div style={{ display: 'flex', gap: 'var(--ui-space-2)', justifyContent: 'flex-end' }}>
         <Button variant="secondary" type="button" onClick={onCancelar} disabled={enviando}>

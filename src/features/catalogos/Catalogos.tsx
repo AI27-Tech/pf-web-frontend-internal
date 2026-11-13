@@ -9,9 +9,10 @@
 
 import { useState, type ReactNode } from 'react';
 
-import { Badge, Button, Card, CardBody, CardHeader, Modal, Table } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Card, CardBody, CardHeader, Modal, Table } from '@ai27-tech/ui';
 import type { Column } from '@ai27-tech/ui';
 
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { useSession } from '@/context/SessionContext';
 import { esProhibido } from '@/lib/api/errors';
 import type { Custodio, Vehiculo } from '@/lib/contracts/catalogos';
@@ -281,18 +282,7 @@ function ContenidoLista({
   }
   if (error) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
-        <p
-          role="alert"
-          className="ui-text-body-sm"
-          style={{ margin: 0, color: 'var(--ui-color-error)' }}
-        >
-          No se pudieron cargar los {recurso}.
-        </p>
-        <Button variant="secondary" onClick={onReintentar}>
-          Reintentar
-        </Button>
-      </div>
+      <BloqueError mensaje={`No se pudieron cargar los ${recurso}.`} onReintentar={onReintentar} />
     );
   }
   if (cargando) {
@@ -314,21 +304,9 @@ function Estado({ activo, genero }: { readonly activo: boolean; readonly genero:
 }
 
 function Aviso({ children }: { readonly children: ReactNode }) {
-  return (
-    <p role="alert" className="ui-text-body-sm" style={{ margin: 0, color: TEXTO }}>
-      {children}
-    </p>
-  );
+  return <Alert variant="danger">{children}</Alert>;
 }
 
 function Confirmacion({ texto }: { readonly texto: string }) {
-  return (
-    <p
-      role="status"
-      className="ui-text-body-sm"
-      style={{ margin: '0 0 var(--ui-space-2)', color: 'var(--ui-color-success)' }}
-    >
-      {texto}
-    </p>
-  );
+  return <Alert variant="success">{texto}</Alert>;
 }
