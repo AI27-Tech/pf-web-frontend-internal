@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Alert, Badge, Button, Card, CardBody, Section, Table, type Column } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Card, CardBody, DescriptionList, Section } from '@ai27-tech/ui';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
 import { ApiError } from '@/lib/api/errors';
@@ -40,11 +40,6 @@ const OPERACIONES_DEL_USUARIO = [
   'revocarSesiones',
   'fijarAlcance',
 ] as const;
-
-const COLUMNAS_DATOS: Column<Dato>[] = [
-  { key: 'dato', header: TEXTOS.datoCampo, cell: (fila) => fila.etiqueta },
-  { key: 'valor', header: TEXTOS.datoValor, cell: (fila) => fila.valor },
-];
 
 /**
  * Detalle de un usuario (R2.3, R2.6, R2.9). Ante un 404 dice que el usuario no está
@@ -149,12 +144,7 @@ export function PanelUsuario({ usuarioId, envio, onVolver, onAviso }: PanelUsuar
       : []),
   ];
   const tabla = (
-    <Table<Dato>
-      columns={COLUMNAS_DATOS}
-      data={filas}
-      rowKey={(fila) => fila.etiqueta}
-      aria-label={etiquetaUsuario(usuario)}
-    />
+    <DescriptionList items={filas.map((fila) => ({ label: fila.etiqueta, value: fila.valor }))} />
   );
 
   // Con datos viejos (consulta fallida) se muestra el detalle, pero no se ofrecen acciones.
