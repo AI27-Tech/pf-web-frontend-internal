@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026:11:13 12:00
+
+**Resumen:** Spec `adopcion-ui-0-3-0` para llevar el portal interno al catálogo de `@ai27-tech/ui@0.3.0-beta.1`. Solo documentación: no se modificó código. Recoge la línea base (115 `display:flex|grid` en línea, unos 70 avisos `role="alert|status"` manuales, 12 `<h1>` manuales, 3 `datetime-local`, historiales a mano) y propone 12 bloques de tareas. Las 6 decisiones (D1 a D6) quedaron resueltas el mismo día: sí a `Alert` con "Reintentar" y a `Breadcrumb`; `AppShell` y `Tabs` fuera de este spec; mensajería al final y condicionada al contrato; cargas con contenedor `role="status"`.
+
+**Cambios:**
+
+- Nuevo spec con requisitos, diseño y tareas.
+
+**Archivos modificados:**
+
+- `.kiro/specs/adopcion-ui-0-3-0/requirements.md` (nuevo)
+- `.kiro/specs/adopcion-ui-0-3-0/design.md` (nuevo)
+- `.kiro/specs/adopcion-ui-0-3-0/tasks.md` (nuevo)
+- `CHANGELOG.md`
+
 ## 2026:11:11 11:24
 
 **Resumen:** Modo mock con datos coherentes (spec `modo-mock-coherencia-datos`, tareas 1 a 10). Un solo almacén de viajes alimenta listado, detalle, ficha, expediente, incidencias, escolta, emergencias y reportes. Así una transición, una reserva o una emergencia se ve igual en todas las pantallas del mock. Los datos se guardan en `localStorage` solo en modo mock.
