@@ -1,5 +1,5 @@
 import { useReducer, useState } from 'react';
-import { Button, Card, CardBody, FormSection, Modal, Radio } from '@ai27-tech/ui';
+import { Alert, Button, Card, CardBody, FormSection, Modal, Radio } from '@ai27-tech/ui';
 import { Rol } from '@ai27-tech/contracts/roles';
 
 import { useAdministracionPort } from '@/context/AdministracionContext';
@@ -155,13 +155,7 @@ export function CambioRolDialog({
               </CardBody>
             </Card>
           )}
-          {errorEnvio && (
-            <Card variant="outlined">
-              <CardBody>
-                <p role="alert">{errorEnvio}</p>
-              </CardBody>
-            </Card>
-          )}
+          {errorEnvio && <Alert variant="danger">{errorEnvio}</Alert>}
         </div>
       )}
     </Modal>

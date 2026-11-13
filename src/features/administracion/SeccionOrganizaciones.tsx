@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Badge, Button, Card, CardBody, Table, type Column } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Table, type Column } from '@ai27-tech/ui';
 
+import { BloqueError } from '@/components/feedback/BloqueError';
 import type { Organizacion } from '@/lib/contracts/administracion';
 
 import { avisoDeEstado, estadoConsulta } from './estadoConsulta';
@@ -109,17 +110,11 @@ export function SeccionOrganizaciones({ envio, onAviso }: SeccionOrganizacionesP
         </Button>
       </div>
 
-      {aviso && (
-        <Card variant="outlined">
-          <CardBody>
-            <p role={aviso.alerta ? 'alert' : 'status'}>{aviso.texto}</p>
-            {estado.estado === 'error' && (
-              <Button variant="outline" size="sm" onClick={() => void consulta.refetch()}>
-                {TEXTOS.reintentar}
-              </Button>
-            )}
-          </CardBody>
-        </Card>
+      {aviso && estado.estado === 'error' && (
+        <BloqueError mensaje={aviso.texto} onReintentar={() => void consulta.refetch()} />
+      )}
+      {aviso && estado.estado !== 'error' && (
+        <Alert variant={aviso.alerta ? 'danger' : 'info'}>{aviso.texto}</Alert>
       )}
 
       <Table<Organizacion>

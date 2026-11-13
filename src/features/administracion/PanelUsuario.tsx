@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
-import { Badge, Button, Card, CardBody, Table, type Column } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Card, CardBody, Table, type Column } from '@ai27-tech/ui';
 
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { ApiError } from '@/lib/api/errors';
 import { useAdministracionPort } from '@/context/AdministracionContext';
 
@@ -73,13 +74,7 @@ export function PanelUsuario({ usuarioId, envio, onVolver, onAviso }: PanelUsuar
     data: consulta.data,
   });
   const aviso = avisoDeEstado(estado.estado);
-  const avisoRechazo = rechazo ? (
-    <Card variant="outlined">
-      <CardBody>
-        <p role="alert">{rechazo}</p>
-      </CardBody>
-    </Card>
-  ) : null;
+  const avisoRechazo = rechazo ? <Alert variant="danger">{rechazo}</Alert> : null;
 
   const volver = (
     <Button variant="ghost" size="sm" onClick={onVolver}>
@@ -91,11 +86,7 @@ export function PanelUsuario({ usuarioId, envio, onVolver, onAviso }: PanelUsuar
     return (
       <div className="flex flex-col gap-3">
         {volver}
-        <Card variant="outlined">
-          <CardBody>
-            <p role="alert">{TEXTOS.usuarioNoDisponible}</p>
-          </CardBody>
-        </Card>
+        <Alert variant="danger">{TEXTOS.usuarioNoDisponible}</Alert>
       </div>
     );
   }
@@ -119,15 +110,16 @@ export function PanelUsuario({ usuarioId, envio, onVolver, onAviso }: PanelUsuar
     return (
       <div className="flex flex-col gap-3">
         {volver}
-        {aviso && (
-          <Card variant="outlined">
-            <CardBody>
-              <p role={aviso.alerta ? 'alert' : 'status'}>{aviso.texto}</p>
-              <Button variant="outline" size="sm" onClick={() => void consulta.refetch()}>
-                {TEXTOS.reintentar}
-              </Button>
-            </CardBody>
-          </Card>
+        {aviso && aviso.alerta && (
+          <BloqueError mensaje={aviso.texto} onReintentar={() => void consulta.refetch()} />
+        )}
+        {aviso && !aviso.alerta && (
+          <Alert variant="info">
+            {aviso.texto}
+            <Button variant="outline" size="sm" onClick={() => void consulta.refetch()}>
+              {TEXTOS.reintentar}
+            </Button>
+          </Alert>
         )}
       </div>
     );
@@ -171,13 +163,7 @@ export function PanelUsuario({ usuarioId, envio, onVolver, onAviso }: PanelUsuar
       <div className="flex flex-col gap-3">
         {volver}
         {avisoRechazo}
-        {aviso && (
-          <Card variant="outlined">
-            <CardBody>
-              <p role="alert">{aviso.texto}</p>
-            </CardBody>
-          </Card>
-        )}
+        {aviso && <Alert variant="danger">{aviso.texto}</Alert>}
         {tabla}
       </div>
     );

@@ -1,5 +1,5 @@
 import { useReducer, useRef, useState, type FormEvent } from 'react';
-import { Button, Card, CardBody, FormField, Input, Modal } from '@ai27-tech/ui';
+import { Alert, Button, FormField, Input, Modal } from '@ai27-tech/ui';
 
 import { useAdministracionPort } from '@/context/AdministracionContext';
 import { useSession } from '@/context/SessionContext';
@@ -176,13 +176,7 @@ export function OrganizacionFormDialog({
               {TEXTOS.organizacionEdicionTenant}: {organizacion.id}
             </p>
           )}
-          {errorGeneral && (
-            <Card variant="outlined">
-              <CardBody>
-                <p role="alert">{errorGeneral}</p>
-              </CardBody>
-            </Card>
-          )}
+          {errorGeneral && <Alert variant="danger">{errorGeneral}</Alert>}
         </div>
       </form>
     </Modal>

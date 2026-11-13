@@ -1,4 +1,4 @@
-import { Card, CardBody } from '@ai27-tech/ui';
+import { Alert } from '@ai27-tech/ui';
 
 import { useSession } from '@/context/SessionContext';
 
@@ -42,11 +42,7 @@ export function Administracion({
           onAbrirUsuario={onAbrirUsuario}
         />
       ) : (
-        <Card variant="outlined">
-          <CardBody>
-            <p role="alert">{TEXTOS.accesoNoAutorizado}</p>
-          </CardBody>
-        </Card>
+        <Alert variant="danger">{TEXTOS.accesoNoAutorizado}</Alert>
       )}
     </section>
   );

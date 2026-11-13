@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Button, Card, CardBody, Modal, Table, type Column } from '@ai27-tech/ui';
+import { Alert, Button, Card, CardBody, Modal, Table, type Column } from '@ai27-tech/ui';
 
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { useAdministracionPort } from '@/context/AdministracionContext';
 import { useSession } from '@/context/SessionContext';
 import type { Organizacion } from '@/lib/contracts/administracion';
@@ -108,14 +109,10 @@ export function DesactivarOrganizacionDialog({
         {consecuencia.isPending && <p role="status">{TEXTOS.organizacionConsultando}</p>}
 
         {consecuencia.isError && (
-          <Card variant="outlined">
-            <CardBody>
-              <p role="alert">{TEXTOS.organizacionConsecuenciaError}</p>
-              <Button variant="outline" size="sm" onClick={() => void consecuencia.refetch()}>
-                {TEXTOS.reintentar}
-              </Button>
-            </CardBody>
-          </Card>
+          <BloqueError
+            mensaje={TEXTOS.organizacionConsecuenciaError}
+            onReintentar={() => void consecuencia.refetch()}
+          />
         )}
 
         {consecuencia.isSuccess && (
@@ -140,13 +137,7 @@ export function DesactivarOrganizacionDialog({
           </>
         )}
 
-        {errorEnvio && (
-          <Card variant="outlined">
-            <CardBody>
-              <p role="alert">{errorEnvio}</p>
-            </CardBody>
-          </Card>
-        )}
+        {errorEnvio && <Alert variant="danger">{errorEnvio}</Alert>}
       </div>
     </Modal>
   );

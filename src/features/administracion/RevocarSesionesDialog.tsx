@@ -1,5 +1,5 @@
 import { useReducer, useState } from 'react';
-import { Button, Card, CardBody, FormField, Modal, Textarea } from '@ai27-tech/ui';
+import { Alert, Button, Card, CardBody, FormField, Modal, Textarea } from '@ai27-tech/ui';
 
 import { useAdministracionPort } from '@/context/AdministracionContext';
 import { useSession } from '@/context/SessionContext';
@@ -144,13 +144,7 @@ export function RevocarSesionesDialog({
             </CardBody>
           </Card>
         )}
-        {errorEnvio && (
-          <Card variant="outlined">
-            <CardBody>
-              <p role="alert">{errorEnvio}</p>
-            </CardBody>
-          </Card>
-        )}
+        {errorEnvio && <Alert variant="danger">{errorEnvio}</Alert>}
       </div>
     </Modal>
   );

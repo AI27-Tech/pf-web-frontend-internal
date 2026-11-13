@@ -1,5 +1,5 @@
 import { useReducer, useState, type FormEvent } from 'react';
-import { Button, Card, CardBody, FormField, FormSection, Input, Modal, Radio } from '@ai27-tech/ui';
+import { Alert, Button, FormField, FormSection, Input, Modal, Radio } from '@ai27-tech/ui';
 import { Rol } from '@ai27-tech/contracts/roles';
 
 import { useAdministracionPort } from '@/context/AdministracionContext';
@@ -186,11 +186,7 @@ export function AltaUsuarioDialog({ abierto, onCerrar, envio, onAlta }: AltaUsua
           {rol === Rol.Cliente && (
             <FormSection title={TEXTOS.altaOrganizacion}>
               {ofrecibles.length === 0 ? (
-                <Card variant="outlined">
-                  <CardBody>
-                    <p role="status">{TEXTOS.sinOrganizaciones}</p>
-                  </CardBody>
-                </Card>
+                <Alert variant="info">{TEXTOS.sinOrganizaciones}</Alert>
               ) : (
                 ofrecibles.map((organizacion) => (
                   <Radio
@@ -208,13 +204,7 @@ export function AltaUsuarioDialog({ abierto, onCerrar, envio, onAlta }: AltaUsua
             </FormSection>
           )}
 
-          {errorGeneral && (
-            <Card variant="outlined">
-              <CardBody>
-                <p role="alert">{errorGeneral}</p>
-              </CardBody>
-            </Card>
-          )}
+          {errorGeneral && <Alert variant="danger">{errorGeneral}</Alert>}
         </div>
       </form>
     </Modal>

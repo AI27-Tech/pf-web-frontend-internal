@@ -1,7 +1,8 @@
 import { useDeferredValue, useReducer, useState } from 'react';
-import { Badge, Button, Card, CardBody, FilterTable, type Column } from '@ai27-tech/ui';
+import { Alert, Badge, Button, FilterTable, type Column } from '@ai27-tech/ui';
 import type { Rol } from '@ai27-tech/contracts/roles';
 
+import { BloqueError } from '@/components/feedback/BloqueError';
 import type { UsuarioResumen } from '@/lib/contracts/administracion';
 import { OPCIONES_ROL } from '@/lib/contracts/administracion';
 
@@ -85,17 +86,11 @@ export function SeccionUsuarios({ onAbrirUsuario, onNuevoUsuario }: SeccionUsuar
         </Button>
       </div>
 
-      {aviso && (
-        <Card variant="outlined">
-          <CardBody>
-            <p role={aviso.alerta ? 'alert' : 'status'}>{aviso.texto}</p>
-            {estado.estado === 'error' && (
-              <Button variant="outline" size="sm" onClick={() => void consulta.refetch()}>
-                {TEXTOS.reintentar}
-              </Button>
-            )}
-          </CardBody>
-        </Card>
+      {aviso && estado.estado === 'error' && (
+        <BloqueError mensaje={aviso.texto} onReintentar={() => void consulta.refetch()} />
+      )}
+      {aviso && estado.estado !== 'error' && (
+        <Alert variant={aviso.alerta ? 'danger' : 'info'}>{aviso.texto}</Alert>
       )}
 
       <FilterTable<UsuarioResumen>
