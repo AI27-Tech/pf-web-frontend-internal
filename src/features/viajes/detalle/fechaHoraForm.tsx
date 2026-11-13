@@ -7,13 +7,12 @@
  * vacío.
  *
  * Solo componentes de @ai27-tech/ui; no crea componentes nuevos. Usa
- * `Input type="datetime-local"`, igual que la captura de ETA (etaForm.tsx),
- * porque la librería no publica un selector de fecha dedicado.
+ * `DateTimeInput`, igual que la captura de ETA (etaForm.tsx).
  */
 
 import { useState } from 'react';
 
-import { Button, Form, FormField, Input, Inline, Stack } from '@ai27-tech/ui';
+import { Button, DateTimeInput, Form, FormField, Inline, Stack } from '@ai27-tech/ui';
 
 export interface FechaHoraFormProps {
   /** Fecha/hora actual (ISO 8601), si existe, para precargar el campo. */
@@ -71,14 +70,12 @@ export function FechaHoraForm({ fechaHoraActual, onConfirm, onCancel }: FechaHor
     >
       <div>
         <FormField label="Fecha y hora del servicio" required>
-          <Input
-            type="datetime-local"
+          <DateTimeInput
             value={valor}
-            onChange={(e) => {
-              setValor(e.target.value);
+            onChange={(nuevo) => {
+              setValor(nuevo);
               setError(null);
             }}
-            placeholder="DD/MM/YYYY HH:MM"
             disabled={cargando}
           />
         </FormField>

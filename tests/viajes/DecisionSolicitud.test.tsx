@@ -22,6 +22,8 @@ import type { ReactNode } from 'react';
 import { DetalleViaje } from '@/features/viajes/detalle/DetalleViaje';
 import { API_PREFIX } from '@/lib/constants';
 
+import { escribirFechaHora } from '../helpers/fechaHora';
+
 const path = (segment: string) => `${API_PREFIX}${segment}`;
 
 const logoutSpy = vi.fn();
@@ -104,7 +106,7 @@ describe('E8-T9 · guard de aprobación (fecha/hora obligatoria)', () => {
       ),
       http.patch(path('/viajes/:id/fecha-hora'), async ({ request }) => {
         const body = (await request.json()) as { fecha_hora_servicio?: string };
-        // Como el bff: exige RFC3339 con zona. El input datetime-local da hora local sin zona.
+        // Como el bff: exige RFC3339 con zona. El control de fecha y hora da hora local sin zona.
         if (body.fecha_hora_servicio !== new Date('2026-10-21T10:00').toISOString()) {
           return HttpResponse.json({ error: { codigo: 'fecha_hora_invalida' } }, { status: 400 });
         }
@@ -118,11 +120,12 @@ describe('E8-T9 · guard de aprobación (fecha/hora obligatoria)', () => {
     const botonAprobar = await screen.findByRole('button', { name: /Transicionar a: APROBADO/i });
     expect(botonAprobar).toBeDisabled();
 
-    // Abrir el modal y completar la fecha/hora. El input datetime-local se
-    // localiza por su placeholder (el FormField no asocia label por htmlFor).
-    await userEvent.click(screen.getByRole('button', { name: /Completar fecha y hora/i }));
-    const campo = await screen.findByPlaceholderText('DD/MM/YYYY HH:MM');
-    await userEvent.type(campo, '2026-10-21T10:00');
+    // Abrir el modal y completar la fecha/hora. El campo se localiza por su label,
+    // que FormField asocia al input de fecha del DateTimeInput.
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /Completar fecha y hora/i }));
+    const campo = await screen.findByLabelText(/Fecha y hora del servicio/);
+    await escribirFechaHora(user, campo, '2026-10-21T10:00');
     await userEvent.click(screen.getByRole('button', { name: /^Confirmar$/i }));
 
     // Tras invalidar la lectura, Aprobar queda habilitado.
@@ -144,11 +147,9 @@ describe('ETA: el valor del input local viaja en RFC3339', () => {
     );
     renderDetalle();
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Editar ETA' }));
-    await userEvent.type(
-      await screen.findByPlaceholderText('DD/MM/YYYY HH:MM'),
-      '2026-10-21T18:30',
-    );
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Editar ETA' }));
+    await escribirFechaHora(user, await screen.findByLabelText(/ETA estimado/), '2026-10-21T18:30');
     await userEvent.click(screen.getByRole('button', { name: /^Confirmar$/i }));
 
     await waitFor(() => expect(recibido).toBe(new Date('2026-10-21T18:30').toISOString()));

@@ -17,7 +17,7 @@ export interface DatosCrearViaje {
   readonly clienteId: string;
   readonly origen: string;
   readonly destinos: readonly string[];
-  /** Valor del input datetime-local, en la zona local del operador. */
+  /** Valor de DateTimeInput (`YYYY-MM-DDTHH:mm`), en la zona local del operador. */
   readonly fechaHora: string;
   readonly unidadesIds: readonly string[];
 }

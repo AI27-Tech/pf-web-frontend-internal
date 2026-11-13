@@ -1,8 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { CrearViaje } from '@/features/viajes/crear/CrearViaje';
+
+import { escribirFechaHora } from '../helpers/fechaHora';
 
 const mocks = vi.hoisted(() => ({
   crear: vi.fn(),
@@ -53,6 +55,30 @@ describe('CrearViaje', () => {
     expect(mocks.crear).not.toHaveBeenCalled();
   });
 
+  it('una fecha y hora vaciada después de escribirla bloquea la creación con el error existente', async () => {
+    const user = userEvent.setup();
+    mocks.crear.mockReset();
+    render(<CrearViaje />);
+
+    await user.click(screen.getByRole('button', { name: 'Cliente' }));
+    await user.click(screen.getByText('Cliente Uno'));
+    await user.type(screen.getByPlaceholderText('Dirección o ciudad de origen'), 'Origen 1');
+    await user.type(screen.getByLabelText('Destino 1'), 'Destino 1');
+    await escribirFechaHora(
+      user,
+      screen.getByLabelText(/Fecha y hora del servicio/),
+      '2026-10-23T10:00',
+    );
+    // Borrar la hora hace que DateTimeInput emita "" aunque la fecha siga escrita.
+    await user.click(screen.getByRole('textbox', { name: 'Horas' }));
+    await user.keyboard('{Backspace}');
+
+    await user.click(screen.getByRole('button', { name: 'Confirmar creación' }));
+
+    expect(screen.getByText('Ingresa una fecha y hora válida.')).toBeInTheDocument();
+    expect(mocks.crear).not.toHaveBeenCalled();
+  });
+
   it('envía el cliente seleccionado y conserva el orden de destinos', async () => {
     const user = userEvent.setup();
     mocks.crear.mockResolvedValue({
@@ -67,9 +93,11 @@ describe('CrearViaje', () => {
     await user.type(screen.getByLabelText('Destino 1'), 'Destino 1');
     await user.click(screen.getByRole('button', { name: 'Agregar destino' }));
     await user.type(screen.getByLabelText('Destino 2'), 'Destino 2');
-    fireEvent.change(document.querySelector('input[type="datetime-local"]')!, {
-      target: { value: '2026-10-23T10:00' },
-    });
+    await escribirFechaHora(
+      user,
+      screen.getByLabelText(/Fecha y hora del servicio/),
+      '2026-10-23T10:00',
+    );
 
     await user.click(screen.getByRole('button', { name: 'Confirmar creación' }));
 
@@ -97,9 +125,11 @@ describe('CrearViaje', () => {
     await user.click(screen.getByText('Cliente Uno'));
     await user.type(screen.getByPlaceholderText('Dirección o ciudad de origen'), 'Origen 1');
     await user.type(screen.getByLabelText('Destino 1'), 'Destino 1');
-    fireEvent.change(document.querySelector('input[type="datetime-local"]')!, {
-      target: { value: '2026-10-23T10:00' },
-    });
+    await escribirFechaHora(
+      user,
+      screen.getByLabelText(/Fecha y hora del servicio/),
+      '2026-10-23T10:00',
+    );
 
     const confirmar = screen.getByRole('button', { name: 'Confirmar creación' });
     const primera = user.click(confirmar);

@@ -16,6 +16,7 @@ import {
   CardBody,
   CardFooter,
   CardHeader,
+  DateTimeInput,
   Form,
   FormField,
   FormRow,
@@ -178,11 +179,10 @@ export function CrearViaje() {
                 />
               </FormField>
               <FormField label="Fecha y hora del servicio" required error={errores.fechaHora}>
-                <Input
-                  type="datetime-local"
+                <DateTimeInput
                   value={fechaHora}
-                  onChange={(event) => {
-                    setFechaHora(event.target.value);
+                  onChange={(valor) => {
+                    setFechaHora(valor);
                     setErrores((actuales) => quitarError(actuales, 'fechaHora'));
                   }}
                   disabled={c.enviando}

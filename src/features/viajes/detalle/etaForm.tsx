@@ -11,7 +11,7 @@
 
 import { useState } from 'react';
 
-import { Button, Form, FormField, Input, Inline, Stack } from '@ai27-tech/ui';
+import { Button, DateTimeInput, Form, FormField, Inline, Stack } from '@ai27-tech/ui';
 
 export interface EtaFormProps {
   /** ETA actual (ISO 8601), si existe, para precargar el campo. */
@@ -72,14 +72,12 @@ export function EtaForm({ etaActual, onConfirm, onCancel }: EtaFormProps) {
     >
       <div>
         <FormField label="ETA estimado" required>
-          <Input
-            type="datetime-local"
+          <DateTimeInput
             value={eta}
-            onChange={(e) => {
-              setEta(e.target.value);
+            onChange={(valor) => {
+              setEta(valor);
               setError(null);
             }}
-            placeholder="DD/MM/YYYY HH:MM"
             disabled={cargando}
           />
         </FormField>
