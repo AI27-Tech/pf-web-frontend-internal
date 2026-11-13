@@ -19,7 +19,9 @@ import {
   Form,
   FormField,
   FormRow,
+  Inline,
   Input,
+  Stack,
   Table,
 } from '@ai27-tech/ui';
 import { useNavigate } from '@tanstack/react-router';
@@ -109,14 +111,7 @@ export function CrearViaje() {
   const volver = () => void navigate({ to: '/viajes' });
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--ui-space-4)',
-        maxWidth: '62rem',
-      }}
-    >
+    <Stack gap={4} style={{ maxWidth: '62rem' }}>
       <header>
         {avisoSesionFinalizada && (
           <Alert variant="danger">Tu sesión finalizó. La información capturada no se envió.</Alert>
@@ -202,12 +197,9 @@ export function CrearViaje() {
               >
                 Destinos <span aria-hidden="true">*</span>
               </legend>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
+              <Stack gap={2}>
                 {destinos.map((destino, indice) => (
-                  <div
-                    key={`destino-${indice}`}
-                    style={{ display: 'flex', gap: 'var(--ui-space-2)' }}
-                  >
+                  <Inline key={`destino-${indice}`} gap={2} align="stretch" wrap={false}>
                     <Input
                       value={destino}
                       onChange={(event) => actualizarDestino(indice, event.target.value)}
@@ -228,7 +220,7 @@ export function CrearViaje() {
                         Quitar
                       </Button>
                     )}
-                  </div>
+                  </Inline>
                 ))}
                 {errores.destinos && <Alert variant="danger">{errores.destinos}</Alert>}
                 <Button
@@ -239,7 +231,7 @@ export function CrearViaje() {
                 >
                   Agregar destino
                 </Button>
-              </div>
+              </Stack>
             </fieldset>
 
             <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
@@ -294,7 +286,7 @@ export function CrearViaje() {
           </Form>
         </CardBody>
       </Card>
-    </div>
+    </Stack>
   );
 }
 

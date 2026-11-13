@@ -1,4 +1,4 @@
-import { Badge } from '@ai27-tech/ui';
+import { Badge, Grid } from '@ai27-tech/ui';
 import type { EmergenciaViaje, EstadoEmergencia } from '@/lib/contracts/emergencias';
 
 const ETIQUETA_ESTADO: Record<EstadoEmergencia, string> = {
@@ -23,11 +23,7 @@ export function SelectorCaso({
 }) {
   if (casos.length === 0) return <p>No hay emergencias activas en este viaje.</p>;
   return (
-    <div
-      role="radiogroup"
-      aria-label="Emergencias del viaje"
-      style={{ display: 'grid', gap: 'var(--ui-space-2)' }}
-    >
+    <Grid gap={2} role="radiogroup" aria-label="Emergencias del viaje">
       {casos.map((caso) => (
         <button
           key={caso.id}
@@ -45,6 +41,6 @@ export function SelectorCaso({
           <small>Activada {new Date(caso.activada_en).toLocaleString()}</small>
         </button>
       ))}
-    </div>
+    </Grid>
   );
 }

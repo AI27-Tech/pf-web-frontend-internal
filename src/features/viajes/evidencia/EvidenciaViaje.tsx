@@ -4,7 +4,7 @@
  * de V1 es un marcador (Requirement 5.16).
  */
 
-import { Card, CardBody, CardHeader } from '@ai27-tech/ui';
+import { Card, CardBody, CardHeader, Stack } from '@ai27-tech/ui';
 
 import { useSession } from '@/context/SessionContext';
 import { puedeUsarMonitoreo } from '@/features/monitoreo/puedeUsarMonitoreo';
@@ -36,7 +36,7 @@ function EvidenciaAutorizada({ id }: { readonly id: string }) {
         </p>
       </CardHeader>
       <CardBody>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+        <Stack gap={4}>
           <ListaAdjuntos
             adjuntos={e.adjuntos}
             cargando={e.cargando}
@@ -46,7 +46,7 @@ function EvidenciaAutorizada({ id }: { readonly id: string }) {
             descargando={e.descargando}
           />
           <SubirEvidencia subiendo={e.subiendo} error={e.errorSubida} onSubir={e.subir} />
-        </div>
+        </Stack>
       </CardBody>
     </Card>
   );

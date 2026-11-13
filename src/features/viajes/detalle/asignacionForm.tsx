@@ -13,7 +13,7 @@
 
 import { useState } from 'react';
 
-import { Alert, Button, Card, CardBody, Form, Table } from '@ai27-tech/ui';
+import { Alert, Button, Card, CardBody, Form, Inline, Stack, Table } from '@ai27-tech/ui';
 import type { Column } from '@ai27-tech/ui';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
@@ -111,12 +111,13 @@ export function AsignacionForm({
   const bloqueado = enviando || sinUnidades || seleccionadas.size === 0;
 
   return (
-    <Form
+    <Stack
+      as={Form}
+      gap={3}
       onSubmit={(event) => {
         event.preventDefault();
         void handleConfirm();
       }}
-      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}
     >
       {sinUnidades ? (
         <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
@@ -137,14 +138,14 @@ export function AsignacionForm({
 
       {errorEnvio && <Alert variant="danger">{errorEnvio}</Alert>}
 
-      <div style={{ display: 'flex', gap: 'var(--ui-space-2)', justifyContent: 'flex-end' }}>
+      <Inline gap={2} align="stretch" justify="end" wrap={false}>
         <Button variant="secondary" onClick={onCancel} disabled={enviando} type="button">
           Cancelar
         </Button>
         <Button variant="primary" disabled={bloqueado} type="submit">
           {enviando ? 'Asignando...' : 'Confirmar asignación'}
         </Button>
-      </div>
-    </Form>
+      </Inline>
+    </Stack>
   );
 }

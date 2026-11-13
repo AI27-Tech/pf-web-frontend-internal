@@ -17,6 +17,7 @@ import {
   CardFooter,
   CardHeader,
   PageHeader,
+  Stack,
   Toast,
   ToastContainer,
 } from '@ai27-tech/ui';
@@ -63,7 +64,7 @@ function DescargaExpediente({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+    <Stack gap={4}>
       <PageHeader
         title="Expediente del viaje"
         description={`Viaje: ${id}`}
@@ -122,7 +123,7 @@ function DescargaExpediente({
           />
         )}
       </ToastContainer>
-    </div>
+    </Stack>
   );
 }
 

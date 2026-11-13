@@ -1,5 +1,5 @@
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { Alert, PageHeader } from '@ai27-tech/ui';
+import { Alert, Grid, PageHeader } from '@ai27-tech/ui';
 import { BloqueError } from '@/components/feedback/BloqueError';
 import { ErrorConversacionNoDisponible } from '@/lib/api/conversaciones';
 import { useSession } from '@/context/SessionContext';
@@ -23,13 +23,7 @@ export function BandejaConversaciones() {
     });
   const panelVisible = Boolean(detalle.conversacion && !detalle.cargando);
   return (
-    <div
-      style={{
-        display: 'grid',
-        gap: 'var(--ui-space-4)',
-        gridTemplateColumns: 'minmax(18rem, 32rem) minmax(0, 1fr)',
-      }}
-    >
+    <Grid gap={4} style={{ gridTemplateColumns: 'minmax(18rem, 32rem) minmax(0, 1fr)' }}>
       <section>
         <PageHeader title="Bandeja de conversaciones" />
         <ListaTrabajo
@@ -87,6 +81,6 @@ export function BandejaConversaciones() {
           </div>
         )}
       </section>
-    </div>
+    </Grid>
   );
 }

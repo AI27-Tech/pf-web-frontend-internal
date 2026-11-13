@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Button, Modal, Textarea } from '@ai27-tech/ui';
+import { Alert, Button, Grid, Inline, Modal, Textarea } from '@ai27-tech/ui';
 import { esNotaValida, LONGITUD_MAXIMA_NOTA, normalizarNota } from './nota';
 
 interface DialogoResolucionProps {
@@ -26,12 +26,13 @@ export function DialogoResolucion({
 
   return (
     <Modal open onClose={onCancelar} title="Resolver emergencia">
-      <form
+      <Grid
+        as="form"
+        gap={3}
         onSubmit={(evento) => {
           evento.preventDefault();
           if (valida && !enviando) void onConfirmar(normalizarNota(texto));
         }}
-        style={{ display: 'grid', gap: 'var(--ui-space-3)' }}
       >
         <label htmlFor="nota-resolucion">Nota de resolución (obligatoria)</label>
         <Textarea
@@ -46,15 +47,15 @@ export function DialogoResolucion({
           {texto.length} / {LONGITUD_MAXIMA_NOTA}
         </small>
         {error && <Alert variant="danger">{error}</Alert>}
-        <div style={{ display: 'flex', gap: 'var(--ui-space-2)', justifyContent: 'flex-end' }}>
+        <Inline gap={2} justify="end" wrap={false} align="stretch">
           <Button variant="outline" onClick={onCancelar} disabled={enviando}>
             Cancelar
           </Button>
           <Button type="submit" disabled={!valida || enviando}>
             {enviando ? 'Resolviendo...' : 'Resolver'}
           </Button>
-        </div>
-      </form>
+        </Inline>
+      </Grid>
     </Modal>
   );
 }

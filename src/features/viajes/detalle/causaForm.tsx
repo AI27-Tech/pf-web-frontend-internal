@@ -11,7 +11,7 @@
 
 import { useState } from 'react';
 
-import { Button, Form, FormField, Textarea } from '@ai27-tech/ui';
+import { Button, Form, FormField, Inline, Stack, Textarea } from '@ai27-tech/ui';
 
 export interface CausaFormProps {
   /** Estado destino de la transición, para contextualizar el formulario. */
@@ -59,12 +59,13 @@ export function CausaForm({ destino, onConfirm, onCancel }: CausaFormProps) {
   };
 
   return (
-    <Form
+    <Stack
+      as={Form}
+      gap={3}
       onSubmit={(e) => {
         e.preventDefault();
         void handleConfirm();
       }}
-      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}
     >
       <div>
         <FormField label={`Causa para transicionar a: ${destino}`} required>
@@ -89,7 +90,7 @@ export function CausaForm({ destino, onConfirm, onCancel }: CausaFormProps) {
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 'var(--ui-space-2)', justifyContent: 'flex-end' }}>
+      <Inline gap={2} align="stretch" justify="end" wrap={false}>
         <Button variant="secondary" onClick={onCancel} disabled={cargando} type="button">
           Cancelar
         </Button>
@@ -101,7 +102,7 @@ export function CausaForm({ destino, onConfirm, onCancel }: CausaFormProps) {
         >
           {cargando ? 'Registrando...' : 'Confirmar'}
         </Button>
-      </div>
-    </Form>
+      </Inline>
+    </Stack>
   );
 }

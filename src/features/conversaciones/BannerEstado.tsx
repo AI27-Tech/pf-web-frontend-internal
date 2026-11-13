@@ -1,4 +1,4 @@
-import { Badge } from '@ai27-tech/ui';
+import { Badge, Inline } from '@ai27-tech/ui';
 import type { RazonCompositor } from './afordancias';
 
 // Textos provisionales: Producto aún no los aprueba.
@@ -19,10 +19,10 @@ export function BannerEstado({
 }) {
   const texto = razon ? TEXTO_RAZON[razon] : null;
   return (
-    <div aria-live="polite" style={{ display: 'flex', gap: 'var(--ui-space-2)', flexWrap: 'wrap' }}>
+    <Inline gap={2} wrap align="stretch" aria-live="polite">
       {texto && <Badge variant="neutral">{texto}</Badge>}
       {desactualizada && <Badge variant="warning">La vista puede estar desactualizada.</Badge>}
       {actualizadoEn && <small>Actualizado: {actualizadoEn.toLocaleTimeString()}</small>}
-    </div>
+    </Inline>
   );
 }

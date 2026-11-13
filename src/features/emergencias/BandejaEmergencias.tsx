@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { Alert, PageHeader, Toast } from '@ai27-tech/ui';
+import { Alert, Grid, PageHeader, Stack, Toast } from '@ai27-tech/ui';
 import { BloqueError } from '@/components/feedback/BloqueError';
 import { ErrorEmergenciaNoDisponible, ErrorSinAccesoEmergencias } from '@/lib/api/emergencias';
 import { ListaCasos } from './ListaCasos';
@@ -61,7 +61,7 @@ export function BandejaEmergencias({ casoAbierto }: { casoAbierto?: string | und
     caso.error instanceof ErrorEmergenciaNoDisponible;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+    <Stack gap={4}>
       <PageHeader title="Bandeja de Emergencias" />
       {aviso && (
         <Toast variant="success" title={aviso} onClose={() => setAviso(null)}>
@@ -72,13 +72,7 @@ export function BandejaEmergencias({ casoAbierto }: { casoAbierto?: string | und
       <p role="status" aria-live="polite" style={{ margin: 0 }}>
         {caso.anuncio}
       </p>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(260px, 1fr) 2fr',
-          gap: 'var(--ui-space-4)',
-        }}
-      >
+      <Grid gap={4} style={{ gridTemplateColumns: 'minmax(260px, 1fr) 2fr' }}>
         <ListaCasos
           items={visibles}
           seleccionado={casoAbierto}
@@ -119,7 +113,7 @@ export function BandejaEmergencias({ casoAbierto }: { casoAbierto?: string | und
             />
           )}
         </div>
-      </div>
-    </div>
+      </Grid>
+    </Stack>
   );
 }

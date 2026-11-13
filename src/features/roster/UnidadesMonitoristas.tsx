@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 
-import { Alert, Badge, Button, Card, Modal, Section, Table } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Card, Inline, Modal, Section, Table } from '@ai27-tech/ui';
 import type { Column } from '@ai27-tech/ui';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
@@ -39,26 +39,23 @@ function UnidadesAsignadas({
     return <span style={{ color: TEXTO_TENUE }}>Sin unidades</span>;
   }
   return (
-    <ul
-      style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: 'var(--ui-space-2)',
-        margin: 0,
-        padding: 0,
-        listStyle: 'none',
-      }}
+    <Inline
+      as="ul"
+      gap={2}
+      align="stretch"
+      wrap
+      style={{ margin: 0, padding: 0, listStyle: 'none' }}
     >
       {ids.map((id) => {
         const unidad = porId.get(id);
         return (
-          <li key={id} style={{ display: 'flex', gap: 'var(--ui-space-1)', alignItems: 'center' }}>
+          <Inline as="li" key={id} gap={1} align="center" wrap={false}>
             <span>{unidad ? vehiculoLegible(unidad) : id}</span>
             {unidad && !unidad.activa && <Badge variant="neutral">Inactiva</Badge>}
-          </li>
+          </Inline>
         );
       })}
-    </ul>
+    </Inline>
   );
 }
 

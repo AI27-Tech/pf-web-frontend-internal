@@ -6,7 +6,7 @@
  */
 
 import { createFileRoute } from '@tanstack/react-router';
-import { Card } from '@ai27-tech/ui';
+import { Card, Stack } from '@ai27-tech/ui';
 
 export const Route = createFileRoute('/_private/jefe-operativo/panel')({
   component: JefeOperativoPanelPage,
@@ -14,13 +14,7 @@ export const Route = createFileRoute('/_private/jefe-operativo/panel')({
 
 function JefeOperativoPanelPage() {
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--ui-space-4)',
-      }}
-    >
+    <Stack gap={4}>
       <h1
         className="ui-text-headline-lg"
         style={{
@@ -57,6 +51,6 @@ function JefeOperativoPanelPage() {
           </p>
         </div>
       </Card>
-    </div>
+    </Stack>
   );
 }

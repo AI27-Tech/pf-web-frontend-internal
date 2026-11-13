@@ -28,6 +28,7 @@ import {
   Inline,
   Modal,
   PageHeader,
+  Stack,
   Toast,
   ToastContainer,
 } from '@ai27-tech/ui';
@@ -338,7 +339,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
     viajeInterno.estado === EstadoViaje.Solicitado && !viajeInterno.fecha_hora_servicio;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+    <Stack gap={4}>
       <PageHeader
         title={`Detalle del Viaje: ${viajeInterno.id}`}
         breadcrumb={
@@ -388,7 +389,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
       {/* Cabecera: estado y condiciones en columnas separadas (P15, Req 1.2, 1.3) */}
       <Card>
         <CardHeader>
-          <div style={{ display: 'flex', gap: 'var(--ui-space-4)', alignItems: 'center' }}>
+          <Inline gap={4} align="center" wrap={false}>
             {/* Estado */}
             <div>
               <p
@@ -409,23 +410,23 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
                 >
                   Condiciones
                 </p>
-                <div style={{ display: 'inline-flex', gap: 'var(--ui-space-1)' }}>
+                <Inline gap={1} align="stretch" wrap={false}>
                   {condicionesActivas.map((c) => (
                     <Badge key={c.tipo} variant={VARIANTE_CONDICION[c.tipo] ?? 'warning'} dot>
                       {c.tipo}
                     </Badge>
                   ))}
-                </div>
+                </Inline>
               </div>
             )}
-          </div>
+          </Inline>
         </CardHeader>
       </Card>
 
       {/* Informacion del viaje: origen, destinos, ETA */}
       <Card>
         <CardBody>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}>
+          <Stack gap={3}>
             {/* Origen (ahora es un string de dirección) */}
             <div>
               <p
@@ -463,7 +464,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
                     {faseDelBucle(viajeInterno.estado)}
                   </p>
                 )}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
+                <Stack gap={2}>
                   {viajeInterno.destinos.map((destino, idx) => (
                     <div
                       key={destino.numero_envio ?? `parada-${idx}`}
@@ -473,13 +474,11 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
                         borderRadius: 'var(--ui-radius-sm)',
                       }}
                     >
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: 'var(--ui-space-2)',
-                          alignItems: 'center',
-                          marginBottom: 'var(--ui-space-1)',
-                        }}
+                      <Inline
+                        gap={2}
+                        align="center"
+                        wrap={false}
+                        style={{ marginBottom: 'var(--ui-space-1)' }}
                       >
                         <span
                           className="ui-text-body-xs"
@@ -487,7 +486,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
                         >
                           Parada {idx + 1}
                         </span>
-                      </div>
+                      </Inline>
                       <p
                         className="ui-text-body-sm"
                         style={{ color: 'var(--ui-color-text)', margin: '0 0 var(--ui-space-1) 0' }}
@@ -504,7 +503,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
                       )}
                     </div>
                   ))}
-                </div>
+                </Stack>
               </div>
             )}
 
@@ -522,7 +521,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
                 </p>
               </div>
             )}
-          </div>
+          </Stack>
         </CardBody>
       </Card>
 
@@ -563,7 +562,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
             </p>
           </CardHeader>
           <CardBody>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
+            <Stack gap={2}>
               {accionesVisibles.map((accion) => {
                 const esAprobar = accion === EstadoViaje.Aprobado;
                 const esAsignar = accion === EstadoViaje.Asignado;
@@ -610,7 +609,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
                   </Button>
                 );
               })}
-            </div>
+            </Stack>
           </CardBody>
         </Card>
       )}
@@ -719,7 +718,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
           />
         ))}
       </ToastContainer>
-    </div>
+    </Stack>
   );
 }
 

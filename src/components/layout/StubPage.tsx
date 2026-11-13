@@ -6,7 +6,7 @@
  * Este componente da ese destino provisional usando SOLO estilos de @ai27-tech/ui.
  */
 
-import { Card, PageHeader } from '@ai27-tech/ui';
+import { Card, PageHeader, Stack } from '@ai27-tech/ui';
 
 interface StubPageProps {
   /** Título del área (p. ej. "Viajes"). */
@@ -19,13 +19,7 @@ interface StubPageProps {
 
 export function StubPage({ titulo, historia, descripcion }: StubPageProps) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--ui-space-4)',
-      }}
-    >
+    <Stack gap={4}>
       <PageHeader title={titulo} description={`${historia} — Contenido pendiente`} />
       <Card variant="outlined">
         <div style={{ padding: 'var(--ui-space-4)' }}>
@@ -34,6 +28,6 @@ export function StubPage({ titulo, historia, descripcion }: StubPageProps) {
           </p>
         </div>
       </Card>
-    </div>
+    </Stack>
   );
 }

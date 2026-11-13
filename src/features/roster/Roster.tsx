@@ -15,9 +15,11 @@ import {
   Button,
   Card,
   CardBody,
+  Inline,
   Modal,
   PageHeader,
   Section,
+  Stack,
   Table,
 } from '@ai27-tech/ui';
 import type { Column } from '@ai27-tech/ui';
@@ -41,7 +43,7 @@ export function Roster() {
   const { usuario } = useSession();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+    <Stack gap={4}>
       <PageHeader title="Roster de unidades" />
       {puedeArmarRoster(usuario?.rol) ? (
         <RosterAutorizado />
@@ -54,7 +56,7 @@ export function Roster() {
           </CardBody>
         </Card>
       )}
-    </div>
+    </Stack>
   );
 }
 
@@ -141,14 +143,13 @@ function RosterAutorizado() {
                 density="compact"
               />
               {(r.hayAnterior || r.haySiguiente) && (
-                <nav
+                <Inline
+                  as="nav"
                   aria-label="Páginas del roster"
-                  style={{
-                    display: 'flex',
-                    gap: 'var(--ui-space-2)',
-                    alignItems: 'center',
-                    marginTop: 'var(--ui-space-2)',
-                  }}
+                  gap={2}
+                  align="center"
+                  wrap={false}
+                  style={{ marginTop: 'var(--ui-space-2)' }}
                 >
                   <Button
                     variant="secondary"
@@ -167,7 +168,7 @@ function RosterAutorizado() {
                   >
                     Página siguiente
                   </Button>
-                </nav>
+                </Inline>
               )}
             </>
           )}

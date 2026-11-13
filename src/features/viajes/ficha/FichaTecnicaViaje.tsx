@@ -70,7 +70,7 @@ export function FichaTecnicaViaje({ id }: FichaTecnicaViajeProps) {
   const viaje = f.detalle.viaje;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+    <Stack gap={4}>
       <PageHeader
         title="Ficha técnica del viaje"
         description={`Viaje: ${viaje.id}`}
@@ -127,7 +127,7 @@ export function FichaTecnicaViaje({ id }: FichaTecnicaViajeProps) {
         guardar={f.guardar}
         guardando={f.guardando}
       />
-    </div>
+    </Stack>
   );
 }
 
@@ -140,7 +140,7 @@ function DatosViaje({ viaje }: { readonly viaje: ViajeInterno }) {
         </p>
       </CardHeader>
       <CardBody>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}>
+        <Stack gap={3}>
           <Dato label="Origen" value={viaje.origen} />
           <Dato label="Tipo de servicio" value={viaje.tipo_servicio ?? 'No informado'} />
           <div>
@@ -176,7 +176,7 @@ function DatosViaje({ viaje }: { readonly viaje: ViajeInterno }) {
               </p>
             )}
           </div>
-        </div>
+        </Stack>
       </CardBody>
     </Card>
   );
@@ -246,14 +246,14 @@ function Escolta({
 function FichaConfirmada({ ficha }: { readonly ficha: FichaTecnica }) {
   return (
     <CardBody>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}>
+      <Stack gap={3}>
         <Dato label="Tracto" value={ficha.tracto ? 'Capturado' : 'No informado'} />
         <Dato label="Contenedores" value={String(ficha.contenedores?.length ?? 0)} />
         <Dato label="GPS registrados" value={String(ficha.gps_ids?.length ?? 0)} />
         <p className="ui-text-body-xs" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
           La escolta y el histórico operativo se consultan en sus superficies correspondientes.
         </p>
-      </div>
+      </Stack>
     </CardBody>
   );
 }

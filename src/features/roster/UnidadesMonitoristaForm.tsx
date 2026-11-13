@@ -9,7 +9,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { Alert, Button, Checkbox, Form } from '@ai27-tech/ui';
+import { Alert, Button, Checkbox, Form, Inline, Stack } from '@ai27-tech/ui';
 
 import type { Unidad } from '@/lib/contracts/unidades';
 
@@ -89,7 +89,7 @@ export function UnidadesMonitoristaForm({
             No hay unidades activas en el roster.
           </p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-1)' }}>
+          <Stack gap={1}>
             {ofrecidas.map((o) => (
               <Checkbox
                 key={o.id}
@@ -99,20 +99,20 @@ export function UnidadesMonitoristaForm({
                 onChange={(event) => alternar(o.id, event.target.checked)}
               />
             ))}
-          </div>
+          </Stack>
         )}
       </fieldset>
 
       {error && <Alert variant="danger">{error}</Alert>}
 
-      <div style={{ display: 'flex', gap: 'var(--ui-space-2)', justifyContent: 'flex-end' }}>
+      <Inline gap={2} align="stretch" justify="end" wrap={false}>
         <Button variant="secondary" type="button" onClick={onCancelar} disabled={enviando}>
           Cancelar
         </Button>
         <Button variant="primary" type="submit" disabled={bloqueado}>
           {enviando ? 'Guardando...' : 'Guardar unidades'}
         </Button>
-      </div>
+      </Inline>
     </Form>
   );
 }

@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 
-import { Alert, Button, Form, FormField, Input, Switch } from '@ai27-tech/ui';
+import { Alert, Button, Form, FormField, Inline, Input, Switch } from '@ai27-tech/ui';
 
 import type { Custodio, CustodioCambios, CustodioEntrada } from '@/lib/contracts/catalogos';
 
@@ -95,14 +95,14 @@ export function CustodioForm({
 
       {error && <Alert variant="danger">{error}</Alert>}
 
-      <div style={{ display: 'flex', gap: 'var(--ui-space-2)', justifyContent: 'flex-end' }}>
+      <Inline gap={2} align="stretch" justify="end" wrap={false}>
         <Button variant="secondary" type="button" onClick={onCancelar} disabled={enviando}>
           Cancelar
         </Button>
         <Button variant="primary" type="submit" disabled={bloqueado}>
           {enviando ? 'Guardando...' : 'Guardar custodio'}
         </Button>
-      </div>
+      </Inline>
     </Form>
   );
 }

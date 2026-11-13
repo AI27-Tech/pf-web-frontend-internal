@@ -13,7 +13,7 @@
 
 import { useState } from 'react';
 
-import { Button, Form, FormField, Input } from '@ai27-tech/ui';
+import { Button, Form, FormField, Input, Inline, Stack } from '@ai27-tech/ui';
 
 export interface FechaHoraFormProps {
   /** Fecha/hora actual (ISO 8601), si existe, para precargar el campo. */
@@ -61,12 +61,13 @@ export function FechaHoraForm({ fechaHoraActual, onConfirm, onCancel }: FechaHor
   };
 
   return (
-    <Form
+    <Stack
+      as={Form}
+      gap={3}
       onSubmit={(e) => {
         e.preventDefault();
         void handleConfirm();
       }}
-      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}
     >
       <div>
         <FormField label="Fecha y hora del servicio" required>
@@ -91,7 +92,7 @@ export function FechaHoraForm({ fechaHoraActual, onConfirm, onCancel }: FechaHor
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 'var(--ui-space-2)', justifyContent: 'flex-end' }}>
+      <Inline gap={2} align="stretch" justify="end" wrap={false}>
         <Button variant="secondary" onClick={onCancel} disabled={cargando} type="button">
           Cancelar
         </Button>
@@ -103,7 +104,7 @@ export function FechaHoraForm({ fechaHoraActual, onConfirm, onCancel }: FechaHor
         >
           {cargando ? 'Guardando...' : 'Confirmar'}
         </Button>
-      </div>
-    </Form>
+      </Inline>
+    </Stack>
   );
 }

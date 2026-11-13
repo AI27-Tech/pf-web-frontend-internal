@@ -1,7 +1,7 @@
 /* Captura de una nota de bitácora (E8-T13, tarea 6). V1: solo { texto }. */
 import { useRef, useState } from 'react';
 
-import { Button, Form, FormField, Textarea } from '@ai27-tech/ui';
+import { Button, Form, FormField, Inline, Stack, Textarea } from '@ai27-tech/ui';
 
 export interface NotaFormProps {
   readonly enviando: boolean;
@@ -42,25 +42,26 @@ export function NotaForm({ enviando, onRegistrar }: NotaFormProps) {
         event.preventDefault();
         void confirmar();
       }}
-      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}
     >
-      <FormField label="Nueva nota de bitácora" required error={error ?? undefined}>
-        <Textarea
-          value={texto}
-          onChange={(event) => {
-            setTexto(event.target.value);
-            if (error) setError(null);
-          }}
-          disabled={enviando}
-          rows={3}
-          placeholder="Describe la observación o nota de monitoreo"
-        />
-      </FormField>
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Button variant="primary" type="submit" loading={enviando} disabled={enviando}>
-          Registrar nota
-        </Button>
-      </div>
+      <Stack gap={3}>
+        <FormField label="Nueva nota de bitácora" required error={error ?? undefined}>
+          <Textarea
+            value={texto}
+            onChange={(event) => {
+              setTexto(event.target.value);
+              if (error) setError(null);
+            }}
+            disabled={enviando}
+            rows={3}
+            placeholder="Describe la observación o nota de monitoreo"
+          />
+        </FormField>
+        <Inline gap={0} justify="end" wrap={false}>
+          <Button variant="primary" type="submit" loading={enviando} disabled={enviando}>
+            Registrar nota
+          </Button>
+        </Inline>
+      </Stack>
     </Form>
   );
 }

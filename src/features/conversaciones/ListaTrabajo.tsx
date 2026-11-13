@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Card } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Card, Grid, Inline } from '@ai27-tech/ui';
 import { BloqueError } from '@/components/feedback/BloqueError';
 import { ErrorSinAcceso, ErrorSinBandeja } from '@/lib/api/conversaciones';
 import type { Conversacion } from '@/lib/contracts/conversaciones';
@@ -64,7 +64,7 @@ export function ListaTrabajo({
     );
   return (
     <Card variant="outlined">
-      <div style={{ display: 'grid', gap: 'var(--ui-space-2)' }}>
+      <Grid gap={2}>
         <BannerEstado
           razon={null}
           desactualizada={desactualizada}
@@ -95,17 +95,16 @@ export function ListaTrabajo({
                 }}
               >
                 <strong>{nombres[item.cliente_id] ?? 'Cliente no disponible'}</strong>
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: 'var(--ui-space-2)',
-                    marginTop: 'var(--ui-space-1)',
-                  }}
+                <Inline
+                  gap={2}
+                  wrap={false}
+                  align="stretch"
+                  style={{ marginTop: 'var(--ui-space-1)' }}
                 >
                   <Badge variant={c.puedeResponder ? 'secure' : 'neutral'}>{estado}</Badge>
                   {item.atendida_en && <Badge variant="secure">Atendida</Badge>}
                   <small>{new Date(item.abierta_en).toLocaleString()}</small>
-                </div>
+                </Inline>
               </button>
             );
           })
@@ -116,7 +115,7 @@ export function ListaTrabajo({
             {cargandoMas ? 'Cargando...' : 'Cargar más'}
           </Button>
         )}
-      </div>
+      </Grid>
     </Card>
   );
 }

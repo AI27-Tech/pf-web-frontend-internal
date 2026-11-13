@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   Alert,
   Button,
+  Inline,
   MessageBubble,
   MessageComposer,
   MessageList,
@@ -70,7 +71,7 @@ export function PanelConversacion({
           {error.message}
         </Alert>
       )}
-      <div style={{ display: 'flex', gap: 'var(--ui-space-2)', padding: 'var(--ui-space-2)' }}>
+      <Inline gap={2} wrap={false} align="stretch" style={{ padding: 'var(--ui-space-2)' }}>
         {c.puedeReclamar && (
           <Button onClick={onReclamar} disabled={accionEnCurso !== null}>
             Reclamar
@@ -87,7 +88,7 @@ export function PanelConversacion({
           </Button>
         )}
         {conversacion.atendida_en && <span>Atendida</span>}
-      </div>
+      </Inline>
       {hayMensajesAnteriores && (
         <Button variant="outline" onClick={onCargarAnteriores} disabled={cargandoAnteriores}>
           {cargandoAnteriores ? 'Cargando historial...' : 'Cargar mensajes anteriores'}
@@ -125,7 +126,7 @@ export function PanelConversacion({
           Hay un borrador sin enviar. Si devuelves la conversación, conservarás el texto localmente
           pero dejarás de ser responsable.
         </p>
-        <div style={{ display: 'flex', gap: 'var(--ui-space-2)' }}>
+        <Inline gap={2} wrap={false} align="stretch">
           <Button variant="outline" onClick={() => setConfirmarDevolucion(false)}>
             Cancelar
           </Button>
@@ -138,7 +139,7 @@ export function PanelConversacion({
           >
             Devolver al pool
           </Button>
-        </div>
+        </Inline>
       </Modal>
     </MessagePanel>
   );

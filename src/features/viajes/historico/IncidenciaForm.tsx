@@ -1,7 +1,7 @@
 /* Marcado de una incidencia (E8-T13, tarea 9). tipo_interno es texto en V1. */
 import { useRef, useState } from 'react';
 
-import { Button, Form, FormField, Input, Textarea } from '@ai27-tech/ui';
+import { Button, Form, FormField, Inline, Input, Stack, Textarea } from '@ai27-tech/ui';
 
 import type { IncidenciaEntrada } from '@/lib/contracts/historicoViaje';
 
@@ -52,38 +52,39 @@ export function IncidenciaForm({ enviando, onAbrir }: IncidenciaFormProps) {
         event.preventDefault();
         void confirmar();
       }}
-      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}
     >
-      <FormField
-        label="Tipo interno"
-        required
-        error={error ?? undefined}
-        helpText="Catálogo operativo interno. En V1 se captura como texto."
-      >
-        <Input
-          value={tipoInterno}
-          onChange={(event) => {
-            setTipoInterno(event.target.value);
-            if (error) setError(null);
-          }}
-          disabled={enviando}
-          placeholder="Ej. Desvío de ruta"
-        />
-      </FormField>
-      <FormField label="Descripción (opcional)">
-        <Textarea
-          value={descripcion}
-          onChange={(event) => setDescripcion(event.target.value)}
-          disabled={enviando}
-          rows={3}
-          placeholder="Detalle de la incidencia"
-        />
-      </FormField>
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Button variant="primary" type="submit" loading={enviando} disabled={enviando}>
-          Marcar incidencia
-        </Button>
-      </div>
+      <Stack gap={3}>
+        <FormField
+          label="Tipo interno"
+          required
+          error={error ?? undefined}
+          helpText="Catálogo operativo interno. En V1 se captura como texto."
+        >
+          <Input
+            value={tipoInterno}
+            onChange={(event) => {
+              setTipoInterno(event.target.value);
+              if (error) setError(null);
+            }}
+            disabled={enviando}
+            placeholder="Ej. Desvío de ruta"
+          />
+        </FormField>
+        <FormField label="Descripción (opcional)">
+          <Textarea
+            value={descripcion}
+            onChange={(event) => setDescripcion(event.target.value)}
+            disabled={enviando}
+            rows={3}
+            placeholder="Detalle de la incidencia"
+          />
+        </FormField>
+        <Inline gap={0} justify="end" wrap={false}>
+          <Button variant="primary" type="submit" loading={enviando} disabled={enviando}>
+            Marcar incidencia
+          </Button>
+        </Inline>
+      </Stack>
     </Form>
   );
 }

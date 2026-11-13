@@ -9,7 +9,17 @@
 
 import { useState, type ReactNode } from 'react';
 
-import { Alert, Badge, Button, Card, Modal, PageHeader, Section, Table } from '@ai27-tech/ui';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Modal,
+  PageHeader,
+  Section,
+  Stack,
+  Table,
+} from '@ai27-tech/ui';
 import type { Column } from '@ai27-tech/ui';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
@@ -30,7 +40,7 @@ export function Catalogos() {
   const rol = usuario?.rol;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+    <Stack gap={4}>
       <PageHeader title="Catálogos" />
       {puedeArmarRoster(rol) ? (
         <>
@@ -45,7 +55,7 @@ export function Catalogos() {
       <p className="ui-text-body-xs" style={{ margin: 0, color: TEXTO_TENUE }}>
         Los demás catálogos (tipos, contratos y SLA) llegan con E8-T16.
       </p>
-    </div>
+    </Stack>
   );
 }
 

@@ -12,6 +12,7 @@ import {
   CardHeader,
   FilterBar,
   PageHeader,
+  Stack,
   Table,
   type FilterDefinition,
 } from '@ai27-tech/ui';
@@ -53,14 +54,14 @@ export function DashboardMonitoreo() {
   const autorizado = !!usuario && puedeUsarMonitoreo(usuario.rol);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+    <Stack gap={4}>
       <PageHeader title="Dashboard de Monitoreo" />
       {autorizado ? (
         <DashboardAutorizado />
       ) : (
         <Alert variant="danger">Este dashboard no está disponible para tu rol.</Alert>
       )}
-    </div>
+    </Stack>
   );
 }
 
@@ -68,7 +69,7 @@ function DashboardAutorizado() {
   const d = useDashboardMonitoreo();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+    <Stack gap={4}>
       <FilterBar
         filters={[FILTRO_VISTA]}
         filterValues={{ vista: d.vista }}
@@ -163,7 +164,7 @@ function DashboardAutorizado() {
           )}
         </>
       )}
-    </div>
+    </Stack>
   );
 }
 

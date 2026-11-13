@@ -11,7 +11,7 @@
 
 import { useState } from 'react';
 
-import { Button, Form, FormField, Input } from '@ai27-tech/ui';
+import { Button, Form, FormField, Input, Inline, Stack } from '@ai27-tech/ui';
 
 export interface EtaFormProps {
   /** ETA actual (ISO 8601), si existe, para precargar el campo. */
@@ -62,12 +62,13 @@ export function EtaForm({ etaActual, onConfirm, onCancel }: EtaFormProps) {
   };
 
   return (
-    <Form
+    <Stack
+      as={Form}
+      gap={3}
       onSubmit={(e) => {
         e.preventDefault();
         void handleConfirm();
       }}
-      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}
     >
       <div>
         <FormField label="ETA estimado" required>
@@ -101,14 +102,14 @@ export function EtaForm({ etaActual, onConfirm, onCancel }: EtaFormProps) {
       </p>
 
       {/* Botones: Confirmar / Cancelar */}
-      <div style={{ display: 'flex', gap: 'var(--ui-space-2)', justifyContent: 'flex-end' }}>
+      <Inline gap={2} align="stretch" justify="end" wrap={false}>
         <Button variant="secondary" onClick={onCancel} disabled={cargando} type="button">
           Cancelar
         </Button>
         <Button variant="primary" onClick={handleConfirm} disabled={cargando} type="submit">
           {cargando ? 'Guardando...' : 'Confirmar'}
         </Button>
-      </div>
-    </Form>
+      </Inline>
+    </Stack>
   );
 }

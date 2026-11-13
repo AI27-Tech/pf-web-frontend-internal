@@ -1,6 +1,6 @@
 import { useState, type ChangeEvent } from 'react';
 
-import { Alert, Button, FormField, Input } from '@ai27-tech/ui';
+import { Alert, Button, FormField, Input, Stack } from '@ai27-tech/ui';
 
 import {
   ErrorAdjuntosProhibido,
@@ -50,7 +50,7 @@ export function SubirEvidencia({ subiendo, error, onSubir }: SubirEvidenciaProps
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
+    <Stack gap={2}>
       <FormField label="Archivo de evidencia" htmlFor="evidencia-archivo">
         <Input id="evidencia-archivo" type="file" onChange={onCambio} disabled={subiendo} />
       </FormField>
@@ -67,6 +67,6 @@ export function SubirEvidencia({ subiendo, error, onSubir }: SubirEvidenciaProps
       </div>
       {aviso && <Alert variant="danger">{aviso}</Alert>}
       {error && <Alert variant="danger">{mensajeErrorSubida(error)}</Alert>}
-    </div>
+    </Stack>
   );
 }

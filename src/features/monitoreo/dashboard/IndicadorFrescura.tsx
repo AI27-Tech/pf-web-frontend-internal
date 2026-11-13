@@ -1,4 +1,4 @@
-import { Badge } from '@ai27-tech/ui';
+import { Badge, Inline } from '@ai27-tech/ui';
 
 import { estadoFrescura, type ProyeccionFrescura } from './estadoFrescura';
 
@@ -19,10 +19,10 @@ export function IndicadorFrescura({ proyeccion }: IndicadorFrescuraProps) {
 
   if (estado === 'atrasada') {
     return (
-      <div style={{ display: 'flex', gap: 'var(--ui-space-2)', alignItems: 'center' }}>
+      <Inline gap={2} align="center" wrap={false}>
         <Badge variant="alert">Datos atrasados</Badge>
         {momento && <span className="ui-text-body-xs">{momento}</span>}
-      </div>
+      </Inline>
     );
   }
 
@@ -36,10 +36,10 @@ export function IndicadorFrescura({ proyeccion }: IndicadorFrescuraProps) {
 
   if (estado === 'no_informada') {
     return (
-      <div style={{ display: 'flex', gap: 'var(--ui-space-2)', alignItems: 'center' }}>
+      <Inline gap={2} align="center" wrap={false}>
         <Badge variant="neutral">Frescura no informada</Badge>
         {momento && <span className="ui-text-body-xs">{momento}</span>}
-      </div>
+      </Inline>
     );
   }
 

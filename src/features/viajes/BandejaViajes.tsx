@@ -21,6 +21,7 @@ import {
   FilterBar,
   PageHeader,
   Pagination,
+  Stack,
   Table,
 } from '@ai27-tech/ui';
 import type { FilterDefinition } from '@ai27-tech/ui';
@@ -84,7 +85,7 @@ export function BandejaViajes() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+    <Stack gap={4}>
       <PageHeader
         title="Viajes"
         actions={
@@ -152,7 +153,7 @@ export function BandejaViajes() {
           onPageChange={(n) => b.irAPagina(n)}
         />
       )}
-    </div>
+    </Stack>
   );
 }
 

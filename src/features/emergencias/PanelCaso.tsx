@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Badge, Button, Card, Modal, Section, Stack } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Card, Grid, Inline, Modal, Section, Stack } from '@ai27-tech/ui';
 import { useSession } from '@/context/SessionContext';
 import type {
   DetalleEmergenciaReaccion,
@@ -67,16 +67,16 @@ export function PanelCaso({
 
   return (
     <Card variant="outlined">
-      <div style={{ display: 'grid', gap: 'var(--ui-space-3)' }}>
+      <Grid gap={3}>
         <BannerActualizacion desactualizada={desactualizada} actualizadoEn={actualizadoEn} />
-        <div style={{ display: 'flex', gap: 'var(--ui-space-2)', flexWrap: 'wrap' }}>
+        <Inline gap={2} wrap align="stretch">
           <Badge variant="neutral">{caso.estado}</Badge>
           <span>{etiquetaResponsable(caso, sujetoId)}</span>
-        </div>
+        </Inline>
 
         {errorAccion && <Alert variant="danger">{errorAccion.message}</Alert>}
 
-        <div style={{ display: 'flex', gap: 'var(--ui-space-2)', flexWrap: 'wrap' }}>
+        <Inline gap={2} wrap align="stretch">
           {puedeReclamar(rol, caso) && (
             <Button onClick={onReclamar} disabled={bloqueado}>
               Reclamar
@@ -111,7 +111,7 @@ export function PanelCaso({
               Cerrar emergencia
             </Button>
           )}
-        </div>
+        </Inline>
 
         <Section
           title={
@@ -180,11 +180,11 @@ export function PanelCaso({
                 key={nota.id}
                 style={{ border: '1px solid var(--ui-color-border)', padding: 'var(--ui-space-2)' }}
               >
-                <div style={{ display: 'flex', gap: 'var(--ui-space-2)' }}>
+                <Inline gap={2} wrap={false} align="stretch">
                   <small>{ETIQUETA_AUTOR[nota.audiencia_autor]}</small>
                   <small>{new Date(nota.creado_en).toLocaleString()}</small>
                   {nota.es_resolucion && <Badge variant="secure">Nota de resolución</Badge>}
-                </div>
+                </Inline>
                 <p style={{ whiteSpace: 'pre-wrap' }}>{nota.cuerpo}</p>
               </article>
             ))}
@@ -195,7 +195,7 @@ export function PanelCaso({
             )}
           </Stack>
         </Section>
-      </div>
+      </Grid>
 
       {resolviendo && (
         <DialogoResolucion
@@ -222,7 +222,7 @@ export function PanelCaso({
         <p>
           La emergencia quedará sin responsable y cualquier persona de Reacción podrá reclamarla.
         </p>
-        <div style={{ display: 'flex', gap: 'var(--ui-space-2)' }}>
+        <Inline gap={2} wrap={false} align="stretch">
           <Button variant="outline" onClick={() => setConfirmarDevolucion(false)}>
             Cancelar
           </Button>
@@ -235,7 +235,7 @@ export function PanelCaso({
           >
             Devolver al pool
           </Button>
-        </div>
+        </Inline>
       </Modal>
 
       <Modal
@@ -244,7 +244,7 @@ export function PanelCaso({
         title="Cerrar emergencia"
       >
         <p>Al cerrar, la emergencia sale de la bandeja y ya no admite notas.</p>
-        <div style={{ display: 'flex', gap: 'var(--ui-space-2)' }}>
+        <Inline gap={2} wrap={false} align="stretch">
           <Button variant="outline" onClick={() => setConfirmarCierre(false)}>
             Cancelar
           </Button>
@@ -257,7 +257,7 @@ export function PanelCaso({
           >
             Cerrar emergencia
           </Button>
-        </div>
+        </Inline>
       </Modal>
     </Card>
   );

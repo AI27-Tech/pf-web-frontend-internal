@@ -1,4 +1,4 @@
-import { Badge } from '@ai27-tech/ui';
+import { Badge, Inline } from '@ai27-tech/ui';
 
 /**
  * Indica la última consulta correcta. Si la última falló, muestra que la vista puede
@@ -14,9 +14,9 @@ export function BannerActualizacion({
   if (!actualizadoEn && !desactualizada) return null;
   const hora = actualizadoEn ? actualizadoEn.toLocaleTimeString() : null;
   return (
-    <div style={{ display: 'flex', gap: 'var(--ui-space-2)', alignItems: 'center' }}>
+    <Inline gap={2} align="center" wrap={false}>
       {hora && <small>Actualizado a las {hora}</small>}
       {desactualizada && <Badge variant="warning">La vista puede estar desactualizada.</Badge>}
-    </div>
+    </Inline>
   );
 }

@@ -12,6 +12,7 @@ import {
   Form,
   FormField,
   FormRow,
+  Inline,
   Input,
   Stack,
   Table,
@@ -150,14 +151,7 @@ export function FichaEditor({
           style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}
         >
           <section aria-labelledby="tracto-titulo">
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: 'var(--ui-space-2)',
-              }}
-            >
+            <Inline gap={2} justify="between" align="center" wrap={false}>
               <h2
                 id="tracto-titulo"
                 className="ui-text-label-md"
@@ -178,7 +172,7 @@ export function FichaEditor({
               >
                 {datos.tracto === null ? 'Agregar tracto' : 'Eliminar tracto'}
               </Button>
-            </div>
+            </Inline>
             {datos.tracto === null ? (
               <p
                 className="ui-text-body-sm"
@@ -202,14 +196,7 @@ export function FichaEditor({
           </section>
 
           <section aria-labelledby="contenedores-titulo">
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: 'var(--ui-space-2)',
-              }}
-            >
+            <Inline gap={2} justify="between" align="center" wrap={false}>
               <h2
                 id="contenedores-titulo"
                 className="ui-text-label-md"
@@ -230,15 +217,8 @@ export function FichaEditor({
               >
                 Agregar contenedor
               </Button>
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'var(--ui-space-3)',
-                marginTop: 'var(--ui-space-2)',
-              }}
-            >
+            </Inline>
+            <Stack gap={3} style={{ marginTop: 'var(--ui-space-2)' }}>
               {datos.contenedores.length === 0 ? (
                 <p
                   className="ui-text-body-sm"
@@ -289,7 +269,7 @@ export function FichaEditor({
                   </div>
                 ))
               )}
-            </div>
+            </Stack>
           </section>
 
           <section aria-labelledby="gps-titulo">

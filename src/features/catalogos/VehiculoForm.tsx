@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 
-import { Alert, Button, Form, FormField, Input, Radio, Switch } from '@ai27-tech/ui';
+import { Alert, Button, Form, FormField, Inline, Input, Radio, Switch } from '@ai27-tech/ui';
 
 import type { Vehiculo, VehiculoCambios, VehiculoEntrada } from '@/lib/contracts/catalogos';
 
@@ -75,7 +75,7 @@ export function VehiculoForm({
     >
       <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
         <legend className="ui-text-body-sm">Tipo de vehículo</legend>
-        <div style={{ display: 'flex', gap: 'var(--ui-space-3)' }}>
+        <Inline gap={3} align="stretch" wrap={false}>
           {(['coche', 'moto'] as const).map((opcion) => (
             <Radio
               key={opcion}
@@ -87,7 +87,7 @@ export function VehiculoForm({
               onChange={() => setTipo(opcion)}
             />
           ))}
-        </div>
+        </Inline>
       </fieldset>
 
       <FormField label="Económico" htmlFor="vehiculo-economico">
@@ -117,14 +117,14 @@ export function VehiculoForm({
 
       {error && <Alert variant="danger">{error}</Alert>}
 
-      <div style={{ display: 'flex', gap: 'var(--ui-space-2)', justifyContent: 'flex-end' }}>
+      <Inline gap={2} align="stretch" justify="end" wrap={false}>
         <Button variant="secondary" type="button" onClick={onCancelar} disabled={enviando}>
           Cancelar
         </Button>
         <Button variant="primary" type="submit" disabled={bloqueado}>
           {enviando ? 'Guardando...' : 'Guardar vehículo'}
         </Button>
-      </div>
+      </Inline>
     </Form>
   );
 }

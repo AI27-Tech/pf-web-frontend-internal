@@ -18,8 +18,10 @@ import {
   CardHeader,
   Form,
   FormField,
+  Inline,
   Modal,
   PageHeader,
+  Stack,
   Textarea,
   Toast,
   ToastContainer,
@@ -195,7 +197,7 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+    <Stack gap={4}>
       <PageHeader
         title={`Histórico del viaje: ${id}`}
         breadcrumb={
@@ -271,7 +273,7 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
           />
         ))}
       </ToastContainer>
-    </div>
+    </Stack>
   );
 }
 
@@ -298,14 +300,13 @@ function BitacoraLista({
     return <Alert variant="info">Aún no hay notas en la bitácora.</Alert>;
   }
   return (
-    <ul
+    <Stack
+      as="ul"
+      gap={2}
       style={{
         listStyle: 'none',
         margin: 0,
         padding: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--ui-space-2)',
       }}
     >
       {items.map((entrada: EntradaBitacora) => (
@@ -324,7 +325,7 @@ function BitacoraLista({
           </p>
         </li>
       ))}
-    </ul>
+    </Stack>
   );
 }
 
@@ -355,14 +356,13 @@ function EstadiasLista({
     return <Alert variant="info">Aún no hay estadías registradas.</Alert>;
   }
   return (
-    <ul
+    <Stack
+      as="ul"
+      gap={3}
       style={{
         listStyle: 'none',
         margin: 0,
         padding: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--ui-space-3)',
       }}
     >
       {items.map((estadia: Estadia) => {
@@ -375,14 +375,14 @@ function EstadiasLista({
               paddingInlineStart: 'var(--ui-space-3)',
             }}
           >
-            <div style={{ display: 'flex', gap: 'var(--ui-space-2)', alignItems: 'center' }}>
+            <Inline gap={2} align="center" wrap={false}>
               <span className="ui-text-body-sm" style={{ color: COLOR_TEXT }}>
                 {estadia.motivo} · {estadia.eje_autorizacion}
               </span>
               <Badge variant={abierta ? 'warning' : 'neutral'}>
                 {abierta ? 'Abierta' : 'Cerrada'}
               </Badge>
-            </div>
+            </Inline>
             <p className="ui-text-body-xs" style={{ margin: 0, color: COLOR_MUTED }}>
               Inicio: {formatearFecha(estadia.inicio)}
               {estadia.cierre ? ` · Cierre: ${formatearFecha(estadia.cierre)}` : ''} · Duración:{' '}
@@ -404,7 +404,7 @@ function EstadiasLista({
           </li>
         );
       })}
-    </ul>
+    </Stack>
   );
 }
 
@@ -438,14 +438,13 @@ function IncidenciasLista({
     return <Alert variant="info">No hay incidencias registradas en este viaje.</Alert>;
   }
   return (
-    <ul
+    <Stack
+      as="ul"
+      gap={3}
       style={{
         listStyle: 'none',
         margin: 0,
         padding: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--ui-space-3)',
       }}
     >
       {items.map((incidencia) => {
@@ -458,14 +457,14 @@ function IncidenciasLista({
               paddingInlineStart: 'var(--ui-space-3)',
             }}
           >
-            <div style={{ display: 'flex', gap: 'var(--ui-space-2)', alignItems: 'center' }}>
+            <Inline gap={2} align="center" wrap={false}>
               <span className="ui-text-body-sm" style={{ color: COLOR_TEXT }}>
                 {incidencia.tipo_interno}
               </span>
               <Badge variant={resuelta ? 'neutral' : 'alert'}>
                 {resuelta ? 'Resuelta' : 'En atención'}
               </Badge>
-            </div>
+            </Inline>
             <p className="ui-text-body-xs" style={{ margin: 0, color: COLOR_MUTED }}>
               Abierta: {formatearFecha(incidencia.abierta_en)}
               {incidencia.resuelta_en
@@ -482,7 +481,7 @@ function IncidenciasLista({
           </li>
         );
       })}
-    </ul>
+    </Stack>
   );
 }
 
@@ -523,28 +522,29 @@ function ResolucionForm({
         event.preventDefault();
         void confirmar();
       }}
-      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}
     >
-      <FormField label="Resolución" required error={error ?? undefined}>
-        <Textarea
-          value={resolucion}
-          onChange={(event) => {
-            setResolucion(event.target.value);
-            if (error) setError(null);
-          }}
-          disabled={enviando}
-          rows={3}
-          placeholder="Describe la resolución de la incidencia"
-        />
-      </FormField>
-      <div style={{ display: 'flex', gap: 'var(--ui-space-2)', justifyContent: 'flex-end' }}>
-        <Button variant="secondary" type="button" onClick={onCancelar} disabled={enviando}>
-          Cancelar
-        </Button>
-        <Button variant="primary" type="submit" loading={enviando} disabled={enviando}>
-          Confirmar resolución
-        </Button>
-      </div>
+      <Stack gap={3}>
+        <FormField label="Resolución" required error={error ?? undefined}>
+          <Textarea
+            value={resolucion}
+            onChange={(event) => {
+              setResolucion(event.target.value);
+              if (error) setError(null);
+            }}
+            disabled={enviando}
+            rows={3}
+            placeholder="Describe la resolución de la incidencia"
+          />
+        </FormField>
+        <Inline gap={2} justify="end" wrap={false}>
+          <Button variant="secondary" type="button" onClick={onCancelar} disabled={enviando}>
+            Cancelar
+          </Button>
+          <Button variant="primary" type="submit" loading={enviando} disabled={enviando}>
+            Confirmar resolución
+          </Button>
+        </Inline>
+      </Stack>
     </Form>
   );
 }

@@ -1,7 +1,7 @@
 /* Apertura de una estadía (E8-T13, tarea 7). Motivo y eje desde enums del contrato. */
 import { useRef, useState } from 'react';
 
-import { Button, Form, FormField, Select } from '@ai27-tech/ui';
+import { Button, Form, FormField, Inline, Select, Stack } from '@ai27-tech/ui';
 import type { SelectOption } from '@ai27-tech/ui';
 
 import {
@@ -79,37 +79,38 @@ export function EstadiaForm({ enviando, onAbrir }: EstadiaFormProps) {
         event.preventDefault();
         void confirmar();
       }}
-      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}
     >
-      <FormField label="Motivo de la estadía" required error={error ?? undefined}>
-        <Select
-          options={OPCIONES_MOTIVO}
-          value={motivo}
-          placeholder="Selecciona un motivo"
-          disabled={enviando}
-          onChange={(value) => {
-            setMotivo(value as MotivoEstadia);
-            if (error) setError(null);
-          }}
-        />
-      </FormField>
-      <FormField label="Eje de autorización" required>
-        <Select
-          options={OPCIONES_EJE}
-          value={eje}
-          placeholder="Selecciona el eje de autorización"
-          disabled={enviando}
-          onChange={(value) => {
-            setEje(value as EjeAutorizacionEstadia);
-            if (error) setError(null);
-          }}
-        />
-      </FormField>
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Button variant="primary" type="submit" loading={enviando} disabled={enviando}>
-          Abrir estadía
-        </Button>
-      </div>
+      <Stack gap={3}>
+        <FormField label="Motivo de la estadía" required error={error ?? undefined}>
+          <Select
+            options={OPCIONES_MOTIVO}
+            value={motivo}
+            placeholder="Selecciona un motivo"
+            disabled={enviando}
+            onChange={(value) => {
+              setMotivo(value as MotivoEstadia);
+              if (error) setError(null);
+            }}
+          />
+        </FormField>
+        <FormField label="Eje de autorización" required>
+          <Select
+            options={OPCIONES_EJE}
+            value={eje}
+            placeholder="Selecciona el eje de autorización"
+            disabled={enviando}
+            onChange={(value) => {
+              setEje(value as EjeAutorizacionEstadia);
+              if (error) setError(null);
+            }}
+          />
+        </FormField>
+        <Inline gap={0} justify="end" wrap={false}>
+          <Button variant="primary" type="submit" loading={enviando} disabled={enviando}>
+            Abrir estadía
+          </Button>
+        </Inline>
+      </Stack>
     </Form>
   );
 }

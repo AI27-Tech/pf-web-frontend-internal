@@ -9,7 +9,17 @@
 
 import { useState } from 'react';
 
-import { Alert, Button, Checkbox, Form, FormField, Select, Switch } from '@ai27-tech/ui';
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Form,
+  FormField,
+  Inline,
+  Select,
+  Stack,
+  Switch,
+} from '@ai27-tech/ui';
 
 import type { Custodio, Vehiculo } from '@/lib/contracts/catalogos';
 import type { Unidad, UnidadModificacion } from '@/lib/contracts/unidades';
@@ -109,7 +119,7 @@ export function UnidadForm({
             No hay custodios activos.
           </p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-1)' }}>
+          <Stack gap={1}>
             {custodiosOfrecidos.map((c) => {
               const marcado = custodiosIds.includes(c.id);
               return (
@@ -122,7 +132,7 @@ export function UnidadForm({
                 />
               );
             })}
-          </div>
+          </Stack>
         )}
         {excedido && <Alert variant="danger">Una moto lleva un solo custodio. Quita uno.</Alert>}
       </fieldset>
@@ -138,14 +148,14 @@ export function UnidadForm({
 
       {error && <Alert variant="danger">{error}</Alert>}
 
-      <div style={{ display: 'flex', gap: 'var(--ui-space-2)', justifyContent: 'flex-end' }}>
+      <Inline gap={2} align="stretch" justify="end" wrap={false}>
         <Button variant="secondary" type="button" onClick={onCancelar} disabled={enviando}>
           Cancelar
         </Button>
         <Button variant="primary" type="submit" disabled={bloqueado}>
           {enviando ? 'Guardando...' : unidad ? 'Guardar cambios' : 'Crear unidad'}
         </Button>
-      </div>
+      </Inline>
     </Form>
   );
 }
