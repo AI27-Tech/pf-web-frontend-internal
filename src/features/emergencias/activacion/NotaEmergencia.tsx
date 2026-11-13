@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Textarea } from '@ai27-tech/ui';
+import { Alert, Button, Textarea } from '@ai27-tech/ui';
 import { ErrorEmergenciaCerrada } from '@/lib/api/emergencias';
 import { esNotaValida, LONGITUD_MAXIMA_NOTA, normalizarNota } from '../nota';
 
@@ -44,7 +44,7 @@ export function NotaEmergencia({ enviando, onEnviar, error }: NotaEmergenciaProp
       <small>
         {texto.length} / {LONGITUD_MAXIMA_NOTA}
       </small>
-      {error && <p role="alert">{error.message}</p>}
+      {error && <Alert variant="danger">{error.message}</Alert>}
       <div>
         <Button type="submit" disabled={!valida || enviando || cerrada}>
           {enviando ? 'Enviando...' : 'Agregar nota'}

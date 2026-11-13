@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Modal, Textarea } from '@ai27-tech/ui';
+import { Alert, Button, Modal, Textarea } from '@ai27-tech/ui';
 import { esNotaValida, LONGITUD_MAXIMA_NOTA, normalizarNota } from './nota';
 
 interface DialogoResolucionProps {
@@ -45,7 +45,7 @@ export function DialogoResolucion({
         <small>
           {texto.length} / {LONGITUD_MAXIMA_NOTA}
         </small>
-        {error && <p role="alert">{error}</p>}
+        {error && <Alert variant="danger">{error}</Alert>}
         <div style={{ display: 'flex', gap: 'var(--ui-space-2)', justifyContent: 'flex-end' }}>
           <Button variant="outline" onClick={onCancelar} disabled={enviando}>
             Cancelar

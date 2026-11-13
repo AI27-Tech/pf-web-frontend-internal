@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { Button, Toast } from '@ai27-tech/ui';
+import { Alert, Toast } from '@ai27-tech/ui';
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { ErrorEmergenciaNoDisponible, ErrorSinAccesoEmergencias } from '@/lib/api/emergencias';
 import { ListaCasos } from './ListaCasos';
 import { PanelCaso } from './PanelCaso';
@@ -97,15 +98,10 @@ export function BandejaEmergencias({ casoAbierto }: { casoAbierto?: string | und
           {!casoAbierto && <p>Selecciona una emergencia para ver su detalle.</p>}
           {casoAbierto && caso.cargando && <p role="status">Cargando emergencia...</p>}
           {casoAbierto && sinAcceso && (
-            <p role="alert">La emergencia no está disponible para ti.</p>
+            <Alert variant="danger">La emergencia no está disponible para ti.</Alert>
           )}
           {casoAbierto && caso.error && !sinAcceso && !caso.detalle && (
-            <div style={{ display: 'grid', gap: 'var(--ui-space-2)' }}>
-              <p role="alert">{caso.error.message}</p>
-              <Button variant="outline" onClick={() => void caso.recargar()}>
-                Reintentar
-              </Button>
-            </div>
+            <BloqueError mensaje={caso.error.message} onReintentar={() => void caso.recargar()} />
           )}
           {caso.detalle && (
             <PanelCaso

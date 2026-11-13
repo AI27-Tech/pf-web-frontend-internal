@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Button } from '@ai27-tech/ui';
+import { Alert, Button } from '@ai27-tech/ui';
 import type { Rol } from '@ai27-tech/contracts/roles';
 import type { EmergenciaViaje } from '@/lib/contracts/emergencias';
 import { ErrorEmergenciaCerrada, ErrorAccionNoPermitida } from '@/lib/api/emergencias';
@@ -108,8 +108,8 @@ function CarrilEmergencias({
           onViajeTerminal={onViajeCambio}
         />
       )}
-      {aviso && <p role="status">{aviso}</p>}
-      {emergencias.error && <p role="alert">{emergencias.error.message}</p>}
+      {aviso && <Alert variant="success">{aviso}</Alert>}
+      {emergencias.error && <Alert variant="danger">{emergencias.error.message}</Alert>}
       {emergencias.cargando ? (
         <p role="status">Cargando emergencias...</p>
       ) : (
@@ -131,7 +131,7 @@ function CarrilEmergencias({
           <Button variant="secondary" onClick={() => void cerrarCaso()}>
             Cerrar emergencia
           </Button>
-          {errorCierre && <p role="alert">{errorCierre.message}</p>}
+          {errorCierre && <Alert variant="danger">{errorCierre.message}</Alert>}
         </div>
       )}
     </section>

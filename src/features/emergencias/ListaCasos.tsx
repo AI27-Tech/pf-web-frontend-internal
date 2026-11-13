@@ -1,4 +1,5 @@
-import { Badge, Button, Card } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Card } from '@ai27-tech/ui';
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { useSession } from '@/context/SessionContext';
 import { ErrorEmergenciaNoDisponible, ErrorSinAccesoEmergencias } from '@/lib/api/emergencias';
 import type { EmergenciaReaccion, EstadoEmergencia } from '@/lib/contracts/emergencias';
@@ -56,14 +57,13 @@ export function ListaCasos({
   if (error instanceof ErrorSinAccesoEmergencias || error instanceof ErrorEmergenciaNoDisponible)
     return (
       <Card variant="outlined">
-        <p role="alert">No tienes acceso a la bandeja de emergencias.</p>
+        <Alert variant="danger">No tienes acceso a la bandeja de emergencias.</Alert>
       </Card>
     );
   if (error && !items.length)
     return (
       <Card variant="outlined">
-        <p role="alert">{error.message}</p>
-        <Button onClick={reintentar}>Reintentar</Button>
+        <BloqueError mensaje={error.message} onReintentar={reintentar} />
       </Card>
     );
 
@@ -97,7 +97,7 @@ export function ListaCasos({
             </button>
           ))
         )}
-        {error && items.length > 0 && <p role="alert">{error.message}</p>}
+        {error && items.length > 0 && <Alert variant="danger">{error.message}</Alert>}
         {cursor && (
           <Button variant="outline" onClick={onMas} disabled={cargandoMas}>
             {cargandoMas ? 'Cargando...' : 'Cargar más'}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Badge, Button, Card, Modal } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Card, Modal } from '@ai27-tech/ui';
 import { useSession } from '@/context/SessionContext';
 import type {
   DetalleEmergenciaReaccion,
@@ -74,7 +74,7 @@ export function PanelCaso({
           <span>{etiquetaResponsable(caso, sujetoId)}</span>
         </div>
 
-        {errorAccion && <p role="alert">{errorAccion.message}</p>}
+        {errorAccion && <Alert variant="danger">{errorAccion.message}</Alert>}
 
         <div style={{ display: 'flex', gap: 'var(--ui-space-2)', flexWrap: 'wrap' }}>
           {puedeReclamar(rol, caso) && (

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Modal } from '@ai27-tech/ui';
+import { Alert, Button, Modal } from '@ai27-tech/ui';
 import type { EmergenciaViaje } from '@/lib/contracts/emergencias';
 import { ErrorAccionNoPermitida, ErrorSinAccesoEmergencias } from '@/lib/api/emergencias';
 import { useActivarEmergencia } from './useActivarEmergencia';
@@ -38,8 +38,8 @@ export function AccionEmergencia({ viajeId, onActivada, onViajeTerminal }: Accio
       <Button variant="secondary" onClick={() => setConfirmando(true)} disabled={enCurso}>
         {enCurso ? 'Activando...' : 'Activar emergencia'}
       </Button>
-      {aviso && <p role="status">{aviso}</p>}
-      {error && <p role="alert">{mensajeActivacion(error)}</p>}
+      {aviso && <Alert variant="success">{aviso}</Alert>}
+      {error && <Alert variant="danger">{mensajeActivacion(error)}</Alert>}
       <Modal open={confirmando} onClose={() => setConfirmando(false)} title="Activar emergencia">
         <p>Se registrará una emergencia activa para este viaje.</p>
         <div style={{ display: 'flex', gap: 'var(--ui-space-2)' }}>
