@@ -3,15 +3,15 @@
 Cada bloque termina con: `tsc --build`, `eslint .`, `vite build --mode mock`, `vitest run` (y `test:e2e` donde se indica), y su entrada en `CHANGELOG.md`.
 Las decisiones D1 a D6 están resueltas en `requirements.md` (sección 5).
 
-- [ ] 1. Base
-  - [ ] 1.1 Copiar `ai27-tech-library-first.md` a `.kiro/steering/ai27-ui-library.md` con `inclusion: always` (R1)
-  - [ ] 1.2 Buscar importadores (alias y rutas relativas) de `src/components/ui/Input.tsx` y `Button.tsx`; si no hay, eliminarlos (R13)
-  - [ ] 1.3 Registrar la línea base: conteo de `display: flex|grid`, `role="alert|status"`, `<h1>` manuales y número de pruebas verdes
-  - [ ] 1.4 Revisar el CHANGELOG de `pf-library-frontend-components` entre 0.2 y 0.3.0-beta.1 por cambios visibles y anotar los relevantes en `BRECHAS.md`
+- [x] 1. Base
+  - [x] 1.1 Copiar `ai27-tech-library-first.md` a `.kiro/steering/ai27-ui-library.md` con `inclusion: always` (R1)
+  - [x] 1.2 Buscar importadores (alias y rutas relativas) de `src/components/ui/Input.tsx` y `Button.tsx`; si no hay, eliminarlos (R13). `Input.tsx` y `Button.tsx` eliminados, junto con `tests/Button.test.tsx` (ver BRECHAS.md, sección 0)
+  - [x] 1.3 Registrar la línea base: conteo de `display: flex|grid`, `role="alert|status"`, `<h1>` manuales y número de pruebas verdes (ver BRECHAS.md, sección 1)
+  - [x] 1.4 Revisar el CHANGELOG de `pf-library-frontend-components` entre 0.2 y 0.3.0-beta.1 por cambios visibles y anotar los relevantes en `BRECHAS.md`
 
-- [ ] 2. Componente de composición `BloqueError` (D-B)
-  - [ ] 2.1 Crear `src/components/feedback/BloqueError.tsx` con `Alert variant="danger"` + `Button "Reintentar"`
-  - [ ] 2.2 Prueba: rol `alert`, mensaje y callback de reintento
+- [x] 2. Componente de composición `BloqueError` (D-B)
+  - [x] 2.1 Crear `src/components/feedback/BloqueError.tsx` con `Alert variant="danger"` + `Button "Reintentar"`
+  - [x] 2.2 Prueba: rol `alert`, mensaje y callback de reintento
 
 - [ ] 3. `Alert` (R2), por área, un commit por área
   - [ ] 3.1 `roster/` (`Roster`, `UnidadForm`, `UnidadesMonitoristas`, `UnidadesMonitoristaForm`)

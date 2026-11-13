@@ -63,7 +63,7 @@ function renderDetalle() {
 }
 
 async function elegirMotivo(label: string) {
-  await userEvent.click(screen.getByRole('button', { name: 'Selecciona un motivo' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Motivo de cierre' }));
   await userEvent.click(await screen.findByRole('button', { name: label }));
 }
 
@@ -124,9 +124,13 @@ describe('E8-T14 · cierre del servicio', () => {
     renderDetalle();
 
     await userEvent.click(await screen.findByRole('button', { name: 'Cerrar servicio' }));
-    expect(screen.getByRole('button', { name: /Cierre por incidencia/i })).toBeDisabled();
+    const motivo = screen.getByRole('button', { name: 'Motivo de cierre' });
+    expect(motivo).toBeDisabled();
+    expect(motivo).toHaveTextContent('Cierre por incidencia');
     expect(screen.getByRole('button', { name: 'Confirmar cierre' })).toBeEnabled();
-    expect(screen.queryByRole('button', { name: /Cierre normal/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Motivo de cierre' })).not.toHaveTextContent(
+      'Cierre normal',
+    );
   });
 
   it('permite que Administrador cierre el servicio', async () => {
@@ -244,7 +248,9 @@ describe('E8-T14 · cierre del servicio', () => {
     await waitFor(() =>
       expect(screen.getAllByText('El motivo de cierre no es válido').length).toBeGreaterThan(0),
     );
-    expect(screen.getByRole('button', { name: /Cierre normal/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Motivo de cierre' })).toHaveTextContent(
+      'Cierre normal',
+    );
   });
 
   it('conserva el motivo después de un fallo de red', async () => {
@@ -259,7 +265,9 @@ describe('E8-T14 · cierre del servicio', () => {
     await waitFor(() =>
       expect(screen.getAllByText(/No se pudo cerrar el servicio/).length).toBeGreaterThan(0),
     );
-    expect(screen.getByRole('button', { name: /Cierre normal/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Motivo de cierre' })).toHaveTextContent(
+      'Cierre normal',
+    );
   });
 
   it('informa 403 como falta de facultad', async () => {

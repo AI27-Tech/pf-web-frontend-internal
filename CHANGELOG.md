@@ -1,5 +1,69 @@
 # CHANGELOG
 
+## 2026:11:13 12:45
+
+**Resumen:** Se corrigieron las 21 pruebas en rojo. La causa era la librería `0.3.0-beta.1`: el `Select` dentro de `FormField` toma como nombre accesible la etiqueta del campo y ya no el placeholder. Las pruebas ahora buscan el selector por su etiqueta. También se eliminaron los wrappers locales `components/ui/Button.tsx` y `Input.tsx`, porque el portal debe usar solo `@ai27-tech/ui`.
+
+**Cambios:**
+
+- **Pruebas corregidas** (solo cambian los selectores; las aserciones de valor se conservan con `toHaveTextContent`):
+  - `tests/viajes/ClienteSelector.test.tsx` y `tests/viajes/CrearViaje.test.tsx`: `Cliente` en lugar de `Selecciona un cliente`.
+  - `tests/roster/Roster.test.tsx`: `Vehículo` en lugar de `Elige un vehículo`.
+  - `tests/viajes/CierreViaje.test.tsx`: `Motivo de cierre`.
+  - `tests/viajes/HistoricoViaje.test.tsx`: `Motivo de la estadía` y `Eje de autorización`.
+- **Eliminado:** `src/components/ui/Button.tsx`, `src/components/ui/Input.tsx` y `tests/Button.test.tsx` (3 pruebas).
+- **Documentado:** `.kiro/specs/adopcion-ui-0-3-0/BRECHAS.md` (causa, corrección y decisión de 1.2) y `tasks.md`.
+
+**Verificación:** `tsc --build`, `eslint .` y `vite build --mode mock` sin errores. `vitest run`: 625 de 625 en verde.
+
+**Archivos modificados:**
+
+- `tests/viajes/ClienteSelector.test.tsx`
+- `tests/viajes/CrearViaje.test.tsx`
+- `tests/viajes/CierreViaje.test.tsx`
+- `tests/viajes/HistoricoViaje.test.tsx`
+- `tests/roster/Roster.test.tsx`
+- `src/components/ui/Button.tsx` (eliminado)
+- `src/components/ui/Input.tsx` (eliminado)
+- `tests/Button.test.tsx` (eliminado)
+- `.kiro/specs/adopcion-ui-0-3-0/BRECHAS.md`
+- `CHANGELOG.md`
+
+## 2026:11:13 12:30
+
+**Resumen:** Se eliminó el wrapper local `components/ui/Button.tsx` y su prueba, porque el portal debe usar solo `@ai27-tech/ui`. Se documentó la causa de las 21 pruebas en rojo: el `Select` de la librería `0.3.0-beta.1` cambió el nombre accesible de su botón al asociar la etiqueta de `FormField`.
+
+**Cambios:**
+
+- **Eliminado:** `src/components/ui/Button.tsx` y `tests/Button.test.tsx` (3 pruebas).
+- **Actualizado:** `.kiro/specs/adopcion-ui-0-3-0/BRECHAS.md` y `tasks.md`.
+
+**Verificación:** `tsc --build` y `eslint .` sin errores. `vitest run`: 604 en verde y 21 en rojo.
+
+## 2026:11:13 12:05
+
+**Resumen:** Bloques 1 y 2 del spec `adopcion-ui-0-3-0`: base, línea base medida y componente `BloqueError`. Se eliminó el wrapper local `components/ui/Input.tsx` (sin importadores). Se conservó `components/ui/Button.tsx` porque lo importa `tests/Button.test.tsx`; la decisión queda pendiente en `BRECHAS.md`.
+
+**Cambios:**
+
+- **Steering de la librería:** `.kiro/steering/ai27-ui-library.md`, copia de `ai27-tech-library-first.md` con `inclusion: always`.
+- **Eliminado:** `src/components/ui/Input.tsx` (sin importadores, R13).
+- **Nuevo:** `src/components/feedback/BloqueError.tsx`, composición de `Alert variant="danger"` con botón "Reintentar" dentro del cuerpo (D1, D-B).
+- **Pruebas:** `tests/feedback/BloqueError.test.tsx` (3 pruebas: rol `alert`, botón dentro del aviso, callback de reintento).
+- **Especificación:** `.kiro/specs/adopcion-ui-0-3-0/BRECHAS.md` (línea base y revisión del CHANGELOG de la librería) y `tasks.md` con bloques 1 y 2 marcados.
+
+**Verificación:** `tsc --build` y `eslint .` sin errores. `vitest run`: 607 pruebas en verde y 21 en rojo, las mismas 21 que había antes de los cambios (ver `BRECHAS.md`, sección 1). **Brecha:** esta línea base no coincide con "625 pruebas en verde" de la entrada del 2026:11:11.
+
+**Archivos modificados:**
+
+- `.kiro/steering/ai27-ui-library.md` (nuevo)
+- `.kiro/specs/adopcion-ui-0-3-0/BRECHAS.md` (nuevo)
+- `.kiro/specs/adopcion-ui-0-3-0/tasks.md`
+- `src/components/ui/Input.tsx` (eliminado)
+- `src/components/feedback/BloqueError.tsx` (nuevo)
+- `tests/feedback/BloqueError.test.tsx` (nuevo)
+- `CHANGELOG.md`
+
 ## 2026:11:13 12:00
 
 **Resumen:** Spec `adopcion-ui-0-3-0` para llevar el portal interno al catálogo de `@ai27-tech/ui@0.3.0-beta.1`. Solo documentación: no se modificó código. Recoge la línea base (115 `display:flex|grid` en línea, unos 70 avisos `role="alert|status"` manuales, 12 `<h1>` manuales, 3 `datetime-local`, historiales a mano) y propone 12 bloques de tareas. Las 6 decisiones (D1 a D6) quedaron resueltas el mismo día: sí a `Alert` con "Reintentar" y a `Breadcrumb`; `AppShell` y `Tabs` fuera de este spec; mensajería al final y condicionada al contrato; cargas con contenedor `role="status"`.

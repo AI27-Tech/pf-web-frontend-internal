@@ -61,7 +61,7 @@ describe('CrearViaje', () => {
     });
     render(<CrearViaje />);
 
-    await user.click(screen.getByRole('button', { name: 'Selecciona un cliente' }));
+    await user.click(screen.getByRole('button', { name: 'Cliente' }));
     await user.click(screen.getByText('Cliente Uno'));
     await user.type(screen.getByPlaceholderText('Dirección o ciudad de origen'), 'Origen 1');
     await user.type(screen.getByLabelText('Destino 1'), 'Destino 1');
@@ -93,7 +93,7 @@ describe('CrearViaje', () => {
     );
     render(<CrearViaje />);
 
-    await user.click(screen.getByRole('button', { name: 'Selecciona un cliente' }));
+    await user.click(screen.getByRole('button', { name: 'Cliente' }));
     await user.click(screen.getByText('Cliente Uno'));
     await user.type(screen.getByPlaceholderText('Dirección o ciudad de origen'), 'Origen 1');
     await user.type(screen.getByLabelText('Destino 1'), 'Destino 1');

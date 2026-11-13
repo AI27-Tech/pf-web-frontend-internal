@@ -44,7 +44,7 @@ describe('ClienteSelector', () => {
     const user = userEvent.setup();
     render(<ClienteSelector estado="disponible" clientes={clientes} value="" onChange={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: 'Selecciona un cliente' }));
+    await user.click(screen.getByRole('button', { name: 'Cliente' }));
     expect(screen.getByText('Cliente Uno')).toBeInTheDocument();
     expect(screen.getByText('Cliente Dos')).toBeInTheDocument();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();

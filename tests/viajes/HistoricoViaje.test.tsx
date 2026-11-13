@@ -114,11 +114,11 @@ function renderHistorico() {
 
 /**
  * El `Select` de `@ai27-tech/ui` no es un `<select>` nativo: es un botón-trigger
- * cuyo nombre accesible es el placeholder, que abre un popup de opciones. Para
- * elegir un valor: abrir el trigger por su placeholder y clicar la opción.
+ * cuyo nombre accesible es la etiqueta del campo (FormField), que abre un popup de
+ * opciones. Para elegir un valor: abrir el trigger por su etiqueta y clicar la opción.
  */
-async function elegirOpcion(placeholder: string, opcion: string) {
-  await userEvent.click(screen.getByRole('button', { name: placeholder }));
+async function elegirOpcion(etiqueta: string, opcion: string) {
+  await userEvent.click(screen.getByRole('button', { name: etiqueta }));
   await userEvent.click(await screen.findByRole('button', { name: opcion }));
 }
 
@@ -184,8 +184,8 @@ describe('HistoricoViaje — integración (E8-T13)', () => {
 
     // El Select de la librería es un botón-trigger + popup (no <select> nativo):
     // abrir el trigger por su placeholder y elegir la opción por su texto.
-    await elegirOpcion('Selecciona un motivo', 'Descanso');
-    await elegirOpcion('Selecciona el eje de autorización', 'Autorizada');
+    await elegirOpcion('Motivo de la estadía', 'Descanso');
+    await elegirOpcion('Eje de autorización', 'Autorizada');
     await userEvent.click(screen.getByRole('button', { name: 'Abrir estadía' }));
 
     await waitFor(() => expect(screen.getByText('Abierta')).toBeInTheDocument());
