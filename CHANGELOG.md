@@ -1,5 +1,39 @@
 # CHANGELOG
 
+## 2026:11:17 15:35
+
+**Resumen:** Dashboard de monitoreo (E8-T17, Bloque B) rediseñado con `@ai27-tech/ui`: KPI de viajes en tránsito y aprobados, tabla de viajes con filtros de estado y fecha, y el spec `dashboard-monitoreo-ui` con sus brechas. La entrada cubre toda la rama: los tres commits de spec y los cambios sin commitear del dashboard.
+**Cambios:**
+
+- Spec `dashboard-monitoreo-ui`: requisitos, diseño, tareas con su estado actual, `BRECHAS-UI.md` (brechas 1 a 9) y `.config.kiro`. Se quitan del alcance el CSS propio, las animaciones y el indicador de frescura.
+- Funciones puras: mapa estado→Badge (EN_TRANSITO en `secure`, con punto y pulso; sin `solid` ni `pill`), conteos por estado, paginación, y filtro por estado y fecha con periodos predefinidos (hoy, esta semana, este mes).
+- Componentes: `TarjetaKpi` (Card, Stat y Badge), `FilaKpis` (en curso: viajes en tránsito y aprobados; últimos 7 días: viajes del periodo y cerrados) y `TarjetaViajes` (tabla con paginación y enlace a la bandeja).
+- `DashboardMonitoreo`: barra de filtros (Estado y Fecha), `PageHeader`, y estados de error, vacío y sin acceso. Se quitan el selector de vista, la distribución por estado, el botón «Actualizar» y el indicador de proyección.
+- Hook `useDashboardMonitoreo`: se conserva `reintentar`. Se quitan `recargando`, `actualizar` y `actualizadoEn`. Las claves de consulta y el sondeo no cambian.
+- Pruebas: `funcionesPuras.test.ts` y `filtrosViajes.test.ts` (unitarias), y `tests/viajes/DashboardMonitoreo.test.tsx` reescrito para el comportamiento actual (KPI, filtro de estado, vacío, error con reintento y 403).
+  **Verificación:** `tsc --build` sin errores. `eslint .` sin avisos. `vitest run`: 659 de 659 en verde (89 archivos). `format:check` falla en 400 archivos, incluidos archivos sin cambios en esta rama; es un problema previo del repo. No se ejecutó `test:e2e` ni la verificación manual en `dev:mock`.
+  **Pendiente:** revisar la fuente de datos de «Todos los viajes» (el contrato exige `desde` y `hasta` sin `en_curso`); enviar las brechas a la librería; revisión visual en claro y oscuro (tarea 8.2); pruebas de componente adicionales (tarea 7.1).
+  **Archivos modificados:**
+- `.kiro/specs/dashboard-monitoreo-ui/.config.kiro`
+- `.kiro/specs/dashboard-monitoreo-ui/BRECHAS-UI.md`
+- `.kiro/specs/dashboard-monitoreo-ui/design.md`
+- `.kiro/specs/dashboard-monitoreo-ui/requirements.md`
+- `.kiro/specs/dashboard-monitoreo-ui/tasks.md`
+- `src/features/monitoreo/dashboard/DashboardMonitoreo.tsx`
+- `src/features/monitoreo/dashboard/useDashboardMonitoreo.ts`
+- `src/features/monitoreo/dashboard/FilaKpis.tsx` (nuevo)
+- `src/features/monitoreo/dashboard/TarjetaKpi.tsx` (nuevo)
+- `src/features/monitoreo/dashboard/TarjetaViajes.tsx` (nuevo)
+- `src/features/monitoreo/dashboard/distribucion.ts` (nuevo)
+- `src/features/monitoreo/dashboard/estadoBadge.ts` (nuevo)
+- `src/features/monitoreo/dashboard/filtrosViajes.ts` (nuevo)
+- `src/features/monitoreo/dashboard/filtrosViajes.test.ts` (nuevo)
+- `src/features/monitoreo/dashboard/funcionesPuras.test.ts` (nuevo)
+- `src/features/monitoreo/dashboard/kpis.ts` (nuevo)
+- `src/features/monitoreo/dashboard/paginar.ts` (nuevo)
+- `tests/viajes/DashboardMonitoreo.test.tsx`
+- `CHANGELOG.md`
+
 ## 2026:11:17 09:27
 
 **Resumen:** Bloque 9 del spec `adopcion-ui-0-3-0` (R8, R9, R10): las cargas de bloque usan `Skeleton*` dentro de un `role="status"` con nombre accesible; los «No hay …» de bloque usan `EmptyState`; el selector de clientes es searchable; los conteos del dashboard pasan a `Stat` en `Grid`.

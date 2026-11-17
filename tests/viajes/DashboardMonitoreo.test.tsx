@@ -3,7 +3,7 @@
  * `onUnhandledRequest: 'error'`: cualquier llamada no prevista falla la prueba.
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
@@ -20,6 +20,11 @@ vi.mock('@/context/SessionContext', () => ({
     sesion: { accessToken: 'token-de-prueba' },
     usuario: { rol: sesionFalsa.rol },
   }),
+}));
+
+// El enlace «Ver todos los viajes» usa el router. Aquí solo se verifica el texto.
+vi.mock('@tanstack/react-router', () => ({
+  Link: ({ children }: { children: ReactNode }) => <a href="/viajes">{children}</a>,
 }));
 
 const path = (segment: string) => `${API_PREFIX}${segment}`;
@@ -46,31 +51,10 @@ beforeEach(() => {
         stale: false,
       });
     }),
-    http.get(path('/reportes/estados'), ({ request }) => {
-      solicitudes.push(`estados${new URL(request.url).search}`);
-      return HttpResponse.json({
-        conteos: [{ estado: 'ASIGNADO', conteo: 4, permanencia_promedio_seg: null }],
-        proyeccion_al: '2026-11-04T10:00:00.000Z',
-        stale: false,
-      });
-    }),
   );
 });
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
-
-/** El trigger del Select de vista dentro del FilterBar de la librería. */
-function triggerVista(): HTMLElement {
-  const trigger = screen.getAllByRole('button').find((b) => b.className.includes('_trigger_'));
-  if (!trigger) throw new Error('no se encontró el trigger del filtro de vista');
-  return trigger;
-}
-
-/** Elige una vista abriendo el Select del FilterBar y clicando la opción por su texto. */
-async function elegirVista(user: ReturnType<typeof userEvent.setup>, etiqueta: string) {
-  await user.click(triggerVista());
-  await user.click(screen.getByRole('button', { name: etiqueta }));
-}
 
 function renderDashboard() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -78,6 +62,14 @@ function renderDashboard() {
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
   return render(<DashboardMonitoreo />, { wrapper: Wrapper });
+}
+
+/** Trigger del Select de la barra de filtros con la etiqueta dada, por orden en la barra. */
+function triggerFiltro(indice: number): HTMLElement {
+  const triggers = screen.getAllByRole('button').filter((b) => b.className.includes('_trigger_'));
+  const trigger = triggers[indice];
+  if (!trigger) throw new Error(`no se encontró el filtro ${indice}`);
+  return trigger;
 }
 
 describe('DashboardMonitoreo · acceso por rol', () => {
@@ -93,38 +85,30 @@ describe('DashboardMonitoreo · acceso por rol', () => {
   });
 });
 
-describe('DashboardMonitoreo · vista en curso (por defecto)', () => {
-  it('pide solo reporteViajes en_curso=true, agrupa en curso por estado y no consulta reporteEstados', async () => {
+describe('DashboardMonitoreo · vista en curso', () => {
+  it('pide solo reporteViajes en_curso=true y muestra las KPI de tránsito y aprobados', async () => {
     renderDashboard();
 
     expect(await screen.findByRole('table', { name: 'Viajes del reporte' })).toBeInTheDocument();
-    const conteos = screen.getByRole('group', { name: 'Viajes en curso por estado' });
-    expect(within(conteos).getByText('ASIGNADO')).toBeInTheDocument();
-    expect(within(conteos).getByText('2')).toBeInTheDocument();
-    expect(within(conteos).getByText('EN_EMBARQUE')).toBeInTheDocument();
-    expect(within(conteos).getByText('1')).toBeInTheDocument();
+    const kpis = screen.getByRole('group', { name: 'Indicadores de viajes en curso' });
+    expect(within(kpis).getByText('Viajes en tránsito')).toBeInTheDocument();
+    expect(within(kpis).getByText('Viajes aprobados')).toBeInTheDocument();
 
     expect(solicitudes).toEqual(['?en_curso=true']);
-    expect(triggerVista()).toHaveTextContent('En curso');
   });
-});
 
-describe('DashboardMonitoreo · vista por rango', () => {
-  it('pide reporteViajes y reporteEstados con desde y hasta, sin en_curso, y presenta cambios de estado', async () => {
+  it('el filtro de estado deja solo los viajes de ese estado', async () => {
     renderDashboard();
     await screen.findByRole('table', { name: 'Viajes del reporte' });
     const user = userEvent.setup();
 
-    await elegirVista(user, 'Últimos 7 días');
+    await user.click(triggerFiltro(0));
+    await user.click(screen.getByRole('button', { name: 'ASIGNADO' }));
 
-    expect(await screen.findByText('Cambios de estado en el periodo')).toBeInTheDocument();
-    const viajes = solicitudes.find((s) => s.startsWith('?desde'));
-    const estados = solicitudes.find((s) => s.startsWith('estados'));
-    expect(viajes).toBeDefined();
-    expect(viajes).not.toContain('en_curso');
-    expect(estados).toContain('desde=');
-    expect(estados).toContain('hasta=');
-    expect(screen.queryByText(/permanencia/i)).not.toBeInTheDocument();
+    const tabla = screen.getByRole('table', { name: 'Viajes del reporte' });
+    expect(within(tabla).getByText('VJ-A')).toBeInTheDocument();
+    expect(within(tabla).getByText('VJ-C')).toBeInTheDocument();
+    expect(within(tabla).queryByText('VJ-B')).not.toBeInTheDocument();
   });
 });
 
@@ -172,21 +156,5 @@ describe('DashboardMonitoreo · estados de la vista', () => {
       await screen.findByText('No tienes autorización para ver este reporte.'),
     ).toBeInTheDocument();
     expect(screen.queryByRole('table', { name: 'Viajes del reporte' })).not.toBeInTheDocument();
-  });
-
-  it('una proyección atrasada se muestra con la marca de datos atrasados', async () => {
-    server.use(
-      http.get(path('/reportes/viajes'), () =>
-        HttpResponse.json({
-          filas: FILAS,
-          total: FILAS.length,
-          proyeccion_al: '2026-11-04T04:00:00.000Z',
-          stale: true,
-        }),
-      ),
-    );
-    renderDashboard();
-
-    await waitFor(() => expect(screen.getByText('Datos atrasados')).toBeInTheDocument());
   });
 });
