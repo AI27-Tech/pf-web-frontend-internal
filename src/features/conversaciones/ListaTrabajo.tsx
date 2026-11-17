@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Card, Grid, Inline } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Card, Grid, Inline, SkeletonText } from '@ai27-tech/ui';
 import { BloqueError } from '@/components/feedback/BloqueError';
 import { ErrorSinAcceso, ErrorSinBandeja } from '@/lib/api/conversaciones';
 import type { Conversacion } from '@/lib/contracts/conversaciones';
@@ -41,7 +41,9 @@ export function ListaTrabajo({
   if (cargando)
     return (
       <Card variant="outlined">
-        <p role="status">Cargando conversaciones...</p>
+        <div role="status" aria-label="Cargando conversaciones">
+          <SkeletonText lines={4} />
+        </div>
       </Card>
     );
   if (error instanceof ErrorSinBandeja)

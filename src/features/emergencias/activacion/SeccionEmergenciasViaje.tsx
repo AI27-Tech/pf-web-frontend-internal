@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Alert, Button, Section, Stack } from '@ai27-tech/ui';
+import { Alert, Button, Section, SkeletonText, Stack } from '@ai27-tech/ui';
 import type { Rol } from '@ai27-tech/contracts/roles';
 import type { EmergenciaViaje } from '@/lib/contracts/emergencias';
 import { ErrorEmergenciaCerrada, ErrorAccionNoPermitida } from '@/lib/api/emergencias';
@@ -112,7 +112,9 @@ function CarrilEmergencias({
         {aviso && <Alert variant="success">{aviso}</Alert>}
         {emergencias.error && <Alert variant="danger">{emergencias.error.message}</Alert>}
         {emergencias.cargando ? (
-          <p role="status">Cargando emergencias...</p>
+          <div role="status" aria-label="Cargando emergencias">
+            <SkeletonText lines={2} />
+          </div>
         ) : (
           <SelectorCaso
             casos={emergencias.casos}

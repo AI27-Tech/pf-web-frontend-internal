@@ -17,11 +17,13 @@ import {
   CardFooter,
   CardHeader,
   DateTimeInput,
+  EmptyState,
   Form,
   FormField,
   FormRow,
   Inline,
   Input,
+  SkeletonText,
   Stack,
   Table,
 } from '@ai27-tech/ui';
@@ -309,14 +311,19 @@ function Roster({
   onSelectionChange,
   onReintentar,
 }: RosterProps) {
-  if (cargando) return <p role="status">Cargando unidades del roster...</p>;
+  if (cargando)
+    return (
+      <div role="status" aria-label="Cargando unidades del roster">
+        <SkeletonText lines={3} />
+      </div>
+    );
   if (error) {
     return (
       <BloqueError mensaje="No se pudo cargar el roster de unidades." onReintentar={onReintentar} />
     );
   }
   if (unidades.length === 0)
-    return <Alert variant="info">No hay unidades disponibles para seleccionar.</Alert>;
+    return <EmptyState size="sm" title="No hay unidades disponibles para seleccionar." />;
 
   return (
     <div aria-label={`${seleccionadas.size} unidades seleccionadas`}>

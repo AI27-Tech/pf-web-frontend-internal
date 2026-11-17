@@ -8,7 +8,7 @@
 
 import type { ReactNode } from 'react';
 
-import { Alert, FormField, Select } from '@ai27-tech/ui';
+import { Alert, EmptyState, FormField, Select, SkeletonText } from '@ai27-tech/ui';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
 
@@ -51,7 +51,9 @@ export function ClienteSelector({
   if (estado === 'cargando') {
     return (
       <EstadoCliente error={error}>
-        <p role="status">Cargando catálogo de clientes...</p>
+        <div role="status" aria-label="Cargando catálogo de clientes">
+          <SkeletonText lines={1} />
+        </div>
       </EstadoCliente>
     );
   }
@@ -74,7 +76,7 @@ export function ClienteSelector({
   if (estado === 'vacio' || clientes.length === 0) {
     return (
       <EstadoCliente error={error}>
-        <Alert variant="info">No hay clientes disponibles para tu alcance.</Alert>
+        <EmptyState size="sm" title="No hay clientes disponibles para tu alcance." />
       </EstadoCliente>
     );
   }
@@ -82,6 +84,8 @@ export function ClienteSelector({
   return (
     <FormField label="Cliente" required error={error}>
       <Select
+        variant="searchable"
+        noResultsText="Sin clientes que coincidan"
         value={value}
         options={clientes.map((cliente) => ({
           value: cliente.id,

@@ -4,6 +4,7 @@ import {
   Badge,
   Button,
   Card,
+  EmptyState,
   Grid,
   Inline,
   Modal,
@@ -197,7 +198,7 @@ export function PanelCaso({
                   <Badge variant="secure">Nota de resolución</Badge>
                 ) : undefined,
               }))}
-              emptyState={<p>Aún no hay notas.</p>}
+              emptyState={<EmptyState size="sm" title="Aún no hay notas." />}
             />
             {hayMasNotas && (
               <Button variant="outline" onClick={onCargarMasNotas} disabled={cargandoMasNotas}>

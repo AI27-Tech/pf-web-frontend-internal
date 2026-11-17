@@ -25,6 +25,7 @@ import {
   CardBody,
   CardFooter,
   CardHeader,
+  EmptyState,
   Inline,
   Modal,
   PageHeader,
@@ -760,9 +761,7 @@ function EstadoVacio() {
   return (
     <Card>
       <CardBody>
-        <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text-muted)', margin: 0 }}>
-          No hay datos disponibles para este viaje.
-        </p>
+        <EmptyState size="sm" title="No hay datos disponibles para este viaje." />
       </CardBody>
     </Card>
   );

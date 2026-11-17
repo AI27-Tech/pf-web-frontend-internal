@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   Alert,
   Button,
+  EmptyState,
   Inline,
   MessageBubble,
   MessageComposer,
@@ -107,7 +108,7 @@ export function PanelConversacion({
             </MessageBubble>
           ))
         ) : (
-          <p>No hay mensajes todavía.</p>
+          <EmptyState size="sm" title="No hay mensajes todavía." />
         )}
       </MessageList>
       <MessageComposer

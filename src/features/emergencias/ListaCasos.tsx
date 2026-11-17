@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Card, Grid, Inline } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Card, EmptyState, Grid, Inline } from '@ai27-tech/ui';
 import { BloqueError } from '@/components/feedback/BloqueError';
 import { useSession } from '@/context/SessionContext';
 import { ErrorEmergenciaNoDisponible, ErrorSinAccesoEmergencias } from '@/lib/api/emergencias';
@@ -72,7 +72,7 @@ export function ListaCasos({
       <Grid gap={2}>
         <BannerActualizacion desactualizada={desactualizada} actualizadoEn={actualizadoEn} />
         {!items.length ? (
-          <p>No hay emergencias activas.</p>
+          <EmptyState size="sm" title="No hay emergencias activas." />
         ) : (
           items.map((caso) => (
             <button

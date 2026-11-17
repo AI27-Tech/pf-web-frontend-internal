@@ -3,16 +3,18 @@
  * y alertas quedan fuera). Los rótulos son de trabajo, pendientes de aprobación de Producto.
  */
 
-import type { ReactNode } from 'react';
-
 import {
   Alert,
   Card,
   CardBody,
   CardHeader,
+  EmptyState,
   FilterBar,
+  Grid,
   PageHeader,
+  SkeletonCard,
   Stack,
+  Stat,
   Table,
   type FilterDefinition,
 } from '@ai27-tech/ui';
@@ -94,11 +96,13 @@ function DashboardAutorizado() {
       )}
 
       {!d.esProhibido && !d.error && d.cargando && (
-        <MensajeCarga>Cargando el dashboard...</MensajeCarga>
+        <div role="status" aria-label="Cargando el dashboard">
+          <SkeletonCard lines={3} />
+        </div>
       )}
 
       {!d.esProhibido && !d.error && !d.cargando && d.vacio && (
-        <Alert variant="info">Sin viajes para mostrar.</Alert>
+        <EmptyState size="sm" title="Sin viajes para mostrar." />
       )}
 
       {!d.esProhibido && !d.error && !d.cargando && d.viajes && !d.vacio && (
@@ -185,30 +189,12 @@ function ConteosCard({
         </CardHeader>
       )}
       <CardBody>
-        <Table<{ readonly estado: string; readonly conteo: number }>
-          aria-label={titulo || 'Conteos por estado'}
-          data={[...filas]}
-          rowKey={(fila) => fila.estado}
-          density="compact"
-          columns={[
-            { key: 'estado', header: 'Estado', accessor: 'estado' },
-            { key: 'conteo', header: 'Conteo', accessor: 'conteo' },
-          ]}
-        />
+        <Grid role="group" aria-label={titulo || 'Conteos por estado'} minItemWidth="10rem" gap={3}>
+          {filas.map((fila) => (
+            <Stat key={fila.estado} label={fila.estado} value={fila.conteo} />
+          ))}
+        </Grid>
       </CardBody>
     </Card>
-  );
-}
-
-/** Texto de carga. Sigue como `role="status"` hasta el bloque 9 (decisión D6). */
-function MensajeCarga({ children }: { readonly children: ReactNode }) {
-  return (
-    <p
-      className="ui-text-body-sm"
-      role="status"
-      style={{ margin: 0, color: 'var(--ui-color-text)' }}
-    >
-      {children}
-    </p>
   );
 }

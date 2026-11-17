@@ -9,7 +9,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { Alert, Button, Checkbox, Form, Inline, Stack } from '@ai27-tech/ui';
+import { Alert, Button, Checkbox, EmptyState, Form, Inline, Stack } from '@ai27-tech/ui';
 
 import type { Unidad } from '@/lib/contracts/unidades';
 
@@ -85,9 +85,7 @@ export function UnidadesMonitoristaForm({
       <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
         <legend className="ui-text-body-sm">Unidades del roster</legend>
         {ofrecidas.length === 0 ? (
-          <p className="ui-text-body-sm" style={{ margin: 0 }}>
-            No hay unidades activas en el roster.
-          </p>
+          <EmptyState size="sm" title="No hay unidades activas en el roster." />
         ) : (
           <Stack gap={1}>
             {ofrecidas.map((o) => (

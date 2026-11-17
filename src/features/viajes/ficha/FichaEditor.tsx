@@ -9,6 +9,7 @@ import {
   CardBody,
   CardFooter,
   CardHeader,
+  EmptyState,
   Form,
   FormField,
   FormRow,
@@ -368,7 +369,7 @@ function GpsSelector({
   }
 
   if (dispositivos.length === 0) {
-    return <p className="ui-text-body-sm">No hay dispositivos GPS activos disponibles.</p>;
+    return <EmptyState size="sm" title="No hay dispositivos GPS activos disponibles." />;
   }
 
   return (

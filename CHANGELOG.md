@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 2026:11:17 09:27
+
+**Resumen:** Bloque 9 del spec `adopcion-ui-0-3-0` (R8, R9, R10): las cargas de bloque usan `Skeleton*` dentro de un `role="status"` con nombre accesible; los «No hay …» de bloque usan `EmptyState`; el selector de clientes es searchable; los conteos del dashboard pasan a `Stat` en `Grid`.
+**Cambios:**
+
+- **Cargas:** `ClienteSelector`, roster de `CrearViaje`, `ListaTrabajo`, `SeccionEmergenciasViaje`, `BandejaConversaciones`, `FichaTecnicaViaje`, `DashboardMonitoreo` y las listas de `HistoricoViaje`.
+- **Vacíos:** `EmptyState` en `ClienteSelector`, `CrearViaje`, `ListaCasos`, `SelectorCaso`, `PanelConversacion`, `UnidadForm`, `UnidadesMonitoristaForm`, `FichaEditor`, `FichaTecnicaViaje`, `DetalleViaje`, `DashboardMonitoreo`, los `emptyState` de `Timeline` (histórico y `PanelCaso`).
+- **Selector de clientes:** `Select variant="searchable"` con `noResultsText`.
+- **Dashboard:** las tablas de conteo pasan a `Stat` en `Grid`. `IndicadorFrescura` y el texto DEC-136 se conservan.
+- **Pruebas:** ajustes de selectores en `DashboardMonitoreo`, `ClienteSelector`, `CrearViaje` y `BandejaConversaciones`. La prueba de texto libre del selector se reescribió para la búsqueda.
+- **Especificación:** `tasks.md` con bloque 9 marcado y `BRECHAS.md` con la sección 9.
+  **Verificación:** `tsc --build` sin errores. `vitest run`: 631 de 631 en verde. `eslint .` sin avisos. `vite build --mode mock` sin errores. `test:e2e`: 5 de 5 en verde.
+  **Pendiente:** `Stat` sin `loading` (decisión en BRECHAS.md, sección 9). Revisión visual en claro y oscuro (tarea 12.2).
+
 ## 2026:11:13 16:50
 
 **Resumen:** Bloque 8 del spec `adopcion-ui-0-3-0` (R6): la bitácora, las estadías y las incidencias del histórico de viaje, y las notas de `PanelCaso`, pasan a `Timeline` de `@ai27-tech/ui`. Las acciones por registro se conservan en `content`.

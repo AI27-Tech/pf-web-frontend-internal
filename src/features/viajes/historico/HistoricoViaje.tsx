@@ -17,6 +17,7 @@ import {
   CardBody,
   CardHeader,
   Form,
+  EmptyState,
   FormField,
   Inline,
   Modal,
@@ -311,7 +312,7 @@ function BitacoraLista({
         dateTime: entrada.ts,
         status: 'completed',
       }))}
-      emptyState={<Alert variant="info">Aún no hay notas en la bitácora.</Alert>}
+      emptyState={<EmptyState size="sm" title="Aún no hay notas en la bitácora." />}
     />
   );
 }
@@ -373,7 +374,7 @@ function EstadiasLista({
           ),
         };
       })}
-      emptyState={<Alert variant="info">Aún no hay estadías registradas.</Alert>}
+      emptyState={<EmptyState size="sm" title="Aún no hay estadías registradas." />}
     />
   );
 }
@@ -429,7 +430,7 @@ function IncidenciasLista({
           ),
         };
       })}
-      emptyState={<Alert variant="info">No hay incidencias registradas en este viaje.</Alert>}
+      emptyState={<EmptyState size="sm" title="No hay incidencias registradas en este viaje." />}
     />
   );
 }

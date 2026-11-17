@@ -17,7 +17,9 @@ import {
   CardFooter,
   CardHeader,
   DescriptionList,
+  EmptyState,
   PageHeader,
+  SkeletonText,
   Stack,
 } from '@ai27-tech/ui';
 import { useNavigate } from '@tanstack/react-router';
@@ -280,9 +282,9 @@ function EstadoCargando() {
   return (
     <Card>
       <CardBody>
-        <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-          Cargando la ficha técnica...
-        </p>
+        <div role="status" aria-label="Cargando la ficha técnica">
+          <SkeletonText lines={4} />
+        </div>
       </CardBody>
     </Card>
   );
@@ -305,9 +307,7 @@ function EstadoVacio({ mensaje }: { readonly mensaje: string }) {
   return (
     <Card>
       <CardBody>
-        <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
-          {mensaje}
-        </p>
+        <EmptyState size="sm" title={mensaje} />
       </CardBody>
     </Card>
   );

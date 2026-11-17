@@ -54,12 +54,12 @@ Las decisiones D1 a D6 están resueltas en `requirements.md` (sección 5).
   - [x] 8.4 `PanelCaso`: notas de resolución (`Nota de resolución` en `content`)
   - [x] 8.5 Pruebas de histórico y emergencias sin cambios: el DOM nuevo conserva los textos verificados. 631 de 631 en verde
 
-- [ ] 9. Cargas, vacíos, `Select` y `Stat` (R8, R9, R10)
-  - [ ] 9.1 Contenedor `role="status"` + `Skeleton*` en los bloques de carga manual (D-C)
-  - [ ] 9.2 `EmptyState` en los vacíos de bloque que no pasan por `Table.emptyState`
-  - [ ] 9.3 `ClienteSelector` con `variant="searchable"` y `noResultsText`
-  - [ ] 9.4 `DashboardMonitoreo`: `Stat` en `Grid` con `loading`; conservar `IndicadorFrescura` y textos DEC-136
-  - [ ] 9.5 `test:e2e`
+- [x] 9. Cargas, vacíos, `Select` y `Stat` (R8, R9, R10). Detalle en BRECHAS.md, sección 9
+  - [x] 9.1 Contenedor `role="status"` + `Skeleton*` en los bloques de carga manual (D-C): `ClienteSelector`, `CrearViaje` (roster), `ListaTrabajo`, `SeccionEmergenciasViaje`, `BandejaConversaciones`, `FichaTecnicaViaje`, `DashboardMonitoreo`, y las tres listas de `HistoricoViaje`
+  - [x] 9.2 `EmptyState` en los vacíos de bloque que no pasan por `Table.emptyState`, incluidos los `emptyState` de `Timeline` del bloque 8
+  - [x] 9.3 `ClienteSelector` con `variant="searchable"` y `noResultsText="Sin clientes que coincidan"`
+  - [x] 9.4 `DashboardMonitoreo`: conteos como `Stat` en `Grid`. `loading` no se usa, ver BRECHAS.md, sección 9. `IndicadorFrescura` y el texto DEC-136 se conservan
+  - [x] 9.5 `test:e2e` 5 de 5 en verde
 
 - [ ] 10. Mensajería (R11), condicionada a D5
   - [ ] 10.1 Confirmar en `pf-pkg-contracts` (tag de `package.json`) los campos del `Mensaje` y si `actor_real` llega a audiencia Interno; si no, registrar brecha contractual y detener el bloque

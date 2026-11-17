@@ -1,5 +1,5 @@
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { Alert, Grid, PageHeader } from '@ai27-tech/ui';
+import { Alert, Grid, PageHeader, SkeletonText } from '@ai27-tech/ui';
 import { BloqueError } from '@/components/feedback/BloqueError';
 import { ErrorConversacionNoDisponible } from '@/lib/api/conversaciones';
 import { useSession } from '@/context/SessionContext';
@@ -75,8 +75,12 @@ export function BandejaConversaciones() {
                   onReintentar={() => void detalle.recargar()}
                 />
               )
+            ) : id ? (
+              <div role="status" aria-label="Cargando conversación">
+                <SkeletonText lines={4} />
+              </div>
             ) : (
-              <p>{id ? 'Cargando conversación...' : 'Selecciona una conversación para leerla.'}</p>
+              <p>Selecciona una conversación para leerla.</p>
             )}
           </div>
         )}

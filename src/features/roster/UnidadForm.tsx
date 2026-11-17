@@ -13,6 +13,7 @@ import {
   Alert,
   Button,
   Checkbox,
+  EmptyState,
   Form,
   FormField,
   Inline,
@@ -115,9 +116,7 @@ export function UnidadForm({
           Custodios ({vehiculo?.tipo === 'moto' ? 'una moto lleva 1' : 'un coche lleva 1 o 2'})
         </legend>
         {custodiosOfrecidos.length === 0 ? (
-          <p className="ui-text-body-sm" style={{ margin: 0 }}>
-            No hay custodios activos.
-          </p>
+          <EmptyState size="sm" title="No hay custodios activos." />
         ) : (
           <Stack gap={1}>
             {custodiosOfrecidos.map((c) => {

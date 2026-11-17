@@ -1,4 +1,4 @@
-import { Badge, Grid } from '@ai27-tech/ui';
+import { Badge, EmptyState, Grid } from '@ai27-tech/ui';
 import type { EmergenciaViaje, EstadoEmergencia } from '@/lib/contracts/emergencias';
 
 const ETIQUETA_ESTADO: Record<EstadoEmergencia, string> = {
@@ -21,7 +21,8 @@ export function SelectorCaso({
   seleccionado?: string | undefined;
   onSelect: (id: string) => void;
 }) {
-  if (casos.length === 0) return <p>No hay emergencias activas en este viaje.</p>;
+  if (casos.length === 0)
+    return <EmptyState size="sm" title="No hay emergencias activas en este viaje." />;
   return (
     <Grid gap={2} role="radiogroup" aria-label="Emergencias del viaje">
       {casos.map((caso) => (

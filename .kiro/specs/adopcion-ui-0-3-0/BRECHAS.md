@@ -257,3 +257,15 @@ Resultado: `tsc --build` sin errores. `vitest run` 631 de 631 en verde, sin prue
 - **Orden:** las listas se pasan en el orden que ya recibían. No se usó `reverse`.
 - **Notas de `PanelCaso`:** el botón «Cargar más notas» queda fuera de `Timeline`, porque es paginación y no un punto del historial.
 - **Pendiente de revisión visual:** el aspecto de la línea de tiempo en claro y oscuro se revisa en la tarea 12.2.
+
+## 9. Bloque 9: cargas, vacíos, `Select` y `Stat` (tareas 9.1 a 9.5, 2026-11-17)
+
+Resultado: `tsc --build` sin errores. `eslint .` sin avisos. `vitest run` 631 de 631 en verde. `vite build --mode mock` pasa. `test:e2e` 5 de 5 en verde.
+
+- **Cargas (D-C, 9.1):** cada carga de bloque es un `div role="status"` con `aria-label` y un `Skeleton*` dentro. Los textos «Cargando …» visibles desaparecen. Las pruebas pasan a `getByRole('status', { name })`.
+- **Vacíos (9.2):** los «No hay …» de bloque usan `EmptyState` con `size="sm"` y el mismo texto como `title`. Los `emptyState` de `Timeline` del bloque 8 usaban `Alert info`; ahora usan `EmptyState` (R9).
+- **Vacíos que se dejan como texto:** «No hay destinos informados.» (`FichaTecnicaViaje`), «Sin destinos.» y «El viaje aún no tiene escolta asignada.» (`PanelCaso`). Son texto dentro de un campo o de una sección, no un bloque vacío. «Sin viajes para mostrar.» sí pasa a `EmptyState`. El vacío de `BandejaViajes` ya usa `Table.emptyState`.
+- **`ClienteSelector` (9.3):** `variant="searchable"` con `noResultsText="Sin clientes que coincidan"`. El control es un `combobox` con nombre «Cliente». Las pruebas de `ClienteSelector` y `CrearViaje` buscaban un `button`; ahora buscan el `combobox`. La prueba «sin permitir texto libre» se reescribió: verifica que la búsqueda filtra y que escribir un valor sin coincidencias no emite `onChange`.
+- **Dashboard (9.4):** las dos tablas de conteo (`Viajes en curso por estado` y `Cambios de estado en el periodo`) pasan a `Stat` dentro de `Grid`, con `role="group"` y el título como nombre accesible. La tabla de viajes se conserva.
+- **Desviación de R10 (`loading` en `Stat`):** no se usa `loading`. Los conteos solo existen cuando la consulta resuelve, así que no hay un `Stat` que mostrar durante la carga. Durante la carga se muestra un `SkeletonCard` en un `role="status"`. Si se quiere `Stat loading` con etiquetas fijas, hay que decidirlo.
+- **Pendiente de revisión visual:** la apariencia de `Stat` y del buscador de clientes en claro y oscuro se revisa en la tarea 12.2.
