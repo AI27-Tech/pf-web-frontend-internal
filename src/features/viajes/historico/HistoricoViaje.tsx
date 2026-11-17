@@ -30,6 +30,7 @@ import {
 } from '@ai27-tech/ui';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
+import { NavegacionViaje } from '@/features/viajes/NavegacionViaje';
 import { EnlaceRuta } from '@/components/layout/EnlaceRuta';
 import { useSession } from '@/context/SessionContext';
 import {
@@ -212,6 +213,7 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
         }
       />
 
+      <NavegacionViaje id={id} actual="historico" />
       <Card variant="outlined">
         <CardHeader>Bitácora</CardHeader>
         <CardBody>

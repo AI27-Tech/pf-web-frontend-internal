@@ -23,6 +23,7 @@ import {
 } from '@ai27-tech/ui';
 import { useNavigate } from '@tanstack/react-router';
 
+import { NavegacionViaje } from '@/features/viajes/NavegacionViaje';
 import { EnlaceRuta } from '@/components/layout/EnlaceRuta';
 import { useSession } from '@/context/SessionContext';
 import { puedeUsarMonitoreo } from '@/features/monitoreo/puedeUsarMonitoreo';
@@ -45,16 +46,10 @@ export function ExpedienteViaje({ id }: ExpedienteViajeProps) {
     return <AccesoNoAutorizado onVolver={onVolver} />;
   }
 
-  return <DescargaExpediente id={id} onVolver={onVolver} />;
+  return <DescargaExpediente id={id} />;
 }
 
-function DescargaExpediente({
-  id,
-  onVolver,
-}: {
-  readonly id: string;
-  readonly onVolver: () => void;
-}) {
+function DescargaExpediente({ id }: { readonly id: string }) {
   const d = useDescargaExpediente(id);
   const [avisoCerrado, setAvisoCerrado] = useState(false);
 
@@ -77,13 +72,9 @@ function DescargaExpediente({
             ]}
           />
         }
-        actions={
-          <Button variant="secondary" type="button" onClick={onVolver}>
-            Volver al detalle
-          </Button>
-        }
       />
 
+      <NavegacionViaje id={id} actual="expediente" />
       <Card>
         <CardHeader>
           <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>

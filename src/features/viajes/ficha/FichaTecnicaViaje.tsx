@@ -25,6 +25,7 @@ import {
 import { useNavigate } from '@tanstack/react-router';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
+import { NavegacionViaje } from '@/features/viajes/NavegacionViaje';
 import { EnlaceRuta } from '@/components/layout/EnlaceRuta';
 import { useSession } from '@/context/SessionContext';
 import type { FichaTecnica } from '@/lib/contracts/fichaTecnica';
@@ -86,17 +87,9 @@ export function FichaTecnicaViaje({ id }: FichaTecnicaViajeProps) {
             ]}
           />
         }
-        actions={
-          <Button
-            variant="secondary"
-            type="button"
-            onClick={() => void navigate({ to: '/viajes/$id', params: { id } })}
-          >
-            Volver al detalle
-          </Button>
-        }
       />
 
+      <NavegacionViaje id={id} actual="ficha" />
       <DatosViaje viaje={viaje} />
 
       <Escolta

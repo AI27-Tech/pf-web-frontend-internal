@@ -53,21 +53,15 @@ describe('DetalleViaje · enlace a Expediente y evidencia por rol', () => {
       sesionRol.rol = rol;
       renderDetalle();
 
-      expect(
-        await screen.findByRole('button', { name: 'Ver histórico del viaje' }),
-      ).toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', { name: 'Expediente y evidencia' }),
-      ).not.toBeInTheDocument();
+      expect(await screen.findByRole('tab', { name: 'Histórico del viaje' })).toBeInTheDocument();
+      expect(screen.queryByRole('tab', { name: 'Expediente y evidencia' })).not.toBeInTheDocument();
     },
   );
 
   it('el monitorista ve el enlace junto a Ver histórico del viaje', async () => {
     renderDetalle();
 
-    expect(
-      await screen.findByRole('button', { name: 'Ver histórico del viaje' }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Expediente y evidencia' })).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: 'Histórico del viaje' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Expediente y evidencia' })).toBeInTheDocument();
   });
 });

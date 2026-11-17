@@ -36,7 +36,6 @@ import {
 import { BloqueError } from '@/components/feedback/BloqueError';
 import { EnlaceRuta } from '@/components/layout/EnlaceRuta';
 import { useSession } from '@/context/SessionContext';
-import { puedeUsarMonitoreo } from '@/features/monitoreo/puedeUsarMonitoreo';
 import { ApiError } from '@/lib/api/errors';
 import { ErrorAsignacion, ErrorTransicion } from '@/lib/api/viajeDetalle';
 import type { CondicionAbierta, ViajeInterno } from '@/lib/contracts/viajeDetalle';
@@ -52,7 +51,11 @@ import { AsignacionForm } from './asignacionForm';
 import { EtaForm } from './etaForm';
 import { FechaHoraForm } from './fechaHoraForm';
 import { useDetalleViaje } from './useDetalleViaje';
+import { AccionEmergencia } from '@/features/emergencias/activacion/AccionEmergencia';
 import { SeccionEmergenciasViaje } from '@/features/emergencias/activacion/SeccionEmergenciasViaje';
+import { puedeMostrarActivacion } from '@/features/emergencias/afordancias';
+import { NavegacionViaje } from '@/features/viajes/NavegacionViaje';
+import type { EmergenciaViaje } from '@/lib/contracts/emergencias';
 
 export interface DetalleViajeProps {
   readonly id: string;
@@ -104,7 +107,7 @@ interface ToastItem {
  * 5. Si datos: renderiza cabecera, acciones, modal, ETA, avisos
  */
 export function DetalleViaje({ id }: DetalleViajeProps) {
-  const navigate = useNavigate();
+  const [casoActivado, setCasoActivado] = useState<EmergenciaViaje | null>(null);
   const { usuario } = useSession();
   /** true cuando el modal de selección de unidades está abierto (E8-T10). */
   const [modalAsignacionAbierto, setModalAsignacionAbierto] = useState(false);
@@ -350,42 +353,22 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
         }
         actions={
           <Inline gap={2}>
-            {usuario?.rol === 'monitorista' && (
-              <Button
-                variant="secondary"
-                type="button"
-                onClick={() => void navigate({ to: '/viajes/$id/ficha', params: { id } })}
-              >
-                Abrir ficha técnica
-              </Button>
-            )}
-            <Button
-              variant="secondary"
-              type="button"
-              onClick={() => void navigate({ to: '/viajes/$id/historico', params: { id } })}
-            >
-              Ver histórico del viaje
-            </Button>
-            {usuario && puedeUsarMonitoreo(usuario.rol) && (
-              <Button
-                variant="secondary"
-                type="button"
-                onClick={() => void navigate({ to: '/viajes/$id/expediente', params: { id } })}
-              >
-                Expediente y evidencia
-              </Button>
+            {usuario && puedeMostrarActivacion(usuario.rol, viajeInterno.estado) && (
+              <AccionEmergencia
+                viajeId={id}
+                onActivada={setCasoActivado}
+                onViajeTerminal={() => void d.reintentar()}
+              />
             )}
           </Inline>
         }
       />
-      {usuario && (
-        <SeccionEmergenciasViaje
-          viajeId={id}
-          estadoViaje={viajeInterno.estado}
-          rol={usuario.rol}
-          onViajeCambio={() => void d.reintentar()}
-        />
-      )}
+      <NavegacionViaje id={id} actual="detalle" />
+      <SeccionEmergenciasViaje
+        viajeId={id}
+        rol={usuario?.rol ?? null}
+        casoActivado={casoActivado}
+      />
 
       {/* Cabecera: estado y condiciones en columnas separadas (P15, Req 1.2, 1.3) */}
       <Card>

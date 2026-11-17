@@ -3,7 +3,10 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+import type { Rol } from '@ai27-tech/contracts/roles';
+import { AccionEmergencia } from '@/features/emergencias/activacion/AccionEmergencia';
 import { SeccionEmergenciasViaje } from '@/features/emergencias/activacion/SeccionEmergenciasViaje';
+import { puedeMostrarActivacion } from '@/features/emergencias/afordancias';
 import { API_PREFIX } from '@/lib/constants';
 
 const sesion = vi.hoisted(() => ({ value: { id: 'sujeto-monitor', rol: 'monitorista' } }));
@@ -40,14 +43,16 @@ function servirCasos(items: Array<{ id: string; estado: string }>) {
   );
 }
 
+/** Monta el botón de la cabecera (como DetalleViaje) y el carril, para probar ambos juntos. */
 function renderSeccion(estadoViaje = 'EN_TRANSITO', onViajeCambio = vi.fn()) {
+  const rol = sesion.value.rol as Rol;
   render(
-    <SeccionEmergenciasViaje
-      viajeId={VIAJE}
-      estadoViaje={estadoViaje}
-      rol={sesion.value.rol as 'monitorista'}
-      onViajeCambio={onViajeCambio}
-    />,
+    <>
+      {puedeMostrarActivacion(rol, estadoViaje) && (
+        <AccionEmergencia viajeId={VIAJE} onActivada={vi.fn()} onViajeTerminal={onViajeCambio} />
+      )}
+      <SeccionEmergenciasViaje viajeId={VIAJE} rol={rol} />
+    </>,
   );
   return onViajeCambio;
 }
@@ -90,14 +95,7 @@ describe('carril de emergencias del viaje: visibilidad por rol', () => {
         return HttpResponse.json({ codigo: 'prohibido', mensaje: 'prohibido' }, { status: 403 });
       }),
     );
-    const { container } = render(
-      <SeccionEmergenciasViaje
-        viajeId={VIAJE}
-        estadoViaje="EN_TRANSITO"
-        rol="jefe_operativo"
-        onViajeCambio={vi.fn()}
-      />,
-    );
+    const { container } = render(<SeccionEmergenciasViaje viajeId={VIAJE} rol="jefe_operativo" />);
     await new Promise((r) => setTimeout(r, 50));
     expect(container).toBeEmptyDOMElement();
     expect(pedidas).toBe(0);
@@ -106,14 +104,7 @@ describe('carril de emergencias del viaje: visibilidad por rol', () => {
   it('reaccion no ve el carril', async () => {
     sesion.value = { id: 'sujeto-reaccion', rol: 'reaccion' };
     servirCasos([]);
-    const { container } = render(
-      <SeccionEmergenciasViaje
-        viajeId={VIAJE}
-        estadoViaje="EN_TRANSITO"
-        rol="reaccion"
-        onViajeCambio={vi.fn()}
-      />,
-    );
+    const { container } = render(<SeccionEmergenciasViaje viajeId={VIAJE} rol="reaccion" />);
     expect(container).toBeEmptyDOMElement();
   });
 });

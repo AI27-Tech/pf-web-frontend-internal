@@ -1,33 +1,23 @@
-import { useCallback, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Button, Section, SkeletonText, Stack } from '@ai27-tech/ui';
 import type { Rol } from '@ai27-tech/contracts/roles';
 import type { EmergenciaViaje } from '@/lib/contracts/emergencias';
 import { ErrorEmergenciaCerrada, ErrorAccionNoPermitida } from '@/lib/api/emergencias';
-import { puedeAnotar, puedeCerrar, puedeActivar } from '../afordancias';
-import { AccionEmergencia } from './AccionEmergencia';
+import { ROLES_CON_CARRIL, puedeAnotar, puedeCerrar } from '../afordancias';
 import { NotaEmergencia } from './NotaEmergencia';
 import { SelectorCaso } from './SelectorCaso';
 import { useEmergenciasViaje } from './useEmergenciasViaje';
 
-/** Roles que ven el carril de emergencias del viaje (DEC-045 #9: `administrador` no activa). */
-const ROLES_CON_CARRIL: readonly Rol[] = [
-  'monitorista',
-  'supervisor',
-  'coordinador',
-  'administrador',
-];
-
 interface SeccionEmergenciasViajeProps {
   viajeId: string;
-  estadoViaje: string;
   rol: Rol | null;
-  /** Recarga el detalle del viaje tras una activación o un 409 de viaje terminal. */
-  onViajeCambio: () => void;
+  /** Caso recién activado desde la cabecera: el carril lo selecciona y recarga la lista. */
+  casoActivado?: EmergenciaViaje | null;
 }
 
 /**
- * Carril de emergencias del detalle del viaje: activar, seleccionar caso, anotar y cerrar
- * casos `resuelta`. No se monta para roles sin carril (p. ej. Reacción o ejecutivo).
+ * Carril de emergencias del detalle del viaje: seleccionar caso, anotar y cerrar casos
+ * `resuelta`. No se monta para roles sin carril (p. ej. Reacción o ejecutivo).
  */
 export function SeccionEmergenciasViaje(props: SeccionEmergenciasViajeProps) {
   // Sin carril no se monta CarrilEmergencias: el bff responde 403 a la lista para otros roles.
@@ -37,24 +27,24 @@ export function SeccionEmergenciasViaje(props: SeccionEmergenciasViajeProps) {
 
 function CarrilEmergencias({
   viajeId,
-  estadoViaje,
   rol,
-  onViajeCambio,
+  casoActivado,
 }: SeccionEmergenciasViajeProps & { rol: Rol }) {
   const emergencias = useEmergenciasViaje(viajeId);
+  const { recargar } = emergencias;
   const [seleccionado, setSeleccionado] = useState<string | undefined>(undefined);
   const [enviandoNota, setEnviandoNota] = useState(false);
   const [errorNota, setErrorNota] = useState<Error | null>(null);
   const [errorCierre, setErrorCierre] = useState<Error | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
 
-  const alActivar = useCallback(
-    (caso: EmergenciaViaje) => {
-      setSeleccionado(caso.id);
-      void emergencias.recargar();
-    },
-    [emergencias],
-  );
+  useEffect(() => {
+    if (!casoActivado) return;
+    // Sincroniza el selector con una activación hecha fuera de esta sección (cabecera).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSeleccionado(casoActivado.id);
+    void recargar();
+  }, [casoActivado, recargar]);
 
   const casoActual = emergencias.casos.find((c) => c.id === seleccionado);
   const sujetoPuedeCerrar = casoActual !== undefined && puedeCerrar(rol, casoActual);
@@ -102,13 +92,6 @@ function CarrilEmergencias({
       }
     >
       <Stack gap={3}>
-        {puedeActivar(rol, estadoViaje) && (
-          <AccionEmergencia
-            viajeId={viajeId}
-            onActivada={alActivar}
-            onViajeTerminal={onViajeCambio}
-          />
-        )}
         {aviso && <Alert variant="success">{aviso}</Alert>}
         {emergencias.error && <Alert variant="danger">{emergencias.error.message}</Alert>}
         {emergencias.cargando ? (

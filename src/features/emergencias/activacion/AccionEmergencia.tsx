@@ -35,7 +35,7 @@ export function AccionEmergencia({ viajeId, onActivada, onViajeTerminal }: Accio
 
   return (
     <Grid gap={2}>
-      <Button variant="secondary" onClick={() => setConfirmando(true)} disabled={enCurso}>
+      <Button variant="danger" onClick={() => setConfirmando(true)} disabled={enCurso}>
         {enCurso ? 'Activando...' : 'Activar emergencia'}
       </Button>
       {aviso && <Alert variant="success">{aviso}</Alert>}

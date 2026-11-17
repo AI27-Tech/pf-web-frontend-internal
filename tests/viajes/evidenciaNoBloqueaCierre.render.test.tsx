@@ -51,9 +51,7 @@ describe('E8-T17 · el detalle no emite solicitudes a /adjuntos', () => {
     );
     render(<DetalleViaje id="VJ-1001" />, { wrapper: Wrapper });
 
-    expect(
-      await screen.findByRole('button', { name: 'Ver histórico del viaje' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: 'Histórico del viaje' })).toBeInTheDocument();
     expect(urls.filter((url) => url.includes('/adjuntos'))).toEqual([]);
   });
 });
