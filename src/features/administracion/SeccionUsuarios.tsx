@@ -1,7 +1,8 @@
 import { useDeferredValue, useReducer, useState } from 'react';
-import { Badge, Button, Card, CardBody, FilterTable, type Column } from '@ai27-tech/ui';
+import { Alert, Badge, Button, FilterTable, Section, type Column } from '@ai27-tech/ui';
 import type { Rol } from '@ai27-tech/contracts/roles';
 
+import { BloqueError } from '@/components/feedback/BloqueError';
 import type { UsuarioResumen } from '@/lib/contracts/administracion';
 import { OPCIONES_ROL } from '@/lib/contracts/administracion';
 
@@ -75,88 +76,86 @@ export function SeccionUsuarios({ onAbrirUsuario, onNuevoUsuario }: SeccionUsuar
   const reiniciar = () => despachar({ tipo: 'reiniciar' });
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
-        <h2 id="administracion-seccion-usuarios" tabIndex={-1} className="text-lg font-semibold">
+    <Section
+      title={
+        <span id="administracion-seccion-usuarios" tabIndex={-1} role="heading" aria-level={2}>
           {TEXTOS.usuariosTitulo}
-        </h2>
+        </span>
+      }
+      actions={
         <Button variant="primary" onClick={onNuevoUsuario}>
           {TEXTOS.nuevoUsuario}
         </Button>
-      </div>
+      }
+    >
+      <div className="flex flex-col gap-3">
+        {aviso && estado.estado === 'error' && (
+          <BloqueError mensaje={aviso.texto} onReintentar={() => void consulta.refetch()} />
+        )}
+        {aviso && estado.estado !== 'error' && (
+          <Alert variant={aviso.alerta ? 'danger' : 'info'}>{aviso.texto}</Alert>
+        )}
 
-      {aviso && (
-        <Card variant="outlined">
-          <CardBody>
-            <p role={aviso.alerta ? 'alert' : 'status'}>{aviso.texto}</p>
-            {estado.estado === 'error' && (
-              <Button variant="outline" size="sm" onClick={() => void consulta.refetch()}>
-                {TEXTOS.reintentar}
-              </Button>
-            )}
-          </CardBody>
-        </Card>
-      )}
-
-      <FilterTable<UsuarioResumen>
-        columns={COLUMNAS}
-        data={[...(consulta.data?.items ?? [])]}
-        rowKey={(fila) => fila.id}
-        onRowClick={(fila) => onAbrirUsuario(fila.id)}
-        loading={estado.estado === 'cargando'}
-        emptyState={TEXTOS.vacio}
-        hideCount
-        search={texto}
-        onSearchChange={(valor) => {
-          setTexto(valor);
-          reiniciar();
-        }}
-        searchPlaceholder={TEXTOS.buscarUsuario}
-        filters={[
-          {
-            key: 'rol',
-            label: TEXTOS.columnaRol,
-            placeholder: TEXTOS.todosLosRoles,
-            options: OPCIONES_ROL.map((opcion) => ({
-              value: opcion,
-              label: ETIQUETAS_ROL[opcion],
-            })),
-          },
-        ]}
-        filterValues={{ rol }}
-        onFilterChange={(clave, valor) => {
-          if (clave === 'rol') setRol(valor);
-          reiniciar();
-        }}
-        onClear={() => {
-          setTexto('');
-          setRol('');
-          reiniciar();
-        }}
-        aria-label={TEXTOS.usuariosTitulo}
-      />
-
-      <div className="flex items-center justify-end gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={paginacion.pagina === 0}
-          onClick={() => despachar({ tipo: 'anterior' })}
-        >
-          {TEXTOS.anterior}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={!consulta.data?.cursorSiguiente}
-          onClick={() => {
-            const siguiente = consulta.data?.cursorSiguiente;
-            if (siguiente) despachar({ tipo: 'siguiente', cursorSiguiente: siguiente });
+        <FilterTable<UsuarioResumen>
+          columns={COLUMNAS}
+          data={[...(consulta.data?.items ?? [])]}
+          rowKey={(fila) => fila.id}
+          onRowClick={(fila) => onAbrirUsuario(fila.id)}
+          loading={estado.estado === 'cargando'}
+          emptyState={TEXTOS.vacio}
+          hideCount
+          search={texto}
+          onSearchChange={(valor) => {
+            setTexto(valor);
+            reiniciar();
           }}
-        >
-          {TEXTOS.siguiente}
-        </Button>
+          searchPlaceholder={TEXTOS.buscarUsuario}
+          filters={[
+            {
+              key: 'rol',
+              label: TEXTOS.columnaRol,
+              placeholder: TEXTOS.todosLosRoles,
+              options: OPCIONES_ROL.map((opcion) => ({
+                value: opcion,
+                label: ETIQUETAS_ROL[opcion],
+              })),
+            },
+          ]}
+          filterValues={{ rol }}
+          onFilterChange={(clave, valor) => {
+            if (clave === 'rol') setRol(valor);
+            reiniciar();
+          }}
+          onClear={() => {
+            setTexto('');
+            setRol('');
+            reiniciar();
+          }}
+          aria-label={TEXTOS.usuariosTitulo}
+        />
+
+        <div className="flex items-center justify-end gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={paginacion.pagina === 0}
+            onClick={() => despachar({ tipo: 'anterior' })}
+          >
+            {TEXTOS.anterior}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!consulta.data?.cursorSiguiente}
+            onClick={() => {
+              const siguiente = consulta.data?.cursorSiguiente;
+              if (siguiente) despachar({ tipo: 'siguiente', cursorSiguiente: siguiente });
+            }}
+          >
+            {TEXTOS.siguiente}
+          </Button>
+        </div>
       </div>
-    </div>
+    </Section>
   );
 }

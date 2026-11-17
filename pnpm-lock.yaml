@@ -113,8 +113,8 @@ importers:
         specifier: 0.1.0-tracer.40
         version: 0.1.0-tracer.40
       '@ai27-tech/ui':
-        specifier: 0.2.0-beta.6
-        version: 0.2.0-beta.6(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        specifier: 0.3.0-beta.1
+        version: 0.3.0-beta.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@fontsource-variable/inter':
         specifier: ^5.3.0
         version: 5.3.0
@@ -227,8 +227,8 @@ packages:
   '@ai27-tech/contracts@0.1.0-tracer.40':
     resolution: {integrity: sha512-zK7fDl5a27WQhxIpjUn9x+/POXK3i+qaRqPY7HCYXAUhNb2EBgp34Xc2rFIo1YMu98pyUDTXsfU8/pD7sLaerA==, tarball: https://npm.pkg.github.com/download/@ai27-tech/contracts/0.1.0-tracer.40/d1b787a83facbfdc1cc0ad328e12c75fb84f7616}
 
-  '@ai27-tech/ui@0.2.0-beta.6':
-    resolution: {integrity: sha512-r6B4o0v06DVK4HAYdGAeZ8y23W27YnDQKdiZ7aftZE44TpRDeuXcTDlIUxzwptgfh9rSb5V4T5Qcwv3Vy7M7xw==, tarball: https://npm.pkg.github.com/download/@ai27-tech/ui/0.2.0-beta.6/af434e1bfa9207b170374252bdcd0a009d879d74}
+  '@ai27-tech/ui@0.3.0-beta.1':
+    resolution: {integrity: sha512-DYpHL2D5eLZtOePVuElE+j+fn1k5Q17oZgtDV+E18aq+yW6GQx2UHcpCJd8PubMvKo1fMc3x5uowY+cYooxUOA==, tarball: https://npm.pkg.github.com/download/@ai27-tech/ui/0.3.0-beta.1/9cef52f0f47da91056717e61c232157a0ffe3b17}
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
@@ -2193,7 +2193,7 @@ snapshots:
 
   '@ai27-tech/contracts@0.1.0-tracer.40': {}
 
-  '@ai27-tech/ui@0.2.0-beta.6(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@ai27-tech/ui@0.3.0-beta.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)

@@ -17,16 +17,24 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 
 import {
+  Alert,
   Badge,
+  Breadcrumb,
   Button,
   Card,
   CardBody,
   CardFooter,
   CardHeader,
+  EmptyState,
+  Inline,
   Modal,
+  PageHeader,
+  Stack,
   Toast,
   ToastContainer,
 } from '@ai27-tech/ui';
+import { BloqueError } from '@/components/feedback/BloqueError';
+import { EnlaceRuta } from '@/components/layout/EnlaceRuta';
 import { useSession } from '@/context/SessionContext';
 import { puedeUsarMonitoreo } from '@/features/monitoreo/puedeUsarMonitoreo';
 import { ApiError } from '@/lib/api/errors';
@@ -332,27 +340,44 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
     viajeInterno.estado === EstadoViaje.Solicitado && !viajeInterno.fecha_hora_servicio;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-      <h1 className="ui-text-headline-lg" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-        Detalle del Viaje: {viajeInterno.id}
-      </h1>
-      {usuario?.rol === 'monitorista' && (
-        <Button
-          variant="secondary"
-          type="button"
-          onClick={() => void navigate({ to: '/viajes/$id/ficha', params: { id } })}
-        >
-          Abrir ficha técnica
-        </Button>
-      )}
-
-      <Button
-        variant="secondary"
-        type="button"
-        onClick={() => void navigate({ to: '/viajes/$id/historico', params: { id } })}
-      >
-        Ver histórico del viaje
-      </Button>
+    <Stack gap={4}>
+      <PageHeader
+        title={`Detalle del Viaje: ${viajeInterno.id}`}
+        breadcrumb={
+          <Breadcrumb
+            items={[{ label: 'Viajes', href: '/viajes', as: EnlaceRuta }, { label: `Viaje ${id}` }]}
+          />
+        }
+        actions={
+          <Inline gap={2}>
+            {usuario?.rol === 'monitorista' && (
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => void navigate({ to: '/viajes/$id/ficha', params: { id } })}
+              >
+                Abrir ficha técnica
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={() => void navigate({ to: '/viajes/$id/historico', params: { id } })}
+            >
+              Ver histórico del viaje
+            </Button>
+            {usuario && puedeUsarMonitoreo(usuario.rol) && (
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => void navigate({ to: '/viajes/$id/expediente', params: { id } })}
+              >
+                Expediente y evidencia
+              </Button>
+            )}
+          </Inline>
+        }
+      />
       {usuario && (
         <SeccionEmergenciasViaje
           viajeId={id}
@@ -362,20 +387,10 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
         />
       )}
 
-      {usuario && puedeUsarMonitoreo(usuario.rol) && (
-        <Button
-          variant="secondary"
-          type="button"
-          onClick={() => void navigate({ to: '/viajes/$id/expediente', params: { id } })}
-        >
-          Expediente y evidencia
-        </Button>
-      )}
-
       {/* Cabecera: estado y condiciones en columnas separadas (P15, Req 1.2, 1.3) */}
       <Card>
         <CardHeader>
-          <div style={{ display: 'flex', gap: 'var(--ui-space-4)', alignItems: 'center' }}>
+          <Inline gap={4} align="center" wrap={false}>
             {/* Estado */}
             <div>
               <p
@@ -396,23 +411,23 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
                 >
                   Condiciones
                 </p>
-                <div style={{ display: 'inline-flex', gap: 'var(--ui-space-1)' }}>
+                <Inline gap={1} align="stretch" wrap={false}>
                   {condicionesActivas.map((c) => (
                     <Badge key={c.tipo} variant={VARIANTE_CONDICION[c.tipo] ?? 'warning'} dot>
                       {c.tipo}
                     </Badge>
                   ))}
-                </div>
+                </Inline>
               </div>
             )}
-          </div>
+          </Inline>
         </CardHeader>
       </Card>
 
       {/* Informacion del viaje: origen, destinos, ETA */}
       <Card>
         <CardBody>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}>
+          <Stack gap={3}>
             {/* Origen (ahora es un string de dirección) */}
             <div>
               <p
@@ -450,7 +465,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
                     {faseDelBucle(viajeInterno.estado)}
                   </p>
                 )}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
+                <Stack gap={2}>
                   {viajeInterno.destinos.map((destino, idx) => (
                     <div
                       key={destino.numero_envio ?? `parada-${idx}`}
@@ -460,13 +475,11 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
                         borderRadius: 'var(--ui-radius-sm)',
                       }}
                     >
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: 'var(--ui-space-2)',
-                          alignItems: 'center',
-                          marginBottom: 'var(--ui-space-1)',
-                        }}
+                      <Inline
+                        gap={2}
+                        align="center"
+                        wrap={false}
+                        style={{ marginBottom: 'var(--ui-space-1)' }}
                       >
                         <span
                           className="ui-text-body-xs"
@@ -474,7 +487,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
                         >
                           Parada {idx + 1}
                         </span>
-                      </div>
+                      </Inline>
                       <p
                         className="ui-text-body-sm"
                         style={{ color: 'var(--ui-color-text)', margin: '0 0 var(--ui-space-1) 0' }}
@@ -491,7 +504,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
                       )}
                     </div>
                   ))}
-                </div>
+                </Stack>
               </div>
             )}
 
@@ -509,7 +522,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
                 </p>
               </div>
             )}
-          </div>
+          </Stack>
         </CardBody>
       </Card>
 
@@ -550,7 +563,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
             </p>
           </CardHeader>
           <CardBody>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
+            <Stack gap={2}>
               {accionesVisibles.map((accion) => {
                 const esAprobar = accion === EstadoViaje.Aprobado;
                 const esAsignar = accion === EstadoViaje.Asignado;
@@ -597,7 +610,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
                   </Button>
                 );
               })}
-            </div>
+            </Stack>
           </CardBody>
         </Card>
       )}
@@ -706,7 +719,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
           />
         ))}
       </ToastContainer>
-    </div>
+    </Stack>
   );
 }
 
@@ -730,18 +743,7 @@ function EstadoCargando() {
  */
 function EstadoError({ onReintentar }: { readonly onReintentar: () => void }) {
   return (
-    <Card variant="outlined">
-      <CardBody>
-        <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
-          No se pudo cargar el detalle del viaje.
-        </p>
-      </CardBody>
-      <CardFooter>
-        <Button variant="primary" onClick={onReintentar}>
-          Reintentar
-        </Button>
-      </CardFooter>
-    </Card>
+    <BloqueError mensaje="No se pudo cargar el detalle del viaje." onReintentar={onReintentar} />
   );
 }
 
@@ -749,19 +751,7 @@ function EstadoError({ onReintentar }: { readonly onReintentar: () => void }) {
  * Sin permiso (403): la sesión es válida pero el rol o el alcance no llega a este viaje.
  */
 function SinPermiso() {
-  return (
-    <Card variant="outlined">
-      <CardBody>
-        <p
-          role="alert"
-          className="ui-text-body-sm"
-          style={{ color: 'var(--ui-color-text)', margin: 0 }}
-        >
-          No tienes permiso para ver el detalle de este viaje.
-        </p>
-      </CardBody>
-    </Card>
-  );
+  return <Alert variant="danger">No tienes permiso para ver el detalle de este viaje.</Alert>;
 }
 
 /**
@@ -771,9 +761,7 @@ function EstadoVacio() {
   return (
     <Card>
       <CardBody>
-        <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text-muted)', margin: 0 }}>
-          No hay datos disponibles para este viaje.
-        </p>
+        <EmptyState size="sm" title="No hay datos disponibles para este viaje." />
       </CardBody>
     </Card>
   );

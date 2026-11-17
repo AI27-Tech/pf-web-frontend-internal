@@ -26,7 +26,14 @@ vi.mock('@/context/SessionContext', () => ({
     logout: vi.fn(),
   }),
 }));
-vi.mock('@tanstack/react-router', () => ({ useNavigate: () => navigateSpy }));
+vi.mock('@tanstack/react-router', async () => {
+  const { createElement } = await import('react');
+  return {
+    useNavigate: () => navigateSpy,
+    Link: ({ to, children }: { to: string; children?: unknown }) =>
+      createElement('a', { href: to }, children as never),
+  };
+});
 
 const blobsCreados: Blob[] = [];
 const anclasClic: { download: string }[] = [];

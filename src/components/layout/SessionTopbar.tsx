@@ -10,6 +10,7 @@
  * se movió al fondo del sidebar (ver NavigationSidebar).
  */
 
+import { Inline } from '@ai27-tech/ui';
 import { useSession } from '@/context/SessionContext';
 import { type Rol } from '@ai27-tech/contracts/roles';
 
@@ -32,11 +33,12 @@ export function SessionTopbar() {
   const { usuario } = useSession();
 
   return (
-    <div
+    <Inline
+      gap={0}
+      align="center"
+      justify="end"
+      wrap={false}
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
         height: TOPBAR_HEIGHT,
         flex: 'none',
         borderBottom: '1px solid var(--ui-color-border)',
@@ -45,14 +47,7 @@ export function SessionTopbar() {
       }}
     >
       {usuario && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'baseline',
-            gap: 'var(--ui-space-2)',
-            minWidth: 0,
-          }}
-        >
+        <Inline gap={2} wrap={false} style={{ alignItems: 'baseline', minWidth: 0 }}>
           <span
             className="ui-text-title-md"
             style={{
@@ -70,8 +65,8 @@ export function SessionTopbar() {
           >
             {rolLabels[usuario.rol]}
           </span>
-        </div>
+        </Inline>
       )}
-    </div>
+    </Inline>
   );
 }

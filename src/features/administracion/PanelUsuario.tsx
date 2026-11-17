@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
-import { Badge, Button, Card, CardBody, Table, type Column } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Card, CardBody, DescriptionList, Section } from '@ai27-tech/ui';
 
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { ApiError } from '@/lib/api/errors';
 import { useAdministracionPort } from '@/context/AdministracionContext';
 
@@ -40,11 +41,6 @@ const OPERACIONES_DEL_USUARIO = [
   'fijarAlcance',
 ] as const;
 
-const COLUMNAS_DATOS: Column<Dato>[] = [
-  { key: 'dato', header: TEXTOS.datoCampo, cell: (fila) => fila.etiqueta },
-  { key: 'valor', header: TEXTOS.datoValor, cell: (fila) => fila.valor },
-];
-
 /**
  * Detalle de un usuario (R2.3, R2.6, R2.9). Ante un 404 dice que el usuario no está
  * disponible; ante otro error no muestra datos de otro usuario. Las acciones solo
@@ -73,13 +69,7 @@ export function PanelUsuario({ usuarioId, envio, onVolver, onAviso }: PanelUsuar
     data: consulta.data,
   });
   const aviso = avisoDeEstado(estado.estado);
-  const avisoRechazo = rechazo ? (
-    <Card variant="outlined">
-      <CardBody>
-        <p role="alert">{rechazo}</p>
-      </CardBody>
-    </Card>
-  ) : null;
+  const avisoRechazo = rechazo ? <Alert variant="danger">{rechazo}</Alert> : null;
 
   const volver = (
     <Button variant="ghost" size="sm" onClick={onVolver}>
@@ -91,11 +81,7 @@ export function PanelUsuario({ usuarioId, envio, onVolver, onAviso }: PanelUsuar
     return (
       <div className="flex flex-col gap-3">
         {volver}
-        <Card variant="outlined">
-          <CardBody>
-            <p role="alert">{TEXTOS.usuarioNoDisponible}</p>
-          </CardBody>
-        </Card>
+        <Alert variant="danger">{TEXTOS.usuarioNoDisponible}</Alert>
       </div>
     );
   }
@@ -119,15 +105,16 @@ export function PanelUsuario({ usuarioId, envio, onVolver, onAviso }: PanelUsuar
     return (
       <div className="flex flex-col gap-3">
         {volver}
-        {aviso && (
-          <Card variant="outlined">
-            <CardBody>
-              <p role={aviso.alerta ? 'alert' : 'status'}>{aviso.texto}</p>
-              <Button variant="outline" size="sm" onClick={() => void consulta.refetch()}>
-                {TEXTOS.reintentar}
-              </Button>
-            </CardBody>
-          </Card>
+        {aviso && aviso.alerta && (
+          <BloqueError mensaje={aviso.texto} onReintentar={() => void consulta.refetch()} />
+        )}
+        {aviso && !aviso.alerta && (
+          <Alert variant="info">
+            {aviso.texto}
+            <Button variant="outline" size="sm" onClick={() => void consulta.refetch()}>
+              {TEXTOS.reintentar}
+            </Button>
+          </Alert>
         )}
       </div>
     );
@@ -157,12 +144,7 @@ export function PanelUsuario({ usuarioId, envio, onVolver, onAviso }: PanelUsuar
       : []),
   ];
   const tabla = (
-    <Table<Dato>
-      columns={COLUMNAS_DATOS}
-      data={filas}
-      rowKey={(fila) => fila.etiqueta}
-      aria-label={etiquetaUsuario(usuario)}
-    />
+    <DescriptionList items={filas.map((fila) => ({ label: fila.etiqueta, value: fila.valor }))} />
   );
 
   // Con datos viejos (consulta fallida) se muestra el detalle, pero no se ofrecen acciones.
@@ -171,13 +153,7 @@ export function PanelUsuario({ usuarioId, envio, onVolver, onAviso }: PanelUsuar
       <div className="flex flex-col gap-3">
         {volver}
         {avisoRechazo}
-        {aviso && (
-          <Card variant="outlined">
-            <CardBody>
-              <p role="alert">{aviso.texto}</p>
-            </CardBody>
-          </Card>
-        )}
+        {aviso && <Alert variant="danger">{aviso.texto}</Alert>}
         {tabla}
       </div>
     );
@@ -189,27 +165,37 @@ export function PanelUsuario({ usuarioId, envio, onVolver, onAviso }: PanelUsuar
   return (
     <div className="flex flex-col gap-4">
       {volver}
-      <h2 className="text-lg font-semibold">{etiquetaUsuario(usuario)}</h2>
-      {avisoRechazo}
-      {tabla}
+      {/* Section pinta el título en un span: role y aria-level conservan el encabezado nivel 2. */}
+      <Section
+        title={
+          <span role="heading" aria-level={2}>
+            {etiquetaUsuario(usuario)}
+          </span>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          {avisoRechazo}
+          {tabla}
 
-      <AccionesUsuario
-        usuario={usuario}
-        relacion={relacion}
-        enCurso={enCurso}
-        onAccion={(accion: AccionUsuario) => {
-          setRechazo(null);
-          if (accion === 'editarAlcance') setAlcanceAbierto(true);
-          if (accion === 'cambiarRol') setDialogo('cambiarRol');
-          if (accion === 'desactivar') setDialogo('desactivar');
-          if (accion === 'reactivar') setDialogo('reactivar');
-          if (accion === 'revocarSesiones') setDialogo('revocar');
-        }}
-      />
+          <AccionesUsuario
+            usuario={usuario}
+            relacion={relacion}
+            enCurso={enCurso}
+            onAccion={(accion: AccionUsuario) => {
+              setRechazo(null);
+              if (accion === 'editarAlcance') setAlcanceAbierto(true);
+              if (accion === 'cambiarRol') setDialogo('cambiarRol');
+              if (accion === 'desactivar') setDialogo('desactivar');
+              if (accion === 'reactivar') setDialogo('reactivar');
+              if (accion === 'revocarSesiones') setDialogo('revocar');
+            }}
+          />
 
-      {tieneAlcance && alcanceAbierto && port.capacidades.alcance && (
-        <AlcanceEditor usuario={usuario} envio={envio} onAviso={onAviso} />
-      )}
+          {tieneAlcance && alcanceAbierto && port.capacidades.alcance && (
+            <AlcanceEditor usuario={usuario} envio={envio} onAviso={onAviso} />
+          )}
+        </div>
+      </Section>
 
       <CambioRolDialog
         abierto={dialogo === 'cambiarRol'}

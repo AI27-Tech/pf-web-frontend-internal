@@ -1,5 +1,6 @@
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { Button } from '@ai27-tech/ui';
+import { Alert, Grid, PageHeader, SkeletonText } from '@ai27-tech/ui';
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { ErrorConversacionNoDisponible } from '@/lib/api/conversaciones';
 import { useSession } from '@/context/SessionContext';
 import { useTrabajoBandeja } from './useTrabajoBandeja';
@@ -22,15 +23,9 @@ export function BandejaConversaciones() {
     });
   const panelVisible = Boolean(detalle.conversacion && !detalle.cargando);
   return (
-    <div
-      style={{
-        display: 'grid',
-        gap: 'var(--ui-space-4)',
-        gridTemplateColumns: 'minmax(18rem, 32rem) minmax(0, 1fr)',
-      }}
-    >
+    <Grid gap={4} style={{ gridTemplateColumns: 'minmax(18rem, 32rem) minmax(0, 1fr)' }}>
       <section>
-        <h1 className="ui-text-headline-lg">Bandeja de conversaciones</h1>
+        <PageHeader title="Bandeja de conversaciones" />
         <ListaTrabajo
           items={bandeja.items}
           sujetoId={usuario?.id ?? ''}
@@ -71,21 +66,25 @@ export function BandejaConversaciones() {
           />
         ) : (
           <div>
-            <p>
-              {detalle.error ? (
-                <span role="alert">{detalle.error.message}</span>
-              ) : id ? (
-                'Cargando conversación...'
+            {detalle.error ? (
+              detalle.error instanceof ErrorConversacionNoDisponible ? (
+                <Alert variant="danger">{detalle.error.message}</Alert>
               ) : (
-                'Selecciona una conversación para leerla.'
-              )}
-            </p>
-            {detalle.error && !(detalle.error instanceof ErrorConversacionNoDisponible) && (
-              <Button onClick={() => void detalle.recargar()}>Reintentar</Button>
+                <BloqueError
+                  mensaje={detalle.error.message}
+                  onReintentar={() => void detalle.recargar()}
+                />
+              )
+            ) : id ? (
+              <div role="status" aria-label="Cargando conversación">
+                <SkeletonText lines={4} />
+              </div>
+            ) : (
+              <p>Selecciona una conversación para leerla.</p>
             )}
           </div>
         )}
       </section>
-    </div>
+    </Grid>
   );
 }

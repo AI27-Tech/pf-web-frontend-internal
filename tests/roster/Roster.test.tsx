@@ -61,11 +61,11 @@ function renderRoster() {
 
 async function abrirAlta() {
   await userEvent.click(await screen.findByRole('button', { name: 'Nueva unidad' }));
-  return screen.findByRole('button', { name: 'Elige un vehículo' });
+  return screen.findByRole('button', { name: 'Vehículo' });
 }
 
 async function elegirVehiculo(etiqueta: string) {
-  await userEvent.click(await screen.findByRole('button', { name: 'Elige un vehículo' }));
+  await userEvent.click(await screen.findByRole('button', { name: 'Vehículo' }));
   await userEvent.click(await screen.findByRole('button', { name: etiqueta }));
 }
 
@@ -188,7 +188,7 @@ describe('Roster — alta', () => {
     renderRoster();
     await abrirAlta();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Elige un vehículo' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Vehículo' }));
     expect(screen.queryByRole('button', { name: /P-090/ })).toBeNull();
     expect(screen.queryByRole('checkbox', { name: 'Rosa Díaz' })).toBeNull();
     expect(screen.getByRole('checkbox', { name: 'Pedro Gómez' })).toBeInTheDocument();
@@ -202,8 +202,8 @@ describe('Roster — alta', () => {
     await userEvent.click(screen.getByRole('checkbox', { name: 'María Torres' }));
     expect(screen.getByRole('checkbox', { name: 'Pedro Gómez' })).toBeDisabled();
 
-    // El selector ya muestra la moto: se abre por su valor actual.
-    await userEvent.click(screen.getByRole('button', { name: 'M-07 · XYZ-987 (moto)' }));
+    // El selector ya muestra la moto: se abre por su etiqueta, que es su nombre accesible.
+    await userEvent.click(screen.getByRole('button', { name: 'Vehículo' }));
     await userEvent.click(await screen.findByRole('button', { name: 'P-102 · DEF-5678 (coche)' }));
     await userEvent.click(screen.getByRole('checkbox', { name: 'Pedro Gómez' }));
     expect(screen.getByRole('checkbox', { name: 'Juan Pérez' })).toBeDisabled();

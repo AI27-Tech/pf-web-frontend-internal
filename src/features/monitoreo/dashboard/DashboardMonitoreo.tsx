@@ -3,18 +3,23 @@
  * y alertas quedan fuera). Los rótulos son de trabajo, pendientes de aprobación de Producto.
  */
 
-import type { ReactNode } from 'react';
-
 import {
-  Button,
+  Alert,
   Card,
   CardBody,
   CardHeader,
+  EmptyState,
   FilterBar,
+  Grid,
+  PageHeader,
+  SkeletonCard,
+  Stack,
+  Stat,
   Table,
   type FilterDefinition,
 } from '@ai27-tech/ui';
 
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { useSession } from '@/context/SessionContext';
 import { puedeUsarMonitoreo } from '@/features/monitoreo/puedeUsarMonitoreo';
 import type { FilaViaje } from '@/lib/contracts/reportes';
@@ -51,16 +56,14 @@ export function DashboardMonitoreo() {
   const autorizado = !!usuario && puedeUsarMonitoreo(usuario.rol);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-      <h1 className="ui-text-headline-lg" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-        Dashboard de Monitoreo
-      </h1>
+    <Stack gap={4}>
+      <PageHeader title="Dashboard de Monitoreo" />
       {autorizado ? (
         <DashboardAutorizado />
       ) : (
-        <Mensaje>Este dashboard no está disponible para tu rol.</Mensaje>
+        <Alert variant="danger">Este dashboard no está disponible para tu rol.</Alert>
       )}
-    </div>
+    </Stack>
   );
 }
 
@@ -68,7 +71,7 @@ function DashboardAutorizado() {
   const d = useDashboardMonitoreo();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+    <Stack gap={4}>
       <FilterBar
         filters={[FILTRO_VISTA]}
         filterValues={{ vista: d.vista }}
@@ -80,23 +83,26 @@ function DashboardAutorizado() {
         showActiveFilterChips={false}
       />
 
-      {d.esProhibido && <Mensaje>No tienes autorización para ver este reporte.</Mensaje>}
+      {d.esProhibido && (
+        <Alert variant="danger">No tienes autorización para ver este reporte.</Alert>
+      )}
 
       {!d.esProhibido && d.error && (
         <Card variant="outlined">
           <CardBody>
-            <Mensaje>No se pudo cargar el dashboard.</Mensaje>
-            <Button variant="primary" type="button" onClick={d.reintentar}>
-              Reintentar
-            </Button>
+            <BloqueError mensaje="No se pudo cargar el dashboard." onReintentar={d.reintentar} />
           </CardBody>
         </Card>
       )}
 
-      {!d.esProhibido && !d.error && d.cargando && <Mensaje>Cargando el dashboard...</Mensaje>}
+      {!d.esProhibido && !d.error && d.cargando && (
+        <div role="status" aria-label="Cargando el dashboard">
+          <SkeletonCard lines={3} />
+        </div>
+      )}
 
       {!d.esProhibido && !d.error && !d.cargando && d.vacio && (
-        <Mensaje>Sin viajes para mostrar.</Mensaje>
+        <EmptyState size="sm" title="Sin viajes para mostrar." />
       )}
 
       {!d.esProhibido && !d.error && !d.cargando && d.viajes && !d.vacio && (
@@ -162,7 +168,7 @@ function DashboardAutorizado() {
           )}
         </>
       )}
-    </div>
+    </Stack>
   );
 }
 
@@ -183,29 +189,12 @@ function ConteosCard({
         </CardHeader>
       )}
       <CardBody>
-        <Table<{ readonly estado: string; readonly conteo: number }>
-          aria-label={titulo || 'Conteos por estado'}
-          data={[...filas]}
-          rowKey={(fila) => fila.estado}
-          density="compact"
-          columns={[
-            { key: 'estado', header: 'Estado', accessor: 'estado' },
-            { key: 'conteo', header: 'Conteo', accessor: 'conteo' },
-          ]}
-        />
+        <Grid role="group" aria-label={titulo || 'Conteos por estado'} minItemWidth="10rem" gap={3}>
+          {filas.map((fila) => (
+            <Stat key={fila.estado} label={fila.estado} value={fila.conteo} />
+          ))}
+        </Grid>
       </CardBody>
     </Card>
-  );
-}
-
-function Mensaje({ children }: { readonly children: ReactNode }) {
-  return (
-    <p
-      className="ui-text-body-sm"
-      role="status"
-      style={{ margin: 0, color: 'var(--ui-color-text)' }}
-    >
-      {children}
-    </p>
   );
 }

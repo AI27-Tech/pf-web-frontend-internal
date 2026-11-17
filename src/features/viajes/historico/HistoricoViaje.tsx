@@ -9,19 +9,28 @@
 import { useRef, useState } from 'react';
 
 import {
+  Alert,
   Badge,
+  Breadcrumb,
   Button,
   Card,
   CardBody,
   CardHeader,
   Form,
+  EmptyState,
   FormField,
+  Inline,
   Modal,
+  PageHeader,
+  Stack,
   Textarea,
+  Timeline,
   Toast,
   ToastContainer,
 } from '@ai27-tech/ui';
 
+import { BloqueError } from '@/components/feedback/BloqueError';
+import { EnlaceRuta } from '@/components/layout/EnlaceRuta';
 import { useSession } from '@/context/SessionContext';
 import {
   ErrorAutorizacionInsuficiente,
@@ -53,7 +62,6 @@ interface ToastItem {
 }
 
 const COLOR_MUTED = 'var(--ui-color-text-muted)';
-const COLOR_TEXT = 'var(--ui-color-text)';
 
 /** Formatea una marca de tiempo ISO a una cadena legible local. */
 function formatearFecha(iso: string): string {
@@ -75,9 +83,9 @@ function DelegacionSesion() {
   return (
     <Card variant="outlined">
       <CardBody>
-        <p role="alert" className="ui-text-body-sm" style={{ margin: 0, color: COLOR_TEXT }}>
+        <Alert variant="danger">
           Tu sesión no está autorizada. Vuelve a iniciar sesión para ver el histórico.
-        </p>
+        </Alert>
       </CardBody>
     </Card>
   );
@@ -88,9 +96,7 @@ function SinPermiso() {
   return (
     <Card variant="outlined">
       <CardBody>
-        <p role="alert" className="ui-text-body-sm" style={{ margin: 0, color: COLOR_TEXT }}>
-          No tienes permiso para ver el histórico de este viaje.
-        </p>
+        <Alert variant="danger">No tienes permiso para ver el histórico de este viaje.</Alert>
       </CardBody>
     </Card>
   );
@@ -192,10 +198,19 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-      <h1 className="ui-text-headline-lg" style={{ margin: 0, color: COLOR_TEXT }}>
-        Histórico del viaje: {id}
-      </h1>
+    <Stack gap={4}>
+      <PageHeader
+        title={`Histórico del viaje: ${id}`}
+        breadcrumb={
+          <Breadcrumb
+            items={[
+              { label: 'Viajes', href: '/viajes', as: EnlaceRuta },
+              { label: `Viaje ${id}`, href: `/viajes/${id}`, as: EnlaceRuta },
+              { label: 'Histórico' },
+            ]}
+          />
+        }
+      />
 
       <Card variant="outlined">
         <CardHeader>Bitácora</CardHeader>
@@ -259,78 +274,50 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
           />
         ))}
       </ToastContainer>
+    </Stack>
+  );
+}
+
+/** Carga de un historial: región viva con texto accesible y esqueletos de Timeline. */
+function CargaHistorial({ recurso }: { readonly recurso: string }) {
+  return (
+    <div role="status" aria-label={`Cargando ${recurso}`}>
+      <Timeline items={[]} loading />
     </div>
   );
 }
 
-/** Lista cronológica append-only de la bitácora, con estados de UI. */
+/** Bitácora append-only: autor, texto y marca de tiempo; sin acciones por registro. */
 function BitacoraLista({
   estado,
 }: {
   readonly estado: ReturnType<typeof useHistoricoViaje>['bitacora'];
 }) {
   if (estado.cargando) {
-    return (
-      <p role="status" className="ui-text-body-sm" style={{ margin: 0, color: COLOR_MUTED }}>
-        Cargando bitácora...
-      </p>
-    );
+    return <CargaHistorial recurso="bitácora" />;
   }
   if (estado.error) {
     return (
-      <div
-        role="alert"
-        style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}
-      >
-        <p className="ui-text-body-sm" style={{ margin: 0, color: COLOR_TEXT }}>
-          No se pudo cargar la bitácora.
-        </p>
-        <Button variant="secondary" type="button" onClick={estado.reintentar}>
-          Reintentar
-        </Button>
-      </div>
+      <BloqueError mensaje="No se pudo cargar la bitácora." onReintentar={estado.reintentar} />
     );
   }
   const items = estado.datos?.items ?? [];
-  if (items.length === 0) {
-    return (
-      <p role="status" className="ui-text-body-sm" style={{ margin: 0, color: COLOR_MUTED }}>
-        Aún no hay notas en la bitácora.
-      </p>
-    );
-  }
   return (
-    <ul
-      style={{
-        listStyle: 'none',
-        margin: 0,
-        padding: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--ui-space-2)',
-      }}
-    >
-      {items.map((entrada: EntradaBitacora) => (
-        <li
-          key={entrada.id}
-          style={{
-            borderInlineStart: '3px solid var(--ui-color-border)',
-            paddingInlineStart: 'var(--ui-space-3)',
-          }}
-        >
-          <p className="ui-text-body-sm" style={{ margin: 0, color: COLOR_TEXT }}>
-            {entrada.texto}
-          </p>
-          <p className="ui-text-body-xs" style={{ margin: 0, color: COLOR_MUTED }}>
-            {entrada.autor} · {formatearFecha(entrada.ts)}
-          </p>
-        </li>
-      ))}
-    </ul>
+    <Timeline
+      items={items.map((entrada: EntradaBitacora) => ({
+        id: entrada.id,
+        title: entrada.autor,
+        description: entrada.texto,
+        timestamp: formatearFecha(entrada.ts),
+        dateTime: entrada.ts,
+        status: 'completed',
+      }))}
+      emptyState={<EmptyState size="sm" title="Aún no hay notas en la bitácora." />}
+    />
   );
 }
 
-/** Lista de estadías con duración derivada y cierre; sin rótulo prolongada. */
+/** Estadías con duración derivada y cierre; sin rótulo prolongada. */
 function EstadiasLista({
   estado,
   cerrando,
@@ -341,90 +328,58 @@ function EstadiasLista({
   readonly onCerrar: (estadiaId: string) => void;
 }) {
   if (estado.cargando) {
-    return (
-      <p role="status" className="ui-text-body-sm" style={{ margin: 0, color: COLOR_MUTED }}>
-        Cargando estadías...
-      </p>
-    );
+    return <CargaHistorial recurso="estadías" />;
   }
   if (estado.error) {
     return (
-      <div
-        role="alert"
-        style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}
-      >
-        <p className="ui-text-body-sm" style={{ margin: 0, color: COLOR_TEXT }}>
-          No se pudieron cargar las estadías.
-        </p>
-        <Button variant="secondary" type="button" onClick={estado.reintentar}>
-          Reintentar
-        </Button>
-      </div>
+      <BloqueError mensaje="No se pudieron cargar las estadías." onReintentar={estado.reintentar} />
     );
   }
   const items = estado.datos?.items ?? [];
-  if (items.length === 0) {
-    return (
-      <p role="status" className="ui-text-body-sm" style={{ margin: 0, color: COLOR_MUTED }}>
-        Aún no hay estadías registradas.
-      </p>
-    );
-  }
   return (
-    <ul
-      style={{
-        listStyle: 'none',
-        margin: 0,
-        padding: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--ui-space-3)',
-      }}
-    >
-      {items.map((estadia: Estadia) => {
+    <Timeline
+      items={items.map((estadia: Estadia) => {
         const abierta = (estadia.cierre ?? null) === null;
-        return (
-          <li
-            key={estadia.id}
-            style={{
-              borderInlineStart: '3px solid var(--ui-color-border)',
-              paddingInlineStart: 'var(--ui-space-3)',
-            }}
-          >
-            <div style={{ display: 'flex', gap: 'var(--ui-space-2)', alignItems: 'center' }}>
-              <span className="ui-text-body-sm" style={{ color: COLOR_TEXT }}>
-                {estadia.motivo} · {estadia.eje_autorizacion}
-              </span>
-              <Badge variant={abierta ? 'warning' : 'neutral'}>
-                {abierta ? 'Abierta' : 'Cerrada'}
-              </Badge>
-            </div>
-            <p className="ui-text-body-xs" style={{ margin: 0, color: COLOR_MUTED }}>
-              Inicio: {formatearFecha(estadia.inicio)}
-              {estadia.cierre ? ` · Cierre: ${formatearFecha(estadia.cierre)}` : ''} · Duración:{' '}
-              {formatearDuracion(duracionEstadia(estadia))}
-            </p>
-            {abierta && (
-              <div style={{ marginTop: 'var(--ui-space-1)' }}>
-                <Button
-                  variant="secondary"
-                  type="button"
-                  loading={cerrando}
-                  disabled={cerrando}
-                  onClick={() => onCerrar(estadia.id)}
-                >
-                  Cerrar estadía
-                </Button>
-              </div>
-            )}
-          </li>
-        );
+        return {
+          id: estadia.id,
+          title: `${estadia.motivo} · ${estadia.eje_autorizacion}`,
+          timestamp: `Inicio: ${formatearFecha(estadia.inicio)}`,
+          dateTime: estadia.inicio,
+          description: estadia.cierre ? `Cierre: ${formatearFecha(estadia.cierre)}` : undefined,
+          status: abierta ? 'current' : 'completed',
+          content: (
+            <Stack gap={1}>
+              <Inline gap={2} align="center" wrap={false}>
+                <Badge variant={abierta ? 'warning' : 'neutral'}>
+                  {abierta ? 'Abierta' : 'Cerrada'}
+                </Badge>
+                <span className="ui-text-body-xs" style={{ color: COLOR_MUTED }}>
+                  Duración: {formatearDuracion(duracionEstadia(estadia))}
+                </span>
+              </Inline>
+              {abierta && (
+                <div>
+                  <Button
+                    variant="secondary"
+                    type="button"
+                    loading={cerrando}
+                    disabled={cerrando}
+                    onClick={() => onCerrar(estadia.id)}
+                  >
+                    Cerrar estadía
+                  </Button>
+                </div>
+              )}
+            </Stack>
+          ),
+        };
       })}
-    </ul>
+      emptyState={<EmptyState size="sm" title="Aún no hay estadías registradas." />}
+    />
   );
 }
 
-/** Lista de incidencias del viaje (lectura `listarIncidencias`); resolver solo si el rol lo permite. */
+/** Incidencias del viaje (lectura `listarIncidencias`); resolver solo si el rol lo permite. */
 function IncidenciasLista({
   estado,
   puedeCorregir,
@@ -435,81 +390,48 @@ function IncidenciasLista({
   readonly onResolver: (incidencia: Incidencia) => void;
 }) {
   if (estado.cargando) {
-    return (
-      <p role="status" className="ui-text-body-sm" style={{ margin: 0, color: COLOR_MUTED }}>
-        Cargando incidencias...
-      </p>
-    );
+    return <CargaHistorial recurso="incidencias" />;
   }
   if (estado.error) {
     return (
-      <div
-        role="alert"
-        style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}
-      >
-        <p className="ui-text-body-sm" style={{ margin: 0, color: COLOR_TEXT }}>
-          No se pudieron cargar las incidencias.
-        </p>
-        <Button variant="secondary" type="button" onClick={estado.reintentar}>
-          Reintentar
-        </Button>
-      </div>
+      <BloqueError
+        mensaje="No se pudieron cargar las incidencias."
+        onReintentar={estado.reintentar}
+      />
     );
   }
   const items = estado.datos?.items ?? [];
-  if (items.length === 0) {
-    return (
-      <p role="status" className="ui-text-body-sm" style={{ margin: 0, color: COLOR_MUTED }}>
-        No hay incidencias registradas en este viaje.
-      </p>
-    );
-  }
   return (
-    <ul
-      style={{
-        listStyle: 'none',
-        margin: 0,
-        padding: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--ui-space-3)',
-      }}
-    >
-      {items.map((incidencia) => {
+    <Timeline
+      items={items.map((incidencia: Incidencia) => {
         const resuelta = incidencia.estado === 'resuelta';
-        return (
-          <li
-            key={incidencia.id}
-            style={{
-              borderInlineStart: '3px solid var(--ui-color-border)',
-              paddingInlineStart: 'var(--ui-space-3)',
-            }}
-          >
-            <div style={{ display: 'flex', gap: 'var(--ui-space-2)', alignItems: 'center' }}>
-              <span className="ui-text-body-sm" style={{ color: COLOR_TEXT }}>
-                {incidencia.tipo_interno}
-              </span>
+        return {
+          id: incidencia.id,
+          title: incidencia.tipo_interno,
+          timestamp: `Abierta: ${formatearFecha(incidencia.abierta_en)}`,
+          dateTime: incidencia.abierta_en,
+          description: incidencia.resuelta_en
+            ? `Resuelta: ${formatearFecha(incidencia.resuelta_en)}`
+            : undefined,
+          status: resuelta ? 'completed' : 'warning',
+          content: (
+            <Stack gap={1}>
               <Badge variant={resuelta ? 'neutral' : 'alert'}>
                 {resuelta ? 'Resuelta' : 'En atención'}
               </Badge>
-            </div>
-            <p className="ui-text-body-xs" style={{ margin: 0, color: COLOR_MUTED }}>
-              Abierta: {formatearFecha(incidencia.abierta_en)}
-              {incidencia.resuelta_en
-                ? ` · Resuelta: ${formatearFecha(incidencia.resuelta_en)}`
-                : ''}
-            </p>
-            {!resuelta && puedeCorregir && (
-              <div style={{ marginTop: 'var(--ui-space-1)' }}>
-                <Button variant="secondary" type="button" onClick={() => onResolver(incidencia)}>
-                  Resolver incidencia
-                </Button>
-              </div>
-            )}
-          </li>
-        );
+              {!resuelta && puedeCorregir && (
+                <div>
+                  <Button variant="secondary" type="button" onClick={() => onResolver(incidencia)}>
+                    Resolver incidencia
+                  </Button>
+                </div>
+              )}
+            </Stack>
+          ),
+        };
       })}
-    </ul>
+      emptyState={<EmptyState size="sm" title="No hay incidencias registradas en este viaje." />}
+    />
   );
 }
 
@@ -550,28 +472,29 @@ function ResolucionForm({
         event.preventDefault();
         void confirmar();
       }}
-      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}
     >
-      <FormField label="Resolución" required error={error ?? undefined}>
-        <Textarea
-          value={resolucion}
-          onChange={(event) => {
-            setResolucion(event.target.value);
-            if (error) setError(null);
-          }}
-          disabled={enviando}
-          rows={3}
-          placeholder="Describe la resolución de la incidencia"
-        />
-      </FormField>
-      <div style={{ display: 'flex', gap: 'var(--ui-space-2)', justifyContent: 'flex-end' }}>
-        <Button variant="secondary" type="button" onClick={onCancelar} disabled={enviando}>
-          Cancelar
-        </Button>
-        <Button variant="primary" type="submit" loading={enviando} disabled={enviando}>
-          Confirmar resolución
-        </Button>
-      </div>
+      <Stack gap={3}>
+        <FormField label="Resolución" required error={error ?? undefined}>
+          <Textarea
+            value={resolucion}
+            onChange={(event) => {
+              setResolucion(event.target.value);
+              if (error) setError(null);
+            }}
+            disabled={enviando}
+            rows={3}
+            placeholder="Describe la resolución de la incidencia"
+          />
+        </FormField>
+        <Inline gap={2} justify="end" wrap={false}>
+          <Button variant="secondary" type="button" onClick={onCancelar} disabled={enviando}>
+            Cancelar
+          </Button>
+          <Button variant="primary" type="submit" loading={enviando} disabled={enviando}>
+            Confirmar resolución
+          </Button>
+        </Inline>
+      </Stack>
     </Form>
   );
 }

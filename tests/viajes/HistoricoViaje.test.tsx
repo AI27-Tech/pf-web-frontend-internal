@@ -10,7 +10,7 @@
  */
 
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, waitFor, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
@@ -32,6 +32,16 @@ vi.mock('@/context/SessionContext', () => ({
     usuario: { id: 'u1', rol: rolActual, audiencia: 'interno' },
   }),
 }));
+
+// El Breadcrumb renderiza enlaces con `Link` del router; aquí basta un `<a href>`
+// que conserve la ruta recibida en `to` (la traducción la hace `EnlaceRuta`).
+vi.mock('@tanstack/react-router', async () => {
+  const { createElement } = await import('react');
+  return {
+    Link: ({ to, children }: { to: string; children?: unknown }) =>
+      createElement('a', { href: to }, children as never),
+  };
+});
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {
@@ -114,11 +124,11 @@ function renderHistorico() {
 
 /**
  * El `Select` de `@ai27-tech/ui` no es un `<select>` nativo: es un botón-trigger
- * cuyo nombre accesible es el placeholder, que abre un popup de opciones. Para
- * elegir un valor: abrir el trigger por su placeholder y clicar la opción.
+ * cuyo nombre accesible es la etiqueta del campo (FormField), que abre un popup de
+ * opciones. Para elegir un valor: abrir el trigger por su etiqueta y clicar la opción.
  */
-async function elegirOpcion(placeholder: string, opcion: string) {
-  await userEvent.click(screen.getByRole('button', { name: placeholder }));
+async function elegirOpcion(etiqueta: string, opcion: string) {
+  await userEvent.click(screen.getByRole('button', { name: etiqueta }));
   await userEvent.click(await screen.findByRole('button', { name: opcion }));
 }
 
@@ -184,8 +194,8 @@ describe('HistoricoViaje — integración (E8-T13)', () => {
 
     // El Select de la librería es un botón-trigger + popup (no <select> nativo):
     // abrir el trigger por su placeholder y elegir la opción por su texto.
-    await elegirOpcion('Selecciona un motivo', 'Descanso');
-    await elegirOpcion('Selecciona el eje de autorización', 'Autorizada');
+    await elegirOpcion('Motivo de la estadía', 'Descanso');
+    await elegirOpcion('Eje de autorización', 'Autorizada');
     await userEvent.click(screen.getByRole('button', { name: 'Abrir estadía' }));
 
     await waitFor(() => expect(screen.getByText('Abierta')).toBeInTheDocument());
@@ -299,6 +309,24 @@ describe('HistoricoViaje — integración (E8-T13)', () => {
 
     expect(screen.queryByRole('button', { name: /editar/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /borrar|eliminar/i })).not.toBeInTheDocument();
+  });
+
+  it('el Breadcrumb enlaza Viajes y el detalle del viaje; la pantalla actual no es enlace', async () => {
+    server.use(
+      http.get(path('/viajes/:id/bitacora'), () => HttpResponse.json(bitacoraVacia)),
+      http.get(path('/viajes/:id/estadias'), () => HttpResponse.json(estadiasVacias)),
+      http.get(path('/viajes/:id/incidencias'), () => HttpResponse.json(incidenciasVacias)),
+    );
+    renderHistorico();
+
+    const ruta = screen.getByRole('navigation', { name: 'Ruta de navegación' });
+    expect(within(ruta).getByRole('link', { name: 'Viajes' })).toHaveAttribute('href', '/viajes');
+    expect(within(ruta).getByRole('link', { name: 'Viaje VJ-1' })).toHaveAttribute(
+      'href',
+      '/viajes/VJ-1',
+    );
+    expect(within(ruta).queryByRole('link', { name: 'Histórico' })).not.toBeInTheDocument();
+    expect(within(ruta).getByText('Histórico')).toBeInTheDocument();
   });
 });
 

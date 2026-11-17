@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { Button, Toast } from '@ai27-tech/ui';
+import { Alert, Grid, PageHeader, Stack, Toast } from '@ai27-tech/ui';
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { ErrorEmergenciaNoDisponible, ErrorSinAccesoEmergencias } from '@/lib/api/emergencias';
 import { ListaCasos } from './ListaCasos';
 import { PanelCaso } from './PanelCaso';
@@ -60,10 +61,8 @@ export function BandejaEmergencias({ casoAbierto }: { casoAbierto?: string | und
     caso.error instanceof ErrorEmergenciaNoDisponible;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-      <h1 className="ui-text-headline-lg" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-        Bandeja de Emergencias
-      </h1>
+    <Stack gap={4}>
+      <PageHeader title="Bandeja de Emergencias" />
       {aviso && (
         <Toast variant="success" title={aviso} onClose={() => setAviso(null)}>
           Los cambios ya están aplicados.
@@ -73,13 +72,7 @@ export function BandejaEmergencias({ casoAbierto }: { casoAbierto?: string | und
       <p role="status" aria-live="polite" style={{ margin: 0 }}>
         {caso.anuncio}
       </p>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(260px, 1fr) 2fr',
-          gap: 'var(--ui-space-4)',
-        }}
-      >
+      <Grid gap={4} style={{ gridTemplateColumns: 'minmax(260px, 1fr) 2fr' }}>
         <ListaCasos
           items={visibles}
           seleccionado={casoAbierto}
@@ -97,15 +90,10 @@ export function BandejaEmergencias({ casoAbierto }: { casoAbierto?: string | und
           {!casoAbierto && <p>Selecciona una emergencia para ver su detalle.</p>}
           {casoAbierto && caso.cargando && <p role="status">Cargando emergencia...</p>}
           {casoAbierto && sinAcceso && (
-            <p role="alert">La emergencia no está disponible para ti.</p>
+            <Alert variant="danger">La emergencia no está disponible para ti.</Alert>
           )}
           {casoAbierto && caso.error && !sinAcceso && !caso.detalle && (
-            <div style={{ display: 'grid', gap: 'var(--ui-space-2)' }}>
-              <p role="alert">{caso.error.message}</p>
-              <Button variant="outline" onClick={() => void caso.recargar()}>
-                Reintentar
-              </Button>
-            </div>
+            <BloqueError mensaje={caso.error.message} onReintentar={() => void caso.recargar()} />
           )}
           {caso.detalle && (
             <PanelCaso
@@ -125,7 +113,7 @@ export function BandejaEmergencias({ casoAbierto }: { casoAbierto?: string | und
             />
           )}
         </div>
-      </div>
-    </div>
+      </Grid>
+    </Stack>
   );
 }

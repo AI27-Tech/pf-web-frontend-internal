@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Button, Card, CardBody, Toast, ToastContainer } from '@ai27-tech/ui';
+import { Alert, Button, Toast, ToastContainer } from '@ai27-tech/ui';
 
 import { useAdministracionPort } from '@/context/AdministracionContext';
 
@@ -61,13 +61,7 @@ export function AdministracionAutorizada({
 
   const contenido = () => {
     if (!publicada) {
-      return (
-        <Card variant="outlined">
-          <CardBody>
-            <p role="status">{TEXTOS.seccionNoPublicada}</p>
-          </CardBody>
-        </Card>
-      );
+      return <Alert variant="info">{TEXTOS.seccionNoPublicada}</Alert>;
     }
     if (seccion === 'organizaciones') {
       return <SeccionOrganizaciones envio={envio} onAviso={aviso} />;

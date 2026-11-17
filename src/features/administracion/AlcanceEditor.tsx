@@ -1,5 +1,5 @@
 import { useState, type Key } from 'react';
-import { Button, Card, CardBody, Table, type Column } from '@ai27-tech/ui';
+import { Alert, Button, Table, type Column } from '@ai27-tech/ui';
 import { Rol } from '@ai27-tech/contracts/roles';
 
 import { useAdministracionPort } from '@/context/AdministracionContext';
@@ -129,11 +129,7 @@ export function AlcanceEditor({ usuario, envio, onAviso }: AlcanceEditorProps) {
       )}
 
       {opciones.length === 0 ? (
-        <Card variant="outlined">
-          <CardBody>
-            <p role="status">{TEXTOS.alcanceSinOpciones}</p>
-          </CardBody>
-        </Card>
+        <Alert variant="info">{TEXTOS.alcanceSinOpciones}</Alert>
       ) : (
         <Table<OpcionAlcance>
           columns={columnasDe(tipo)}

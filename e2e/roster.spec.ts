@@ -21,7 +21,7 @@ test('el Jefe Operativo entra a Roster por la navegación y da de alta una unida
   await expect(roster.getByText('P-101 · ABC-1234')).toBeVisible();
 
   await page.getByRole('button', { name: 'Nueva unidad' }).click();
-  await page.getByRole('button', { name: 'Elige un vehículo' }).click();
+  await page.getByRole('button', { name: 'Vehículo' }).click();
   await page.getByRole('button', { name: 'P-102 · DEF-5678 (coche)' }).click();
   // La casilla nativa queda tras su caja visual: el usuario hace clic en la etiqueta.
   await page.getByText('María Torres').click();

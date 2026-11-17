@@ -9,20 +9,27 @@
 import { useEffect, useRef, useState } from 'react';
 
 import {
+  Alert,
   Badge,
   Button,
   Card,
   CardBody,
   CardFooter,
   CardHeader,
+  DateTimeInput,
+  EmptyState,
   Form,
   FormField,
   FormRow,
+  Inline,
   Input,
+  SkeletonText,
+  Stack,
   Table,
 } from '@ai27-tech/ui';
 import { useNavigate } from '@tanstack/react-router';
 
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { useSession } from '@/context/SessionContext';
 import { ApiError } from '@/lib/api/errors';
 import { onCut } from '@/lib/api/sessionCut';
@@ -107,19 +114,10 @@ export function CrearViaje() {
   const volver = () => void navigate({ to: '/viajes' });
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--ui-space-4)',
-        maxWidth: '62rem',
-      }}
-    >
+    <Stack gap={4} style={{ maxWidth: '62rem' }}>
       <header>
         {avisoSesionFinalizada && (
-          <p role="alert" style={{ color: 'var(--ui-color-error)', margin: 0 }}>
-            Tu sesión finalizó. La información capturada no se envió.
-          </p>
+          <Alert variant="danger">Tu sesión finalizó. La información capturada no se envió.</Alert>
         )}
         <Button variant="ghost" type="button" onClick={volver}>
           Volver a viajes
@@ -183,11 +181,10 @@ export function CrearViaje() {
                 />
               </FormField>
               <FormField label="Fecha y hora del servicio" required error={errores.fechaHora}>
-                <Input
-                  type="datetime-local"
+                <DateTimeInput
                   value={fechaHora}
-                  onChange={(event) => {
-                    setFechaHora(event.target.value);
+                  onChange={(valor) => {
+                    setFechaHora(valor);
                     setErrores((actuales) => quitarError(actuales, 'fechaHora'));
                   }}
                   disabled={c.enviando}
@@ -202,12 +199,9 @@ export function CrearViaje() {
               >
                 Destinos <span aria-hidden="true">*</span>
               </legend>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
+              <Stack gap={2}>
                 {destinos.map((destino, indice) => (
-                  <div
-                    key={`destino-${indice}`}
-                    style={{ display: 'flex', gap: 'var(--ui-space-2)' }}
-                  >
+                  <Inline key={`destino-${indice}`} gap={2} align="stretch" wrap={false}>
                     <Input
                       value={destino}
                       onChange={(event) => actualizarDestino(indice, event.target.value)}
@@ -228,13 +222,9 @@ export function CrearViaje() {
                         Quitar
                       </Button>
                     )}
-                  </div>
+                  </Inline>
                 ))}
-                {errores.destinos && (
-                  <p role="alert" style={{ color: 'var(--ui-color-error)', margin: 0 }}>
-                    {errores.destinos}
-                  </p>
-                )}
+                {errores.destinos && <Alert variant="danger">{errores.destinos}</Alert>}
                 <Button
                   variant="secondary"
                   type="button"
@@ -243,7 +233,7 @@ export function CrearViaje() {
                 >
                   Agregar destino
                 </Button>
-              </div>
+              </Stack>
             </fieldset>
 
             <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
@@ -267,11 +257,7 @@ export function CrearViaje() {
               />
             </fieldset>
 
-            {errorEnvio && (
-              <p role="alert" style={{ color: 'var(--ui-color-error)', margin: 0 }}>
-                {errorEnvio}
-              </p>
-            )}
+            {errorEnvio && <Alert variant="danger">{errorEnvio}</Alert>}
             {resultado && (
               <Resultado
                 resultado={resultado}
@@ -302,7 +288,7 @@ export function CrearViaje() {
           </Form>
         </CardBody>
       </Card>
-    </div>
+    </Stack>
   );
 }
 
@@ -325,21 +311,19 @@ function Roster({
   onSelectionChange,
   onReintentar,
 }: RosterProps) {
-  if (cargando) return <p role="status">Cargando unidades del roster...</p>;
+  if (cargando)
+    return (
+      <div role="status" aria-label="Cargando unidades del roster">
+        <SkeletonText lines={3} />
+      </div>
+    );
   if (error) {
     return (
-      <Card variant="outlined">
-        <CardBody>
-          <p role="alert">No se pudo cargar el roster de unidades.</p>
-          <Button variant="secondary" type="button" onClick={onReintentar}>
-            Reintentar
-          </Button>
-        </CardBody>
-      </Card>
+      <BloqueError mensaje="No se pudo cargar el roster de unidades." onReintentar={onReintentar} />
     );
   }
   if (unidades.length === 0)
-    return <p role="status">No hay unidades disponibles para seleccionar.</p>;
+    return <EmptyState size="sm" title="No hay unidades disponibles para seleccionar." />;
 
   return (
     <div aria-label={`${seleccionadas.size} unidades seleccionadas`}>
@@ -433,7 +417,7 @@ function AccesoNoAutorizado({ onVolver }: { readonly onVolver: () => void }) {
   return (
     <Card variant="outlined">
       <CardBody>
-        <p role="alert">Este flujo está disponible para el rol Jefe Operativo.</p>
+        <Alert variant="danger">Este flujo está disponible para el rol Jefe Operativo.</Alert>
       </CardBody>
       <CardFooter>
         <Button variant="secondary" onClick={onVolver}>

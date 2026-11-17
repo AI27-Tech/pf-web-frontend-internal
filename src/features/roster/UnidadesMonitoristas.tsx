@@ -8,9 +8,10 @@
 
 import { useState } from 'react';
 
-import { Badge, Button, Card, CardBody, CardHeader, Modal, Table } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Card, Inline, Modal, Section, Table } from '@ai27-tech/ui';
 import type { Column } from '@ai27-tech/ui';
 
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { esProhibido } from '@/lib/api/errors';
 import type { UsuarioAdmin } from '@/lib/contracts/alcance';
 import type { Unidad } from '@/lib/contracts/unidades';
@@ -20,7 +21,6 @@ import { mensajeErrorAlcance } from './mensajes';
 import { UnidadesMonitoristaForm } from './UnidadesMonitoristaForm';
 import { useUnidadesMonitoristas, type MonitoristaConUnidades } from './useUnidadesMonitoristas';
 
-const TEXTO = 'var(--ui-color-text)';
 const TEXTO_TENUE = 'var(--ui-color-text-muted)';
 
 /** `nombre` e `identificador_usuario` son opcionales en el contrato. */
@@ -39,26 +39,23 @@ function UnidadesAsignadas({
     return <span style={{ color: TEXTO_TENUE }}>Sin unidades</span>;
   }
   return (
-    <ul
-      style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: 'var(--ui-space-2)',
-        margin: 0,
-        padding: 0,
-        listStyle: 'none',
-      }}
+    <Inline
+      as="ul"
+      gap={2}
+      align="stretch"
+      wrap
+      style={{ margin: 0, padding: 0, listStyle: 'none' }}
     >
       {ids.map((id) => {
         const unidad = porId.get(id);
         return (
-          <li key={id} style={{ display: 'flex', gap: 'var(--ui-space-1)', alignItems: 'center' }}>
+          <Inline as="li" key={id} gap={1} align="center" wrap={false}>
             <span>{unidad ? vehiculoLegible(unidad) : id}</span>
             {unidad && !unidad.activa && <Badge variant="neutral">Inactiva</Badge>}
-          </li>
+          </Inline>
         );
       })}
-    </ul>
+    </Inline>
   );
 }
 
@@ -100,38 +97,27 @@ export function UnidadesMonitoristas() {
   return (
     <>
       <Card variant="outlined">
-        <CardHeader>
-          <h2 className="ui-text-body-md" style={{ margin: 0, color: TEXTO }}>
-            Unidades de cada Monitorista
-          </h2>
-        </CardHeader>
-        <CardBody>
+        <Section
+          title={
+            <span role="heading" aria-level={2}>
+              Unidades de cada Monitorista
+            </span>
+          }
+        >
           {aviso && (
-            <p
-              role="status"
-              className="ui-text-body-sm"
-              style={{ margin: '0 0 var(--ui-space-2)', color: 'var(--ui-color-success)' }}
-            >
+            <Alert variant="success" style={{ marginBottom: 'var(--ui-space-2)' }}>
               {aviso}
-            </p>
+            </Alert>
           )}
           {esProhibido(r.error) ? (
-            <p role="alert" className="ui-text-body-sm" style={{ margin: 0, color: TEXTO }}>
+            <Alert variant="danger">
               No tienes permiso para consultar las unidades de los Monitoristas.
-            </p>
+            </Alert>
           ) : r.error ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
-              <p
-                role="alert"
-                className="ui-text-body-sm"
-                style={{ margin: 0, color: 'var(--ui-color-error)' }}
-              >
-                No se pudieron cargar las unidades de los Monitoristas.
-              </p>
-              <Button variant="secondary" onClick={r.reintentar}>
-                Reintentar
-              </Button>
-            </div>
+            <BloqueError
+              mensaje="No se pudieron cargar las unidades de los Monitoristas."
+              onReintentar={r.reintentar}
+            />
           ) : r.cargando ? (
             <p className="ui-text-body-sm" style={{ margin: 0, color: TEXTO_TENUE }}>
               Cargando los Monitoristas...
@@ -146,7 +132,7 @@ export function UnidadesMonitoristas() {
               density="compact"
             />
           )}
-        </CardBody>
+        </Section>
       </Card>
 
       <Modal

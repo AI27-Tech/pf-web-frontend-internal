@@ -139,8 +139,6 @@ export const TEXTOS_ADMINISTRACION = {
   altaCrear: 'Crear usuario',
   activo: 'Activo',
   inactivo: 'Inactivo',
-  datoCampo: 'Dato',
-  datoValor: 'Valor',
   accionesTitulo: 'Acciones',
   cambiarRol: 'Cambiar rol',
   editarAlcance: 'Editar alcance',

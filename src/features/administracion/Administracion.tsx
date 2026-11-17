@@ -1,4 +1,4 @@
-import { Card, CardBody } from '@ai27-tech/ui';
+import { Alert, PageHeader } from '@ai27-tech/ui';
 
 import { useSession } from '@/context/SessionContext';
 
@@ -30,9 +30,13 @@ export function Administracion({
 
   return (
     <section aria-labelledby="administracion-titulo" className="flex flex-col gap-4 p-6">
-      <h1 id="administracion-titulo" tabIndex={-1} className="text-2xl font-semibold">
-        Administración
-      </h1>
+      <PageHeader
+        title={
+          <span id="administracion-titulo" tabIndex={-1}>
+            Administración
+          </span>
+        }
+      />
 
       {autorizado ? (
         <AdministracionAutorizada
@@ -42,11 +46,7 @@ export function Administracion({
           onAbrirUsuario={onAbrirUsuario}
         />
       ) : (
-        <Card variant="outlined">
-          <CardBody>
-            <p role="alert">{TEXTOS.accesoNoAutorizado}</p>
-          </CardBody>
-        </Card>
+        <Alert variant="danger">{TEXTOS.accesoNoAutorizado}</Alert>
       )}
     </section>
   );

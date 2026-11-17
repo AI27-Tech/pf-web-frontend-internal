@@ -1,5 +1,5 @@
 import { useReducer, useState } from 'react';
-import { Button, Card, CardBody, Modal } from '@ai27-tech/ui';
+import { Alert, Button, Card, CardBody, Modal } from '@ai27-tech/ui';
 
 import { useAdministracionPort } from '@/context/AdministracionContext';
 import { ApiError } from '@/lib/api/errors';
@@ -137,13 +137,7 @@ export function DesactivarUsuarioDialog({
             <p>{desactivar ? TEXTOS.desactivarCorte : TEXTOS.reactivarConfirmacion}</p>
           </CardBody>
         </Card>
-        {errorEnvio && (
-          <Card variant="outlined">
-            <CardBody>
-              <p role="alert">{errorEnvio}</p>
-            </CardBody>
-          </Card>
-        )}
+        {errorEnvio && <Alert variant="danger">{errorEnvio}</Alert>}
       </div>
     </Modal>
   );

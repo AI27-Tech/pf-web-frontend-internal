@@ -98,7 +98,7 @@ describe('DashboardMonitoreo · vista en curso (por defecto)', () => {
     renderDashboard();
 
     expect(await screen.findByRole('table', { name: 'Viajes del reporte' })).toBeInTheDocument();
-    const conteos = screen.getByRole('table', { name: 'Viajes en curso por estado' });
+    const conteos = screen.getByRole('group', { name: 'Viajes en curso por estado' });
     expect(within(conteos).getByText('ASIGNADO')).toBeInTheDocument();
     expect(within(conteos).getByText('2')).toBeInTheDocument();
     expect(within(conteos).getByText('EN_EMBARQUE')).toBeInTheDocument();

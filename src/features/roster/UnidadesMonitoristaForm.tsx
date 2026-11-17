@@ -9,7 +9,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { Button, Checkbox, Form } from '@ai27-tech/ui';
+import { Alert, Button, Checkbox, EmptyState, Form, Inline, Stack } from '@ai27-tech/ui';
 
 import type { Unidad } from '@/lib/contracts/unidades';
 
@@ -85,11 +85,9 @@ export function UnidadesMonitoristaForm({
       <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
         <legend className="ui-text-body-sm">Unidades del roster</legend>
         {ofrecidas.length === 0 ? (
-          <p className="ui-text-body-sm" style={{ margin: 0 }}>
-            No hay unidades activas en el roster.
-          </p>
+          <EmptyState size="sm" title="No hay unidades activas en el roster." />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-1)' }}>
+          <Stack gap={1}>
             {ofrecidas.map((o) => (
               <Checkbox
                 key={o.id}
@@ -99,28 +97,20 @@ export function UnidadesMonitoristaForm({
                 onChange={(event) => alternar(o.id, event.target.checked)}
               />
             ))}
-          </div>
+          </Stack>
         )}
       </fieldset>
 
-      {error && (
-        <p
-          role="alert"
-          className="ui-text-body-sm"
-          style={{ margin: 0, color: 'var(--ui-color-error)' }}
-        >
-          {error}
-        </p>
-      )}
+      {error && <Alert variant="danger">{error}</Alert>}
 
-      <div style={{ display: 'flex', gap: 'var(--ui-space-2)', justifyContent: 'flex-end' }}>
+      <Inline gap={2} align="stretch" justify="end" wrap={false}>
         <Button variant="secondary" type="button" onClick={onCancelar} disabled={enviando}>
           Cancelar
         </Button>
         <Button variant="primary" type="submit" disabled={bloqueado}>
           {enviando ? 'Guardando...' : 'Guardar unidades'}
         </Button>
-      </div>
+      </Inline>
     </Form>
   );
 }

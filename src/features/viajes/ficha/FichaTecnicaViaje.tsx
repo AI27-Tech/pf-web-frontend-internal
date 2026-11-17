@@ -8,9 +8,24 @@
 
 import { useEffect } from 'react';
 
-import { Button, Card, CardBody, CardFooter, CardHeader } from '@ai27-tech/ui';
+import {
+  Alert,
+  Breadcrumb,
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  DescriptionList,
+  EmptyState,
+  PageHeader,
+  SkeletonText,
+  Stack,
+} from '@ai27-tech/ui';
 import { useNavigate } from '@tanstack/react-router';
 
+import { BloqueError } from '@/components/feedback/BloqueError';
+import { EnlaceRuta } from '@/components/layout/EnlaceRuta';
 import { useSession } from '@/context/SessionContext';
 import type { FichaTecnica } from '@/lib/contracts/fichaTecnica';
 import type { Unidad } from '@/lib/contracts/unidades';
@@ -58,31 +73,29 @@ export function FichaTecnicaViaje({ id }: FichaTecnicaViajeProps) {
   const viaje = f.detalle.viaje;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 'var(--ui-space-3)',
-        }}
-      >
-        <div>
-          <h1 className="ui-text-headline-lg" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-            Ficha técnica del viaje
-          </h1>
-          <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
-            Viaje: {viaje.id}
-          </p>
-        </div>
-        <Button
-          variant="secondary"
-          type="button"
-          onClick={() => void navigate({ to: '/viajes/$id', params: { id } })}
-        >
-          Volver al detalle
-        </Button>
-      </div>
+    <Stack gap={4}>
+      <PageHeader
+        title="Ficha técnica del viaje"
+        description={`Viaje: ${viaje.id}`}
+        breadcrumb={
+          <Breadcrumb
+            items={[
+              { label: 'Viajes', href: '/viajes', as: EnlaceRuta },
+              { label: `Viaje ${id}`, href: `/viajes/${id}`, as: EnlaceRuta },
+              { label: 'Ficha técnica' },
+            ]}
+          />
+        }
+        actions={
+          <Button
+            variant="secondary"
+            type="button"
+            onClick={() => void navigate({ to: '/viajes/$id', params: { id } })}
+          >
+            Volver al detalle
+          </Button>
+        }
+      />
 
       <DatosViaje viaje={viaje} />
 
@@ -117,7 +130,7 @@ export function FichaTecnicaViaje({ id }: FichaTecnicaViajeProps) {
         guardar={f.guardar}
         guardando={f.guardando}
       />
-    </div>
+    </Stack>
   );
 }
 
@@ -130,43 +143,43 @@ function DatosViaje({ viaje }: { readonly viaje: ViajeInterno }) {
         </p>
       </CardHeader>
       <CardBody>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}>
-          <Dato label="Origen" value={viaje.origen} />
-          <Dato label="Tipo de servicio" value={viaje.tipo_servicio ?? 'No informado'} />
-          <div>
-            <p
-              className="ui-text-body-xs"
-              style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}
-            >
-              Destinos
-            </p>
-            {viaje.destinos.length > 0 ? (
-              <ol style={{ margin: 'var(--ui-space-1) 0 0', paddingLeft: 'var(--ui-space-4)' }}>
-                {viaje.destinos.map((destino) => (
-                  <li key={destino.numero_envio ?? destino.nombre}>
-                    <span style={{ color: 'var(--ui-color-text)' }}>{destino.nombre}</span>
-                    {destino.numero_envio && (
-                      <span style={{ color: 'var(--ui-color-text-muted)' }}>
-                        {' '}
-                        (Envío: {destino.numero_envio})
-                      </span>
-                    )}
-                    {destino.arribo === true && (
-                      <span style={{ color: 'var(--ui-color-text-muted)' }}> — arribó</span>
-                    )}
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p
-                className="ui-text-body-sm"
-                style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}
-              >
-                No hay destinos informados.
-              </p>
-            )}
-          </div>
-        </div>
+        <DescriptionList
+          columns={2}
+          items={[
+            { label: 'Origen', value: viaje.origen },
+            { label: 'Tipo de servicio', value: viaje.tipo_servicio ?? 'No informado' },
+            {
+              label: 'Destinos',
+              span: 2,
+              value:
+                viaje.destinos.length > 0 ? (
+                  <ol style={{ margin: 'var(--ui-space-1) 0 0', paddingLeft: 'var(--ui-space-4)' }}>
+                    {viaje.destinos.map((destino) => (
+                      <li key={destino.numero_envio ?? destino.nombre}>
+                        <span style={{ color: 'var(--ui-color-text)' }}>{destino.nombre}</span>
+                        {destino.numero_envio && (
+                          <span style={{ color: 'var(--ui-color-text-muted)' }}>
+                            {' '}
+                            (Envío: {destino.numero_envio})
+                          </span>
+                        )}
+                        {destino.arribo === true && (
+                          <span style={{ color: 'var(--ui-color-text-muted)' }}> — arribó</span>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p
+                    className="ui-text-body-sm"
+                    style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}
+                  >
+                    No hay destinos informados.
+                  </p>
+                ),
+            },
+          ]}
+        />
       </CardBody>
     </Card>
   );
@@ -196,18 +209,15 @@ function Escolta({
             Cargando la escolta...
           </p>
         ) : error ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
-            <p
-              role="alert"
-              className="ui-text-body-sm"
-              style={{ margin: 0, color: 'var(--ui-color-error)' }}
-            >
-              No se pudo cargar la escolta.
-            </p>
-            <Button variant="secondary" type="button" onClick={onReintentar}>
-              Reintentar escolta
-            </Button>
-          </div>
+          // BloqueError fija la etiqueta "Reintentar"; esta prueba exige "Reintentar escolta".
+          <Alert variant="danger">
+            <Stack gap={2} align="start">
+              <span>No se pudo cargar la escolta.</span>
+              <Button variant="secondary" type="button" onClick={onReintentar}>
+                Reintentar escolta
+              </Button>
+            </Stack>
+          </Alert>
         ) : unidades.length === 0 ? (
           <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
             Este viaje no tiene escolta asignada.
@@ -239,28 +249,20 @@ function Escolta({
 function FichaConfirmada({ ficha }: { readonly ficha: FichaTecnica }) {
   return (
     <CardBody>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}>
-        <Dato label="Tracto" value={ficha.tracto ? 'Capturado' : 'No informado'} />
-        <Dato label="Contenedores" value={String(ficha.contenedores?.length ?? 0)} />
-        <Dato label="GPS registrados" value={String(ficha.gps_ids?.length ?? 0)} />
+      <Stack gap={3}>
+        <DescriptionList
+          columns={2}
+          items={[
+            { label: 'Tracto', value: ficha.tracto ? 'Capturado' : 'No informado' },
+            { label: 'Contenedores', value: String(ficha.contenedores?.length ?? 0) },
+            { label: 'GPS registrados', value: String(ficha.gps_ids?.length ?? 0) },
+          ]}
+        />
         <p className="ui-text-body-xs" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
           La escolta y el histórico operativo se consultan en sus superficies correspondientes.
         </p>
-      </div>
+      </Stack>
     </CardBody>
-  );
-}
-
-function Dato({ label, value }: { readonly label: string; readonly value: string }) {
-  return (
-    <div>
-      <p className="ui-text-body-xs" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
-        {label}
-      </p>
-      <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-        {value}
-      </p>
-    </div>
   );
 }
 
@@ -280,9 +282,9 @@ function EstadoCargando() {
   return (
     <Card>
       <CardBody>
-        <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-          Cargando la ficha técnica...
-        </p>
+        <div role="status" aria-label="Cargando la ficha técnica">
+          <SkeletonText lines={4} />
+        </div>
       </CardBody>
     </Card>
   );
@@ -292,15 +294,11 @@ function EstadoError({ onReintentar }: { readonly onReintentar: () => void }) {
   return (
     <Card variant="outlined">
       <CardBody>
-        <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-          No se pudo cargar la ficha técnica del viaje.
-        </p>
+        <BloqueError
+          mensaje="No se pudo cargar la ficha técnica del viaje."
+          onReintentar={onReintentar}
+        />
       </CardBody>
-      <CardFooter>
-        <Button variant="primary" onClick={onReintentar}>
-          Reintentar
-        </Button>
-      </CardFooter>
     </Card>
   );
 }
@@ -309,9 +307,7 @@ function EstadoVacio({ mensaje }: { readonly mensaje: string }) {
   return (
     <Card>
       <CardBody>
-        <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
-          {mensaje}
-        </p>
+        <EmptyState size="sm" title={mensaje} />
       </CardBody>
     </Card>
   );
@@ -338,13 +334,7 @@ function SinPermiso({ onVolver }: { readonly onVolver: () => void }) {
   return (
     <Card variant="outlined">
       <CardBody>
-        <p
-          role="alert"
-          className="ui-text-body-sm"
-          style={{ margin: 0, color: 'var(--ui-color-text)' }}
-        >
-          No tienes permiso para ver la ficha técnica de este viaje.
-        </p>
+        <Alert variant="danger">No tienes permiso para ver la ficha técnica de este viaje.</Alert>
       </CardBody>
       <CardFooter>
         <Button variant="secondary" type="button" onClick={onVolver}>

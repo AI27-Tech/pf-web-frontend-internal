@@ -9,7 +9,18 @@
 
 import { useState } from 'react';
 
-import { Button, Checkbox, Form, FormField, Select, Switch } from '@ai27-tech/ui';
+import {
+  Alert,
+  Button,
+  Checkbox,
+  EmptyState,
+  Form,
+  FormField,
+  Inline,
+  Select,
+  Stack,
+  Switch,
+} from '@ai27-tech/ui';
 
 import type { Custodio, Vehiculo } from '@/lib/contracts/catalogos';
 import type { Unidad, UnidadModificacion } from '@/lib/contracts/unidades';
@@ -105,11 +116,9 @@ export function UnidadForm({
           Custodios ({vehiculo?.tipo === 'moto' ? 'una moto lleva 1' : 'un coche lleva 1 o 2'})
         </legend>
         {custodiosOfrecidos.length === 0 ? (
-          <p className="ui-text-body-sm" style={{ margin: 0 }}>
-            No hay custodios activos.
-          </p>
+          <EmptyState size="sm" title="No hay custodios activos." />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-1)' }}>
+          <Stack gap={1}>
             {custodiosOfrecidos.map((c) => {
               const marcado = custodiosIds.includes(c.id);
               return (
@@ -122,17 +131,9 @@ export function UnidadForm({
                 />
               );
             })}
-          </div>
+          </Stack>
         )}
-        {excedido && (
-          <p
-            role="alert"
-            className="ui-text-body-xs"
-            style={{ margin: 0, color: 'var(--ui-color-error)' }}
-          >
-            Una moto lleva un solo custodio. Quita uno.
-          </p>
-        )}
+        {excedido && <Alert variant="danger">Una moto lleva un solo custodio. Quita uno.</Alert>}
       </fieldset>
 
       {unidad && (
@@ -144,24 +145,16 @@ export function UnidadForm({
         />
       )}
 
-      {error && (
-        <p
-          role="alert"
-          className="ui-text-body-sm"
-          style={{ margin: 0, color: 'var(--ui-color-error)' }}
-        >
-          {error}
-        </p>
-      )}
+      {error && <Alert variant="danger">{error}</Alert>}
 
-      <div style={{ display: 'flex', gap: 'var(--ui-space-2)', justifyContent: 'flex-end' }}>
+      <Inline gap={2} align="stretch" justify="end" wrap={false}>
         <Button variant="secondary" type="button" onClick={onCancelar} disabled={enviando}>
           Cancelar
         </Button>
         <Button variant="primary" type="submit" disabled={bloqueado}>
           {enviando ? 'Guardando...' : unidad ? 'Guardar cambios' : 'Crear unidad'}
         </Button>
-      </div>
+      </Inline>
     </Form>
   );
 }

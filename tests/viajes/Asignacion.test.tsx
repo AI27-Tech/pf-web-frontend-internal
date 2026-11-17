@@ -18,7 +18,14 @@ const navigateSpy = vi.fn();
 vi.mock('@/context/SessionContext', () => ({
   useSession: () => ({ sesion: { accessToken: 'token-de-prueba' }, logout: logoutSpy }),
 }));
-vi.mock('@tanstack/react-router', () => ({ useNavigate: () => navigateSpy }));
+vi.mock('@tanstack/react-router', async () => {
+  const { createElement } = await import('react');
+  return {
+    useNavigate: () => navigateSpy,
+    Link: ({ to, children }: { to: string; children?: unknown }) =>
+      createElement('a', { href: to }, children as never),
+  };
+});
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {

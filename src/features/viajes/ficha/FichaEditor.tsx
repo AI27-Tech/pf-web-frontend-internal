@@ -3,15 +3,19 @@
 import { useRef, useState } from 'react';
 
 import {
+  Alert,
   Button,
   Card,
   CardBody,
   CardFooter,
   CardHeader,
+  EmptyState,
   Form,
   FormField,
   FormRow,
+  Inline,
   Input,
+  Stack,
   Table,
 } from '@ai27-tech/ui';
 
@@ -148,14 +152,7 @@ export function FichaEditor({
           style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}
         >
           <section aria-labelledby="tracto-titulo">
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: 'var(--ui-space-2)',
-              }}
-            >
+            <Inline gap={2} justify="between" align="center" wrap={false}>
               <h2
                 id="tracto-titulo"
                 className="ui-text-label-md"
@@ -176,7 +173,7 @@ export function FichaEditor({
               >
                 {datos.tracto === null ? 'Agregar tracto' : 'Eliminar tracto'}
               </Button>
-            </div>
+            </Inline>
             {datos.tracto === null ? (
               <p
                 className="ui-text-body-sm"
@@ -200,14 +197,7 @@ export function FichaEditor({
           </section>
 
           <section aria-labelledby="contenedores-titulo">
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: 'var(--ui-space-2)',
-              }}
-            >
+            <Inline gap={2} justify="between" align="center" wrap={false}>
               <h2
                 id="contenedores-titulo"
                 className="ui-text-label-md"
@@ -228,15 +218,8 @@ export function FichaEditor({
               >
                 Agregar contenedor
               </Button>
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'var(--ui-space-3)',
-                marginTop: 'var(--ui-space-2)',
-              }}
-            >
+            </Inline>
+            <Stack gap={3} style={{ marginTop: 'var(--ui-space-2)' }}>
               {datos.contenedores.length === 0 ? (
                 <p
                   className="ui-text-body-sm"
@@ -287,7 +270,7 @@ export function FichaEditor({
                   </div>
                 ))
               )}
-            </div>
+            </Stack>
           </section>
 
           <section aria-labelledby="gps-titulo">
@@ -322,15 +305,11 @@ export function FichaEditor({
             />
           </section>
 
-          {errorEnvio && (
-            <p role="alert" style={{ color: 'var(--ui-color-error)', margin: 0 }}>
-              {errorEnvio}
-            </p>
-          )}
+          {errorEnvio && <Alert variant="danger">{errorEnvio}</Alert>}
           {avisoExito && (
-            <p role="status" style={{ color: 'var(--ui-color-success)', margin: 0 }}>
+            <Alert variant="success">
               Ficha guardada. La vista refleja la respuesta confirmada por el BFF.
-            </p>
+            </Alert>
           )}
 
           <CardFooter
@@ -372,28 +351,25 @@ function GpsSelector({
   }
 
   if (esProhibido(error)) {
-    return (
-      <p role="alert" className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)' }}>
-        No tienes permiso para consultar el catálogo GPS.
-      </p>
-    );
+    return <Alert variant="danger">No tienes permiso para consultar el catálogo GPS.</Alert>;
   }
 
   if (error) {
+    // BloqueError no admite `disabled` ni la etiqueta "Reintentar catálogo": se mantiene el botón.
     return (
-      <div>
-        <p role="alert" className="ui-text-body-sm" style={{ color: 'var(--ui-color-error)' }}>
-          No se pudo cargar el catálogo GPS.
-        </p>
-        <Button variant="secondary" type="button" onClick={onReintentar} disabled={disabled}>
-          Reintentar catálogo
-        </Button>
-      </div>
+      <Alert variant="danger">
+        <Stack gap={2} align="start">
+          <span>No se pudo cargar el catálogo GPS.</span>
+          <Button variant="secondary" type="button" onClick={onReintentar} disabled={disabled}>
+            Reintentar catálogo
+          </Button>
+        </Stack>
+      </Alert>
     );
   }
 
   if (dispositivos.length === 0) {
-    return <p className="ui-text-body-sm">No hay dispositivos GPS activos disponibles.</p>;
+    return <EmptyState size="sm" title="No hay dispositivos GPS activos disponibles." />;
   }
 
   return (

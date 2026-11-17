@@ -1,5 +1,189 @@
 # CHANGELOG
 
+## 2026:11:17 09:27
+
+**Resumen:** Bloque 9 del spec `adopcion-ui-0-3-0` (R8, R9, R10): las cargas de bloque usan `Skeleton*` dentro de un `role="status"` con nombre accesible; los «No hay …» de bloque usan `EmptyState`; el selector de clientes es searchable; los conteos del dashboard pasan a `Stat` en `Grid`.
+**Cambios:**
+
+- **Cargas:** `ClienteSelector`, roster de `CrearViaje`, `ListaTrabajo`, `SeccionEmergenciasViaje`, `BandejaConversaciones`, `FichaTecnicaViaje`, `DashboardMonitoreo` y las listas de `HistoricoViaje`.
+- **Vacíos:** `EmptyState` en `ClienteSelector`, `CrearViaje`, `ListaCasos`, `SelectorCaso`, `PanelConversacion`, `UnidadForm`, `UnidadesMonitoristaForm`, `FichaEditor`, `FichaTecnicaViaje`, `DetalleViaje`, `DashboardMonitoreo`, los `emptyState` de `Timeline` (histórico y `PanelCaso`).
+- **Selector de clientes:** `Select variant="searchable"` con `noResultsText`.
+- **Dashboard:** las tablas de conteo pasan a `Stat` en `Grid`. `IndicadorFrescura` y el texto DEC-136 se conservan.
+- **Pruebas:** ajustes de selectores en `DashboardMonitoreo`, `ClienteSelector`, `CrearViaje` y `BandejaConversaciones`. La prueba de texto libre del selector se reescribió para la búsqueda.
+- **Especificación:** `tasks.md` con bloque 9 marcado y `BRECHAS.md` con la sección 9.
+  **Verificación:** `tsc --build` sin errores. `vitest run`: 631 de 631 en verde. `eslint .` sin avisos. `vite build --mode mock` sin errores. `test:e2e`: 5 de 5 en verde.
+  **Pendiente:** `Stat` sin `loading` (decisión en BRECHAS.md, sección 9). Revisión visual en claro y oscuro (tarea 12.2).
+
+## 2026:11:13 16:50
+
+**Resumen:** Bloque 8 del spec `adopcion-ui-0-3-0` (R6): la bitácora, las estadías y las incidencias del histórico de viaje, y las notas de `PanelCaso`, pasan a `Timeline` de `@ai27-tech/ui`. Las acciones por registro se conservan en `content`.
+**Cambios:**
+
+- **Histórico del viaje** (`HistoricoViaje.tsx`): tres listas sobre `Timeline`. Estadía y acción «Cerrar estadía»; incidencia en atención (`warning`) o resuelta (`completed`), con «Resolver incidencia» solo si `puedeCorregir`. Las cargas usan un contenedor `role="status"` con `aria-label`.
+- **Notas de emergencia** (`PanelCaso.tsx`): las notas pasan a `Timeline`. «Nota de resolución» va en `content`. «Cargar más notas» queda fuera.
+- **Especificación:** `tasks.md` con bloque 8 marcado y `BRECHAS.md` con la sección 8.
+  **Verificación:** `tsc --build` sin errores. `vitest run`: 631 de 631 en verde, sin cambios en las pruebas. `eslint .` sin avisos. `vite build --mode mock` sin errores.
+  **Pendiente:** revisión visual de la línea de tiempo en claro y oscuro (tarea 12.2). Los puntos de bitácora y notas usan `status: completed` por decisión propia, no por D-D.
+
+## 2026:11:13 18:15
+
+**Resumen:** Bloque 7 del spec `adopcion-ui-0-3-0` (R7): los `input type="datetime-local"` de crear viaje, ETA y fecha-hora pasan a `DateTimeInput` de `@ai27-tech/ui`. Se añadió un helper de pruebas para escribir en ese control, porque tiene dos partes (fecha y hora) que no responden a `fireEvent`.
+
+**Cambios:**
+
+- **Crear viaje y detalle:** `CrearViaje.tsx`, `etaForm.tsx` y `fechaHoraForm.tsx` usan `DateTimeInput`. Se quitó el comentario que decía que la librería no tenía selector de fecha. El placeholder «DD/MM/YYYY HH:MM» se quitó (ahora se ve «DD/MM/AAAA»).
+- **Pruebas:** nuevo `tests/helpers/fechaHora.ts` con `escribirFechaHora`, y su prueba de humo. `CrearViaje.test.tsx` y `DecisionSolicitud.test.tsx` usan el helper. Una prueba nueva verifica el error de fecha vacía.
+- **Comentario:** `adaptadorCrearViaje.ts` ya no dice «datetime-local». `fechaHoraAISO` no cambió.
+- **Especificación:** `tasks.md` con bloque 7 marcado y `BRECHAS.md` con la sección 7.
+
+**Verificación:** `tsc --build` sin errores. `vitest run`: 631 de 631 en verde. `eslint src tests e2e` sin avisos. `playwright test`: 5 de 5 en verde.
+
+**Pendiente:** confirmar el texto del placeholder nuevo, revisar en navegador si Enter en el campo de fecha envía el formulario, y decidir cómo mostrar la precarga de ETA y fecha-hora que llega con zona horaria (BRECHAS.md, sección 7.6).
+
+## 2026:11:13 17:30
+
+**Resumen:** Bloque 6 del spec `adopcion-ui-0-3-0` (R5): los pares etiqueta-valor de la ficha técnica y del panel de usuario pasan a `DescriptionList`. Se eliminó la función local `Dato`. `DetalleViaje` queda sin cambios por una decisión pendiente, y `ExpedienteViaje` no tenía pares manuales.
+
+**Cambios:**
+
+- **Ficha técnica** (`FichaTecnicaViaje.tsx`): `DatosViaje` y `FichaConfirmada` usan `DescriptionList` de 2 columnas. Destinos ocupa el ancho completo. Se quitó `Dato`.
+- **Panel de usuario** (`PanelUsuario.tsx`): la tabla de dato y valor pasa a `DescriptionList`. Se quitaron `datoCampo` y `datoValor` de `mensajes.ts`.
+- **Especificación:** `tasks.md` con bloque 6 marcado y `BRECHAS.md` con la sección 6.
+
+**Verificación:** `tsc --build` sin errores. `vitest run`: 629 de 629 en verde. `eslint` sin avisos en `src/features/viajes/ficha`, `src/features/administracion` y `tests`.
+
+**Pendiente:** decidir la cabecera de `DetalleViaje` (BRECHAS.md, 6.3) y si los encabezados de las tarjetas de ficha pasan a `Section` (6.4). Revisión visual en claro y oscuro (tarea 12.2).
+
+## 2026:11:13 17:00
+
+**Resumen:** Bloque 5 del spec `adopcion-ui-0-3-0` (R4): los `div` con `display: flex` o `grid` en línea pasan a `Stack`, `Inline` y `Grid` de `@ai27-tech/ui`, en `src/features` y en los componentes compartidos de `components/layout` y de la ruta de panel. Quedan 11 apariciones de 97: 3 en `AppShell` (fuera de alcance por D3) y 8 en `Form` o `CardFooter`, que son componentes de la librería sin props de disposición.
+
+**Cambios:**
+
+- **Viajes:** historico (`HistoricoViaje` y formularios), detalle (`DetalleViaje` y formularios), evidencia, expediente, crear, ficha y bandeja.
+- **Emergencias:** `PanelCaso`, bandeja, lista, diálogo, banner y activación.
+- **Roster y catálogos:** unidades, formularios, vehículos y custodios.
+- **Conversaciones y monitoreo:** lista, banner, bandeja, dashboard, indicador de frescura.
+- **Layout y ruta:** `SessionTopbar`, `StubPage` y `routes/_private/jefe-operativo/panel.tsx`.
+- **Especificación:** `tasks.md` con bloque 5 marcado y `BRECHAS.md` con la sección 5.
+
+**Verificación:** `tsc --build` sin errores. `vitest run`: 629 de 629 en verde. `eslint` sin avisos en `src`, `tests` y `e2e`. `playwright test`: 5 de 5 en verde.
+
+**Pendiente:** unificar el enfoque de los formularios (`Stack as={Form}` frente a `Stack` dentro de `Form`), y la revisión visual en claro y oscuro (tarea 12.2).
+
+## 2026:11:13 16:00
+
+**Resumen:** Bloque 4 del spec `adopcion-ui-0-3-0`: los encabezados de página pasan a `PageHeader`, las rutas de detalle usan `Breadcrumb` con navegación TanStack, y los bloques con `h2` pasan a `Section`. Se corrigió el selector del vehículo en la prueba e2e de roster. `Section` no pinta encabezado fuera del modo plegable, así que sus títulos llevan `role="heading" aria-level={2}`; esto se propone a la librería en `BRECHAS.md`, sección 4.
+
+**Cambios:**
+
+- **Encabezados (4.1 y 4.2):** `PageHeader` en Catálogos, Roster, BandejaViajes, BandejaEmergencias, BandejaConversaciones, DashboardMonitoreo, StubPage y Administración. En Administración, el foco y `aria-labelledby` se conservan con un `span` dentro del título.
+- **Breadcrumb (4.3):** DetalleViaje, FichaTecnicaViaje, HistoricoViaje y ExpedienteViaje. Nuevo `src/components/layout/EnlaceRuta.tsx`, que pasa `href` como `to` a `Link`.
+- **Section (4.4):** Catálogos, Roster, UnidadesMonitoristas, PanelCaso, SeccionEmergenciasViaje, SeccionUsuarios y PanelUsuario. Se quitaron los `aria-label` que la librería ignoraba.
+- **Pruebas:** 9 archivos en `tests/viajes/` con stub de `Link`; prueba nueva de encabezados de Administración (3 casos) y de enlaces del breadcrumb (1 caso). `e2e/roster.spec.ts`: selector del vehículo corregido.
+- **Especificación:** `tasks.md` con bloque 4 marcado y `BRECHAS.md` con la sección 4.
+
+**Verificación:** `tsc --build`, `eslint src tests e2e` y `vite build --mode mock` sin errores. `vitest run`: 629 de 629 en verde. `playwright test`: 5 de 5 en verde.
+
+**Pendiente:** revisión visual en claro y oscuro (tarea 12.2). Decidir si los nombres de las secciones pasan a «Datos del viaje» y «Emergencias del viaje» (BRECHAS.md, sección 4.3).
+
+## 2026:11:13 13:40
+
+**Resumen:** Bloque 3 del spec `adopcion-ui-0-3-0`: los mensajes `role="alert|status"` escritos a mano pasan al componente `Alert` de `@ai27-tech/ui`, por área. Se migraron 80 de 99 usos. Los 19 que quedan son textos de carga (bloque 9), una región `aria-live`, un error de campo y cuatro bloques de resultado en `CrearViaje`; todos están documentados en `BRECHAS.md`, sección 3.
+
+**Cambios:**
+
+- **Roster** (`roster/`): `Alert` en `Roster`, `UnidadForm`, `UnidadesMonitoristas` y `UnidadesMonitoristaForm`. Errores con reintento usan `BloqueError`.
+- **Catálogos** (`catalogos/`): `Alert` en `Catalogos`, `CustodioForm` y `VehiculoForm`.
+- **Administración** (`administracion/`): 12 archivos. Diálogos, `PanelUsuario`, `AlcanceEditor` y secciones.
+- **Emergencias** (`emergencias/`): `Alert` en bandeja, panel, lista, diálogo y activación. Región `aria-live` sin cambios.
+- **Conversaciones** (`conversaciones/`): `Alert` y `BloqueError` en bandeja, lista y panel. El panel vuelve a tocarse en el bloque 10.
+- **Viajes y monitoreo** (`viajes/`, `monitoreo/dashboard/`): `Alert` y `BloqueError` en crear, detalle, evidencia, expediente, ficha, histórico, bandeja y dashboard.
+- **Especificación:** `tasks.md` con bloque 3 marcado y `BRECHAS.md` con la sección 3.
+
+**Verificación:** `tsc --build`, `eslint .` y `vite build --mode mock` sin errores. `vitest run`: 625 de 625 en verde. No se cambiaron pruebas en este bloque.
+
+**Archivos modificados:** 40 archivos bajo `src/features/` (listados en el commit de cada área), `.kiro/specs/adopcion-ui-0-3-0/tasks.md`, `.kiro/specs/adopcion-ui-0-3-0/BRECHAS.md` y `CHANGELOG.md`.
+
+## 2026:11:13 12:45
+
+**Resumen:** Se corrigieron las 21 pruebas en rojo. La causa era la librería `0.3.0-beta.1`: el `Select` dentro de `FormField` toma como nombre accesible la etiqueta del campo y ya no el placeholder. Las pruebas ahora buscan el selector por su etiqueta. También se eliminaron los wrappers locales `components/ui/Button.tsx` y `Input.tsx`, porque el portal debe usar solo `@ai27-tech/ui`.
+
+**Cambios:**
+
+- **Pruebas corregidas** (solo cambian los selectores; las aserciones de valor se conservan con `toHaveTextContent`):
+  - `tests/viajes/ClienteSelector.test.tsx` y `tests/viajes/CrearViaje.test.tsx`: `Cliente` en lugar de `Selecciona un cliente`.
+  - `tests/roster/Roster.test.tsx`: `Vehículo` en lugar de `Elige un vehículo`.
+  - `tests/viajes/CierreViaje.test.tsx`: `Motivo de cierre`.
+  - `tests/viajes/HistoricoViaje.test.tsx`: `Motivo de la estadía` y `Eje de autorización`.
+- **Eliminado:** `src/components/ui/Button.tsx`, `src/components/ui/Input.tsx` y `tests/Button.test.tsx` (3 pruebas).
+- **Documentado:** `.kiro/specs/adopcion-ui-0-3-0/BRECHAS.md` (causa, corrección y decisión de 1.2) y `tasks.md`.
+
+**Verificación:** `tsc --build`, `eslint .` y `vite build --mode mock` sin errores. `vitest run`: 625 de 625 en verde.
+
+**Archivos modificados:**
+
+- `tests/viajes/ClienteSelector.test.tsx`
+- `tests/viajes/CrearViaje.test.tsx`
+- `tests/viajes/CierreViaje.test.tsx`
+- `tests/viajes/HistoricoViaje.test.tsx`
+- `tests/roster/Roster.test.tsx`
+- `src/components/ui/Button.tsx` (eliminado)
+- `src/components/ui/Input.tsx` (eliminado)
+- `tests/Button.test.tsx` (eliminado)
+- `.kiro/specs/adopcion-ui-0-3-0/BRECHAS.md`
+- `CHANGELOG.md`
+
+## 2026:11:13 12:30
+
+**Resumen:** Se eliminó el wrapper local `components/ui/Button.tsx` y su prueba, porque el portal debe usar solo `@ai27-tech/ui`. Se documentó la causa de las 21 pruebas en rojo: el `Select` de la librería `0.3.0-beta.1` cambió el nombre accesible de su botón al asociar la etiqueta de `FormField`.
+
+**Cambios:**
+
+- **Eliminado:** `src/components/ui/Button.tsx` y `tests/Button.test.tsx` (3 pruebas).
+- **Actualizado:** `.kiro/specs/adopcion-ui-0-3-0/BRECHAS.md` y `tasks.md`.
+
+**Verificación:** `tsc --build` y `eslint .` sin errores. `vitest run`: 604 en verde y 21 en rojo.
+
+## 2026:11:13 12:05
+
+**Resumen:** Bloques 1 y 2 del spec `adopcion-ui-0-3-0`: base, línea base medida y componente `BloqueError`. Se eliminó el wrapper local `components/ui/Input.tsx` (sin importadores). Se conservó `components/ui/Button.tsx` porque lo importa `tests/Button.test.tsx`; la decisión queda pendiente en `BRECHAS.md`.
+
+**Cambios:**
+
+- **Steering de la librería:** `.kiro/steering/ai27-ui-library.md`, copia de `ai27-tech-library-first.md` con `inclusion: always`.
+- **Eliminado:** `src/components/ui/Input.tsx` (sin importadores, R13).
+- **Nuevo:** `src/components/feedback/BloqueError.tsx`, composición de `Alert variant="danger"` con botón "Reintentar" dentro del cuerpo (D1, D-B).
+- **Pruebas:** `tests/feedback/BloqueError.test.tsx` (3 pruebas: rol `alert`, botón dentro del aviso, callback de reintento).
+- **Especificación:** `.kiro/specs/adopcion-ui-0-3-0/BRECHAS.md` (línea base y revisión del CHANGELOG de la librería) y `tasks.md` con bloques 1 y 2 marcados.
+
+**Verificación:** `tsc --build` y `eslint .` sin errores. `vitest run`: 607 pruebas en verde y 21 en rojo, las mismas 21 que había antes de los cambios (ver `BRECHAS.md`, sección 1). **Brecha:** esta línea base no coincide con "625 pruebas en verde" de la entrada del 2026:11:11.
+
+**Archivos modificados:**
+
+- `.kiro/steering/ai27-ui-library.md` (nuevo)
+- `.kiro/specs/adopcion-ui-0-3-0/BRECHAS.md` (nuevo)
+- `.kiro/specs/adopcion-ui-0-3-0/tasks.md`
+- `src/components/ui/Input.tsx` (eliminado)
+- `src/components/feedback/BloqueError.tsx` (nuevo)
+- `tests/feedback/BloqueError.test.tsx` (nuevo)
+- `CHANGELOG.md`
+
+## 2026:11:13 12:00
+
+**Resumen:** Spec `adopcion-ui-0-3-0` para llevar el portal interno al catálogo de `@ai27-tech/ui@0.3.0-beta.1`. Solo documentación: no se modificó código. Recoge la línea base (115 `display:flex|grid` en línea, unos 70 avisos `role="alert|status"` manuales, 12 `<h1>` manuales, 3 `datetime-local`, historiales a mano) y propone 12 bloques de tareas. Las 6 decisiones (D1 a D6) quedaron resueltas el mismo día: sí a `Alert` con "Reintentar" y a `Breadcrumb`; `AppShell` y `Tabs` fuera de este spec; mensajería al final y condicionada al contrato; cargas con contenedor `role="status"`.
+
+**Cambios:**
+
+- Nuevo spec con requisitos, diseño y tareas.
+
+**Archivos modificados:**
+
+- `.kiro/specs/adopcion-ui-0-3-0/requirements.md` (nuevo)
+- `.kiro/specs/adopcion-ui-0-3-0/design.md` (nuevo)
+- `.kiro/specs/adopcion-ui-0-3-0/tasks.md` (nuevo)
+- `CHANGELOG.md`
+
 ## 2026:11:11 11:24
 
 **Resumen:** Modo mock con datos coherentes (spec `modo-mock-coherencia-datos`, tareas 1 a 10). Un solo almacén de viajes alimenta listado, detalle, ficha, expediente, incidencias, escolta, emergencias y reportes. Así una transición, una reserva o una emergencia se ve igual en todas las pantallas del mock. Los datos se guardan en `localStorage` solo en modo mock.
