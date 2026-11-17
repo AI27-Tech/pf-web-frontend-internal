@@ -269,3 +269,11 @@ Resultado: `tsc --build` sin errores. `eslint .` sin avisos. `vitest run` 631 de
 - **Dashboard (9.4):** las dos tablas de conteo (`Viajes en curso por estado` y `Cambios de estado en el periodo`) pasan a `Stat` dentro de `Grid`, con `role="group"` y el título como nombre accesible. La tabla de viajes se conserva.
 - **Desviación de R10 (`loading` en `Stat`):** no se usa `loading`. Los conteos solo existen cuando la consulta resuelve, así que no hay un `Stat` que mostrar durante la carga. Durante la carga se muestra un `SkeletonCard` en un `role="status"`. Si se quiere `Stat loading` con etiquetas fijas, hay que decidirlo.
 - **Pendiente de revisión visual:** la apariencia de `Stat` y del buscador de clientes en claro y oscuro se revisa en la tarea 12.2.
+
+## 10. Bloque 10: mensajería (tarea 10.1, 2026-11-17)
+
+**D5 cumplida.** El `Mensaje` del contrato `v0.1.0-tracer.40`, que es la versión que fija `@ai27-tech/contracts` en `package.json`, trae `actor_real` y `rol_al_enviar`. Ambos vienen en `contracts/openapi/mensajeria.yaml` y en `contracts/openapi/bff.yaml`, con la descripción «solo se entrega a audiencia Interno». No hay brecha contractual, así que el bloque sigue.
+
+- **Lectura:** `git show v0.1.0-tracer.40:contracts/openapi/mensajeria.yaml` y `...bff.yaml`. No se leyó el checkout local.
+- **Desfase del checkout:** el directorio local `repos/pf-pkg-contracts` está en la rama `feat/ficha-tecnica-e-historico-tracer21`. Su `HEAD` no es `tracer.40`, así que lo que se lee ahí no corresponde a lo que el portal consume. Sin cambios en ese repo.
+- **Pendiente (10.2 a 10.5):** antes de tocar el flujo de envío hay que decidir quién genera el `clientMessageId` (el compositor de la librería lo crea en `onSend`; el hook actual `useConversacion` lo guarda en una `ref`) y cómo se clasifican los errores (`ErrorConflictoVersionReclamo`, `ErrorConversacionSoloLectura` y `ApiError` con 403 ya existen en `src/lib/api`).

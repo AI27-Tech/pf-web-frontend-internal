@@ -62,7 +62,7 @@ Las decisiones D1 a D6 están resueltas en `requirements.md` (sección 5).
   - [x] 9.5 `test:e2e` 5 de 5 en verde
 
 - [ ] 10. Mensajería (R11), condicionada a D5
-  - [ ] 10.1 Confirmar en `pf-pkg-contracts` (tag de `package.json`) los campos del `Mensaje` y si `actor_real` llega a audiencia Interno; si no, registrar brecha contractual y detener el bloque
+  - [x] 10.1 Confirmar en `pf-pkg-contracts` (tag de `package.json`) los campos del `Mensaje` y si `actor_real` llega a audiencia Interno; si no, registrar brecha contractual y detener el bloque. Hecho en `v0.1.0-tracer.40` (BFF y mensajería): `actor_real` y `rol_al_enviar` solo para Interno. Ver BRECHAS.md, sección 10
   - [ ] 10.2 `adaptadorMensajeria.ts` con pruebas (mapeo y regla de `onRetry`)
   - [ ] 10.3 `PanelConversacion`: `MessageThread` + `ConversationStatus`, sin `own` calculado dentro del JSX
   - [ ] 10.4 Fallos de envío con `deliveryError`; sin `onRetry` en `409 conflicto_version_reclamo`, `409 conversacion_solo_lectura` y `403`
