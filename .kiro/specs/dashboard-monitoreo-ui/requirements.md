@@ -11,12 +11,12 @@ Este spec **solo cambia presentación y composición**. No cambia qué datos se 
 La referencia es un dashboard oscuro de tarjetas (ErgoSense). No se copia su diseño; se adopta su lenguaje, que debe poder repetirse en otras pantallas:
 
 1. **Superficies por capas.** Fondo de página, tarjetas un nivel arriba, bordes finos y suaves.
-2. **Tarjeta KPI con anatomía fija:** recuadro de icono + etiqueta, insignia de estado arriba a la derecha, cifra grande con unidad atenuada, y pie con una o dos frases cortas.
-3. **Cifras y horas en tipografía de telemetría** (tokens `--ui-text-telemetry-*`), para que los números no bailen al cambiar.
+2. **Tarjeta KPI con anatomía fija:** icono (prop `icon` de `Stat`) y etiqueta, `Badge` de estado solo si el estado es real, cifra y pie con una o dos frases cortas.
+3. **Jerarquía de texto con los estilos que ya trae la librería:** dato principal fuerte, secundario atenuado. No se definen tipografías propias.
 4. **Insignias en píldora con punto**, en color suave, siempre con texto.
 5. **Tarjeta de tabla con encabezado propio:** icono, título, descripción corta, chips a la derecha; pie con estado de sincronización y enlace.
 6. **Jerarquía de texto:** el dato principal en peso fuerte, lo secundario atenuado.
-7. **Movimiento discreto:** entrada suave y `pulse` solo donde hay actividad real.
+7. **Solo el movimiento de la librería:** shimmer de `Skeleton`, `pulse` de `Badge` y `hover` de `Table`.
 8. **Barras de progreso solo cuando hay una meta o un denominador real.**
 
 ### Decisión sobre `ProgressBar`
@@ -28,7 +28,7 @@ La versión anterior de este spec usaba `ProgressBar` para la distribución por 
 - Contexto: `ai27-platform-context` commit `2e12bc2`.
 - Frontend: `@ai27-tech/ui` `0.3.0-beta.1`, `@ai27-tech/contracts` `0.1.0-tracer.40`.
 - No se agrega ninguna operación del `bff`. Se reutilizan `reporteViajes` y `reporteEstados` como las consume `useDashboardMonitoreo`.
-- Tokens disponibles confirmados en la librería: familia `--ui-color-surface-container*`, `--ui-color-{success,warning,danger}-container`, `--ui-text-telemetry-{sm,lg}-*`, `--ui-font-feature-numeric`, `--ui-shadow-*`, `--ui-radius*`, `--ui-duration-*`, `--ui-ease-*`.
+- Este spec **no escribe CSS, tokens nuevos, animaciones ni componentes de estilo o de animación (como un `Reveal`)**. Todo el aspecto sale de las props y variantes de `@ai27-tech/ui`.
 
 ## Glossary
 
@@ -48,12 +48,12 @@ La versión anterior de este spec usaba `ProgressBar` para la distribución por 
 #### Acceptance Criteria
 
 1. WHEN hay datos, THE Dashboard SHALL mostrar una fila de tarjetas KPI en un `Grid` responsivo (1 columna angosta, 3 en ancho).
-2. EACH tarjeta SHALL tener: recuadro de icono de `lucide-react`, etiqueta, `Badge` de estado opcional arriba a la derecha, cifra grande con unidad atenuada y un pie de una o dos frases.
+2. EACH tarjeta SHALL tener: icono de `lucide-react` (prop `icon` de `Stat`), etiqueta, `Badge` de estado opcional, la cifra y un pie de una o dos frases.
 3. THE vista `en_curso` SHALL mostrar: **Viajes en curso** (total; unidad «viajes»), **Estado predominante** (nombre en `Badge`, conteo) y **Estados activos** (número de estados distintos).
 4. THE vista `rango` SHALL mostrar: **Viajes del periodo**, **Cambios de estado** (suma de `conteos` de `reporteEstados`) y **Cerrados en el periodo** (filas con `cerrado_en` no nulo).
 5. THE `Badge` de la primera tarjeta SHALL reflejar la frescura real de la proyección con `estadoFrescura` (`Datos atrasados`, `Frescura no informada`, o ninguno si está al día). La lógica de frescura no cambia.
 6. THE pie de la primera tarjeta SHALL mostrar «Proyección al {fecha y hora}» cuando exista; el de las demás, una frase descriptiva fija («Viajes con más registros», «Estados con al menos un viaje»).
-7. THE cifras SHALL usar `--ui-text-telemetry-lg-*`. No hay `trend` ni comparativos (BRECHAS-UI #2).
+7. THE cifras SHALL usar el estilo por defecto de `Stat`. No hay `trend` ni comparativos (BRECHAS-UI #2).
 8. WHILE los datos cargan, THE tarjeta SHALL mantener su estructura con `Stat loading` y `Skeleton` en el pie, sin salto de layout.
 9. THE información SHALL ser legible sin color: el estado y la frescura llevan texto.
 
@@ -63,7 +63,7 @@ La versión anterior de este spec usaba `ProgressBar` para la distribución por 
 
 #### Acceptance Criteria
 
-1. THE Dashboard SHALL mostrar una tarjeta «Viajes por estado» con una fila por estado: `Badge` del estado, conteo en tipografía de telemetría y porcentaje sobre el total como texto atenuado (p. ej. «42 %»).
+1. THE Dashboard SHALL mostrar una tarjeta «Viajes por estado» con una fila por estado: `Badge` del estado, conteo y porcentaje sobre el total como texto atenuado (p. ej. «42 %»).
 2. THE porcentaje SHALL ser `conteo / total * 100` redondeado a entero. IF el total es 0, THEN la tarjeta SHALL mostrar `EmptyState`.
 3. THE orden SHALL ser por conteo descendente y, a igualdad, alfabético.
 4. THE tarjeta SHALL NOT usar barras ni gráficas. Si Producto pide una visualización gráfica, se registra como solicitud a la librería (BRECHAS-UI #3).
@@ -88,8 +88,8 @@ La versión anterior de este spec usaba `ProgressBar` para la distribución por 
 
 #### Acceptance Criteria
 
-1. THE tabla SHALL ir dentro de una tarjeta con encabezado: recuadro de icono, título «Viajes», descripción corta y, a la derecha, un chip con el periodo (`en_curso` o rango en tipografía de telemetría).
-2. THE filas SHALL mostrar: identificador en peso fuerte con punto de color del estado, `Badge` de estado, «Creado» y «Cerrado» en tipografía de telemetría y texto atenuado para lo secundario.
+1. THE tabla SHALL ir dentro de una tarjeta con encabezado: icono de `lucide-react`, título «Viajes», descripción corta y, a la derecha, un `Badge appearance="outline"` con el periodo (`en_curso` o el rango).
+2. THE filas SHALL mostrar: identificador en peso fuerte, `Badge` de estado, «Creado» y «Cerrado» y texto atenuado para lo secundario.
 3. THE tabla SHALL paginar en cliente con `Pagination` (10 por defecto, `pageSizeOptions` `[10, 25, 50]`, `showInfo`) y ocultarla cuando `total` no supere la menor opción.
 4. WHEN cambia la vista o el tamaño de página, THE página SHALL volver a 1. IF la página queda fuera de rango tras una recarga, THEN SHALL ajustarse a la última válida.
 5. THE tabla SHALL usar `hoverable`, `stickyHeader` y `density="compact"` y conservar `aria-label="Viajes del reporte"`. El orden de filas es el del `bff`.
@@ -103,7 +103,7 @@ La versión anterior de este spec usaba `ProgressBar` para la distribución por 
 1. THE orden SHALL ser: `PageHeader` (título, descripción y, en `actions`, chip «Actualizado hace …» y botón «Actualizar») → `FilterBar` de vista → tarjetas KPI → cuerpo.
 2. THE cuerpo SHALL ser un `Grid` de dos zonas en ancho: «Viajes por estado» (angosta) y tarjeta de tabla (ancha). En ancho angosto SHALL apilarse con la distribución primero.
 3. THE tarjetas SHALL usar `Card variant="outlined"` sobre la jerarquía de superficies de la librería. No se usan colores fijos.
-4. THE disposición SHALL usar `Stack`, `Inline` y `Grid`; sin CSS en línea para disponer.
+4. THE disposición SHALL usar `Stack`, `Inline` y `Grid`; sin CSS ni `style` en línea.
 5. THE chip «Actualizado hace …» SHALL derivarse de la marca de tiempo de las consultas de TanStack Query (`dataUpdatedAt`) y refrescarse en pantalla sin nuevas llamadas al `bff`. No hay sondeo automático (E8-T17).
 6. THE botón «Actualizar» SHALL invocar `refetch` de las consultas activas.
 
@@ -116,15 +116,14 @@ La versión anterior de este spec usaba `ProgressBar` para la distribución por 
 3. WHILE se recarga con datos previos, THE Dashboard SHALL mantener los datos visibles; el botón «Actualizar» SHALL mostrar `Spinner size="sm"`, quedar deshabilitado y el chip de actualización SHALL decir «Actualizando…».
 4. THE carga inicial SHALL NOT usar spinners centrados ni barras de progreso.
 
-### Requirement 7: Movimiento
+### Requirement 7: Movimiento (solo el de la librería)
 
 #### Acceptance Criteria
 
-1. THE movimiento SHALL provenir primero de la librería: shimmer de `Skeleton`, `pulse` de `Badge`, `hover` de `Table` y transición de color de tarjetas interactivas.
-2. THE bloques SHALL entrar con una animación breve (fundido y desplazamiento corto, escalonada entre tarjetas) en CSS del portal con tokens `--ui-duration-*`, `--ui-ease-*` y `--ui-space-*`, marcada `// BRECHA-UI` (BRECHAS-UI #5).
-3. WHERE el usuario tenga `prefers-reduced-motion: reduce`, THE animaciones propias SHALL desactivarse y `pulse` SHALL omitirse.
-4. THE animación SHALL durar a lo mucho 300 ms por elemento con 60 ms de escalonado.
-5. THE movimiento SHALL NOT comunicar información que no esté también en texto.
+1. THE movimiento SHALL provenir únicamente de la librería: shimmer de `Skeleton`, `pulse` de `Badge` y `hover` de `Table`.
+2. THE spec SHALL NOT crear animaciones, `@keyframes`, CSS, hojas de estilo ni un componente `Reveal`. Si Producto quiere una entrada animada, se solicita a la librería (BRECHAS-UI #5).
+3. WHERE el usuario tenga `prefers-reduced-motion: reduce`, THE `pulse` de `Badge` SHALL respetarlo. Si la librería no lo respeta, se registra como brecha y no se corrige con CSS local.
+4. THE movimiento SHALL NOT comunicar información que no esté también en texto.
 
 ### Requirement 8: Estados vacío, error y acceso
 
@@ -139,7 +138,7 @@ La versión anterior de este spec usaba `ProgressBar` para la distribución por 
 
 #### Acceptance Criteria
 
-1. THE cambios SHALL NOT introducir `<svg>`, `<path>`, hex, `rgb()`, `<select>` nativo, `ProgressBar` ni librerías de UI externas.
+1. THE cambios SHALL NOT introducir `<svg>`, `<path>`, hex, `rgb()`, `<select>` nativo, `ProgressBar` ni librerías de UI externas, ni CSS propio, animaciones o componentes de estilo.
 2. THE iconos SHALL venir de `lucide-react`; los de solo icono llevan `aria-label`.
 3. THE funciones puras (KPIs, distribución, mapa de badges, paginación, texto «hace X») SHALL tener pruebas con `vitest`.
 4. THE componentes SHALL tener pruebas con Testing Library para carga, vacío, error, acceso, paginación y cambio de vista.
@@ -158,7 +157,7 @@ La versión anterior de este spec usaba `ProgressBar` para la distribución por 
 | 6   | Total 0                               | `EmptyState` con «Actualizar»; sin KPIs en cero engañosos       |
 | 7   | Carga inicial lenta                   | Tarjetas, lista y tabla en skeleton; sin salto de layout        |
 | 8   | «Actualizar» con datos previos        | Datos visibles, botón con spinner, chip «Actualizando…»         |
-| 9   | `prefers-reduced-motion`              | Sin entrada animada ni `pulse`                                  |
+| 9   | `prefers-reduced-motion`              | `Badge` sin `pulse` si la librería lo respeta                   |
 | 10  | Rol sin acceso                        | `Alert danger`; cero llamadas al `bff`                          |
 | 11  | 403 en `reporteViajes`                | `Alert danger` de autorización                                  |
 | 12  | Ancho angosto                         | KPIs en una columna; distribución sobre la tabla                |
@@ -175,6 +174,7 @@ La versión anterior de este spec usaba `ProgressBar` para la distribución por 
 
 - Incidencias y alertas (DT-09), mapa, tiempo real, sondeo.
 - Metas, SLA, barras de progreso y tendencias.
+- Estilos propios: CSS, tokens, animaciones y componentes de animación (Reveal).
 - Gráficas.
 - Acciones por fila.
 - Ordenamiento por columna y paginación en servidor.

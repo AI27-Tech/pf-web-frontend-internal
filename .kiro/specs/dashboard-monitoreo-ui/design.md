@@ -12,18 +12,18 @@ Datos (existentes, sin modificar):
 
 ## Lenguaje visual (reutilizable)
 
-Cada regla se expresa con la librería y sus tokens, no con valores sueltos.
+Cada regla se logra con props y variantes de la librería. El spec no escribe CSS.
 
 | Principio             | Cómo se logra con `@ai27-tech/ui`                                                                                                                      |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Superficies por capas | Página sobre `--ui-color-surface`; tarjetas con `Card variant="outlined"` (fondo `--ui-color-surface-container-low`, borde `--ui-color-border-subtle`) |
-| Recuadro de icono     | Contenedor de `--ui-radius-lg`, fondo `--ui-color-surface-container-high`, icono `lucide-react` en `--ui-color-text-muted`                             |
-| Cifra de telemetría   | `--ui-text-telemetry-lg-*` + `font-feature-settings: var(--ui-font-feature-numeric)`                                                                   |
+| Icono                 | Prop `icon` de `Stat` con icono de `lucide-react`                                                                                                      |
+| Cifra                 | `Stat` con su estilo por defecto                                                                                                                       |
 | Unidad atenuada       | `--ui-text-body-sm-*` en `--ui-color-text-subtle`                                                                                                      |
 | Insignia en píldora   | `Badge pill dot appearance="soft"`                                                                                                                     |
 | Pie de tarjeta        | `Inline` con `justify` entre dos textos `--ui-text-label-sm-*`                                                                                         |
-| Chips de contexto     | `Badge appearance="outline"` con tipografía de telemetría                                                                                              |
-| Entrada suave         | `@keyframes` propio con `--ui-duration-base` y `--ui-ease-standard`                                                                                    |
+| Chips de contexto     | `Badge appearance="outline"`                                                                                                                           |
+| Entrada               | Ninguna propia; solo shimmer, `pulse` y `hover` de la librería                                                                                         |
 
 ## Arquitectura
 
@@ -39,19 +39,18 @@ DashboardMonitoreo            (título siempre visible, guarda de rol)
    └─ estados: prohibido | error | vacío | cargando
 ```
 
-| Archivo (`src/features/monitoreo/dashboard/`) | Tipo | Contenido                                                                           |
-| --------------------------------------------- | ---- | ----------------------------------------------------------------------------------- |
-| `kpis.ts`                                     | puro | `kpisEnCurso(conteos)`, `kpisRango(filas, conteos)`                                 |
-| `distribucion.ts`                             | puro | `distribucionPorEstado(conteos)`: porcentaje entero, orden conteo desc y alfabético |
-| `estadoBadge.ts`                              | puro | `ESTADO_BADGE` y `badgeDeEstado(token)` con respaldo `neutral`                      |
-| `paginar.ts`                                  | puro | `paginar`, `ajustarPagina`                                                          |
-| `tiempoRelativo.ts`                           | puro | `haceCuanto(ahora, marca)` → «hace 14 min»                                          |
-| `TarjetaKpi.tsx`                              | UI   | Anatomía de tarjeta KPI (`// BRECHA-UI`)                                            |
-| `FilaKpis.tsx`                                | UI   | Compone las tarjetas por vista                                                      |
-| `ViajesPorEstado.tsx`                         | UI   | Lista de estados                                                                    |
-| `TarjetaViajes.tsx`                           | UI   | Tabla, paginación y pie                                                             |
-| `EncabezadoDashboard.tsx`                     | UI   | Encabezado y recarga                                                                |
-| `dashboard.css`                               | CSS  | Solo tokens; entrada animada y `prefers-reduced-motion`                             |
+| Archivo (`src/features/monitoreo/dashboard/`) | Tipo | Contenido                                                                                                             |
+| --------------------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------- |
+| `kpis.ts`                                     | puro | `kpisEnCurso(conteos)`, `kpisRango(filas, conteos)`                                                                   |
+| `distribucion.ts`                             | puro | `distribucionPorEstado(conteos)`: porcentaje entero, orden conteo desc y alfabético                                   |
+| `estadoBadge.ts`                              | puro | `ESTADO_BADGE` y `badgeDeEstado(token)` con respaldo `neutral`                                                        |
+| `paginar.ts`                                  | puro | `paginar`, `ajustarPagina`                                                                                            |
+| `tiempoRelativo.ts`                           | puro | `haceCuanto(ahora, marca)` → «hace 14 min»                                                                            |
+| `TarjetaKpi.tsx`                              | UI   | Composición de `Card` + `Stat` + `Badge` + pie, solo con componentes y props de la librería, sin CSS (`// BRECHA-UI`) |
+| `FilaKpis.tsx`                                | UI   | Compone las tarjetas por vista                                                                                        |
+| `ViajesPorEstado.tsx`                         | UI   | Lista de estados                                                                                                      |
+| `TarjetaViajes.tsx`                           | UI   | Tabla, paginación y pie                                                                                               |
+| `EncabezadoDashboard.tsx`                     | UI   | Encabezado y recarga                                                                                                  |
 
 `useDashboardMonitoreo` suma `recargando`, `actualizar` y `actualizadoEn`.
 
@@ -88,9 +87,9 @@ Todas con `pill` y `dot`. `alert` se reserva para rechazos y condiciones, para q
 
 **D6. «Actualizado hace…» sin llamadas extra.** Se calcula de `dataUpdatedAt` de TanStack Query y se refresca cada 30 s con un temporizador local que solo vuelve a pintar el texto. No consulta al `bff` (E8-T17 sin sondeo).
 
-**D7. Tarjeta KPI local.** `Stat` no permite insignia ni pie. Se compone `Card` + `Stat` (`icon`, `loading`) + `Badge` + pie dentro de `TarjetaKpi`, marcada `// BRECHA-UI` y reportada (BRECHAS-UI #1 y #6).
+**D7. Tarjeta KPI como composición.** `Stat` no permite insignia ni pie. Se compone `Card` + `Stat` (`icon`, `loading`) + `Badge` + `Inline` con el pie dentro de `TarjetaKpi`, sin una línea de CSS, marcada `// BRECHA-UI` y reportada (BRECHAS-UI #6).
 
-**D8. Movimiento.** Primero la librería (shimmer, `pulse`, `hover`). Una animación propia de entrada, escalonada por índice con `animation-delay`, apagada con `prefers-reduced-motion`.
+**D8. Sin estilos ni animaciones propias.** El spec no crea CSS, tokens, `@keyframes` ni un `Reveal`. El movimiento es el que ya trae la librería (shimmer, `pulse`, `hover`).
 
 ## Composición con `@ai27-tech/ui`
 
@@ -125,7 +124,7 @@ Todas con `pill` y `dot`. `alert` se reserva para rechazos y condiciones, para q
 - El color nunca va solo: `Badge` con texto y filas con texto completo para lector de pantalla.
 - Botones de solo icono con `aria-label`.
 - Región de carga con `role="status"`.
-- `prefers-reduced-motion` desactiva animación propia y `pulse`.
+- `pulse` de `Badge` se omite con `prefers-reduced-motion` si la librería lo respeta; si no, se registra como brecha.
 - Foco y `aria-*` de la librería intactos.
 - Contraste ≥ 4.5:1 verificado en ambos temas.
 
@@ -148,4 +147,4 @@ Igual que E8-T17: `ErrorReportesProhibido` → `Alert`; otro error → `BloqueEr
 - Unitarias (`vitest`): `kpis`, `distribucion`, `estadoBadge`, `paginar`, `tiempoRelativo`.
 - Componente (Testing Library con hook simulado): carga, recarga, vacío, error, prohibido, sin acceso, paginación y reinicio al cambiar de vista.
 - Regresión: `IndicadorFrescura`, `estadoFrescura`, `conteos`.
-- Manual: claro y oscuro, ancho angosto, `prefers-reduced-motion`, teclado.
+- Manual: claro y oscuro, ancho angosto, teclado.

@@ -1,4 +1,4 @@
-# Brechas del spec dashboard-monitoreo-ui
+﻿# Brechas del spec dashboard-monitoreo-ui
 
 Versiones verificadas: `@ai27-tech/ui@0.3.0-beta.1`, `@ai27-tech/contracts@0.1.0-tracer.40`.
 
@@ -22,24 +22,25 @@ Versiones verificadas: `@ai27-tech/ui@0.3.0-beta.1`, `@ai27-tech/contracts@0.1.0
 - **Impacto:** Requirement 2.4. La distribución es lista con texto.
 - **Propuesta:** si Producto pide gráfica, solicitar el componente a la librería. No se agrega librería externa.
 
-## 4. Condiciones por fila (contractual, por verificar)
+## 4. Condiciones por fila (contractual, verificado: no existen)
 
 - **Qué pide:** mostrar condiciones (`INCIDENCIA`, `SIN_SENAL`) junto al estado.
 - **Qué existe:** `FilaViaje` expone `viaje_id`, `estado`, `creado_en`, `cerrado_en`. No se confirmó que traiga condiciones; incidencias y alertas están fuera de V1 del dashboard (DT-09).
-- **Qué falta:** verificar contra tracer 40 (tarea 5.1).
+- **Verificado (tarea 5.1, `@ai27-tech/contracts@0.1.0-tracer.40`, `openapi/bff.gen.ts`):** `FilaViaje` tiene `viaje_id`, `cliente_id?`, `estado`, `creado_en?` y `cerrado_en?`. No trae condiciones. La columna no se agrega.
+- **Qué falta:** un campo de condiciones en `FilaViaje` del `bff`, si Producto lo pide en el dashboard.
 - **Impacto:** Requirement 3.5 condicionado.
 - **Propuesta:** si no existen, omitir la columna y reportar al repo de contratos.
 
-## 5. Animación de entrada (UI)
+## 5. Entrada animada de bloques (UI, solicitud)
 
-- **Qué existe:** la librería anima `Skeleton`, `Badge pulse` y estados `hover`, pero no la entrada escalonada de bloques.
-- **Impacto:** Requirement 7.2. CSS local con tokens, marcado `// BRECHA-UI`.
-- **Propuesta:** solicitar a la librería un `Reveal` o clase utilitaria que respete `prefers-reduced-motion`.
+- **Qué existe:** la librería anima `Skeleton`, `Badge pulse` y `hover`, pero no la entrada escalonada de bloques.
+- **Impacto:** ninguno. Este spec **no** crea CSS, `@keyframes` ni un `Reveal`; la pantalla no tendrá entrada animada hasta que la librería la ofrezca.
+- **Propuesta:** solicitar a la librería un `Reveal` que respete `prefers-reduced-motion`.
 
 ## 6. Tarjeta KPI con insignia y pie (UI)
 
 - **Qué existe:** `Stat` ofrece `icon`, `helpText`, `trend` y `loading`, pero no insignia de estado ni pie de dos textos.
-- **Impacto:** Requirement 1.2. `TarjetaKpi` local, marcado `// BRECHA-UI`.
+- **Impacto:** Requirement 1.2. `TarjetaKpi` local, compuesta solo con `Card`, `Stat`, `Badge` e `Inline`, sin CSS y marcada `// BRECHA-UI`.
 - **Propuesta:** solicitar a la librería un `StatCard` con `badge` y `footer`.
 
 ## 7. Paginación integrada en `Table` (UI)
@@ -52,3 +53,10 @@ Versiones verificadas: `@ai27-tech/ui@0.3.0-beta.1`, `@ai27-tech/contracts@0.1.0
 
 - **Qué existe:** `Stat` muestra el valor sin animar.
 - **Impacto:** fuera de este spec. Se sugiere a la librería como mejora de `Stat`.
+
+## 9. Proporción de columnas en Grid (UI)
+
+- **Qué existe:** Grid reparte el espacio en columnas de igual ancho (minItemWidth, columns). No admite proporciones como 1:2.
+- **Qué falta:** un modo de Grid con proporciones de columna, o una prop de ancho por hijo.
+- **Impacto:** Requirement 5.2. Las dos zonas (distribución y tabla) miden lo mismo en ancho. Sin CSS propio no se puede dar la proporción 1:2 de la referencia.
+- **Propuesta:** solicitar a la librería Grid con columns por hijo, o un Split con proporción. Mientras tanto, minItemWidth apila las zonas en pantallas angostas.
