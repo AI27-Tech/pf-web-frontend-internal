@@ -2,129 +2,150 @@
 
 ## Overview
 
-Se recompone `DashboardMonitoreo.tsx` en bloques pequeños, cada uno con una responsabilidad visual, y se extraen funciones puras para lo que hoy está mezclado en el JSX. Los hooks de datos y el contrato no cambian.
+Se recompone `DashboardMonitoreo.tsx` en bloques pequeños con una responsabilidad visual cada uno, y se extraen funciones puras de lo que hoy está mezclado en el JSX. Los hooks de datos y el contrato no cambian.
 
-Forma de los datos (ya existente, no se modifica):
+Datos (existentes, sin modificar):
 
-- `ReporteViajes`: `filas: FilaViaje[]` (`viaje_id`, `estado`, `creado_en`, `cerrado_en`) y marca de frescura.
+- `ReporteViajes`: `filas: FilaViaje[]` (`viaje_id`, `estado`, `creado_en`, `cerrado_en`) y marca de frescura (`proyeccion_al`).
 - `ReporteEstados`: `conteos: { estado, conteo }[]` y marca de frescura.
 - `conteosEnCurso(filas)` ya produce los conteos de la vista `en_curso`.
+
+## Lenguaje visual (reutilizable)
+
+Cada regla se expresa con la librería y sus tokens, no con valores sueltos.
+
+| Principio             | Cómo se logra con `@ai27-tech/ui`                                                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Superficies por capas | Página sobre `--ui-color-surface`; tarjetas con `Card variant="outlined"` (fondo `--ui-color-surface-container-low`, borde `--ui-color-border-subtle`) |
+| Recuadro de icono     | Contenedor de `--ui-radius-lg`, fondo `--ui-color-surface-container-high`, icono `lucide-react` en `--ui-color-text-muted`                             |
+| Cifra de telemetría   | `--ui-text-telemetry-lg-*` + `font-feature-settings: var(--ui-font-feature-numeric)`                                                                   |
+| Unidad atenuada       | `--ui-text-body-sm-*` en `--ui-color-text-subtle`                                                                                                      |
+| Insignia en píldora   | `Badge pill dot appearance="soft"`                                                                                                                     |
+| Pie de tarjeta        | `Inline` con `justify` entre dos textos `--ui-text-label-sm-*`                                                                                         |
+| Chips de contexto     | `Badge appearance="outline"` con tipografía de telemetría                                                                                              |
+| Entrada suave         | `@keyframes` propio con `--ui-duration-base` y `--ui-ease-standard`                                                                                    |
 
 ## Arquitectura
 
 ```
 DashboardMonitoreo            (título siempre visible, guarda de rol)
 └─ DashboardAutorizado
-   ├─ EncabezadoDashboard     PageHeader + IndicadorFrescura + botón Actualizar + ProgressBar de recarga
+   ├─ EncabezadoDashboard     PageHeader + chip «Actualizado hace…» + botón Actualizar
    ├─ FilterBar               vista (sin cambios)
-   ├─ FilaKpis                Grid de Stat
+   ├─ FilaKpis                Grid de TarjetaKpi
    ├─ Grid 2 zonas
-   │  ├─ DistribucionEstados  Section + filas Badge/ProgressBar/conteo
-   │  └─ TablaViajes          Section + Table + Pagination
+   │  ├─ ViajesPorEstado      Card + lista de filas (Badge, conteo, porcentaje)
+   │  └─ TarjetaViajes        Card con encabezado, Table, Pagination y pie
    └─ estados: prohibido | error | vacío | cargando
 ```
 
-Estructura de archivos (dentro de `src/features/monitoreo/dashboard/`):
+| Archivo (`src/features/monitoreo/dashboard/`) | Tipo | Contenido                                                                           |
+| --------------------------------------------- | ---- | ----------------------------------------------------------------------------------- |
+| `kpis.ts`                                     | puro | `kpisEnCurso(conteos)`, `kpisRango(filas, conteos)`                                 |
+| `distribucion.ts`                             | puro | `distribucionPorEstado(conteos)`: porcentaje entero, orden conteo desc y alfabético |
+| `estadoBadge.ts`                              | puro | `ESTADO_BADGE` y `badgeDeEstado(token)` con respaldo `neutral`                      |
+| `paginar.ts`                                  | puro | `paginar`, `ajustarPagina`                                                          |
+| `tiempoRelativo.ts`                           | puro | `haceCuanto(ahora, marca)` → «hace 14 min»                                          |
+| `TarjetaKpi.tsx`                              | UI   | Anatomía de tarjeta KPI (`// BRECHA-UI`)                                            |
+| `FilaKpis.tsx`                                | UI   | Compone las tarjetas por vista                                                      |
+| `ViajesPorEstado.tsx`                         | UI   | Lista de estados                                                                    |
+| `TarjetaViajes.tsx`                           | UI   | Tabla, paginación y pie                                                             |
+| `EncabezadoDashboard.tsx`                     | UI   | Encabezado y recarga                                                                |
+| `dashboard.css`                               | CSS  | Solo tokens; entrada animada y `prefers-reduced-motion`                             |
 
-| Archivo                                  | Tipo | Contenido                                                                                                           |
-| ---------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------- |
-| `kpis.ts`                                | puro | `kpisEnCurso(conteos)`, `kpisRango(filas, conteos)`                                                                 |
-| `distribucion.ts`                        | puro | `distribucionPorEstado(conteos)`: porcentaje entero, orden por conteo desc y alfabético                             |
-| `estadoBadge.ts`                         | puro | `ESTADO_BADGE: Record<EstadoViaje, { variant, appearance, pulse }>` y `badgeDeEstado(token)` con respaldo `neutral` |
-| `paginar.ts`                             | puro | `paginar(filas, pagina, tamano)` y `ajustarPagina(pagina, total, tamano)`                                           |
-| `FilaKpis.tsx`                           | UI   | KPIs con iconos                                                                                                     |
-| `DistribucionEstados.tsx`                | UI   | Distribución con barras                                                                                             |
-| `TablaViajes.tsx`                        | UI   | Tabla con badges y paginación                                                                                       |
-| `EncabezadoDashboard.tsx`                | UI   | Encabezado y recarga                                                                                                |
-| `dashboard.module.css` o `dashboard.css` | CSS  | Solo tokens `--ui-*`; animación de entrada                                                                          |
-
-`useDashboardMonitoreo` recibe dos adiciones: `recargando` (`isFetching && !isLoading` de las consultas activas) y `actualizar` (`refetch` de las consultas activas). Ninguna cambia contrato ni claves de query.
+`useDashboardMonitoreo` suma `recargando`, `actualizar` y `actualizadoEn`.
 
 ## Decisiones
 
-**D1. KPIs derivados, sin tendencia.** Se calculan de datos ya cargados. `Stat.trend` requiere un periodo previo que hoy no se consulta; pedirlo sería superficie nueva (BRECHAS-UI #1).
+**D1. Sin `ProgressBar`.** Una barra comunica «avance hacia algo». El dashboard no tiene meta, umbral ni SLA definido (DEC-025 #3), y la proporción por estado no es avance. La distribución se muestra como lista con texto, que es más precisa y más accesible. La recarga se comunica con el botón (spinner y deshabilitado) y el chip «Actualizando…».
 
-**D2. Barra = proporción, no «avance».** El `ProgressBar` muestra `conteo/total`. No hay regla de negocio que defina porcentaje de avance de un viaje y no se inventa una.
+**D2. KPIs derivados, sin tendencia.** Salen de datos ya cargados. `trend` exige un periodo previo que hoy no se consulta (BRECHAS-UI #2).
 
-**D3. Un solo mapa estado → Badge.** La paleta tiene ocho variantes y tres apariencias; el mapa usa `variant` para la familia y `appearance` para el matiz (guía del steering §4). Propuesta inicial, de trabajo, sujeta a aprobación de Producto:
+**D3. La insignia de la tarjeta KPI tiene significado real.** En la primera tarjeta refleja la frescura de la proyección con `estadoFrescura`. Las otras tarjetas no llevan insignia salvo que tengan un estado verdadero, para no repetir el patrón de la referencia sin sentido.
 
-| Estado                    | variant     | appearance | dot/pulse   |
-| ------------------------- | ----------- | ---------- | ----------- |
-| `SOLICITADO`              | `info`      | `soft`     | no          |
-| `APROBADO`                | `primary`   | `soft`     | no          |
-| `ASIGNADO`                | `secondary` | `soft`     | no          |
-| `APTO_PARA_SALIDA`        | `secure`    | `outline`  | no          |
-| `EN_EMBARQUE`             | `escort`    | `soft`     | dot + pulse |
-| `PATRULLA_EN_CAMINO` (V2) | `escort`    | `outline`  | dot         |
-| `EN_TRANSITO`             | `escort`    | `solid`    | dot + pulse |
-| `EN_DESTINO`              | `warning`   | `soft`     | dot + pulse |
-| `EN_DESCARGA`             | `warning`   | `solid`    | dot + pulse |
-| `CERRADO`                 | `secure`    | `soft`     | no          |
-| `CANCELADO`               | `neutral`   | `outline`  | no          |
-| `RECHAZADO_POR_AI27`      | `alert`     | `soft`     | no          |
-| `RECHAZADO_POR_CLIENTE`   | `alert`     | `outline`  | no          |
-| desconocido               | `neutral`   | `soft`     | no          |
+**D4. Un solo mapa estado → Badge.** `variant` da la familia y `appearance` el matiz (guía del steering §4). Propuesta de trabajo, sujeta a aprobación de Producto:
 
-Nota: `alert` se reserva para rechazos y para condiciones (`VARIANTE_CONDICION`), de modo que un estado terminal no se confunda con una incidencia activa. Producto puede ajustar la tabla sin tocar componentes.
+| Estado                    | variant     | appearance | pulse |
+| ------------------------- | ----------- | ---------- | ----- |
+| `SOLICITADO`              | `info`      | `soft`     | no    |
+| `APROBADO`                | `primary`   | `soft`     | no    |
+| `ASIGNADO`                | `secondary` | `soft`     | no    |
+| `APTO_PARA_SALIDA`        | `secure`    | `outline`  | no    |
+| `EN_EMBARQUE`             | `escort`    | `soft`     | sí    |
+| `PATRULLA_EN_CAMINO` (V2) | `escort`    | `outline`  | no    |
+| `EN_TRANSITO`             | `escort`    | `solid`    | sí    |
+| `EN_DESTINO`              | `warning`   | `soft`     | sí    |
+| `EN_DESCARGA`             | `warning`   | `solid`    | sí    |
+| `CERRADO`                 | `secure`    | `soft`     | no    |
+| `CANCELADO`               | `neutral`   | `outline`  | no    |
+| `RECHAZADO_POR_AI27`      | `alert`     | `soft`     | no    |
+| `RECHAZADO_POR_CLIENTE`   | `alert`     | `outline`  | no    |
+| desconocido               | `neutral`   | `soft`     | no    |
 
-**D4. Recarga con `ProgressBar` indeterminado.** Verificado en la librería: sin `value` se renderiza indeterminado. Evita spinners centrados y no desmonta los datos.
+Todas con `pill` y `dot`. `alert` se reserva para rechazos y condiciones, para que un estado terminal no se confunda con una incidencia activa.
 
-**D5. Paginación en cliente.** El reporte ya trae todas las filas en memoria; la librería `Table` no pagina por sí misma, así que se compone `Table` + `Pagination`. Paginación en servidor queda fuera de alcance.
+**D5. Paginación en cliente.** El reporte ya está en memoria y `Table` no pagina; se compone `Table` + `Pagination`.
 
-**D6. Movimiento.** Primero lo de la librería (shimmer, pulse, transición de la barra, hover). Una sola animación propia de entrada (`opacity` y `translateY` con tokens de espaciado), escalonada con `animation-delay` por índice, desactivada con `prefers-reduced-motion`. Va en CSS del portal con `// BRECHA-UI`.
+**D6. «Actualizado hace…» sin llamadas extra.** Se calcula de `dataUpdatedAt` de TanStack Query y se refresca cada 30 s con un temporizador local que solo vuelve a pintar el texto. No consulta al `bff` (E8-T17 sin sondeo).
+
+**D7. Tarjeta KPI local.** `Stat` no permite insignia ni pie. Se compone `Card` + `Stat` (`icon`, `loading`) + `Badge` + pie dentro de `TarjetaKpi`, marcada `// BRECHA-UI` y reportada (BRECHAS-UI #1 y #6).
+
+**D8. Movimiento.** Primero la librería (shimmer, `pulse`, `hover`). Una animación propia de entrada, escalonada por índice con `animation-delay`, apagada con `prefers-reduced-motion`.
 
 ## Composición con `@ai27-tech/ui`
 
-| Necesidad                   | Componente                                                                               |
-| --------------------------- | ---------------------------------------------------------------------------------------- |
-| Encabezado, ruta y acciones | `PageHeader`                                                                             |
-| Bloques                     | `Section`                                                                                |
-| KPIs                        | `Grid` + `Stat` (`icon`, `helpText`, `loading`)                                          |
-| Proporciones                | `ProgressBar` (`label`, `size="md"`)                                                     |
-| Estado y condición          | `Badge` (`variant`, `appearance`, `dot`, `pulse`, `pill`)                                |
-| Tabla                       | `Table` (`loading`, `loadingRows`, `hoverable`, `striped`, `stickyHeader`, `emptyState`) |
-| Paginación                  | `Pagination` (`pageSizeOptions`, `showInfo`)                                             |
-| Carga inicial               | `Stat loading`, `Skeleton`, `SkeletonText`, `Table loading` o `SkeletonTable`            |
-| Recarga                     | `ProgressBar` indeterminado, `Button` con estado ocupado                                 |
-| Avisos                      | `Alert`, `EmptyState`, `BloqueError` (componente del portal ya existente)                |
-| Iconos                      | `lucide-react`: `Truck`, `Activity`, `CheckCircle2`, `Layers`, `RefreshCw`               |
+| Necesidad             | Componente                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------- |
+| Encabezado y acciones | `PageHeader` con `actions`                                                                  |
+| Filtro de vista       | `FilterBar` (sin cambios)                                                                   |
+| Tarjetas              | `Card variant="outlined"`, `CardHeader`, `CardBody`, `CardFooter`                           |
+| Cifra                 | `Stat` (`icon`, `loading`)                                                                  |
+| Estados y chips       | `Badge` (`pill`, `dot`, `pulse`, `appearance`)                                              |
+| Tabla                 | `Table` (`hoverable`, `stickyHeader`, `density="compact"`, `loading`, `emptyState`)         |
+| Paginación            | `Pagination`                                                                                |
+| Carga                 | `Stat loading`, `Skeleton`, `SkeletonText`, `Table loading`                                 |
+| Recarga               | `Button` + `Spinner size="sm"`                                                              |
+| Avisos y vacío        | `Alert`, `EmptyState`, `BloqueError`                                                        |
+| Iconos                | `lucide-react`: `Truck`, `Activity`, `Layers`, `ClipboardList`, `RefreshCw`, `CheckCircle2` |
 
 ## Estados de UI
 
-| Estado     | KPIs           | Distribución        | Tabla                               |
-| ---------- | -------------- | ------------------- | ----------------------------------- |
-| Sin acceso | no se muestra  | no                  | no                                  |
-| Cargando   | `Stat loading` | `Skeleton` en filas | `Table loading`                     |
-| Recargando | datos previos  | datos previos       | datos previos + barra indeterminada |
-| Error      | no             | no                  | `BloqueError` con reintento         |
-| Prohibido  | no             | no                  | `Alert danger`                      |
-| Vacío      | no             | `EmptyState`        | `EmptyState` con acción             |
-| Con datos  | sí             | sí                  | sí                                  |
+| Estado     | KPIs           | Por estado    | Tabla                       |
+| ---------- | -------------- | ------------- | --------------------------- |
+| Sin acceso | no             | no            | no                          |
+| Cargando   | `Stat loading` | `Skeleton`    | `Table loading`             |
+| Recargando | datos previos  | datos previos | datos previos               |
+| Error      | no             | no            | `BloqueError` con reintento |
+| Prohibido  | no             | no            | `Alert danger`              |
+| Vacío      | no             | `EmptyState`  | `EmptyState`                |
+| Con datos  | sí             | sí            | sí                          |
 
 ## Accesibilidad
 
-- Color nunca es el único canal: el `Badge` lleva el texto del estado y la barra lleva `label` con porcentaje.
+- El color nunca va solo: `Badge` con texto y filas con texto completo para lector de pantalla.
 - Botones de solo icono con `aria-label`.
-- La región de carga conserva `role="status"`.
+- Región de carga con `role="status"`.
 - `prefers-reduced-motion` desactiva animación propia y `pulse`.
-- Foco visible y `aria-*` de la librería intactos.
+- Foco y `aria-*` de la librería intactos.
+- Contraste ≥ 4.5:1 verificado en ambos temas.
 
 ## Manejo de errores
 
-Sin cambios respecto a E8-T17: `ErrorReportesProhibido` → `Alert`; otro error → `BloqueError`. Un fallo en `reporteEstados` (vista `rango`) no oculta la tabla de viajes si esta cargó.
+Igual que E8-T17: `ErrorReportesProhibido` → `Alert`; otro error → `BloqueError`. Un fallo de `reporteEstados` (vista `rango`) no oculta la tabla de viajes si esta cargó.
 
 ## Correctness Properties
 
-1. **Suma de porcentajes**: para cualquier conteo con total > 0, cada porcentaje está en 0..100 y la distribución conserva los conteos originales (su suma es el total).
-2. **Orden estable**: `distribucionPorEstado` ordena por conteo desc, luego alfabético; es determinista.
-3. **Cobertura del mapa**: todo token de `viajeEstados.gen.ts` tiene entrada en `ESTADO_BADGE`; un token desconocido devuelve `neutral` sin lanzar.
-4. **Paginación**: para cualquier `total`, `pagina`, `tamano > 0`, `paginar` devuelve a lo mucho `tamano` filas, la unión de todas las páginas es la lista original y `ajustarPagina` devuelve una página en `[1, max(1, ceil(total/tamano))]`.
-5. **KPI en curso**: el total de KPIs es igual al número de filas; el estado líder tiene el conteo máximo.
-6. **KPI rango**: viajes cerrados = filas con `cerrado_en` no nulo; cambios de estado = suma de `conteos`.
+1. **Distribución**: para total > 0, cada porcentaje está en 0..100 y los conteos suman el total.
+2. **Orden**: conteo descendente y luego alfabético; determinista.
+3. **Mapa de badges**: todo token del enum generado tiene entrada; un token desconocido devuelve `neutral` sin lanzar.
+4. **Paginación**: `paginar` devuelve a lo mucho `tamano` filas; la unión de páginas es la lista original; `ajustarPagina` devuelve una página en `[1, max(1, ceil(total/tamano))]`.
+5. **KPI en curso**: el total es igual al número de filas; el estado predominante tiene el conteo máximo.
+6. **KPI rango**: cerrados = filas con `cerrado_en` no nulo; cambios de estado = suma de `conteos`.
+7. **Tiempo relativo**: monótono con la diferencia de tiempo; nunca negativo.
 
 ## Estrategia de pruebas
 
-- Unitarias (`vitest`): `kpis`, `distribucion`, `estadoBadge`, `paginar`, con las propiedades de arriba.
-- Componente (Testing Library, con mocks de hook): carga, vacío, error, prohibido, sin acceso, paginación y reinicio al cambiar de vista, recarga con datos previos.
-- Regresión: `IndicadorFrescura`, `estadoFrescura` y `conteos` conservan su comportamiento.
-- Verificación manual: tema claro y oscuro, viewport angosto, `prefers-reduced-motion`.
+- Unitarias (`vitest`): `kpis`, `distribucion`, `estadoBadge`, `paginar`, `tiempoRelativo`.
+- Componente (Testing Library con hook simulado): carga, recarga, vacío, error, prohibido, sin acceso, paginación y reinicio al cambiar de vista.
+- Regresión: `IndicadorFrescura`, `estadoFrescura`, `conteos`.
+- Manual: claro y oscuro, ancho angosto, `prefers-reduced-motion`, teclado.
