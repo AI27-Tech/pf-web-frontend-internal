@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 2026:11:13 16:50
+
+**Resumen:** Bloque 8 del spec `adopcion-ui-0-3-0` (R6): la bitácora, las estadías y las incidencias del histórico de viaje, y las notas de `PanelCaso`, pasan a `Timeline` de `@ai27-tech/ui`. Las acciones por registro se conservan en `content`.
+**Cambios:**
+
+- **Histórico del viaje** (`HistoricoViaje.tsx`): tres listas sobre `Timeline`. Estadía y acción «Cerrar estadía»; incidencia en atención (`warning`) o resuelta (`completed`), con «Resolver incidencia» solo si `puedeCorregir`. Las cargas usan un contenedor `role="status"` con `aria-label`.
+- **Notas de emergencia** (`PanelCaso.tsx`): las notas pasan a `Timeline`. «Nota de resolución» va en `content`. «Cargar más notas» queda fuera.
+- **Especificación:** `tasks.md` con bloque 8 marcado y `BRECHAS.md` con la sección 8.
+  **Verificación:** `tsc --build` sin errores. `vitest run`: 631 de 631 en verde, sin cambios en las pruebas. `eslint .` sin avisos. `vite build --mode mock` sin errores.
+  **Pendiente:** revisión visual de la línea de tiempo en claro y oscuro (tarea 12.2). Los puntos de bitácora y notas usan `status: completed` por decisión propia, no por D-D.
+
 ## 2026:11:13 18:15
 
 **Resumen:** Bloque 7 del spec `adopcion-ui-0-3-0` (R7): los `input type="datetime-local"` de crear viaje, ETA y fecha-hora pasan a `DateTimeInput` de `@ai27-tech/ui`. Se añadió un helper de pruebas para escribir en ese control, porque tiene dos partes (fecha y hora) que no responden a `fireEvent`.

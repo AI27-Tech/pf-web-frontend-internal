@@ -245,3 +245,15 @@ Resultado: `tsc --build` sin errores. `vitest run` 631 de 631 en verde (629 prev
 - **Enter en el campo de fecha:** puede enviar el formulario, como cualquier `Input`. Comprobar en el navegador.
 - **Precarga con zona horaria (no nuevo):** la precarga de ETA y fecha-hora recibe una marca ISO con `Z`. `DateTimeInput` espera `YYYY-MM-DDTHH:mm`, así que el valor no se muestra. Ya pasaba con `datetime-local`. Revisar si corresponde convertir la marca a hora local antes de mostrarla.
 - Revisión visual en claro y oscuro, y del `FormRow` con el control nuevo (tarea 12.2).
+
+## 8. Bloque 8: `Timeline` (tareas 8.1 a 8.5, 2026-11-13)
+
+Resultado: `tsc --build` sin errores. `vitest run` 631 de 631 en verde, sin pruebas nuevas ni cambios en las existentes. `eslint .` sin avisos. `vite build --mode mock` pasa.
+
+- **Archivos:** `src/features/viajes/historico/HistoricoViaje.tsx` (bitácora, estadías, incidencias) y `src/features/emergencias/PanelCaso.tsx` (notas).
+- **Decisión de estado (no estaba en D-D):** las entradas de bitácora y las notas usan `status: completed`. Sin `status`, `Timeline` pinta el punto como `upcoming`, lo que indicaría un registro futuro.
+- **Carga:** cada lista de `HistoricoViaje` envuelve `Timeline loading` en un `div role="status"` con `aria-label="Cargando <recurso>"` (D-C). El texto visible «Cargando … ...» desaparece; ningún test lo usaba.
+- **Vacío y error:** `emptyState` conserva los textos de hoy. El error sigue con `BloqueError`.
+- **Orden:** las listas se pasan en el orden que ya recibían. No se usó `reverse`.
+- **Notas de `PanelCaso`:** el botón «Cargar más notas» queda fuera de `Timeline`, porque es paginación y no un punto del historial.
+- **Pendiente de revisión visual:** el aspecto de la línea de tiempo en claro y oscuro se revisa en la tarea 12.2.

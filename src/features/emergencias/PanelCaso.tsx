@@ -1,5 +1,16 @@
 import { useState } from 'react';
-import { Alert, Badge, Button, Card, Grid, Inline, Modal, Section, Stack } from '@ai27-tech/ui';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Grid,
+  Inline,
+  Modal,
+  Section,
+  Stack,
+  Timeline,
+} from '@ai27-tech/ui';
 import { useSession } from '@/context/SessionContext';
 import type {
   DetalleEmergenciaReaccion,
@@ -174,20 +185,20 @@ export function PanelCaso({
           }
         >
           <Stack gap={2}>
-            {notas.length === 0 && <p>Aún no hay notas.</p>}
-            {notas.map((nota) => (
-              <article
-                key={nota.id}
-                style={{ border: '1px solid var(--ui-color-border)', padding: 'var(--ui-space-2)' }}
-              >
-                <Inline gap={2} wrap={false} align="stretch">
-                  <small>{ETIQUETA_AUTOR[nota.audiencia_autor]}</small>
-                  <small>{new Date(nota.creado_en).toLocaleString()}</small>
-                  {nota.es_resolucion && <Badge variant="secure">Nota de resolución</Badge>}
-                </Inline>
-                <p style={{ whiteSpace: 'pre-wrap' }}>{nota.cuerpo}</p>
-              </article>
-            ))}
+            <Timeline
+              items={notas.map((nota) => ({
+                id: nota.id,
+                title: ETIQUETA_AUTOR[nota.audiencia_autor],
+                description: <span style={{ whiteSpace: 'pre-wrap' }}>{nota.cuerpo}</span>,
+                timestamp: new Date(nota.creado_en).toLocaleString(),
+                dateTime: nota.creado_en,
+                status: 'completed',
+                content: nota.es_resolucion ? (
+                  <Badge variant="secure">Nota de resolución</Badge>
+                ) : undefined,
+              }))}
+              emptyState={<p>Aún no hay notas.</p>}
+            />
             {hayMasNotas && (
               <Button variant="outline" onClick={onCargarMasNotas} disabled={cargandoMasNotas}>
                 {cargandoMasNotas ? 'Cargando...' : 'Cargar más notas'}

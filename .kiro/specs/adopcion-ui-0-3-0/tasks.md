@@ -47,12 +47,12 @@ Las decisiones D1 a D6 están resueltas en `requirements.md` (sección 5).
   - [x] 7.4 Actualizar `CrearViaje.test.tsx` y `DecisionSolicitud.test.tsx`. La expectativa del `PATCH fecha-hora` no cambió
   - [x] 7.5 `fechaHoraAISO` sin cambios; caso vacío cubierto con una prueba nueva
 
-- [ ] 8. `Timeline` (R6)
-  - [ ] 8.1 `HistoricoViaje`: bitácora (D-D)
-  - [ ] 8.2 `HistoricoViaje`: estadías, con "Cerrar estadía" en `content`
-  - [ ] 8.3 `HistoricoViaje`: incidencias, con "Resolver incidencia" en `content` solo si `puedeCorregir`
-  - [ ] 8.4 `PanelCaso`: notas de resolución
-  - [ ] 8.5 Actualizar `tests/viajes/Historico*.test.tsx` y de emergencias según el DOM nuevo
+- [x] 8. `Timeline` (R6). Detalle en BRECHAS.md, sección 8
+  - [x] 8.1 `HistoricoViaje`: bitácora (D-D). Entradas con `status: completed`, porque son registros históricos append-only
+  - [x] 8.2 `HistoricoViaje`: estadías, con "Cerrar estadía" en `content`
+  - [x] 8.3 `HistoricoViaje`: incidencias, con "Resolver incidencia" en `content` solo si `puedeCorregir`
+  - [x] 8.4 `PanelCaso`: notas de resolución (`Nota de resolución` en `content`)
+  - [x] 8.5 Pruebas de histórico y emergencias sin cambios: el DOM nuevo conserva los textos verificados. 631 de 631 en verde
 
 - [ ] 9. Cargas, vacíos, `Select` y `Stat` (R8, R9, R10)
   - [ ] 9.1 Contenedor `role="status"` + `Skeleton*` en los bloques de carga manual (D-C)

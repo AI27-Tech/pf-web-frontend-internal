@@ -23,6 +23,7 @@ import {
   PageHeader,
   Stack,
   Textarea,
+  Timeline,
   Toast,
   ToastContainer,
 } from '@ai27-tech/ui';
@@ -60,7 +61,6 @@ interface ToastItem {
 }
 
 const COLOR_MUTED = 'var(--ui-color-text-muted)';
-const COLOR_TEXT = 'var(--ui-color-text)';
 
 /** Formatea una marca de tiempo ISO a una cadena legible local. */
 function formatearFecha(iso: string): string {
@@ -277,18 +277,23 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
   );
 }
 
-/** Lista cronológica append-only de la bitácora, con estados de UI. */
+/** Carga de un historial: región viva con texto accesible y esqueletos de Timeline. */
+function CargaHistorial({ recurso }: { readonly recurso: string }) {
+  return (
+    <div role="status" aria-label={`Cargando ${recurso}`}>
+      <Timeline items={[]} loading />
+    </div>
+  );
+}
+
+/** Bitácora append-only: autor, texto y marca de tiempo; sin acciones por registro. */
 function BitacoraLista({
   estado,
 }: {
   readonly estado: ReturnType<typeof useHistoricoViaje>['bitacora'];
 }) {
   if (estado.cargando) {
-    return (
-      <p role="status" className="ui-text-body-sm" style={{ margin: 0, color: COLOR_MUTED }}>
-        Cargando bitácora...
-      </p>
-    );
+    return <CargaHistorial recurso="bitácora" />;
   }
   if (estado.error) {
     return (
@@ -296,40 +301,22 @@ function BitacoraLista({
     );
   }
   const items = estado.datos?.items ?? [];
-  if (items.length === 0) {
-    return <Alert variant="info">Aún no hay notas en la bitácora.</Alert>;
-  }
   return (
-    <Stack
-      as="ul"
-      gap={2}
-      style={{
-        listStyle: 'none',
-        margin: 0,
-        padding: 0,
-      }}
-    >
-      {items.map((entrada: EntradaBitacora) => (
-        <li
-          key={entrada.id}
-          style={{
-            borderInlineStart: '3px solid var(--ui-color-border)',
-            paddingInlineStart: 'var(--ui-space-3)',
-          }}
-        >
-          <p className="ui-text-body-sm" style={{ margin: 0, color: COLOR_TEXT }}>
-            {entrada.texto}
-          </p>
-          <p className="ui-text-body-xs" style={{ margin: 0, color: COLOR_MUTED }}>
-            {entrada.autor} · {formatearFecha(entrada.ts)}
-          </p>
-        </li>
-      ))}
-    </Stack>
+    <Timeline
+      items={items.map((entrada: EntradaBitacora) => ({
+        id: entrada.id,
+        title: entrada.autor,
+        description: entrada.texto,
+        timestamp: formatearFecha(entrada.ts),
+        dateTime: entrada.ts,
+        status: 'completed',
+      }))}
+      emptyState={<Alert variant="info">Aún no hay notas en la bitácora.</Alert>}
+    />
   );
 }
 
-/** Lista de estadías con duración derivada y cierre; sin rótulo prolongada. */
+/** Estadías con duración derivada y cierre; sin rótulo prolongada. */
 function EstadiasLista({
   estado,
   cerrando,
@@ -340,11 +327,7 @@ function EstadiasLista({
   readonly onCerrar: (estadiaId: string) => void;
 }) {
   if (estado.cargando) {
-    return (
-      <p role="status" className="ui-text-body-sm" style={{ margin: 0, color: COLOR_MUTED }}>
-        Cargando estadías...
-      </p>
-    );
+    return <CargaHistorial recurso="estadías" />;
   }
   if (estado.error) {
     return (
@@ -352,63 +335,50 @@ function EstadiasLista({
     );
   }
   const items = estado.datos?.items ?? [];
-  if (items.length === 0) {
-    return <Alert variant="info">Aún no hay estadías registradas.</Alert>;
-  }
   return (
-    <Stack
-      as="ul"
-      gap={3}
-      style={{
-        listStyle: 'none',
-        margin: 0,
-        padding: 0,
-      }}
-    >
-      {items.map((estadia: Estadia) => {
+    <Timeline
+      items={items.map((estadia: Estadia) => {
         const abierta = (estadia.cierre ?? null) === null;
-        return (
-          <li
-            key={estadia.id}
-            style={{
-              borderInlineStart: '3px solid var(--ui-color-border)',
-              paddingInlineStart: 'var(--ui-space-3)',
-            }}
-          >
-            <Inline gap={2} align="center" wrap={false}>
-              <span className="ui-text-body-sm" style={{ color: COLOR_TEXT }}>
-                {estadia.motivo} · {estadia.eje_autorizacion}
-              </span>
-              <Badge variant={abierta ? 'warning' : 'neutral'}>
-                {abierta ? 'Abierta' : 'Cerrada'}
-              </Badge>
-            </Inline>
-            <p className="ui-text-body-xs" style={{ margin: 0, color: COLOR_MUTED }}>
-              Inicio: {formatearFecha(estadia.inicio)}
-              {estadia.cierre ? ` · Cierre: ${formatearFecha(estadia.cierre)}` : ''} · Duración:{' '}
-              {formatearDuracion(duracionEstadia(estadia))}
-            </p>
-            {abierta && (
-              <div style={{ marginTop: 'var(--ui-space-1)' }}>
-                <Button
-                  variant="secondary"
-                  type="button"
-                  loading={cerrando}
-                  disabled={cerrando}
-                  onClick={() => onCerrar(estadia.id)}
-                >
-                  Cerrar estadía
-                </Button>
-              </div>
-            )}
-          </li>
-        );
+        return {
+          id: estadia.id,
+          title: `${estadia.motivo} · ${estadia.eje_autorizacion}`,
+          timestamp: `Inicio: ${formatearFecha(estadia.inicio)}`,
+          dateTime: estadia.inicio,
+          description: estadia.cierre ? `Cierre: ${formatearFecha(estadia.cierre)}` : undefined,
+          status: abierta ? 'current' : 'completed',
+          content: (
+            <Stack gap={1}>
+              <Inline gap={2} align="center" wrap={false}>
+                <Badge variant={abierta ? 'warning' : 'neutral'}>
+                  {abierta ? 'Abierta' : 'Cerrada'}
+                </Badge>
+                <span className="ui-text-body-xs" style={{ color: COLOR_MUTED }}>
+                  Duración: {formatearDuracion(duracionEstadia(estadia))}
+                </span>
+              </Inline>
+              {abierta && (
+                <div>
+                  <Button
+                    variant="secondary"
+                    type="button"
+                    loading={cerrando}
+                    disabled={cerrando}
+                    onClick={() => onCerrar(estadia.id)}
+                  >
+                    Cerrar estadía
+                  </Button>
+                </div>
+              )}
+            </Stack>
+          ),
+        };
       })}
-    </Stack>
+      emptyState={<Alert variant="info">Aún no hay estadías registradas.</Alert>}
+    />
   );
 }
 
-/** Lista de incidencias del viaje (lectura `listarIncidencias`); resolver solo si el rol lo permite. */
+/** Incidencias del viaje (lectura `listarIncidencias`); resolver solo si el rol lo permite. */
 function IncidenciasLista({
   estado,
   puedeCorregir,
@@ -419,11 +389,7 @@ function IncidenciasLista({
   readonly onResolver: (incidencia: Incidencia) => void;
 }) {
   if (estado.cargando) {
-    return (
-      <p role="status" className="ui-text-body-sm" style={{ margin: 0, color: COLOR_MUTED }}>
-        Cargando incidencias...
-      </p>
-    );
+    return <CargaHistorial recurso="incidencias" />;
   }
   if (estado.error) {
     return (
@@ -434,54 +400,37 @@ function IncidenciasLista({
     );
   }
   const items = estado.datos?.items ?? [];
-  if (items.length === 0) {
-    return <Alert variant="info">No hay incidencias registradas en este viaje.</Alert>;
-  }
   return (
-    <Stack
-      as="ul"
-      gap={3}
-      style={{
-        listStyle: 'none',
-        margin: 0,
-        padding: 0,
-      }}
-    >
-      {items.map((incidencia) => {
+    <Timeline
+      items={items.map((incidencia: Incidencia) => {
         const resuelta = incidencia.estado === 'resuelta';
-        return (
-          <li
-            key={incidencia.id}
-            style={{
-              borderInlineStart: '3px solid var(--ui-color-border)',
-              paddingInlineStart: 'var(--ui-space-3)',
-            }}
-          >
-            <Inline gap={2} align="center" wrap={false}>
-              <span className="ui-text-body-sm" style={{ color: COLOR_TEXT }}>
-                {incidencia.tipo_interno}
-              </span>
+        return {
+          id: incidencia.id,
+          title: incidencia.tipo_interno,
+          timestamp: `Abierta: ${formatearFecha(incidencia.abierta_en)}`,
+          dateTime: incidencia.abierta_en,
+          description: incidencia.resuelta_en
+            ? `Resuelta: ${formatearFecha(incidencia.resuelta_en)}`
+            : undefined,
+          status: resuelta ? 'completed' : 'warning',
+          content: (
+            <Stack gap={1}>
               <Badge variant={resuelta ? 'neutral' : 'alert'}>
                 {resuelta ? 'Resuelta' : 'En atención'}
               </Badge>
-            </Inline>
-            <p className="ui-text-body-xs" style={{ margin: 0, color: COLOR_MUTED }}>
-              Abierta: {formatearFecha(incidencia.abierta_en)}
-              {incidencia.resuelta_en
-                ? ` · Resuelta: ${formatearFecha(incidencia.resuelta_en)}`
-                : ''}
-            </p>
-            {!resuelta && puedeCorregir && (
-              <div style={{ marginTop: 'var(--ui-space-1)' }}>
-                <Button variant="secondary" type="button" onClick={() => onResolver(incidencia)}>
-                  Resolver incidencia
-                </Button>
-              </div>
-            )}
-          </li>
-        );
+              {!resuelta && puedeCorregir && (
+                <div>
+                  <Button variant="secondary" type="button" onClick={() => onResolver(incidencia)}>
+                    Resolver incidencia
+                  </Button>
+                </div>
+              )}
+            </Stack>
+          ),
+        };
       })}
-    </Stack>
+      emptyState={<Alert variant="info">No hay incidencias registradas en este viaje.</Alert>}
+    />
   );
 }
 
