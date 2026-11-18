@@ -1,5 +1,54 @@
 # CHANGELOG
 
+## 2026:11:18 17:14
+
+**Resumen:** Rediseño de las pestañas del viaje (Detalle, Ficha técnica, Histórico y Expediente) con `@ai27-tech/ui`. La ficha se edita en un modal, el histórico lee todas las páginas de bitácora, estadías e incidencias, y las emergencias activas se muestran como alerta en el detalle.
+**Cambios:**
+
+- **Ficha técnica:** dos columnas: contexto de solo lectura a la izquierda, ficha confirmada y edición a la derecha. La ficha muestra tracto, contenedores en tabla y GPS como badges con su identificador. La edición pasa a un modal y el borrador vive en el padre, así que cerrar sin guardar no pierde lo capturado. Guardar cierra el modal y muestra un toast. Se quita el `Card` envolvente del editor, porque su `overflow: hidden` impedía que la barra «Guardar ficha» quedara fija. El esqueleto de carga tiene la forma de la vista.
+- **Detalle del viaje:** datos del viaje y escolta con `Section`; ruta con `Timeline`; escolta con un bloque por unidad. La alerta de emergencias activas va junto a la de incidencia: roja si hay casos sin atender y ámbar si todos están en atención. Se quita el aviso verde de éxito de la activación.
+- **Histórico del viaje:** la bitácora pasa a bloques con autor, hora y texto, en un contenedor con scroll de 24rem que baja a la última nota. Las estadías van en tabla a ancho completo, con badges de autorización y estado, duración «En curso» para las abiertas y confirmación al cerrar, porque el cierre no se puede deshacer. Las incidencias van en bloques. Los formularios de nota, estadía e incidencia van en modales. Motivo y autorización se muestran con etiquetas en español (`etiquetas.ts`). Cada sección va en una tarjeta con `Section` y separador.
+- **Lectura completa de listas paginadas:** bitácora, estadías e incidencias solo leían la primera página, así que las entradas nuevas no aparecían. `leerTodasLasPaginas` sigue `cursor_siguiente` hasta el final.
+- **Expediente y evidencia:** la descarga va en una `Section` con el botón en el encabezado, que muestra estado de carga con `loading`; el contenido se lista con badges y los errores van en `Alert`. La evidencia avisa que el almacén de V1 aún no está listo, muestra el motivo cuando un adjunto no es descargable, abre el selector de archivo con un botón que muestra el nombre elegido y limpia la selección tras una subida exitosa.
+- **Emergencias:** la lista de casos se carga una sola vez en el detalle, y la comparten la alerta y el carril. `useEmergenciasViaje` acepta `habilitado` para no pedir la lista a roles sin carril. Los errores de activación siguen como alerta roja.
+- **Pruebas:** nuevas `FichaConfirmadaLectura` y `FichaModalEdicion`. Se ajustan `FichaEditor`, `FichaTecnicaViaje`, `HistoricoViaje`, `ExpedienteViaje`, `EvidenciaViaje` y `activacion` a la nueva disposición. Se agregan pruebas de paginación de bitácora y estadías, de la confirmación al cerrar una estadía y de la alerta de emergencias.
+  **Verificación:** `tsc --noEmit` sin errores. `eslint` sin errores en `src/features/viajes`, `src/features/emergencias` y `tests/emergencias`. Pruebas de `tests/viajes` y `tests/emergencias`: 307 de 307 en verde. No se revisó en navegador.
+  **Pendiente:**
+- Revisión visual de las pestañas en navegador: ancho de columnas, scroll de bitácora y altura igual de las tarjetas de la fila superior.
+- Texto de resolución de incidencias: `ResolucionIncidenciaEntrada.resolucion` es obligatorio en el contrato. Mostrarlo o dejar de pedirlo requiere cambios en `pf-pkg-contracts` y `operacion`.
+- Textos de trabajo pendientes de aprobación de Producto: aviso del almacén de evidencia y alerta de emergencias activas.
+- Un caso de emergencia resuelto y no cerrado no genera alerta.
+- La paginación completa de estadías e incidencias se verificó con MSW, no contra el backend real.
+  **Archivos modificados:**
+- `src/features/viajes/ficha/FichaTecnicaViaje.tsx`
+- `src/features/viajes/ficha/FichaEditor.tsx`
+- `src/features/viajes/historico/HistoricoViaje.tsx`
+- `src/features/viajes/historico/useHistoricoViaje.ts`
+- `src/features/viajes/historico/EstadiaForm.tsx`
+- `src/features/viajes/historico/etiquetas.ts` (nuevo)
+- `src/features/viajes/detalle/DetalleViaje.tsx`
+- `src/features/viajes/ViajeShell.tsx`
+- `src/features/viajes/AvisoActivacionEmergencia.tsx` (nuevo)
+- `src/features/viajes/activacionEmergenciaContexto.ts`
+- `src/features/viajes/expediente/ExpedienteViaje.tsx`
+- `src/features/viajes/expediente/BotonDescargarExpediente.tsx`
+- `src/features/viajes/evidencia/EvidenciaViaje.tsx`
+- `src/features/viajes/evidencia/ListaAdjuntos.tsx`
+- `src/features/viajes/evidencia/SubirEvidencia.tsx`
+- `src/features/emergencias/activacion/AccionEmergencia.tsx`
+- `src/features/emergencias/activacion/AlertaEmergenciasActivas.tsx` (nuevo)
+- `src/features/emergencias/activacion/SeccionEmergenciasViaje.tsx`
+- `src/features/emergencias/activacion/useEmergenciasViaje.ts`
+- `tests/viajes/FichaConfirmadaLectura.test.tsx` (nuevo)
+- `tests/viajes/FichaModalEdicion.test.tsx` (nuevo)
+- `tests/viajes/FichaEditor.test.tsx`
+- `tests/viajes/FichaTecnicaViaje.test.tsx`
+- `tests/viajes/HistoricoViaje.test.tsx`
+- `tests/viajes/ExpedienteViaje.test.tsx`
+- `tests/viajes/EvidenciaViaje.test.tsx`
+- `tests/emergencias/activacion.test.tsx`
+- `CHANGELOG.md`
+
 ## 2026:11:17 15:35
 
 **Resumen:** Dashboard de monitoreo (E8-T17, Bloque B) rediseñado con `@ai27-tech/ui`: KPI de viajes en tránsito y aprobados, tabla de viajes con filtros de estado y fecha, y el spec `dashboard-monitoreo-ui` con sus brechas. La entrada cubre toda la rama: los tres commits de spec y los cambios sin commitear del dashboard.
