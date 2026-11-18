@@ -1,4 +1,13 @@
-import { Badge, Button, Card, CardBody, CardFooter, CardHeader, Table } from '@ai27-tech/ui';
+import {
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  SkeletonText,
+  Table,
+} from '@ai27-tech/ui';
 
 import type { Adjunto, EstadoEscaneo } from '@/lib/contracts/adjuntos';
 
@@ -60,9 +69,9 @@ export function ListaAdjuntos({
 
   if (cargando) {
     return (
-      <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
-        Cargando la evidencia...
-      </p>
+      <div role="status" aria-label="Cargando la evidencia">
+        <SkeletonText lines={3} />
+      </div>
     );
   }
 

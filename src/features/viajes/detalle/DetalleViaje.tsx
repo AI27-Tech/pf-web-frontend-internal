@@ -19,8 +19,6 @@ import { CalendarClock, Clock } from 'lucide-react';
 
 import {
   Alert,
-  Badge,
-  Breadcrumb,
   Button,
   Card,
   CardBody,
@@ -28,18 +26,17 @@ import {
   CardHeader,
   Divider,
   EmptyState,
+  Skeleton,
+  SkeletonText,
   Grid,
   Timeline,
-  Inline,
   Modal,
-  PageHeader,
   Stat,
   Stack,
   Toast,
   ToastContainer,
 } from '@ai27-tech/ui';
 import { BloqueError } from '@/components/feedback/BloqueError';
-import { EnlaceRuta } from '@/components/layout/EnlaceRuta';
 import { useSession } from '@/context/SessionContext';
 import { ApiError } from '@/lib/api/errors';
 import { ErrorAsignacion, ErrorTransicion } from '@/lib/api/viajeDetalle';
@@ -55,24 +52,16 @@ import { puedeAprobar } from './decisionSolicitud';
 import { AsignacionForm } from './asignacionForm';
 import { EtaForm } from './etaForm';
 import { nombreEstado, pasosSeguimiento, siguientePaso } from './seguimiento';
-import { badgeDeEstado } from '@/features/monitoreo/dashboard/estadoBadge';
 import { FechaHoraForm } from './fechaHoraForm';
 import { useDetalleViaje } from './useDetalleViaje';
-import { AccionEmergencia } from '@/features/emergencias/activacion/AccionEmergencia';
 import { SeccionEmergenciasViaje } from '@/features/emergencias/activacion/SeccionEmergenciasViaje';
-import { puedeMostrarActivacion } from '@/features/emergencias/afordancias';
-import { NavegacionViaje } from '@/features/viajes/NavegacionViaje';
-import type { EmergenciaViaje } from '@/lib/contracts/emergencias';
+import { useActivacionEmergencia } from '@/features/viajes/activacionEmergenciaContexto';
 
 export interface DetalleViajeProps {
   readonly id: string;
 }
 
 /** Variante de Badge por condicion. */
-const VARIANTE_CONDICION: Record<'INCIDENCIA' | 'SIN_SENAL', 'alert' | 'warning'> = {
-  INCIDENCIA: 'warning',
-  SIN_SENAL: 'warning',
-};
 
 /**
  * Fase del bucle multi-parada derivada del estado canónico del viaje (Req 5.1).
@@ -114,7 +103,7 @@ interface ToastItem {
  * 5. Si datos: renderiza cabecera, acciones, modal, ETA, avisos
  */
 export function DetalleViaje({ id }: DetalleViajeProps) {
-  const [casoActivado, setCasoActivado] = useState<EmergenciaViaje | null>(null);
+  const { casoActivado } = useActivacionEmergencia();
   const { usuario } = useSession();
   /** true cuando el modal de selección de unidades está abierto (E8-T10). */
   const [modalAsignacionAbierto, setModalAsignacionAbierto] = useState(false);
@@ -344,7 +333,6 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
 
   // Guard de aprobación (E8-T9, Req 2): Aprobar solo se habilita cuando el viaje
   // es una solicitud con `fecha_hora_servicio` presente.
-  const descriptorEstado = badgeDeEstado(viajeInterno.estado);
   const incidenciaAbierta = condicionesActivas.find((c) => c.tipo === 'INCIDENCIA');
   const aprobarHabilitado = puedeAprobar(viajeInterno);
   // La solicitud en SOLICITADO sin fecha/hora necesita completarla antes de aprobar.
@@ -367,43 +355,6 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
 
   return (
     <Stack gap={4}>
-      <PageHeader
-        title={
-          <Inline gap={2} align="center">
-            <span>{`Detalle del Viaje: ${viajeInterno.id}`}</span>
-            <Badge
-              variant={descriptorEstado.variant}
-              appearance={descriptorEstado.appearance}
-              dot={descriptorEstado.dot}
-              pulse={descriptorEstado.pulse}
-            >
-              {viajeInterno.estado}
-            </Badge>
-            {!incidenciaAbierta && <Badge variant="neutral">Sin incidencias</Badge>}
-            {condicionesActivas.map((c) => (
-              <Badge key={c.tipo} variant={VARIANTE_CONDICION[c.tipo] ?? 'warning'} dot>
-                {c.tipo}
-              </Badge>
-            ))}
-          </Inline>
-        }
-        breadcrumb={
-          <Breadcrumb
-            items={[{ label: 'Viajes', href: '/viajes', as: EnlaceRuta }, { label: `Viaje ${id}` }]}
-          />
-        }
-        actions={
-          usuario && puedeMostrarActivacion(usuario.rol, viajeInterno.estado) ? (
-            <AccionEmergencia
-              viajeId={id}
-              onActivada={setCasoActivado}
-              onViajeTerminal={() => void d.reintentar()}
-            />
-          ) : undefined
-        }
-      />
-      <NavegacionViaje id={id} actual="detalle" />
-
       {/* Incidencia abierta: aviso arriba del detalle, con enlace al histórico (E8-T8). */}
       {incidenciaAbierta && (
         <Alert variant="warning">
@@ -717,13 +668,57 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
  */
 function EstadoCargando() {
   return (
-    <Card>
-      <CardBody>
-        <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
-          Cargando detalles del viaje...
-        </p>
-      </CardBody>
-    </Card>
+    <div role="status" aria-label="Cargando detalles del viaje">
+      <Stack gap={4}>
+        <Card>
+          <CardHeader>
+            <SkeletonText lines={1} />
+          </CardHeader>
+          <CardBody>
+            <Skeleton width="100%" height="1.5rem" />
+          </CardBody>
+        </Card>
+        <Grid minItemWidth="12rem" gap={4}>
+          <Card>
+            <CardBody>
+              <SkeletonText lines={2} />
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              <SkeletonText lines={2} />
+            </CardBody>
+          </Card>
+        </Grid>
+        <Grid minItemWidth="22rem" gap={4}>
+          <Stack gap={4}>
+            <Card>
+              <CardHeader>
+                <SkeletonText lines={1} />
+              </CardHeader>
+              <CardBody>
+                <SkeletonText lines={4} />
+              </CardBody>
+            </Card>
+          </Stack>
+          <Stack gap={4}>
+            <Card>
+              <CardHeader>
+                <SkeletonText lines={1} />
+              </CardHeader>
+              <CardBody>
+                <SkeletonText lines={3} />
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody>
+                <SkeletonText lines={2} />
+              </CardBody>
+            </Card>
+          </Stack>
+        </Grid>
+      </Stack>
+    </div>
   );
 }
 

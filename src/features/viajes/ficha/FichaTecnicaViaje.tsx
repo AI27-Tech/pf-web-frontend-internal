@@ -10,7 +10,6 @@ import { useEffect } from 'react';
 
 import {
   Alert,
-  Breadcrumb,
   Button,
   Card,
   CardBody,
@@ -18,15 +17,12 @@ import {
   CardHeader,
   DescriptionList,
   EmptyState,
-  PageHeader,
   SkeletonText,
   Stack,
 } from '@ai27-tech/ui';
 import { useNavigate } from '@tanstack/react-router';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
-import { NavegacionViaje } from '@/features/viajes/NavegacionViaje';
-import { EnlaceRuta } from '@/components/layout/EnlaceRuta';
 import { useSession } from '@/context/SessionContext';
 import type { FichaTecnica } from '@/lib/contracts/fichaTecnica';
 import type { Unidad } from '@/lib/contracts/unidades';
@@ -75,21 +71,6 @@ export function FichaTecnicaViaje({ id }: FichaTecnicaViajeProps) {
 
   return (
     <Stack gap={4}>
-      <PageHeader
-        title="Ficha técnica del viaje"
-        description={`Viaje: ${viaje.id}`}
-        breadcrumb={
-          <Breadcrumb
-            items={[
-              { label: 'Viajes', href: '/viajes', as: EnlaceRuta },
-              { label: `Viaje ${id}`, href: `/viajes/${id}`, as: EnlaceRuta },
-              { label: 'Ficha técnica' },
-            ]}
-          />
-        }
-      />
-
-      <NavegacionViaje id={id} actual="ficha" />
       <DatosViaje viaje={viaje} />
 
       <Escolta

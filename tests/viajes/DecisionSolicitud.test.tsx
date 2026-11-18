@@ -20,6 +20,7 @@ import { setupServer } from 'msw/node';
 import type { ReactNode } from 'react';
 
 import { DetalleViaje } from '@/features/viajes/detalle/DetalleViaje';
+import { ViajeShell } from '@/features/viajes/ViajeShell';
 import { API_PREFIX } from '@/lib/constants';
 
 import { escribirFechaHora } from '../helpers/fechaHora';
@@ -72,7 +73,12 @@ function renderDetalle() {
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  return render(<DetalleViaje id="VJ-9" />, { wrapper: Wrapper });
+  return render(
+    <ViajeShell id="VJ-9" seccion="detalle">
+      <DetalleViaje id="VJ-9" />
+    </ViajeShell>,
+    { wrapper: Wrapper },
+  );
 }
 
 describe('E8-T9 · guard de aprobación (fecha/hora obligatoria)', () => {

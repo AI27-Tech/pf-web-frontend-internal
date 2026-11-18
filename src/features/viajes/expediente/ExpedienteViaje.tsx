@@ -10,21 +10,17 @@ import { useState, type ReactNode } from 'react';
 
 import {
   Alert,
-  Breadcrumb,
   Button,
   Card,
   CardBody,
   CardFooter,
   CardHeader,
-  PageHeader,
   Stack,
   Toast,
   ToastContainer,
 } from '@ai27-tech/ui';
 import { useNavigate } from '@tanstack/react-router';
 
-import { NavegacionViaje } from '@/features/viajes/NavegacionViaje';
-import { EnlaceRuta } from '@/components/layout/EnlaceRuta';
 import { useSession } from '@/context/SessionContext';
 import { puedeUsarMonitoreo } from '@/features/monitoreo/puedeUsarMonitoreo';
 
@@ -60,21 +56,6 @@ function DescargaExpediente({ id }: { readonly id: string }) {
 
   return (
     <Stack gap={4}>
-      <PageHeader
-        title="Expediente del viaje"
-        description={`Viaje: ${id}`}
-        breadcrumb={
-          <Breadcrumb
-            items={[
-              { label: 'Viajes', href: '/viajes', as: EnlaceRuta },
-              { label: `Viaje ${id}`, href: `/viajes/${id}`, as: EnlaceRuta },
-              { label: 'Expediente' },
-            ]}
-          />
-        }
-      />
-
-      <NavegacionViaje id={id} actual="expediente" />
       <Card>
         <CardHeader>
           <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>

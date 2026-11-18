@@ -11,7 +11,6 @@ import { useRef, useState } from 'react';
 import {
   Alert,
   Badge,
-  Breadcrumb,
   Button,
   Card,
   CardBody,
@@ -21,7 +20,6 @@ import {
   FormField,
   Inline,
   Modal,
-  PageHeader,
   Stack,
   Textarea,
   Timeline,
@@ -30,8 +28,6 @@ import {
 } from '@ai27-tech/ui';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
-import { NavegacionViaje } from '@/features/viajes/NavegacionViaje';
-import { EnlaceRuta } from '@/components/layout/EnlaceRuta';
 import { useSession } from '@/context/SessionContext';
 import {
   ErrorAutorizacionInsuficiente,
@@ -200,20 +196,6 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
 
   return (
     <Stack gap={4}>
-      <PageHeader
-        title={`Histórico del viaje: ${id}`}
-        breadcrumb={
-          <Breadcrumb
-            items={[
-              { label: 'Viajes', href: '/viajes', as: EnlaceRuta },
-              { label: `Viaje ${id}`, href: `/viajes/${id}`, as: EnlaceRuta },
-              { label: 'Histórico' },
-            ]}
-          />
-        }
-      />
-
-      <NavegacionViaje id={id} actual="historico" />
       <Card variant="outlined">
         <CardHeader>Bitácora</CardHeader>
         <CardBody>

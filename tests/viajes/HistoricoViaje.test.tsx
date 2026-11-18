@@ -19,6 +19,7 @@ import type { ReactNode } from 'react';
 import { Rol } from '@ai27-tech/contracts/roles';
 
 import { HistoricoViaje } from '@/features/viajes/historico/HistoricoViaje';
+import { ViajeShell } from '@/features/viajes/ViajeShell';
 import { API_PREFIX } from '@/lib/constants';
 
 const path = (segment: string) => `${API_PREFIX}${segment}`;
@@ -120,7 +121,12 @@ function renderHistorico() {
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  return render(<HistoricoViaje id="VJ-1" />, { wrapper: Wrapper });
+  return render(
+    <ViajeShell id="VJ-1" seccion="historico">
+      <HistoricoViaje id="VJ-1" />
+    </ViajeShell>,
+    { wrapper: Wrapper },
+  );
 }
 
 /**
