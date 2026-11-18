@@ -6,31 +6,46 @@
  * asignación vigente del viaje (`obtenerAsignacion`, tracer.39), en solo lectura.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 
 import {
   Alert,
+  Badge,
   Button,
   Card,
   CardBody,
   CardFooter,
   CardHeader,
   DescriptionList,
+  Divider,
   EmptyState,
+  Grid,
+  Inline,
+  Modal,
+  Section,
+  Skeleton,
+  SkeletonTable,
   SkeletonText,
   Stack,
+  Table,
+  Timeline,
+  Toast,
+  ToastContainer,
 } from '@ai27-tech/ui';
+import type { Column, TimelineItemData } from '@ai27-tech/ui';
 import { useNavigate } from '@tanstack/react-router';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
 import { useSession } from '@/context/SessionContext';
-import type { FichaTecnica } from '@/lib/contracts/fichaTecnica';
+import type { DispositivoGps, FichaTecnica } from '@/lib/contracts/fichaTecnica';
 import type { Unidad } from '@/lib/contracts/unidades';
 import { custodiosLegibles, vehiculoLegible } from '../unidadLegible';
 import type { ViajeInterno } from '@/lib/contracts/viajeDetalle';
 
+import { datosDesdeFicha, type DatosFichaTecnica } from './adaptadorFichaTecnica';
 import { FichaEditor } from './FichaEditor';
-import { useFichaTecnica } from './useFichaTecnica';
+import { useFichaTecnica, type FichaTecnicaHook } from './useFichaTecnica';
 
 export interface FichaTecnicaViajeProps {
   readonly id: string;
@@ -70,90 +85,160 @@ export function FichaTecnicaViaje({ id }: FichaTecnicaViajeProps) {
   const viaje = f.detalle.viaje;
 
   return (
-    <Stack gap={4}>
-      <DatosViaje viaje={viaje} />
+    <Grid minItemWidth="22rem" gap={4}>
+      <Stack gap={4}>
+        <DatosViaje viaje={viaje} />
 
-      <Escolta
-        unidades={f.escolta}
-        cargando={f.cargandoEscolta}
-        error={f.errorEscolta}
-        onReintentar={f.reintentarEscolta}
-      />
+        <Escolta
+          unidades={f.escolta}
+          cargando={f.cargandoEscolta}
+          error={f.errorEscolta}
+          onReintentar={f.reintentarEscolta}
+        />
+      </Stack>
 
+      <Stack gap={4}>
+        <FichaSeccion key={id} viajeId={id} f={f} />
+      </Stack>
+    </Grid>
+  );
+}
+
+interface AvisoFicha {
+  readonly id: string;
+  readonly mensaje: string;
+}
+
+/**
+ * Ficha confirmada y su edición en un modal. El modal desmonta el editor al cerrarse,
+ * así que el borrador vive aquí: cerrar sin guardar no pierde lo capturado. La clave
+ * por viaje reinicia el borrador al cambiar de viaje.
+ */
+function FichaSeccion({ viajeId, f }: { readonly viajeId: string; readonly f: FichaTecnicaHook }) {
+  const [editando, setEditando] = useState(false);
+  const [borrador, setBorrador] = useState<DatosFichaTecnica | null>(null);
+  const [avisos, setAvisos] = useState<AvisoFicha[]>([]);
+  const avisoIdRef = useRef(0);
+
+  // Sin borrador, el formulario muestra la ficha confirmada. El borrador se construye
+  // sobre la ficha vigente en el momento del cambio, aunque aún no haya cargado.
+  const datos = borrador ?? datosDesdeFicha(f.ficha);
+  const cambiarDatos: Dispatch<SetStateAction<DatosFichaTecnica>> = (cambio) =>
+    setBorrador((actual) => {
+      const base = actual ?? datosDesdeFicha(f.ficha);
+      return typeof cambio === 'function' ? cambio(base) : cambio;
+    });
+
+  const avisarGuardada = () => {
+    const id = `aviso-ficha-${avisoIdRef.current++}`;
+    setAvisos((previos) => [...previos, { id, mensaje: 'Ficha técnica guardada.' }]);
+    setTimeout(() => {
+      setAvisos((previos) => previos.filter((aviso) => aviso.id !== id));
+    }, 4000);
+  };
+
+  return (
+    <>
       <Card>
         <CardHeader>
-          <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-            Ficha técnica confirmada
-          </p>
+          <Inline gap={2} justify="between" align="center" wrap={false}>
+            <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
+              Ficha técnica confirmada
+            </p>
+            {f.ficha && (
+              <Button variant="primary" type="button" onClick={() => setEditando(true)}>
+                Editar ficha
+              </Button>
+            )}
+          </Inline>
         </CardHeader>
         {f.ficha ? (
-          <FichaConfirmada ficha={f.ficha} />
+          <FichaConfirmada ficha={f.ficha} gps={f.gps} />
         ) : (
-          <EstadoFichaVacia inexistente={f.fichaVacia} />
+          <EstadoFichaVacia inexistente={f.fichaVacia} onCapturar={() => setEditando(true)} />
         )}
       </Card>
 
-      <FichaEditor
-        key={f.ficha?.viaje_id ?? 'ficha-vacia'}
-        viajeId={id}
-        ficha={f.ficha}
-        gps={f.gps}
-        cargandoGps={f.cargandoGps}
-        errorGps={f.errorGps}
-        reintentarGps={f.reintentarGps}
-        guardar={f.guardar}
-        guardando={f.guardando}
-      />
-    </Stack>
+      <Modal
+        open={editando}
+        onClose={() => setEditando(false)}
+        title="Editar ficha técnica"
+        size="lg"
+      >
+        <FichaEditor
+          viajeId={viajeId}
+          datos={datos}
+          setDatos={cambiarDatos}
+          gps={f.gps}
+          cargandoGps={f.cargandoGps}
+          errorGps={f.errorGps}
+          reintentarGps={f.reintentarGps}
+          guardar={f.guardar}
+          guardando={f.guardando}
+          onGuardado={() => {
+            setEditando(false);
+            avisarGuardada();
+          }}
+        />
+      </Modal>
+
+      <ToastContainer position="top-right">
+        {avisos.map((aviso) => (
+          <Toast
+            key={aviso.id}
+            variant="success"
+            title={aviso.mensaje}
+            onClose={() =>
+              setAvisos((previos) => previos.filter((previo) => previo.id !== aviso.id))
+            }
+          />
+        ))}
+      </ToastContainer>
+    </>
   );
+}
+
+/** Origen y paradas en el orden en que llegan. Solo se marca como completada la que ya arribó. */
+function puntosDeRuta(viaje: ViajeInterno): TimelineItemData[] {
+  const origen: TimelineItemData = {
+    id: 'origen',
+    title: viaje.origen,
+    description: 'Origen',
+  };
+  const paradas = viaje.destinos.map((destino, indice): TimelineItemData => {
+    const envio = destino.numero_envio ? ` · Envío: ${destino.numero_envio}` : '';
+    return {
+      id: `parada-${indice}`,
+      title: destino.nombre,
+      description: `Parada ${indice + 1}${envio}`,
+      status: destino.arribo === true ? 'completed' : 'upcoming',
+      content:
+        destino.arribo === true ? (
+          <Badge variant="secure" size="sm">
+            Arribó
+          </Badge>
+        ) : undefined,
+    };
+  });
+  return [origen, ...paradas];
 }
 
 function DatosViaje({ viaje }: { readonly viaje: ViajeInterno }) {
   return (
     <Card>
-      <CardHeader>
-        <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-          Datos conocidos del viaje
-        </p>
-      </CardHeader>
       <CardBody>
-        <DescriptionList
-          columns={2}
-          items={[
-            { label: 'Origen', value: viaje.origen },
-            { label: 'Tipo de servicio', value: viaje.tipo_servicio ?? 'No informado' },
-            {
-              label: 'Destinos',
-              span: 2,
-              value:
-                viaje.destinos.length > 0 ? (
-                  <ol style={{ margin: 'var(--ui-space-1) 0 0', paddingLeft: 'var(--ui-space-4)' }}>
-                    {viaje.destinos.map((destino) => (
-                      <li key={destino.numero_envio ?? destino.nombre}>
-                        <span style={{ color: 'var(--ui-color-text)' }}>{destino.nombre}</span>
-                        {destino.numero_envio && (
-                          <span style={{ color: 'var(--ui-color-text-muted)' }}>
-                            {' '}
-                            (Envío: {destino.numero_envio})
-                          </span>
-                        )}
-                        {destino.arribo === true && (
-                          <span style={{ color: 'var(--ui-color-text-muted)' }}> — arribó</span>
-                        )}
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p
-                    className="ui-text-body-sm"
-                    style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}
-                  >
-                    No hay destinos informados.
-                  </p>
-                ),
-            },
-          ]}
-        />
+        <Stack gap={5}>
+          <Section title="Datos conocidos del viaje">
+            <DescriptionList
+              columns={1}
+              items={[{ label: 'Tipo de servicio', value: viaje.tipo_servicio ?? 'No informado' }]}
+            />
+          </Section>
+          <Section title="Ruta">
+            <Timeline items={puntosDeRuta(viaje)} aria-label="Ruta del viaje" />
+            {viaje.destinos.length === 0 && textoSecundario('No hay destinos informados.')}
+          </Section>
+        </Stack>
       </CardBody>
     </Card>
   );
@@ -172,66 +257,149 @@ function Escolta({
 }) {
   return (
     <Card>
-      <CardHeader>
-        <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-          Escolta (derivada de la asignación)
-        </p>
-      </CardHeader>
       <CardBody>
-        {cargando ? (
-          <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
-            Cargando la escolta...
-          </p>
-        ) : error ? (
-          // BloqueError fija la etiqueta "Reintentar"; esta prueba exige "Reintentar escolta".
-          <Alert variant="danger">
-            <Stack gap={2} align="start">
-              <span>No se pudo cargar la escolta.</span>
-              <Button variant="secondary" type="button" onClick={onReintentar}>
-                Reintentar escolta
-              </Button>
+        <Section title="Escolta (derivada de la asignación)">
+          {cargando ? (
+            <p
+              className="ui-text-body-sm"
+              style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}
+            >
+              Cargando la escolta...
+            </p>
+          ) : error ? (
+            // BloqueError fija la etiqueta "Reintentar"; esta prueba exige "Reintentar escolta".
+            <Alert variant="danger">
+              <Stack gap={2} align="start">
+                <span>No se pudo cargar la escolta.</span>
+                <Button variant="secondary" type="button" onClick={onReintentar}>
+                  Reintentar escolta
+                </Button>
+              </Stack>
+            </Alert>
+          ) : unidades.length === 0 ? (
+            <p
+              className="ui-text-body-sm"
+              style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}
+            >
+              Este viaje no tiene escolta asignada.
+            </p>
+          ) : (
+            <Stack gap={3}>
+              {unidades.map((unidad, indice) => (
+                <Stack key={unidad.id} gap={2}>
+                  {indice > 0 && <Divider />}
+                  <Inline gap={2} align="center">
+                    <span className="ui-text-label-md" style={{ color: 'var(--ui-color-text)' }}>
+                      Unidad {unidad.id}
+                    </span>
+                    <Badge variant="escort" size="sm">
+                      {unidad.tipo}
+                    </Badge>
+                  </Inline>
+                  <DescriptionList
+                    columns={2}
+                    items={[
+                      { label: 'Vehículo', value: vehiculoLegible(unidad) },
+                      { label: 'Custodios', value: custodiosLegibles(unidad) },
+                    ]}
+                  />
+                </Stack>
+              ))}
             </Stack>
-          </Alert>
-        ) : unidades.length === 0 ? (
-          <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
-            Este viaje no tiene escolta asignada.
+          )}
+          <p
+            className="ui-text-body-xs"
+            style={{ margin: 'var(--ui-space-2) 0 0', color: 'var(--ui-color-text-muted)' }}
+          >
+            La escolta se deriva de la asignación; no se recapturan custodios ni patrullas.
           </p>
-        ) : (
-          <ul style={{ margin: 0, paddingLeft: 'var(--ui-space-4)' }}>
-            {unidades.map((unidad) => (
-              <li key={unidad.id} style={{ color: 'var(--ui-color-text)' }}>
-                <span>Unidad {unidad.id}</span>
-                <span style={{ color: 'var(--ui-color-text-muted)' }}>
-                  {' '}
-                  — {unidad.tipo} · {vehiculoLegible(unidad)} · {custodiosLegibles(unidad)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-        <p
-          className="ui-text-body-xs"
-          style={{ margin: 'var(--ui-space-2) 0 0', color: 'var(--ui-color-text-muted)' }}
-        >
-          La escolta se deriva de la asignación; no se recapturan custodios ni patrullas.
-        </p>
+        </Section>
       </CardBody>
     </Card>
   );
 }
 
-function FichaConfirmada({ ficha }: { readonly ficha: FichaTecnica }) {
+type ContenedorFicha = NonNullable<FichaTecnica['contenedores']>[number];
+
+const VACIO = '—';
+
+const COLUMNAS_CONTENEDORES: Column<ContenedorFicha>[] = [
+  { key: 'economico', header: 'Económico', cell: (c) => c.economico || VACIO },
+  { key: 'placas', header: 'Placas', cell: (c) => c.placas || VACIO },
+  { key: 'sello', header: 'Sello', cell: (c) => c.sello || VACIO },
+  { key: 'color', header: 'Color', cell: (c) => c.color || VACIO },
+];
+
+function textoSecundario(texto: string) {
+  return (
+    <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
+      {texto}
+    </p>
+  );
+}
+
+function FichaConfirmada({
+  ficha,
+  gps,
+}: {
+  readonly ficha: FichaTecnica;
+  readonly gps: DispositivoGps[];
+}) {
+  const tracto = ficha.tracto ?? {};
+  const tieneTracto = Object.values(tracto).some((valor) => String(valor ?? '').trim().length > 0);
+  const contenedores = ficha.contenedores ?? [];
+  const gpsIds = ficha.gps_ids ?? [];
+  // El catálogo solo trae dispositivos activos: si un id ya no está, se muestra el id.
+  const identificadores = new Map(gps.map((d) => [d.id, d.identificador]));
+
   return (
     <CardBody>
-      <Stack gap={3}>
-        <DescriptionList
-          columns={2}
-          items={[
-            { label: 'Tracto', value: ficha.tracto ? 'Capturado' : 'No informado' },
-            { label: 'Contenedores', value: String(ficha.contenedores?.length ?? 0) },
-            { label: 'GPS registrados', value: String(ficha.gps_ids?.length ?? 0) },
-          ]}
-        />
+      <Stack gap={4}>
+        <Section title="Tracto">
+          {tieneTracto ? (
+            <DescriptionList
+              columns={3}
+              items={[
+                { label: 'Placas', value: tracto.placas },
+                { label: 'Económico', value: tracto.economico },
+                { label: 'Marca', value: tracto.marca },
+                { label: 'Modelo', value: tracto.modelo },
+                { label: 'Color', value: tracto.color },
+              ]}
+            />
+          ) : (
+            textoSecundario('Sin tracto informado.')
+          )}
+        </Section>
+
+        <Section title={`Contenedores (${contenedores.length})`}>
+          {contenedores.length > 0 ? (
+            <Table<ContenedorFicha>
+              columns={COLUMNAS_CONTENEDORES}
+              data={contenedores}
+              rowKey={(_, indice) => `contenedor-${indice}`}
+              aria-label="Contenedores de la ficha"
+              density="compact"
+            />
+          ) : (
+            textoSecundario('Sin contenedores.')
+          )}
+        </Section>
+
+        <Section title={`GPS registrados (${gpsIds.length})`}>
+          {gpsIds.length > 0 ? (
+            <Inline gap={2} wrap>
+              {gpsIds.map((gpsId) => (
+                <Badge key={gpsId} variant="neutral">
+                  {identificadores.get(gpsId) ?? gpsId}
+                </Badge>
+              ))}
+            </Inline>
+          ) : (
+            textoSecundario('Sin GPS registrados.')
+          )}
+        </Section>
+
         <p className="ui-text-body-xs" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
           La escolta y el histórico operativo se consultan en sus superficies correspondientes.
         </p>
@@ -240,27 +408,107 @@ function FichaConfirmada({ ficha }: { readonly ficha: FichaTecnica }) {
   );
 }
 
-function EstadoFichaVacia({ inexistente }: { readonly inexistente: boolean }) {
+function EstadoFichaVacia({
+  inexistente,
+  onCapturar,
+}: {
+  readonly inexistente: boolean;
+  readonly onCapturar: () => void;
+}) {
   return (
     <CardBody>
-      <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
-        {inexistente
-          ? 'La ficha aún no existe para este viaje. Puedes capturarla abajo.'
-          : 'La ficha no tiene datos capturados. Puedes completarla abajo.'}
-      </p>
+      <Stack gap={3} align="start">
+        <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
+          {inexistente
+            ? 'La ficha aún no existe para este viaje.'
+            : 'La ficha no tiene datos capturados.'}
+        </p>
+        <Button variant="primary" type="button" onClick={onCapturar}>
+          Capturar ficha
+        </Button>
+      </Stack>
     </CardBody>
   );
 }
 
+/** Esqueleto con la estructura de la vista: mismas columnas, tarjetas y listas de datos. */
 function EstadoCargando() {
+  const celdasTracto = [0, 1, 2, 3, 4];
+  const gpsSimulados = [0, 1, 2];
   return (
-    <Card>
-      <CardBody>
-        <div role="status" aria-label="Cargando la ficha técnica">
-          <SkeletonText lines={4} />
-        </div>
-      </CardBody>
-    </Card>
+    <div role="status" aria-label="Cargando la ficha técnica">
+      <Grid minItemWidth="22rem" gap={4}>
+        <Stack gap={4}>
+          <Card>
+            <CardBody>
+              <Stack gap={5}>
+                <Stack gap={3}>
+                  <SkeletonText lines={1} />
+                  <SkeletonText lines={1} />
+                </Stack>
+                <Stack gap={3}>
+                  <SkeletonText lines={1} />
+                  <SkeletonText lines={3} />
+                </Stack>
+              </Stack>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardBody>
+              <Stack gap={3}>
+                <SkeletonText lines={1} />
+                <Stack gap={2}>
+                  <Inline gap={2} align="center">
+                    <Skeleton width="6rem" height="1rem" />
+                    <Skeleton width="4rem" height="1.25rem" />
+                  </Inline>
+                  <Grid minItemWidth="8rem" gap={3}>
+                    <SkeletonText lines={2} />
+                    <SkeletonText lines={2} />
+                  </Grid>
+                </Stack>
+              </Stack>
+            </CardBody>
+          </Card>
+        </Stack>
+
+        <Stack gap={4}>
+          <Card>
+            <CardHeader>
+              <Inline gap={2} justify="between" align="center" wrap={false}>
+                <Skeleton width="10rem" height="1rem" />
+                <Skeleton width="6rem" height="2rem" />
+              </Inline>
+            </CardHeader>
+            <CardBody>
+              <Stack gap={4}>
+                <Stack gap={2}>
+                  <SkeletonText lines={1} />
+                  <Grid minItemWidth="8rem" gap={3}>
+                    {celdasTracto.map((celda) => (
+                      <SkeletonText key={celda} lines={2} />
+                    ))}
+                  </Grid>
+                </Stack>
+                <Stack gap={2}>
+                  <SkeletonText lines={1} />
+                  <SkeletonTable rows={2} columns={4} density="compact" />
+                </Stack>
+                <Stack gap={2}>
+                  <SkeletonText lines={1} />
+                  <Inline gap={2} wrap>
+                    {gpsSimulados.map((gps) => (
+                      <Skeleton key={gps} width="6rem" height="1.25rem" />
+                    ))}
+                  </Inline>
+                </Stack>
+              </Stack>
+            </CardBody>
+          </Card>
+        </Stack>
+      </Grid>
+    </div>
   );
 }
 

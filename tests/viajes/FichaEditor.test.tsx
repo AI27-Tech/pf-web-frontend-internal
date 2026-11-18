@@ -1,8 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
+import { useState, type ComponentProps } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { FichaEditor } from '@/features/viajes/ficha/FichaEditor';
+import {
+  datosDesdeFicha,
+  type DatosFichaTecnica,
+} from '@/features/viajes/ficha/adaptadorFichaTecnica';
 import type {
   DispositivoGps,
   FichaTecnica,
@@ -27,11 +32,18 @@ function crearGuardar(): GuardarFichaMock {
   return vi.fn<GuardarFicha>().mockResolvedValue(fichaVacia);
 }
 
+type EditorProps = Omit<ComponentProps<typeof FichaEditor>, 'datos' | 'setDatos'>;
+
+/** Envoltorio con estado, igual que el padre: el editor recibe el borrador por props. */
+function EditorConBorrador(props: EditorProps) {
+  const [datos, setDatos] = useState<DatosFichaTecnica>(() => datosDesdeFicha(null));
+  return <FichaEditor {...props} datos={datos} setDatos={setDatos} />;
+}
+
 function renderEditor(guardar: GuardarFichaMock = crearGuardar()) {
   render(
-    <FichaEditor
+    <EditorConBorrador
       viajeId="VJ-1"
-      ficha={fichaVacia}
       gps={gps}
       cargandoGps={false}
       errorGps={null}
