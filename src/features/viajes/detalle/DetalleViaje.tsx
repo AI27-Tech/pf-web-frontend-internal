@@ -14,8 +14,8 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { Clock } from 'lucide-react';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { CalendarClock, Clock } from 'lucide-react';
 
 import {
   Alert,
@@ -54,7 +54,7 @@ import { requiereCausa } from './causaTransicion';
 import { puedeAprobar } from './decisionSolicitud';
 import { AsignacionForm } from './asignacionForm';
 import { EtaForm } from './etaForm';
-import { hitoActual, nombreEstado, pasosSeguimiento, siguientePaso } from './seguimiento';
+import { nombreEstado, pasosSeguimiento, siguientePaso } from './seguimiento';
 import { badgeDeEstado } from '@/features/monitoreo/dashboard/estadoBadge';
 import { FechaHoraForm } from './fechaHoraForm';
 import { useDetalleViaje } from './useDetalleViaje';
@@ -70,7 +70,7 @@ export interface DetalleViajeProps {
 
 /** Variante de Badge por condicion. */
 const VARIANTE_CONDICION: Record<'INCIDENCIA' | 'SIN_SENAL', 'alert' | 'warning'> = {
-  INCIDENCIA: 'alert',
+  INCIDENCIA: 'warning',
   SIN_SENAL: 'warning',
 };
 
@@ -345,6 +345,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
   // Guard de aprobación (E8-T9, Req 2): Aprobar solo se habilita cuando el viaje
   // es una solicitud con `fecha_hora_servicio` presente.
   const descriptorEstado = badgeDeEstado(viajeInterno.estado);
+  const incidenciaAbierta = condicionesActivas.find((c) => c.tipo === 'INCIDENCIA');
   const aprobarHabilitado = puedeAprobar(viajeInterno);
   // La solicitud en SOLICITADO sin fecha/hora necesita completarla antes de aprobar.
   const faltaFechaHora =
@@ -378,6 +379,12 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
             >
               {viajeInterno.estado}
             </Badge>
+            {!incidenciaAbierta && <Badge variant="neutral">Sin incidencias</Badge>}
+            {condicionesActivas.map((c) => (
+              <Badge key={c.tipo} variant={VARIANTE_CONDICION[c.tipo] ?? 'warning'} dot>
+                {c.tipo}
+              </Badge>
+            ))}
           </Inline>
         }
         breadcrumb={
@@ -396,6 +403,20 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
         }
       />
       <NavegacionViaje id={id} actual="detalle" />
+
+      {/* Incidencia abierta: aviso arriba del detalle, con enlace al histórico (E8-T8). */}
+      {incidenciaAbierta && (
+        <Alert variant="warning">
+          {`Incidencia abierta desde ${new Date(incidenciaAbierta.abierta_en).toLocaleString()}. `}
+          <Link
+            to="/viajes/$id/historico"
+            params={{ id }}
+            style={{ color: 'var(--ui-color-primary)', textDecoration: 'underline' }}
+          >
+            Ver histórico
+          </Link>
+        </Alert>
+      )}
 
       <Card>
         <CardHeader>
@@ -418,6 +439,15 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
         <Stack gap={4}>
           <Grid minItemWidth="12rem" gap={4}>
             <Stat
+              label="Fecha y hora del servicio"
+              value={
+                viajeInterno.fecha_hora_servicio
+                  ? new Date(viajeInterno.fecha_hora_servicio).toLocaleString()
+                  : 'Sin fecha'
+              }
+              icon={<CalendarClock size={18} aria-hidden="true" />}
+            />
+            <Stat
               label="ETA estimado (no en vivo)"
               value={
                 viajeInterno.eta_estimado
@@ -427,7 +457,6 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
               helpText="Valor indicativo"
               icon={<Clock size={18} aria-hidden="true" />}
             />
-            <Stat label="Hito actual" value={hitoActual(viajeInterno.estado)} />
           </Grid>
 
           <Card>
@@ -492,29 +521,6 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
             </CardBody>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
-                Incidencias
-              </p>
-            </CardHeader>
-            <CardBody>
-              {condicionesActivas.length === 0 ? (
-                <EmptyState title="Sin incidencias abiertas" />
-              ) : (
-                <Stack gap={2}>
-                  {condicionesActivas.map((c) => (
-                    <div key={c.tipo}>
-                      <Badge variant={VARIANTE_CONDICION[c.tipo] ?? 'warning'} dot>
-                        {c.tipo}
-                      </Badge>
-                    </div>
-                  ))}
-                </Stack>
-              )}
-            </CardBody>
-          </Card>
-
           {/* Aviso de fecha/hora faltante en una solicitud (E8-T9, Req 2.2, 3.1).
           Aprobar queda bloqueado hasta completarla. */}
           {faltaFechaHora && (
@@ -545,11 +551,6 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
         </Stack>
 
         <Stack gap={4}>
-          <SeccionEmergenciasViaje
-            viajeId={id}
-            rol={usuario?.rol ?? null}
-            casoActivado={casoActivado}
-          />
           {/* Acciones: CERRADO tiene un flujo dedicado con motivo obligatorio (E8-T14). */}
           {accionesVisibles.length > 0 && (
             <Card>
@@ -621,6 +622,11 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
           )}
 
           {/* Modal de selección y asignación de la escolta (E8-T10). */}
+          <SeccionEmergenciasViaje
+            viajeId={id}
+            rol={usuario?.rol ?? null}
+            casoActivado={casoActivado}
+          />
         </Stack>
       </Grid>
       <Modal

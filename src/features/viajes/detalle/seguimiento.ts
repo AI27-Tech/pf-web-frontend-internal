@@ -55,13 +55,6 @@ export function indicePaso(estado: string): number {
   return opcional ?? -1;
 }
 
-/** Hito actual: título del paso activo, o el nombre de negocio del estado fuera del progreso. */
-export function hitoActual(estado: string): string {
-  const activo = indicePaso(estado);
-  const paso = activo >= 0 ? PASOS[activo] : undefined;
-  return paso ? paso.titulo : nombreEstado(estado);
-}
-
 /** Siguiente paso obligatorio del progreso, o undefined si el viaje está en el último paso o fuera del progreso. */
 export function siguientePaso(estado: string): string | undefined {
   const activo = indicePaso(estado);
