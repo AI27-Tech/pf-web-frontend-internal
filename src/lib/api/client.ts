@@ -80,16 +80,7 @@ async function manejar401<T>(path: string, options: RequestOptions): Promise<T> 
  * Emite una petición contra bff y devuelve el JSON parseado. Traduce los fallos
  * a `ApiError` con su clase: quien llama decide la política a partir de `kind`.
  */
-/**
- * TEMPORAL: retraso artificial en cada petición para revisar los estados de carga.
- * Solo se activa con `VITE_MOCK_DELAY_MS` (milisegundos). Quitar al terminar la revisión.
- */
-const RETRASO_CARGA_MS = Number(import.meta.env.VITE_MOCK_DELAY_MS ?? 0) || 0;
-
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  if (RETRASO_CARGA_MS > 0) {
-    await new Promise((resolver) => setTimeout(resolver, RETRASO_CARGA_MS));
-  }
   const { method = 'GET', body, accessToken, signal } = options;
 
   const headers = new Headers({ Accept: 'application/json' });
