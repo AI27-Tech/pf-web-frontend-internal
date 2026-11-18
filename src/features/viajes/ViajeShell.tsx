@@ -10,7 +10,10 @@ import { Badge, Breadcrumb, Inline, PageHeader, Stack } from '@ai27-tech/ui';
 import { EnlaceRuta } from '@/components/layout/EnlaceRuta';
 import { useSession } from '@/context/SessionContext';
 import { badgeDeEstado } from '@/features/monitoreo/dashboard/estadoBadge';
-import { AccionEmergencia } from '@/features/emergencias/activacion/AccionEmergencia';
+import {
+  AccionEmergencia,
+  type AvisoEmergencia,
+} from '@/features/emergencias/activacion/AccionEmergencia';
 import { puedeMostrarActivacion } from '@/features/emergencias/afordancias';
 import { useDetalleViaje } from './detalle/useDetalleViaje';
 import { ActivacionEmergenciaContext } from './activacionEmergenciaContexto';
@@ -34,6 +37,7 @@ export function ViajeShell({ id, seccion, children }: ViajeShellProps) {
   const { usuario } = useSession();
   const d = useDetalleViaje(id);
   const [casoActivado, setCasoActivado] = useState<EmergenciaViaje | null>(null);
+  const [avisoEmergencia, setAvisoEmergencia] = useState<AvisoEmergencia | null>(null);
 
   const viaje = d.viaje;
   const descriptorEstado = viaje ? badgeDeEstado(viaje.estado) : null;
@@ -58,7 +62,13 @@ export function ViajeShell({ id, seccion, children }: ViajeShellProps) {
         ];
 
   return (
-    <ActivacionEmergenciaContext.Provider value={{ casoActivado }}>
+    <ActivacionEmergenciaContext.Provider
+      value={{
+        casoActivado,
+        aviso: avisoEmergencia,
+        cerrarAviso: () => setAvisoEmergencia(null),
+      }}
+    >
       <Stack gap={4}>
         <PageHeader
           title={
@@ -88,6 +98,7 @@ export function ViajeShell({ id, seccion, children }: ViajeShellProps) {
               <AccionEmergencia
                 viajeId={id}
                 onActivada={setCasoActivado}
+                onAviso={setAvisoEmergencia}
                 onViajeTerminal={() => void d.reintentar()}
               />
             ) : undefined

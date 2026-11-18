@@ -7,6 +7,9 @@
  * - segunda incidencia del mismo tipo rechazada con `condicion_ya_abierta`;
  * - resolución por Supervisor; 403 para un rol sin facultad (Monitorista);
  * - append-only: la vista no ofrece editar ni borrar.
+ *
+ * Las capturas viven en modales: cada prueba abre el modal antes de escribir y
+ * busca el botón de envío dentro de él.
  */
 
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -129,6 +132,11 @@ function renderHistorico() {
   );
 }
 
+/** Contenido del modal abierto. Los formularios de captura viven ahí. */
+async function dentroDelModal() {
+  return within(await screen.findByRole('dialog'));
+}
+
 /**
  * El `Select` de `@ai27-tech/ui` no es un `<select>` nativo: es un botón-trigger
  * cuyo nombre accesible es la etiqueta del campo (FormField), que abre un popup de
@@ -158,15 +166,116 @@ describe('HistoricoViaje — integración (E8-T13)', () => {
 
     expect(await screen.findByText('Nota previa')).toBeInTheDocument();
 
+    await userEvent.click(screen.getByRole('button', { name: 'Nueva nota' }));
+    const modal = await dentroDelModal();
     await userEvent.type(
-      screen.getByPlaceholderText(/Describe la observación/i),
+      modal.getByPlaceholderText(/Describe la observación/i),
       'Nueva nota de prueba',
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Registrar nota' }));
+    await userEvent.click(modal.getByRole('button', { name: 'Registrar nota' }));
 
     await waitFor(() => expect(screen.getByText('Nueva nota de prueba')).toBeInTheDocument());
     // La previa sigue presente: append-only, no se reescribe.
     expect(screen.getByText('Nota previa')).toBeInTheDocument();
+  });
+
+  it('pagina la bitácora y muestra las notas nuevas aunque haya más de una página', async () => {
+    const entradas = [
+      entradaBitacora('Nota previa 1', 'BIT-1'),
+      entradaBitacora('Nota previa 2', 'BIT-2'),
+      entradaBitacora('Nota previa 3', 'BIT-3'),
+    ];
+    server.use(
+      // Páginas de dos entradas, en orden de tiempo, como sirve el servidor.
+      http.get(path('/viajes/:id/bitacora'), ({ request }) => {
+        const cursor = new URL(request.url).searchParams.get('cursor');
+        const inicio = cursor ? Number.parseInt(cursor, 10) : 0;
+        const pagina = entradas.slice(inicio, inicio + 2);
+        const fin = inicio + pagina.length;
+        return HttpResponse.json({
+          items: pagina,
+          cursor_siguiente: fin < entradas.length ? String(fin) : null,
+        });
+      }),
+      http.get(path('/viajes/:id/estadias'), () => HttpResponse.json(estadiasVacias)),
+      http.get(path('/viajes/:id/incidencias'), () => HttpResponse.json(incidenciasVacias)),
+      http.post(path('/viajes/:id/bitacora'), async ({ request }) => {
+        const body = (await request.json()) as { texto: string };
+        const nueva = entradaBitacora(body.texto, `BIT-${entradas.length + 1}`);
+        entradas.push(nueva);
+        return HttpResponse.json(nueva, { status: 201 });
+      }),
+    );
+    renderHistorico();
+
+    // La tercera nota está en la segunda página: se carga sin acción del usuario.
+    expect(await screen.findByText('Nota previa 3')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Nueva nota' }));
+    const primeraNota = await dentroDelModal();
+    await userEvent.type(primeraNota.getByPlaceholderText(/Describe la observación/i), 'Nota 4');
+    await userEvent.click(primeraNota.getByRole('button', { name: 'Registrar nota' }));
+    expect(await screen.findByText('Nota 4')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Nueva nota' }));
+    const segundaNota = await dentroDelModal();
+    await userEvent.type(segundaNota.getByPlaceholderText(/Describe la observación/i), 'Nota 5');
+    await userEvent.click(segundaNota.getByRole('button', { name: 'Registrar nota' }));
+    expect(await screen.findByText('Nota 5')).toBeInTheDocument();
+    expect(screen.getByText('Nota 4')).toBeInTheDocument();
+    expect(screen.getByText('Nota previa 1')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Notas de la bitácora' })).toBeInTheDocument();
+  });
+
+  it('lee todas las páginas de estadías: la tercera, en la segunda página, también se ve', async () => {
+    const estadias = [
+      {
+        id: 'EST-1',
+        viaje_id: 'VJ-1',
+        motivo: 'descanso',
+        eje_autorizacion: 'autorizada',
+        inicio: '2026-10-29T08:00:00.000Z',
+        cierre: '2026-10-29T09:00:00.000Z',
+      },
+      {
+        id: 'EST-2',
+        viaje_id: 'VJ-1',
+        motivo: 'combustible',
+        eje_autorizacion: 'autorizada',
+        inicio: '2026-10-29T10:00:00.000Z',
+        cierre: '2026-10-29T10:30:00.000Z',
+      },
+      {
+        id: 'EST-3',
+        viaje_id: 'VJ-1',
+        motivo: 'reten',
+        eje_autorizacion: 'no_autorizada',
+        inicio: '2026-10-29T11:00:00.000Z',
+        cierre: null,
+      },
+    ];
+    server.use(
+      http.get(path('/viajes/:id/bitacora'), () => HttpResponse.json(bitacoraVacia)),
+      http.get(path('/viajes/:id/incidencias'), () => HttpResponse.json(incidenciasVacias)),
+      // Páginas de dos estadías, como sirve el servidor.
+      http.get(path('/viajes/:id/estadias'), ({ request }) => {
+        const cursor = new URL(request.url).searchParams.get('cursor');
+        const inicio = cursor ? Number.parseInt(cursor, 10) : 0;
+        const pagina = estadias.slice(inicio, inicio + 2);
+        const fin = inicio + pagina.length;
+        return HttpResponse.json({
+          items: pagina,
+          cursor_siguiente: fin < estadias.length ? String(fin) : null,
+        });
+      }),
+    );
+    renderHistorico();
+
+    const tabla = await screen.findByRole('table', { name: 'Estadías del viaje' });
+    expect(await within(tabla).findByText('Retén')).toBeInTheDocument();
+    expect(within(tabla).getByText('No autorizada')).toBeInTheDocument();
+    // Solo la estadía abierta ofrece la acción de cerrar.
+    expect(within(tabla).getAllByRole('button', { name: 'Cerrar' })).toHaveLength(1);
   });
 
   it('abre y cierra una estadía, mostrando la duración derivada', async () => {
@@ -199,15 +308,18 @@ describe('HistoricoViaje — integración (E8-T13)', () => {
 
     await screen.findByText('Aún no hay estadías registradas.');
 
-    // El Select de la librería es un botón-trigger + popup (no <select> nativo):
-    // abrir el trigger por su placeholder y elegir la opción por su texto.
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir estadía' }));
+    // El Select de la librería es un botón-trigger + popup (no <select> nativo).
     await elegirOpcion('Motivo de la estadía', 'Descanso');
     await elegirOpcion('Eje de autorización', 'Autorizada');
-    await userEvent.click(screen.getByRole('button', { name: 'Abrir estadía' }));
+    const modal = await dentroDelModal();
+    await userEvent.click(modal.getByRole('button', { name: 'Abrir estadía' }));
 
     await waitFor(() => expect(screen.getByText('Abierta')).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole('button', { name: 'Cerrar estadía' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }));
+    const confirmacion = await dentroDelModal();
+    await userEvent.click(confirmacion.getByRole('button', { name: 'Cerrar estadía' }));
     await waitFor(() => expect(screen.getByText('Cerrada')).toBeInTheDocument());
     // Duración derivada de 1h entre inicio y cierre.
     expect(screen.getByText(/1h 0m/)).toBeInTheDocument();
@@ -222,13 +334,17 @@ describe('HistoricoViaje — integración (E8-T13)', () => {
     renderHistorico();
     await screen.findByText('No hay incidencias registradas en este viaje.');
 
-    await userEvent.type(screen.getByPlaceholderText(/Desvío de ruta/i), 'Desvío de ruta');
     await userEvent.click(screen.getByRole('button', { name: 'Marcar incidencia' }));
+    let modal = await dentroDelModal();
+    await userEvent.type(modal.getByPlaceholderText(/Desvío de ruta/i), 'Desvío de ruta');
+    await userEvent.click(modal.getByRole('button', { name: 'Marcar incidencia' }));
     await waitFor(() => expect(screen.getByText('En atención')).toBeInTheDocument());
 
-    // Segunda del mismo tipo: rechazada sin romper la vista.
-    await userEvent.type(screen.getByPlaceholderText(/Desvío de ruta/i), 'Otro tipo');
+    // Segunda del mismo tipo: rechazada sin romper la vista; el modal queda abierto.
     await userEvent.click(screen.getByRole('button', { name: 'Marcar incidencia' }));
+    modal = await dentroDelModal();
+    await userEvent.type(modal.getByPlaceholderText(/Desvío de ruta/i), 'Otro tipo');
+    await userEvent.click(modal.getByRole('button', { name: 'Marcar incidencia' }));
     await waitFor(() =>
       expect(screen.getByText(/Ya existe una incidencia abierta/i)).toBeInTheDocument(),
     );
@@ -245,8 +361,10 @@ describe('HistoricoViaje — integración (E8-T13)', () => {
     );
     renderHistorico();
     await screen.findByText('No hay incidencias registradas en este viaje.');
-    await userEvent.type(screen.getByPlaceholderText(/Desvío de ruta/i), 'Desvío');
     await userEvent.click(screen.getByRole('button', { name: 'Marcar incidencia' }));
+    const modalSupervisor = await dentroDelModal();
+    await userEvent.type(modalSupervisor.getByPlaceholderText(/Desvío de ruta/i), 'Desvío');
+    await userEvent.click(modalSupervisor.getByRole('button', { name: 'Marcar incidencia' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Resolver incidencia' }));
     await userEvent.type(
       screen.getByPlaceholderText(/Describe la resolución/i),
@@ -267,8 +385,10 @@ describe('HistoricoViaje — integración (E8-T13)', () => {
     );
     renderHistorico();
     await screen.findByText('No hay incidencias registradas en este viaje.');
-    await userEvent.type(screen.getByPlaceholderText(/Desvío de ruta/i), 'Desvío');
     await userEvent.click(screen.getByRole('button', { name: 'Marcar incidencia' }));
+    const modalMonitorista = await dentroDelModal();
+    await userEvent.type(modalMonitorista.getByPlaceholderText(/Desvío de ruta/i), 'Desvío');
+    await userEvent.click(modalMonitorista.getByRole('button', { name: 'Marcar incidencia' }));
     await waitFor(() => expect(screen.getByText('En atención')).toBeInTheDocument());
     expect(screen.queryByRole('button', { name: 'Resolver incidencia' })).not.toBeInTheDocument();
   });
@@ -363,8 +483,10 @@ describe('HistoricoViaje — un 403 no se trata como sesión vencida', () => {
     );
     renderHistorico();
 
-    await userEvent.type(await screen.findByPlaceholderText(/Describe la observación/i), 'Nota');
-    await userEvent.click(screen.getByRole('button', { name: 'Registrar nota' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Nueva nota' }));
+    const modal = await dentroDelModal();
+    await userEvent.type(modal.getByPlaceholderText(/Describe la observación/i), 'Nota');
+    await userEvent.click(modal.getByRole('button', { name: 'Registrar nota' }));
 
     expect(
       await screen.findByText('No tienes permiso para esta acción en este viaje.'),

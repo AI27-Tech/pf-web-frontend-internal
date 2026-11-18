@@ -6,13 +6,18 @@ import { ErrorEmergenciaCerrada, ErrorAccionNoPermitida } from '@/lib/api/emerge
 import { ROLES_CON_CARRIL, puedeAnotar, puedeCerrar } from '../afordancias';
 import { NotaEmergencia } from './NotaEmergencia';
 import { SelectorCaso } from './SelectorCaso';
-import { useEmergenciasViaje } from './useEmergenciasViaje';
+import { useEmergenciasViaje, type EmergenciasViaje } from './useEmergenciasViaje';
 
 interface SeccionEmergenciasViajeProps {
   viajeId: string;
   rol: Rol | null;
   /** Caso recién activado desde la cabecera: el carril lo selecciona y recarga la lista. */
   casoActivado?: EmergenciaViaje | null;
+  /**
+   * Lista de casos compartida con el detalle (la alerta de emergencias activas la usa).
+   * Si no se pasa, el carril carga su propia lista.
+   */
+  emergencias?: EmergenciasViaje;
 }
 
 /**
@@ -22,15 +27,23 @@ interface SeccionEmergenciasViajeProps {
 export function SeccionEmergenciasViaje(props: SeccionEmergenciasViajeProps) {
   // Sin carril no se monta CarrilEmergencias: el bff responde 403 a la lista para otros roles.
   if (props.rol === null || !ROLES_CON_CARRIL.includes(props.rol)) return null;
-  return <CarrilEmergencias {...props} rol={props.rol} />;
+  if (props.emergencias) {
+    return <CarrilEmergencias {...props} rol={props.rol} emergencias={props.emergencias} />;
+  }
+  return <CarrilConListaPropia {...props} rol={props.rol} />;
+}
+
+/** Carril sin lista compartida: carga sus propios casos. */
+function CarrilConListaPropia(props: SeccionEmergenciasViajeProps & { rol: Rol }) {
+  const emergencias = useEmergenciasViaje(props.viajeId);
+  return <CarrilEmergencias {...props} emergencias={emergencias} />;
 }
 
 function CarrilEmergencias({
-  viajeId,
   rol,
   casoActivado,
-}: SeccionEmergenciasViajeProps & { rol: Rol }) {
-  const emergencias = useEmergenciasViaje(viajeId);
+  emergencias,
+}: SeccionEmergenciasViajeProps & { rol: Rol; emergencias: EmergenciasViaje }) {
   const { recargar } = emergencias;
   const [seleccionado, setSeleccionado] = useState<string | undefined>(undefined);
   const [enviandoNota, setEnviandoNota] = useState(false);

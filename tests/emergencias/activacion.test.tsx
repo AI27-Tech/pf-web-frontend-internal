@@ -1,12 +1,21 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import type { Rol } from '@ai27-tech/contracts/roles';
-import { AccionEmergencia } from '@/features/emergencias/activacion/AccionEmergencia';
+import { useState } from 'react';
+import { ActivacionEmergenciaContext } from '@/features/viajes/activacionEmergenciaContexto';
+import { AvisoActivacionEmergencia } from '@/features/viajes/AvisoActivacionEmergencia';
+import {
+  AccionEmergencia,
+  type AvisoEmergencia,
+} from '@/features/emergencias/activacion/AccionEmergencia';
 import { SeccionEmergenciasViaje } from '@/features/emergencias/activacion/SeccionEmergenciasViaje';
-import { puedeMostrarActivacion } from '@/features/emergencias/afordancias';
+import { puedeMostrarActivacion, ROLES_CON_CARRIL } from '@/features/emergencias/afordancias';
+import { AlertaEmergenciasActivas } from '@/features/emergencias/activacion/AlertaEmergenciasActivas';
+import { useEmergenciasViaje } from '@/features/emergencias/activacion/useEmergenciasViaje';
+import type { EmergenciaViaje } from '@/lib/contracts/emergencias';
 import { API_PREFIX } from '@/lib/constants';
 
 const sesion = vi.hoisted(() => ({ value: { id: 'sujeto-monitor', rol: 'monitorista' } }));
@@ -44,17 +53,55 @@ function servirCasos(items: Array<{ id: string; estado: string }>) {
 }
 
 /** Monta el botón de la cabecera (como DetalleViaje) y el carril, para probar ambos juntos. */
-function renderSeccion(estadoViaje = 'EN_TRANSITO', onViajeCambio = vi.fn()) {
+/** Como ViajeShell: el botón en el encabezado y el aviso debajo, fuera del botón. */
+function CabeceraDePrueba({
+  estadoViaje,
+  onViajeCambio,
+}: {
+  readonly estadoViaje: string;
+  readonly onViajeCambio: () => void;
+}) {
+  const [aviso, setAviso] = useState<AvisoEmergencia | null>(null);
+  const [casoActivado, setCasoActivado] = useState<EmergenciaViaje | null>(null);
   const rol = sesion.value.rol as Rol;
-  render(
-    <>
+  // Misma lista compartida que DetalleViaje: la alerta y el carril leen los mismos casos.
+  const emergencias = useEmergenciasViaje(VIAJE, { habilitado: ROLES_CON_CARRIL.includes(rol) });
+  return (
+    <ActivacionEmergenciaContext.Provider
+      value={{ casoActivado, aviso, cerrarAviso: () => setAviso(null) }}
+    >
       {puedeMostrarActivacion(rol, estadoViaje) && (
-        <AccionEmergencia viajeId={VIAJE} onActivada={vi.fn()} onViajeTerminal={onViajeCambio} />
+        <AccionEmergencia
+          viajeId={VIAJE}
+          onActivada={setCasoActivado}
+          onViajeTerminal={onViajeCambio}
+          onAviso={setAviso}
+        />
       )}
-      <SeccionEmergenciasViaje viajeId={VIAJE} rol={rol} />
-    </>,
+      <AvisoActivacionEmergencia />
+      <AlertaEmergenciasActivas casos={emergencias.casos} />
+      <SeccionEmergenciasViaje
+        viajeId={VIAJE}
+        rol={rol}
+        emergencias={emergencias}
+        casoActivado={casoActivado}
+      />
+    </ActivacionEmergenciaContext.Provider>
   );
+}
+
+function renderSeccion(estadoViaje = 'EN_TRANSITO', onViajeCambio = vi.fn()) {
+  render(<CabeceraDePrueba estadoViaje={estadoViaje} onViajeCambio={onViajeCambio} />);
   return onViajeCambio;
+}
+
+/**
+ * Última alerta de la pantalla. La de emergencias activas va antes que la de error del carril,
+ * así que el error de una nota o de un cierre es la última.
+ */
+async function ultimaAlerta() {
+  const alertas = await screen.findAllByRole('alert');
+  return alertas[alertas.length - 1]!;
 }
 
 async function pulsarActivar() {
@@ -109,6 +156,30 @@ describe('carril de emergencias del viaje: visibilidad por rol', () => {
   });
 });
 
+describe('alerta de emergencias activas del viaje', () => {
+  it('un caso sin atender muestra la alerta roja con el conteo', async () => {
+    servirCasos([{ id: 'em-1', estado: 'abierta' }]);
+    renderSeccion();
+    const alerta = await ultimaAlerta();
+    expect(alerta).toHaveTextContent('1 emergencia sin atender');
+  });
+
+  it('si ya están en atención, la alerta cambia a ámbar y no dice sin atender', async () => {
+    servirCasos([{ id: 'em-1', estado: 'en_atencion' }]);
+    renderSeccion();
+    const alerta = await ultimaAlerta();
+    expect(alerta).toHaveTextContent('1 emergencia en atención');
+    expect(alerta).not.toHaveTextContent('sin atender');
+  });
+
+  it('un caso resuelto, sin cerrar, no muestra alerta', async () => {
+    servirCasos([{ id: 'em-1', estado: 'resuelta' }]);
+    renderSeccion();
+    await screen.findByRole('button', { name: /Resuelta/ });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+});
+
 describe('activación: idempotencia del reintento (P3)', () => {
   it('un fallo de red reutiliza el activacion_id; una pulsación nueva genera otro', async () => {
     servirCasos([]);
@@ -128,16 +199,14 @@ describe('activación: idempotencia del reintento (P3)', () => {
     );
     renderSeccion();
     await pulsarActivar();
-    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(await ultimaAlerta()).toBeInTheDocument();
     await pulsarActivar();
-    expect(await screen.findByText(/Emergencia activada/)).toBeInTheDocument();
-    expect(ids).toHaveLength(2);
+    await waitFor(() => expect(ids).toHaveLength(2));
     expect(ids[0]).toBe(ids[1]);
 
     // Tras una confirmación, la siguiente pulsación genera un id nuevo.
     await pulsarActivar();
-    await screen.findAllByText(/Emergencia activada/);
-    expect(ids).toHaveLength(3);
+    await waitFor(() => expect(ids).toHaveLength(3));
     expect(ids[2]).not.toBe(ids[0]);
   });
 
@@ -150,7 +219,7 @@ describe('activación: idempotencia del reintento (P3)', () => {
     );
     const onViajeCambio = renderSeccion();
     await pulsarActivar();
-    expect(await screen.findByRole('alert')).toHaveTextContent('El viaje ya está cerrado');
+    expect(await ultimaAlerta()).toHaveTextContent('El viaje ya está cerrado');
     expect(onViajeCambio).toHaveBeenCalled();
   });
 });
@@ -167,7 +236,7 @@ describe('nota y cierre (escenarios 7, 14 y 18)', () => {
     await userEvent.click(await screen.findByRole('button', { name: /Abierta/ }));
     await userEvent.type(screen.getByLabelText(/Nota \(1 a/), 'Texto que no debe perderse');
     await userEvent.click(screen.getByRole('button', { name: 'Agregar nota' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('ya está cerrada');
+    expect(await ultimaAlerta()).toHaveTextContent('ya está cerrada');
     expect(screen.getByLabelText(/Nota \(1 a/)).toHaveValue('Texto que no debe perderse');
   });
 
@@ -236,7 +305,9 @@ describe('activación: reentrega, permisos y validación', () => {
     );
     renderSeccion();
     await pulsarActivar();
-    expect(await screen.findByText(/Emergencia activada/)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Activar emergencia' })).toBeEnabled(),
+    );
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
@@ -249,7 +320,7 @@ describe('activación: reentrega, permisos y validación', () => {
     );
     renderSeccion();
     await pulsarActivar();
-    expect(await screen.findByRole('alert')).toHaveTextContent(
+    expect(await ultimaAlerta()).toHaveTextContent(
       'No tienes permiso para activar emergencias en este viaje.',
     );
   });
@@ -265,7 +336,7 @@ describe('activación: reentrega, permisos y validación', () => {
     await userEvent.click(await screen.findByRole('button', { name: /Abierta/ }));
     await userEvent.type(screen.getByLabelText(/Nota \(1 a/), 'Texto válido en apariencia');
     await userEvent.click(screen.getByRole('button', { name: 'Agregar nota' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('La nota no es válida');
+    expect(await ultimaAlerta()).toHaveTextContent('La nota no es válida');
     expect(screen.getByLabelText(/Nota \(1 a/)).toHaveValue('Texto válido en apariencia');
   });
 });
@@ -282,7 +353,7 @@ describe('permisos de nota y cierre', () => {
     await userEvent.click(await screen.findByRole('button', { name: /Abierta/ }));
     await userEvent.type(screen.getByLabelText(/Nota \(1 a/), 'Nota');
     await userEvent.click(screen.getByRole('button', { name: 'Agregar nota' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(
+    expect(await ultimaAlerta()).toHaveTextContent(
       'No puedes realizar esta acción sobre la emergencia.',
     );
   });
@@ -297,7 +368,7 @@ describe('permisos de nota y cierre', () => {
     renderSeccion();
     await userEvent.click(await screen.findByRole('button', { name: /Resuelta/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Cerrar emergencia' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(
+    expect(await ultimaAlerta()).toHaveTextContent(
       'No puedes realizar esta acción sobre la emergencia.',
     );
   });

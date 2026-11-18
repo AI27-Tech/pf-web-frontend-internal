@@ -55,7 +55,11 @@ import { nombreEstado, pasosSeguimiento, siguientePaso } from './seguimiento';
 import { FechaHoraForm } from './fechaHoraForm';
 import { useDetalleViaje } from './useDetalleViaje';
 import { SeccionEmergenciasViaje } from '@/features/emergencias/activacion/SeccionEmergenciasViaje';
+import { AlertaEmergenciasActivas } from '@/features/emergencias/activacion/AlertaEmergenciasActivas';
+import { useEmergenciasViaje } from '@/features/emergencias/activacion/useEmergenciasViaje';
+import { ROLES_CON_CARRIL } from '@/features/emergencias/afordancias';
 import { useActivacionEmergencia } from '@/features/viajes/activacionEmergenciaContexto';
+import { AvisoActivacionEmergencia } from '@/features/viajes/AvisoActivacionEmergencia';
 
 export interface DetalleViajeProps {
   readonly id: string;
@@ -105,6 +109,9 @@ interface ToastItem {
 export function DetalleViaje({ id }: DetalleViajeProps) {
   const { casoActivado } = useActivacionEmergencia();
   const { usuario } = useSession();
+  // Una sola lista de casos para la alerta y el carril. Solo roles con carril la piden.
+  const tieneCarril = usuario ? ROLES_CON_CARRIL.includes(usuario.rol) : false;
+  const emergencias = useEmergenciasViaje(id, { habilitado: tieneCarril });
   /** true cuando el modal de selección de unidades está abierto (E8-T10). */
   const [modalAsignacionAbierto, setModalAsignacionAbierto] = useState(false);
   const d = useDetalleViaje(id, { habilitarRoster: modalAsignacionAbierto });
@@ -368,6 +375,10 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
           </Link>
         </Alert>
       )}
+      {/* Emergencias abiertas del viaje, junto a la alerta de incidencia. */}
+      <AlertaEmergenciasActivas casos={emergencias.casos} />
+      {/* Error de la última activación. */}
+      <AvisoActivacionEmergencia />
 
       <Card>
         <CardHeader>
@@ -577,6 +588,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
             viajeId={id}
             rol={usuario?.rol ?? null}
             casoActivado={casoActivado}
+            emergencias={emergencias}
           />
         </Stack>
       </Grid>
