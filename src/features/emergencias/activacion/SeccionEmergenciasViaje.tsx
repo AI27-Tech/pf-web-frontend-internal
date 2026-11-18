@@ -85,6 +85,7 @@ function CarrilEmergencias({
 
   return (
     <Section
+      collapsible
       title={
         <span role="heading" aria-level={2}>
           Emergencias

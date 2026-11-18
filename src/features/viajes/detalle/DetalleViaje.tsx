@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Presentacion del detalle del viaje -- avance y ETA manual (E8-T8).
  *
  * Compone la pantalla del detalle: cabecera con estado y condiciones, lista de
@@ -15,6 +15,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
+import { Clock } from 'lucide-react';
 
 import {
   Alert,
@@ -25,10 +26,14 @@ import {
   CardBody,
   CardFooter,
   CardHeader,
+  Divider,
   EmptyState,
+  Grid,
+  Timeline,
   Inline,
   Modal,
   PageHeader,
+  Stat,
   Stack,
   Toast,
   ToastContainer,
@@ -49,6 +54,8 @@ import { requiereCausa } from './causaTransicion';
 import { puedeAprobar } from './decisionSolicitud';
 import { AsignacionForm } from './asignacionForm';
 import { EtaForm } from './etaForm';
+import { hitoActual, nombreEstado, pasosSeguimiento, siguientePaso } from './seguimiento';
+import { badgeDeEstado } from '@/features/monitoreo/dashboard/estadoBadge';
 import { FechaHoraForm } from './fechaHoraForm';
 import { useDetalleViaje } from './useDetalleViaje';
 import { AccionEmergencia } from '@/features/emergencias/activacion/AccionEmergencia';
@@ -337,292 +344,285 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
 
   // Guard de aprobación (E8-T9, Req 2): Aprobar solo se habilita cuando el viaje
   // es una solicitud con `fecha_hora_servicio` presente.
+  const descriptorEstado = badgeDeEstado(viajeInterno.estado);
   const aprobarHabilitado = puedeAprobar(viajeInterno);
   // La solicitud en SOLICITADO sin fecha/hora necesita completarla antes de aprobar.
   const faltaFechaHora =
     viajeInterno.estado === EstadoViaje.Solicitado && !viajeInterno.fecha_hora_servicio;
 
+  const siguienteEstado = siguientePaso(viajeInterno.estado);
+  const accionPrincipal: EstadoViaje | undefined =
+    accionesVisibles.find((a) => a === siguienteEstado) ??
+    accionesVisibles.find((a) => !requiereCausa(a));
+  const secundarias = accionesVisibles.filter((a) => a !== accionPrincipal && !requiereCausa(a));
+  const destructivas = accionesVisibles.filter((a) => requiereCausa(a));
+  const motivoBloqueo = (a: EstadoViaje): string | null => {
+    if (a === EstadoViaje.Aprobado && !aprobarHabilitado) {
+      return 'Falta la fecha y hora del servicio para aprobar.';
+    }
+    if (a === EstadoViaje.Cerrado && bloqueoCierre) return bloqueoCierre;
+    return null;
+  };
+
   return (
     <Stack gap={4}>
       <PageHeader
-        title={`Detalle del Viaje: ${viajeInterno.id}`}
+        title={
+          <Inline gap={2} align="center">
+            <span>{`Detalle del Viaje: ${viajeInterno.id}`}</span>
+            <Badge
+              variant={descriptorEstado.variant}
+              appearance={descriptorEstado.appearance}
+              dot={descriptorEstado.dot}
+              pulse={descriptorEstado.pulse}
+            >
+              {viajeInterno.estado}
+            </Badge>
+          </Inline>
+        }
         breadcrumb={
           <Breadcrumb
             items={[{ label: 'Viajes', href: '/viajes', as: EnlaceRuta }, { label: `Viaje ${id}` }]}
           />
         }
         actions={
-          <Inline gap={2}>
-            {usuario && puedeMostrarActivacion(usuario.rol, viajeInterno.estado) && (
-              <AccionEmergencia
-                viajeId={id}
-                onActivada={setCasoActivado}
-                onViajeTerminal={() => void d.reintentar()}
-              />
-            )}
-          </Inline>
+          usuario && puedeMostrarActivacion(usuario.rol, viajeInterno.estado) ? (
+            <AccionEmergencia
+              viajeId={id}
+              onActivada={setCasoActivado}
+              onViajeTerminal={() => void d.reintentar()}
+            />
+          ) : undefined
         }
       />
       <NavegacionViaje id={id} actual="detalle" />
-      <SeccionEmergenciasViaje
-        viajeId={id}
-        rol={usuario?.rol ?? null}
-        casoActivado={casoActivado}
-      />
 
-      {/* Cabecera: estado y condiciones en columnas separadas (P15, Req 1.2, 1.3) */}
       <Card>
         <CardHeader>
-          <Inline gap={4} align="center" wrap={false}>
-            {/* Estado */}
-            <div>
-              <p
-                className="ui-text-body-xs"
-                style={{ color: 'var(--ui-color-text-muted)', margin: '0 0 var(--ui-space-1) 0' }}
-              >
-                Estado
-              </p>
-              <Badge variant="neutral">{viajeInterno.estado}</Badge>
-            </div>
-
-            {/* Condiciones activas (P15, Req 2.1-2.4) */}
-            {condicionesActivas.length > 0 && (
-              <div>
-                <p
-                  className="ui-text-body-xs"
-                  style={{ color: 'var(--ui-color-text-muted)', margin: '0 0 var(--ui-space-1) 0' }}
-                >
-                  Condiciones
-                </p>
-                <Inline gap={1} align="stretch" wrap={false}>
-                  {condicionesActivas.map((c) => (
-                    <Badge key={c.tipo} variant={VARIANTE_CONDICION[c.tipo] ?? 'warning'} dot>
-                      {c.tipo}
-                    </Badge>
-                  ))}
-                </Inline>
-              </div>
-            )}
-          </Inline>
+          <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
+            Progreso
+          </p>
         </CardHeader>
+        <CardBody>
+          <Timeline
+            orientation="horizontal"
+            items={pasosSeguimiento(viajeInterno.estado)}
+            minItemWidth="6rem"
+            stackBelow={576}
+            aria-label="Progreso del viaje"
+          />
+        </CardBody>
       </Card>
 
-      {/* Informacion del viaje: origen, destinos, ETA */}
-      <Card>
-        <CardBody>
-          <Stack gap={3}>
-            {/* Origen (ahora es un string de dirección) */}
-            <div>
-              <p
-                className="ui-text-body-xs"
-                style={{ color: 'var(--ui-color-text-muted)', margin: 0 }}
-              >
-                Origen
-              </p>
-              <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
-                {viajeInterno.origen}
-              </p>
-            </div>
+      <Grid minItemWidth="22rem" gap={4}>
+        <Stack gap={4}>
+          <Grid minItemWidth="12rem" gap={4}>
+            <Stat
+              label="ETA estimado (no en vivo)"
+              value={
+                viajeInterno.eta_estimado
+                  ? new Date(viajeInterno.eta_estimado).toLocaleString()
+                  : 'Sin ETA'
+              }
+              helpText="Valor indicativo"
+              icon={<Clock size={18} aria-hidden="true" />}
+            />
+            <Stat label="Hito actual" value={hitoActual(viajeInterno.estado)} />
+          </Grid>
 
-            {/* Destinos: bucle multi-parada (Req 1.4, 5.1) */}
-            {viajeInterno.destinos && viajeInterno.destinos.length > 0 && (
-              <div>
-                <p
-                  className="ui-text-body-xs"
-                  style={{ color: 'var(--ui-color-text-muted)', margin: '0 0 var(--ui-space-1) 0' }}
-                >
-                  Paradas
-                </p>
-                {/* Fase del bucle derivada del estado canónico (Req 5.1). El
-                    estado por parada no viene en el contrato; se muestra la fase
-                    global en curso, no un marcador por destino. */}
-                {viajeInterno.destinos.length > 1 && faseDelBucle(viajeInterno.estado) && (
+          <Card>
+            <CardHeader>
+              <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
+                Ruta
+              </p>
+            </CardHeader>
+            <CardBody>
+              <Stack gap={3}>
+                <div>
                   <p
                     className="ui-text-body-xs"
-                    style={{
-                      color: 'var(--ui-color-text)',
-                      margin: '0 0 var(--ui-space-2) 0',
-                      fontStyle: 'italic',
-                    }}
+                    style={{ color: 'var(--ui-color-text-muted)', margin: 0 }}
                   >
-                    {faseDelBucle(viajeInterno.estado)}
+                    Origen
                   </p>
-                )}
-                <Stack gap={2}>
-                  {viajeInterno.destinos.map((destino, idx) => (
-                    <div
-                      key={destino.numero_envio ?? `parada-${idx}`}
-                      style={{
-                        padding: 'var(--ui-space-2)',
-                        border: '1px solid var(--ui-color-border)',
-                        borderRadius: 'var(--ui-radius-sm)',
-                      }}
+                  <p
+                    className="ui-text-body-sm"
+                    style={{ color: 'var(--ui-color-text)', margin: 0 }}
+                  >
+                    {viajeInterno.origen}
+                  </p>
+                </div>
+                {viajeInterno.destinos.map((destino, indice) => (
+                  <div key={destino.numero_envio ?? `parada-${indice}`}>
+                    <p
+                      className="ui-text-body-xs"
+                      style={{ color: 'var(--ui-color-text-muted)', margin: 0 }}
                     >
-                      <Inline
-                        gap={2}
-                        align="center"
-                        wrap={false}
-                        style={{ marginBottom: 'var(--ui-space-1)' }}
-                      >
-                        <span
-                          className="ui-text-body-xs"
-                          style={{ color: 'var(--ui-color-text-muted)' }}
-                        >
-                          Parada {idx + 1}
-                        </span>
-                      </Inline>
+                      Parada {indice + 1}
+                    </p>
+                    <p
+                      className="ui-text-body-sm"
+                      style={{ color: 'var(--ui-color-text)', margin: 0 }}
+                    >
+                      {destino.nombre}
+                    </p>
+                    {destino.numero_envio && (
                       <p
-                        className="ui-text-body-sm"
-                        style={{ color: 'var(--ui-color-text)', margin: '0 0 var(--ui-space-1) 0' }}
+                        className="ui-text-body-xs"
+                        style={{ color: 'var(--ui-color-text-muted)', margin: 0 }}
                       >
-                        <strong>{destino.nombre}</strong>
+                        Envío: {destino.numero_envio}
                       </p>
-                      {destino.numero_envio && (
-                        <p
-                          className="ui-text-body-xs"
-                          style={{ color: 'var(--ui-color-text-muted)', margin: 0 }}
-                        >
-                          Envío: {destino.numero_envio}
-                        </p>
-                      )}
+                    )}
+                  </div>
+                ))}
+              </Stack>
+              {viajeInterno.destinos.length > 1 && faseDelBucle(viajeInterno.estado) && (
+                <p
+                  className="ui-text-body-xs"
+                  style={{
+                    color: 'var(--ui-color-text)',
+                    margin: 'var(--ui-space-2) 0 0 0',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  {faseDelBucle(viajeInterno.estado)}
+                </p>
+              )}
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
+                Incidencias
+              </p>
+            </CardHeader>
+            <CardBody>
+              {condicionesActivas.length === 0 ? (
+                <EmptyState title="Sin incidencias abiertas" />
+              ) : (
+                <Stack gap={2}>
+                  {condicionesActivas.map((c) => (
+                    <div key={c.tipo}>
+                      <Badge variant={VARIANTE_CONDICION[c.tipo] ?? 'warning'} dot>
+                        {c.tipo}
+                      </Badge>
                     </div>
                   ))}
                 </Stack>
-              </div>
-            )}
+              )}
+            </CardBody>
+          </Card>
 
-            {/* ETA estimado: marca "no en vivo" */}
-            {viajeInterno.eta_estimado && (
-              <div>
+          {/* Aviso de fecha/hora faltante en una solicitud (E8-T9, Req 2.2, 3.1).
+          Aprobar queda bloqueado hasta completarla. */}
+          {faltaFechaHora && (
+            <Card variant="outlined">
+              <CardBody>
+                <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
+                  Falta la fecha y hora del servicio. No se puede aprobar la solicitud hasta
+                  completarla.
+                </p>
+              </CardBody>
+              <CardFooter>
+                <Button variant="secondary" onClick={() => setModalFechaHoraAbierto(true)}>
+                  Completar fecha y hora
+                </Button>
+              </CardFooter>
+            </Card>
+          )}
+
+          {viajeInterno.estado === EstadoViaje.Cerrado && (
+            <Card variant="outlined">
+              <CardBody>
+                <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
+                  Este viaje está cerrado.
+                </p>
+              </CardBody>
+            </Card>
+          )}
+        </Stack>
+
+        <Stack gap={4}>
+          <SeccionEmergenciasViaje
+            viajeId={id}
+            rol={usuario?.rol ?? null}
+            casoActivado={casoActivado}
+          />
+          {/* Acciones: CERRADO tiene un flujo dedicado con motivo obligatorio (E8-T14). */}
+          {accionesVisibles.length > 0 && (
+            <Card>
+              <CardHeader>
+                <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
+                  Acciones
+                </p>
+              </CardHeader>
+              <CardBody>
+                <Stack gap={3}>
+                  {accionPrincipal && (
+                    <BotonAccion
+                      etiqueta={etiquetaAccion(accionPrincipal, true)}
+                      variante="primary"
+                      motivo={motivoBloqueo(accionPrincipal)}
+                      onClick={() => void handleAccion(accionPrincipal)}
+                    />
+                  )}
+                  {secundarias.map((accion) => (
+                    <BotonAccion
+                      key={accion}
+                      etiqueta={etiquetaAccion(accion, false)}
+                      variante="secondary"
+                      motivo={motivoBloqueo(accion)}
+                      onClick={() => void handleAccion(accion)}
+                    />
+                  ))}
+                  {destructivas.length > 0 && (
+                    <>
+                      <Divider />
+                      {destructivas.map((accion) => (
+                        <BotonAccion
+                          key={accion}
+                          etiqueta={etiquetaAccion(accion, false)}
+                          variante="danger"
+                          motivo={motivoBloqueo(accion)}
+                          onClick={() => void handleAccion(accion)}
+                        />
+                      ))}
+                    </>
+                  )}
+                </Stack>
+              </CardBody>
+            </Card>
+          )}
+
+          {/* Formulario de ETA (Req 4.1): solo se ofrece si el viaje NO es terminal. */}
+          {!viajeTerminal && (
+            <Card>
+              <CardHeader>
+                <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
+                  Fijar ETA manual
+                </p>
+              </CardHeader>
+              <CardBody>
                 <p
                   className="ui-text-body-xs"
                   style={{ color: 'var(--ui-color-text-muted)', margin: 0 }}
                 >
-                  ETA estimado (no en vivo)
+                  Ingresa una hora estimada de llegada. Este valor es indicativo, no en vivo.
                 </p>
-                <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
-                  {new Date(viajeInterno.eta_estimado).toLocaleString()}
-                </p>
-              </div>
-            )}
-          </Stack>
-        </CardBody>
-      </Card>
+              </CardBody>
+              <CardFooter>
+                <Button variant="secondary" onClick={() => setModalEtaAbierto(true)}>
+                  Editar ETA
+                </Button>
+              </CardFooter>
+            </Card>
+          )}
 
-      {/* Aviso de fecha/hora faltante en una solicitud (E8-T9, Req 2.2, 3.1).
-          Aprobar queda bloqueado hasta completarla. */}
-      {faltaFechaHora && (
-        <Card variant="outlined">
-          <CardBody>
-            <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
-              Falta la fecha y hora del servicio. No se puede aprobar la solicitud hasta
-              completarla.
-            </p>
-          </CardBody>
-          <CardFooter>
-            <Button variant="secondary" onClick={() => setModalFechaHoraAbierto(true)}>
-              Completar fecha y hora
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
-
-      {viajeInterno.estado === EstadoViaje.Cerrado && (
-        <Card variant="outlined">
-          <CardBody>
-            <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
-              Este viaje está cerrado.
-            </p>
-          </CardBody>
-        </Card>
-      )}
-
-      {/* Acciones: CERRADO tiene un flujo dedicado con motivo obligatorio (E8-T14). */}
-      {accionesVisibles.length > 0 && (
-        <Card>
-          <CardHeader>
-            <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
-              Acciones disponibles
-            </p>
-          </CardHeader>
-          <CardBody>
-            <Stack gap={2}>
-              {accionesVisibles.map((accion) => {
-                const esAprobar = accion === EstadoViaje.Aprobado;
-                const esAsignar = accion === EstadoViaje.Asignado;
-                const esCerrar = accion === EstadoViaje.Cerrado;
-                const deshabilitado = esAprobar && !aprobarHabilitado;
-
-                if (esCerrar) {
-                  return (
-                    <div key={accion}>
-                      <Button
-                        variant="primary"
-                        onClick={() => void handleAccion(accion)}
-                        disabled={bloqueoCierre !== null}
-                        style={{ width: '100%' }}
-                      >
-                        Cerrar servicio
-                      </Button>
-                      {bloqueoCierre && (
-                        <p
-                          className="ui-text-body-xs"
-                          style={{
-                            color: 'var(--ui-color-text-muted)',
-                            margin: 'var(--ui-space-1) 0 0',
-                          }}
-                        >
-                          {bloqueoCierre}
-                        </p>
-                      )}
-                    </div>
-                  );
-                }
-
-                return (
-                  <Button
-                    key={accion}
-                    variant="primary"
-                    onClick={() => void handleAccion(accion)}
-                    disabled={deshabilitado}
-                    style={{ width: '100%' }}
-                  >
-                    {esAsignar ? 'Asignar escolta' : `Transicionar a: ${accion}`}
-                    {!esAsignar && requiereCausa(accion) ? ' (requiere causa)' : ''}
-                    {deshabilitado ? ' (falta fecha/hora)' : ''}
-                  </Button>
-                );
-              })}
-            </Stack>
-          </CardBody>
-        </Card>
-      )}
-
-      {/* Formulario de ETA (Req 4.1): solo se ofrece si el viaje NO es terminal. */}
-      {!viajeTerminal && (
-        <Card>
-          <CardHeader>
-            <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
-              Fijar ETA manual
-            </p>
-          </CardHeader>
-          <CardBody>
-            <p
-              className="ui-text-body-xs"
-              style={{ color: 'var(--ui-color-text-muted)', margin: 0 }}
-            >
-              Ingresa una hora estimada de llegada. Este valor es indicativo, no en vivo.
-            </p>
-          </CardBody>
-          <CardFooter>
-            <Button variant="secondary" onClick={() => setModalEtaAbierto(true)}>
-              Editar ETA
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
-
-      {/* Modal de selección y asignación de la escolta (E8-T10). */}
+          {/* Modal de selección y asignación de la escolta (E8-T10). */}
+        </Stack>
+      </Grid>
       <Modal
         open={modalAsignacionAbierto}
         onClose={() => setModalAsignacionAbierto(false)}
@@ -765,4 +765,45 @@ function DelegacionSesion() {
   }, [logout, navigate]);
 
   return null;
+}
+
+/** Etiqueta de una transición: la principal avanza, las demás pasan al estado indicado. */
+function etiquetaAccion(accion: EstadoViaje, principal: boolean): string {
+  if (accion === EstadoViaje.Asignado) return 'Asignar escolta';
+  if (accion === EstadoViaje.Cerrado) return 'Cerrar servicio';
+  return principal ? `Avanzar a: ${nombreEstado(accion)}` : `Pasar a: ${nombreEstado(accion)}`;
+}
+
+/** Botón de una transición, con el motivo de bloqueo debajo cuando no se puede ejecutar. */
+function BotonAccion({
+  etiqueta,
+  variante,
+  motivo,
+  onClick,
+}: {
+  readonly etiqueta: string;
+  readonly variante: 'primary' | 'secondary' | 'danger';
+  readonly motivo: string | null;
+  readonly onClick: () => void;
+}) {
+  return (
+    <div>
+      <Button
+        variant={variante}
+        onClick={onClick}
+        disabled={motivo !== null}
+        style={{ width: '100%' }}
+      >
+        {etiqueta}
+      </Button>
+      {motivo && (
+        <p
+          className="ui-text-body-xs"
+          style={{ color: 'var(--ui-color-text-muted)', margin: 'var(--ui-space-1) 0 0' }}
+        >
+          {motivo}
+        </p>
+      )}
+    </div>
+  );
 }

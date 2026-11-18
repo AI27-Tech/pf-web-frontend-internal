@@ -80,7 +80,7 @@ describe('E8-T9 · guard de aprobación (fecha/hora obligatoria)', () => {
     server.use(http.get(path('/viajes/:id/detalle'), () => HttpResponse.json(solicitud(null))));
     renderDetalle();
 
-    const botonAprobar = await screen.findByRole('button', { name: /Transicionar a: APROBADO/i });
+    const botonAprobar = await screen.findByRole('button', { name: /Avanzar a: Aprobado/i });
     expect(botonAprobar).toBeDisabled();
     // Se ofrece completar la fecha/hora.
     expect(screen.getByRole('button', { name: /Completar fecha y hora/i })).toBeInTheDocument();
@@ -94,7 +94,7 @@ describe('E8-T9 · guard de aprobación (fecha/hora obligatoria)', () => {
     );
     renderDetalle();
 
-    const botonAprobar = await screen.findByRole('button', { name: /Transicionar a: APROBADO/i });
+    const botonAprobar = await screen.findByRole('button', { name: /Avanzar a: Aprobado/i });
     expect(botonAprobar).toBeEnabled();
   });
 
@@ -117,7 +117,7 @@ describe('E8-T9 · guard de aprobación (fecha/hora obligatoria)', () => {
     renderDetalle();
 
     // Al inicio Aprobar está deshabilitado.
-    const botonAprobar = await screen.findByRole('button', { name: /Transicionar a: APROBADO/i });
+    const botonAprobar = await screen.findByRole('button', { name: /Avanzar a: Aprobado/i });
     expect(botonAprobar).toBeDisabled();
 
     // Abrir el modal y completar la fecha/hora. El campo se localiza por su label,
@@ -130,7 +130,7 @@ describe('E8-T9 · guard de aprobación (fecha/hora obligatoria)', () => {
 
     // Tras invalidar la lectura, Aprobar queda habilitado.
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: /Transicionar a: APROBADO/i })).toBeEnabled(),
+      expect(screen.getByRole('button', { name: /Avanzar a: Aprobado/i })).toBeEnabled(),
     );
   });
 });
@@ -166,7 +166,7 @@ describe('E8-T9 · rechazar exige motivo', () => {
     renderDetalle();
 
     const botonRechazar = await screen.findByRole('button', {
-      name: /Transicionar a: RECHAZADO_POR_AI27/i,
+      name: /Pasar a: Rechazada por AI27/i,
     });
     await userEvent.click(botonRechazar);
 
@@ -209,7 +209,7 @@ describe('E8-T9 · e2e de las dos ramas', () => {
     );
     renderDetalle();
 
-    const botonAprobar = await screen.findByRole('button', { name: /Transicionar a: APROBADO/i });
+    const botonAprobar = await screen.findByRole('button', { name: /Avanzar a: Aprobado/i });
     await userEvent.click(botonAprobar);
 
     // El estado mostrado pasa a APROBADO tras invalidar la lectura.
@@ -244,7 +244,7 @@ describe('E8-T9 · e2e de las dos ramas', () => {
     renderDetalle();
 
     await userEvent.click(
-      await screen.findByRole('button', { name: /Transicionar a: RECHAZADO_POR_AI27/i }),
+      await screen.findByRole('button', { name: /Pasar a: Rechazada por AI27/i }),
     );
     await userEvent.type(await screen.findByRole('textbox'), 'Cliente fuera de alcance');
     await userEvent.click(screen.getByRole('button', { name: /^Confirmar$/i }));
