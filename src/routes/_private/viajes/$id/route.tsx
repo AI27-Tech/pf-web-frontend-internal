@@ -1,17 +1,33 @@
 /*
  * Layout de la ruta del viaje (E8-T8 / E8-T13).
  *
- * `/viajes/$id` es ruta padre de sus vistas: el detalle (índice) y el histórico.
- * Este layout solo expone el `<Outlet/>` donde se montan las hijas; no renderiza
- * UI propia para no superponerse a ellas.
+ * `/viajes/$id` es ruta padre de sus vistas: detalle, ficha técnica, histórico y
+ * expediente. El cascarón `ViajeShell` dibuja el encabezado y las pestañas, y el
+ * `Outlet` lleva el contenido de cada sección. Cambiar de pestaña no vuelve a montar
+ * el encabezado.
  */
-
-import { createFileRoute, Outlet } from '@tanstack/react-router';
+import { createFileRoute, Outlet, useLocation } from '@tanstack/react-router';
+import { ViajeShell } from '@/features/viajes/ViajeShell';
+import type { SeccionViaje } from '@/features/viajes/NavegacionViaje';
 
 export const Route = createFileRoute('/_private/viajes/$id')({
   component: ViajeLayout,
 });
 
+/** Sección que corresponde a la URL actual. */
+function seccionDeRuta(pathname: string): SeccionViaje {
+  if (pathname.endsWith('/ficha')) return 'ficha';
+  if (pathname.endsWith('/historico')) return 'historico';
+  if (pathname.endsWith('/expediente')) return 'expediente';
+  return 'detalle';
+}
+
 function ViajeLayout() {
-  return <Outlet />;
+  const { id } = Route.useParams();
+  const { pathname } = useLocation();
+  return (
+    <ViajeShell id={id} seccion={seccionDeRuta(pathname)}>
+      <Outlet />
+    </ViajeShell>
+  );
 }

@@ -15,8 +15,9 @@
 
 import { Badge } from '@ai27-tech/ui';
 import type { BadgeVariant, Column } from '@ai27-tech/ui';
-import { useNavigate } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 
+import { badgeDeEstado } from '@/features/monitoreo/dashboard/estadoBadge';
 import { CondicionViaje } from '@/lib/contracts/viajes';
 import type { ViajeVista } from './viajeVista';
 
@@ -36,45 +37,27 @@ export const VARIANTE_CONDICION: Record<CondicionViaje, BadgeVariant> = {
  * Las columnas dependen del contexto de navegación (useNavigate), así que se
  * generan dentro de un hook en el componente padre (BandejaViajes).
  */
-export function obtenerColumnasViaje(
-  navigate: ReturnType<typeof useNavigate>,
-): Column<ViajeVista>[] {
+export function obtenerColumnasViaje(): Column<ViajeVista>[] {
   return [
-    {
-      key: 'id',
-      header: 'Viaje',
-      accessor: 'id',
-      cell: (v) => (
-        <button
-          onClick={() => {
-            void navigate({
-              to: '/viajes/$id',
-              params: { id: v.id },
-            });
-          }}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--ui-color-primary)',
-            cursor: 'pointer',
-            textDecoration: 'underline',
-            padding: 0,
-            font: 'inherit',
-          }}
-          title="Ver detalle del viaje"
-        >
-          {v.id}
-        </button>
-      ),
-    },
+    { key: 'id', header: 'Viaje', cell: (v) => <strong>{v.id}</strong> },
     {
       key: 'estado',
       header: 'Estado',
-      cell: (v) => (
-        <Badge data-testid="estado" variant="neutral">
-          {v.estado}
-        </Badge>
-      ),
+      cell: (v) => {
+        // Mismo mapa estado a Badge que el dashboard de monitorista (ESTADO_BADGE).
+        const descriptor = badgeDeEstado(v.estado);
+        return (
+          <Badge
+            data-testid="estado"
+            dot={descriptor.dot}
+            variant={descriptor.variant}
+            appearance={descriptor.appearance}
+            pulse={descriptor.pulse}
+          >
+            {v.estado}
+          </Badge>
+        );
+      },
     },
     { key: 'origen', header: 'Origen', accessor: 'origen' },
     {
@@ -91,6 +74,24 @@ export function obtenerColumnasViaje(
             </Badge>
           ))}
         </span>
+      ),
+    },
+    {
+      key: 'acciones',
+      header: 'Acciones',
+      align: 'right',
+      cell: (v) => (
+        <Link
+          to="/viajes/$id"
+          params={{ id: v.id }}
+          aria-label={`Detalles del viaje ${v.id}`}
+          style={{
+            color: 'var(--ui-color-primary)',
+            textDecoration: 'underline',
+          }}
+        >
+          Detalles
+        </Link>
       ),
     },
   ];

@@ -74,6 +74,28 @@ function toQueryState<T>(query: ReturnType<typeof useQuery<T, Error>>): Historic
   };
 }
 
+/**
+ * Lee todas las páginas de una lista paginada por cursor, en el orden del servidor.
+ * Sin seguir el cursor, las entradas nuevas (al final del listado) nunca se verían.
+ */
+async function leerTodasLasPaginas<T>(
+  leerPagina: (
+    cursor: string | undefined,
+  ) => Promise<{ items: T[]; cursor_siguiente: string | null }>,
+): Promise<{ items: T[]; cursor_siguiente: null }> {
+  const items: T[] = [];
+  let cursor: string | undefined;
+  for (;;) {
+    const pagina = await leerPagina(cursor);
+    items.push(...pagina.items);
+    const siguiente = pagina.cursor_siguiente ?? undefined;
+    // Un cursor que no avanza significaría un bucle: se corta en vez de pedirlo otra vez.
+    if (siguiente === undefined || siguiente === cursor) break;
+    cursor = siguiente;
+  }
+  return { items, cursor_siguiente: null };
+}
+
 export function useHistoricoViaje(id: string): HistoricoViajeHook {
   const { sesion } = useSession();
   const accessToken = sesion?.accessToken ?? '';
@@ -81,17 +103,17 @@ export function useHistoricoViaje(id: string): HistoricoViajeHook {
 
   const bitacoraQuery = useQuery({
     queryKey: bitacoraKey(id),
-    queryFn: () => listarBitacora(id, accessToken),
+    queryFn: () => leerTodasLasPaginas((cursor) => listarBitacora(id, accessToken, cursor)),
     retry: false,
   });
   const incidenciasQuery = useQuery({
     queryKey: incidenciasKey(id),
-    queryFn: () => listarIncidencias(id, accessToken),
+    queryFn: () => leerTodasLasPaginas((cursor) => listarIncidencias(id, accessToken, cursor)),
     retry: false,
   });
   const estadiasQuery = useQuery({
     queryKey: estadiasKey(id),
-    queryFn: () => listarEstadias(id, accessToken),
+    queryFn: () => leerTodasLasPaginas((cursor) => listarEstadias(id, accessToken, cursor)),
     retry: false,
   });
 

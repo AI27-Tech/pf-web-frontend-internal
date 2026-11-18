@@ -5,32 +5,38 @@
  * corrección de una incidencia es una nueva entrada (el cierre), nunca una
  * reescritura de la apertura. La duración de la estadía se deriva de
  * inicio/cierre y nunca se clasifica como "prolongada" (DEC-038).
+ *
+ * Las capturas (nota, estadía, incidencia) viven en modales. La bitácora y las
+ * incidencias van en columnas; las estadías, en una tabla a ancho completo.
  */
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   Alert,
   Badge,
-  Breadcrumb,
   Button,
   Card,
   CardBody,
-  CardHeader,
-  Form,
+  Divider,
   EmptyState,
+  Form,
   FormField,
+  Grid,
   Inline,
   Modal,
-  PageHeader,
+  Section,
+  Skeleton,
+  SkeletonTable,
+  SkeletonText,
   Stack,
+  Table,
   Textarea,
-  Timeline,
   Toast,
   ToastContainer,
 } from '@ai27-tech/ui';
+import type { Column } from '@ai27-tech/ui';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
-import { EnlaceRuta } from '@/components/layout/EnlaceRuta';
 import { useSession } from '@/context/SessionContext';
 import {
   ErrorAutorizacionInsuficiente,
@@ -38,6 +44,7 @@ import {
   ErrorEstadiaYaCerrada,
 } from '@/lib/api/historicoViaje';
 import type {
+  EjeAutorizacionEstadia,
   EntradaBitacora,
   Estadia,
   Incidencia,
@@ -46,6 +53,7 @@ import type {
 
 import { duracionEstadia } from './duracionEstadia';
 import { EstadiaForm } from './EstadiaForm';
+import { ETIQUETA_EJE, ETIQUETA_MOTIVO } from './etiquetas';
 import { IncidenciaForm } from './IncidenciaForm';
 import { NotaForm } from './NotaForm';
 import { puedeCorregirIncidencia } from './visibilidadCorreccion';
@@ -61,7 +69,12 @@ interface ToastItem {
   type: 'success' | 'error';
 }
 
-const COLOR_MUTED = 'var(--ui-color-text-muted)';
+/** Variante del badge de autorización: lo que requiere atención se ve de inmediato. */
+const VARIANTE_EJE: Record<EjeAutorizacionEstadia, 'secure' | 'alert' | 'warning'> = {
+  autorizada: 'secure',
+  no_autorizada: 'alert',
+  antes_200km: 'warning',
+};
 
 /** Formatea una marca de tiempo ISO a una cadena legible local. */
 function formatearFecha(iso: string): string {
@@ -76,6 +89,21 @@ function formatearDuracion(ms: number | null): string {
   const horas = Math.floor(totalMin / 60);
   const minutos = totalMin % 60;
   return horas > 0 ? `${horas}h ${minutos}m` : `${minutos}m`;
+}
+
+/** Cantidad entre paréntesis en el título de la sección; vacía mientras la lista carga. */
+function sufijoCantidad(cantidad: number | undefined): string {
+  return cantidad === undefined ? '' : ` (${cantidad})`;
+}
+
+/** Tiempo actual que se actualiza cada `intervaloMs`; alimenta la duración de lo abierto. */
+function useAhora(intervaloMs: number): number {
+  const [ahora, setAhora] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setAhora(Date.now()), intervaloMs);
+    return () => clearInterval(id);
+  }, [intervaloMs]);
+  return ahora;
 }
 
 /** Delegación al AppShell cuando la sesión no autoriza (401/sesión finalizada). */
@@ -107,6 +135,10 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
   const h = useHistoricoViaje(id);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [incidenciaAResolver, setIncidenciaAResolver] = useState<Incidencia | null>(null);
+  const [estadiaACerrar, setEstadiaACerrar] = useState<Estadia | null>(null);
+  const [notaAbierta, setNotaAbierta] = useState(false);
+  const [estadiaAbierta, setEstadiaAbierta] = useState(false);
+  const [incidenciaAbierta, setIncidenciaAbierta] = useState(false);
   const toastIdRef = useRef(0);
 
   const addToast = (message: string, type: 'success' | 'error' = 'error') => {
@@ -137,9 +169,11 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
       'error',
     );
 
+  // Al confirmar, el modal se cierra. Ante un error se queda abierto para corregir.
   const registrarNota = async (texto: string) => {
     try {
       await h.registrarNota({ texto });
+      setNotaAbierta(false);
       addToast('Nota registrada en la bitácora.', 'success');
     } catch (error) {
       avisarFallo(error, 'No se pudo registrar la nota.');
@@ -149,15 +183,19 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
   const abrirEstadia = async (entrada: Parameters<typeof h.abrirEstadia>[0]) => {
     try {
       await h.abrirEstadia(entrada);
+      setEstadiaAbierta(false);
       addToast('Estadía abierta.', 'success');
     } catch (error) {
       avisarFallo(error, 'No se pudo abrir la estadía.');
     }
   };
 
-  const cerrarEstadia = async (estadiaId: string) => {
+  // El cierre es definitivo: la confirmación ya pidió la decisión, así que el modal se cierra
+  // siempre que la llamada termina. Un error se avisa con su toast.
+  const confirmarCierreEstadia = async () => {
+    if (!estadiaACerrar) return;
     try {
-      await h.cerrarEstadia(estadiaId);
+      await h.cerrarEstadia(estadiaACerrar.id);
       addToast('Estadía cerrada.', 'success');
     } catch (error) {
       if (error instanceof ErrorEstadiaYaCerrada) {
@@ -166,11 +204,13 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
         avisarFallo(error, 'No se pudo cerrar la estadía.');
       }
     }
+    setEstadiaACerrar(null);
   };
 
   const abrirIncidencia = async (entrada: IncidenciaEntrada) => {
     try {
       await h.abrirIncidencia(entrada);
+      setIncidenciaAbierta(false);
       addToast('Incidencia marcada.', 'success');
     } catch (error) {
       if (error instanceof ErrorCondicionYaAbierta) {
@@ -198,57 +238,121 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
   };
 
   return (
-    <Stack gap={4}>
-      <PageHeader
-        title={`Histórico del viaje: ${id}`}
-        breadcrumb={
-          <Breadcrumb
-            items={[
-              { label: 'Viajes', href: '/viajes', as: EnlaceRuta },
-              { label: `Viaje ${id}`, href: `/viajes/${id}`, as: EnlaceRuta },
-              { label: 'Histórico' },
-            ]}
-          />
-        }
-      />
+    <>
+      <Stack gap={4}>
+        <Grid minItemWidth="22rem" gap={4}>
+          <Card style={{ height: '100%' }}>
+            <CardBody>
+              <Section
+                title={`Bitácora${sufijoCantidad(h.bitacora.datos?.items.length)}`}
+                divider
+                actions={
+                  <Button variant="primary" type="button" onClick={() => setNotaAbierta(true)}>
+                    Nueva nota
+                  </Button>
+                }
+              >
+                <BitacoraLista estado={h.bitacora} />
+              </Section>
+            </CardBody>
+          </Card>
 
-      <Card variant="outlined">
-        <CardHeader>Bitácora</CardHeader>
-        <CardBody>
-          <NotaForm enviando={h.registrandoNota} onRegistrar={registrarNota} />
-          <div style={{ marginTop: 'var(--ui-space-4)' }}>
-            <BitacoraLista estado={h.bitacora} />
-          </div>
-        </CardBody>
-      </Card>
+          <Card style={{ height: '100%' }}>
+            <CardBody>
+              <Section
+                title={`Incidencias${sufijoCantidad(h.incidencias.datos?.items.length)}`}
+                divider
+                actions={
+                  <Button
+                    variant="secondary"
+                    type="button"
+                    onClick={() => setIncidenciaAbierta(true)}
+                  >
+                    Marcar incidencia
+                  </Button>
+                }
+              >
+                <IncidenciasLista
+                  estado={h.incidencias}
+                  puedeCorregir={puedeCorregir}
+                  onResolver={setIncidenciaAResolver}
+                />
+              </Section>
+            </CardBody>
+          </Card>
+        </Grid>
 
-      <Card variant="outlined">
-        <CardHeader>Estadías</CardHeader>
-        <CardBody>
-          <EstadiaForm enviando={h.abriendoEstadia} onAbrir={abrirEstadia} />
-          <div style={{ marginTop: 'var(--ui-space-4)' }}>
-            <EstadiasLista
-              estado={h.estadias}
-              cerrando={h.cerrandoEstadia}
-              onCerrar={cerrarEstadia}
-            />
-          </div>
-        </CardBody>
-      </Card>
+        <Card>
+          <CardBody>
+            <Section
+              title={`Estadías${sufijoCantidad(h.estadias.datos?.items.length)}`}
+              divider
+              actions={
+                <Button variant="secondary" type="button" onClick={() => setEstadiaAbierta(true)}>
+                  Abrir estadía
+                </Button>
+              }
+            >
+              <EstadiasTabla estado={h.estadias} onCerrar={setEstadiaACerrar} />
+            </Section>
+          </CardBody>
+        </Card>
+      </Stack>
 
-      <Card variant="outlined">
-        <CardHeader>Incidencias</CardHeader>
-        <CardBody>
-          <IncidenciaForm enviando={h.abriendoIncidencia} onAbrir={abrirIncidencia} />
-          <div style={{ marginTop: 'var(--ui-space-4)' }}>
-            <IncidenciasLista
-              estado={h.incidencias}
-              puedeCorregir={puedeCorregir}
-              onResolver={setIncidenciaAResolver}
-            />
-          </div>
-        </CardBody>
-      </Card>
+      <Modal
+        open={notaAbierta}
+        onClose={() => setNotaAbierta(false)}
+        title="Nueva nota de bitácora"
+      >
+        <NotaForm enviando={h.registrandoNota} onRegistrar={registrarNota} />
+      </Modal>
+
+      <Modal open={estadiaAbierta} onClose={() => setEstadiaAbierta(false)} title="Abrir estadía">
+        <EstadiaForm enviando={h.abriendoEstadia} onAbrir={abrirEstadia} />
+      </Modal>
+
+      <Modal
+        open={estadiaACerrar !== null}
+        onClose={() => setEstadiaACerrar(null)}
+        title="Cerrar estadía"
+        size="sm"
+      >
+        {estadiaACerrar && (
+          <Stack gap={4}>
+            <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
+              Se cerrará la estadía de {ETIQUETA_MOTIVO[estadiaACerrar.motivo]}. El cierre no se
+              puede deshacer.
+            </p>
+            <Inline gap={2} justify="end" wrap={false}>
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => setEstadiaACerrar(null)}
+                disabled={h.cerrandoEstadia}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="primary"
+                type="button"
+                loading={h.cerrandoEstadia}
+                disabled={h.cerrandoEstadia}
+                onClick={() => void confirmarCierreEstadia()}
+              >
+                Cerrar estadía
+              </Button>
+            </Inline>
+          </Stack>
+        )}
+      </Modal>
+
+      <Modal
+        open={incidenciaAbierta}
+        onClose={() => setIncidenciaAbierta(false)}
+        title="Marcar incidencia"
+      >
+        <IncidenciaForm enviando={h.abriendoIncidencia} onAbrir={abrirIncidencia} />
+      </Modal>
 
       <Modal
         open={incidenciaAResolver !== null}
@@ -274,16 +378,7 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
           />
         ))}
       </ToastContainer>
-    </Stack>
-  );
-}
-
-/** Carga de un historial: región viva con texto accesible y esqueletos de Timeline. */
-function CargaHistorial({ recurso }: { readonly recurso: string }) {
-  return (
-    <div role="status" aria-label={`Cargando ${recurso}`}>
-      <Timeline items={[]} loading />
-    </div>
+    </>
   );
 }
 
@@ -293,93 +388,178 @@ function BitacoraLista({
 }: {
   readonly estado: ReturnType<typeof useHistoricoViaje>['bitacora'];
 }) {
+  const contenedorRef = useRef<HTMLDivElement>(null);
+  const items = estado.datos?.items ?? [];
+  const cantidad = items.length;
+
+  // Las notas nuevas van al final: al crecer la lista, el contenedor baja al último registro.
+  useEffect(() => {
+    const contenedor = contenedorRef.current;
+    if (contenedor) contenedor.scrollTop = contenedor.scrollHeight;
+  }, [cantidad]);
+
   if (estado.cargando) {
-    return <CargaHistorial recurso="bitácora" />;
+    return <CargaBloques recurso="bitácora" />;
   }
   if (estado.error) {
     return (
       <BloqueError mensaje="No se pudo cargar la bitácora." onReintentar={estado.reintentar} />
     );
   }
-  const items = estado.datos?.items ?? [];
+  if (items.length === 0) {
+    return <EmptyState size="sm" title="Aún no hay notas en la bitácora." />;
+  }
   return (
-    <Timeline
-      items={items.map((entrada: EntradaBitacora) => ({
-        id: entrada.id,
-        title: entrada.autor,
-        description: entrada.texto,
-        timestamp: formatearFecha(entrada.ts),
-        dateTime: entrada.ts,
-        status: 'completed',
-      }))}
-      emptyState={<EmptyState size="sm" title="Aún no hay notas en la bitácora." />}
-    />
+    <div
+      ref={contenedorRef}
+      role="region"
+      aria-label="Notas de la bitácora"
+      tabIndex={0}
+      style={{
+        maxHeight: '24rem',
+        overflowY: 'auto',
+      }}
+    >
+      <Stack gap={3}>
+        {items.map((entrada: EntradaBitacora, indice) => (
+          <Stack key={entrada.id} gap={3}>
+            {indice > 0 && <Divider />}
+            <Stack gap={1}>
+              <Inline gap={2} align="center" wrap>
+                <span className="ui-text-label-md" style={{ color: 'var(--ui-color-text)' }}>
+                  {entrada.autor}
+                </span>
+                <time
+                  dateTime={entrada.ts}
+                  className="ui-text-body-xs"
+                  style={{ color: 'var(--ui-color-text-muted)' }}
+                >
+                  {formatearFecha(entrada.ts)}
+                </time>
+              </Inline>
+              <p
+                className="ui-text-body-sm"
+                style={{
+                  margin: 0,
+                  color: 'var(--ui-color-text)',
+                  whiteSpace: 'pre-wrap',
+                  overflowWrap: 'anywhere',
+                }}
+              >
+                {entrada.texto}
+              </p>
+            </Stack>
+          </Stack>
+        ))}
+      </Stack>
+    </div>
   );
 }
 
-/** Estadías con duración derivada y cierre; sin rótulo prolongada. */
-function EstadiasLista({
+/** Esqueleto de la bitácora: bloques con autor, hora y texto, como la lista real. */
+function CargaBloques({ recurso }: { readonly recurso: string }) {
+  const bloques = [0, 1, 2];
+  return (
+    <div role="status" aria-label={`Cargando ${recurso}`}>
+      <Stack gap={3}>
+        {bloques.map((bloque) => (
+          <Stack key={bloque} gap={2}>
+            <Inline gap={2} align="center">
+              <Skeleton width="6rem" height="1rem" />
+              <Skeleton width="8rem" height="0.875rem" />
+            </Inline>
+            <SkeletonText lines={2} />
+          </Stack>
+        ))}
+      </Stack>
+    </div>
+  );
+}
+
+/**
+ * Estadías en tabla a ancho completo. Las abiertas muestran el tiempo transcurrido y la
+ * acción de cerrar; la duración nunca se califica (DEC-038).
+ */
+function EstadiasTabla({
   estado,
-  cerrando,
   onCerrar,
 }: {
   readonly estado: ReturnType<typeof useHistoricoViaje>['estadias'];
-  readonly cerrando: boolean;
-  readonly onCerrar: (estadiaId: string) => void;
+  readonly onCerrar: (estadia: Estadia) => void;
 }) {
+  const ahora = useAhora(60_000);
+
   if (estado.cargando) {
-    return <CargaHistorial recurso="estadías" />;
+    return (
+      <div role="status" aria-label="Cargando estadías">
+        <SkeletonTable rows={3} columns={6} density="compact" />
+      </div>
+    );
   }
   if (estado.error) {
     return (
       <BloqueError mensaje="No se pudieron cargar las estadías." onReintentar={estado.reintentar} />
     );
   }
+
   const items = estado.datos?.items ?? [];
+  const columnas: Column<Estadia>[] = [
+    { key: 'motivo', header: 'Motivo', cell: (e) => ETIQUETA_MOTIVO[e.motivo] },
+    {
+      key: 'autorizacion',
+      header: 'Autorización',
+      cell: (e) => (
+        <Badge variant={VARIANTE_EJE[e.eje_autorizacion]}>{ETIQUETA_EJE[e.eje_autorizacion]}</Badge>
+      ),
+    },
+    { key: 'inicio', header: 'Inicio', cell: (e) => formatearFecha(e.inicio) },
+    { key: 'cierre', header: 'Cierre', cell: (e) => (e.cierre ? formatearFecha(e.cierre) : '—') },
+    {
+      key: 'duracion',
+      header: 'Duración',
+      cell: (e) =>
+        e.cierre === null || e.cierre === undefined
+          ? `En curso: ${formatearDuracion(Math.max(0, ahora - Date.parse(e.inicio)))}`
+          : formatearDuracion(duracionEstadia(e)),
+    },
+    {
+      key: 'estado',
+      header: 'Estado',
+      cell: (e) => {
+        const abierta = e.cierre === null || e.cierre === undefined;
+        return (
+          <Badge variant={abierta ? 'warning' : 'neutral'}>{abierta ? 'Abierta' : 'Cerrada'}</Badge>
+        );
+      },
+    },
+    {
+      key: 'accion',
+      header: '',
+      cell: (e) =>
+        e.cierre === null || e.cierre === undefined ? (
+          <Button variant="secondary" size="sm" type="button" onClick={() => onCerrar(e)}>
+            Cerrar
+          </Button>
+        ) : null,
+    },
+  ];
+
   return (
-    <Timeline
-      items={items.map((estadia: Estadia) => {
-        const abierta = (estadia.cierre ?? null) === null;
-        return {
-          id: estadia.id,
-          title: `${estadia.motivo} · ${estadia.eje_autorizacion}`,
-          timestamp: `Inicio: ${formatearFecha(estadia.inicio)}`,
-          dateTime: estadia.inicio,
-          description: estadia.cierre ? `Cierre: ${formatearFecha(estadia.cierre)}` : undefined,
-          status: abierta ? 'current' : 'completed',
-          content: (
-            <Stack gap={1}>
-              <Inline gap={2} align="center" wrap={false}>
-                <Badge variant={abierta ? 'warning' : 'neutral'}>
-                  {abierta ? 'Abierta' : 'Cerrada'}
-                </Badge>
-                <span className="ui-text-body-xs" style={{ color: COLOR_MUTED }}>
-                  Duración: {formatearDuracion(duracionEstadia(estadia))}
-                </span>
-              </Inline>
-              {abierta && (
-                <div>
-                  <Button
-                    variant="secondary"
-                    type="button"
-                    loading={cerrando}
-                    disabled={cerrando}
-                    onClick={() => onCerrar(estadia.id)}
-                  >
-                    Cerrar estadía
-                  </Button>
-                </div>
-              )}
-            </Stack>
-          ),
-        };
-      })}
-      emptyState={<EmptyState size="sm" title="Aún no hay estadías registradas." />}
-    />
+    <div style={{ maxHeight: '20rem', overflowY: 'auto' }}>
+      <Table<Estadia>
+        columns={columnas}
+        data={items}
+        rowKey={(e) => e.id}
+        stickyHeader
+        density="compact"
+        aria-label="Estadías del viaje"
+        emptyState={<EmptyState size="sm" title="Aún no hay estadías registradas." />}
+      />
+    </div>
   );
 }
 
-/** Incidencias del viaje (lectura `listarIncidencias`); resolver solo si el rol lo permite. */
+/** Incidencias como bloques, igual que la bitácora. Resolver solo si el rol lo permite. */
 function IncidenciasLista({
   estado,
   puedeCorregir,
@@ -390,7 +570,7 @@ function IncidenciasLista({
   readonly onResolver: (incidencia: Incidencia) => void;
 }) {
   if (estado.cargando) {
-    return <CargaHistorial recurso="incidencias" />;
+    return <CargaBloques recurso="incidencias" />;
   }
   if (estado.error) {
     return (
@@ -401,41 +581,55 @@ function IncidenciasLista({
     );
   }
   const items = estado.datos?.items ?? [];
+  if (items.length === 0) {
+    return <EmptyState size="sm" title="No hay incidencias registradas en este viaje." />;
+  }
   return (
-    <Timeline
-      items={items.map((incidencia: Incidencia) => {
+    <Stack gap={3}>
+      {items.map((incidencia: Incidencia, indice) => {
         const resuelta = incidencia.estado === 'resuelta';
-        return {
-          id: incidencia.id,
-          title: incidencia.tipo_interno,
-          timestamp: `Abierta: ${formatearFecha(incidencia.abierta_en)}`,
-          dateTime: incidencia.abierta_en,
-          description: incidencia.resuelta_en
-            ? `Resuelta: ${formatearFecha(incidencia.resuelta_en)}`
-            : undefined,
-          status: resuelta ? 'completed' : 'warning',
-          content: (
+        return (
+          <Stack key={incidencia.id} gap={3}>
+            {indice > 0 && <Divider />}
             <Stack gap={1}>
-              <Badge variant={resuelta ? 'neutral' : 'alert'}>
-                {resuelta ? 'Resuelta' : 'En atención'}
-              </Badge>
-              {!resuelta && puedeCorregir && (
-                <div>
-                  <Button variant="secondary" type="button" onClick={() => onResolver(incidencia)}>
-                    Resolver incidencia
-                  </Button>
-                </div>
-              )}
+              <Inline gap={2} align="center" wrap>
+                <span className="ui-text-label-md" style={{ color: 'var(--ui-color-text)' }}>
+                  {incidencia.tipo_interno}
+                </span>
+                <Badge variant={resuelta ? 'neutral' : 'warning'}>
+                  {resuelta ? 'Resuelta' : 'En atención'}
+                </Badge>
+              </Inline>
+              <p
+                className="ui-text-body-xs"
+                style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}
+              >
+                Abierta en {formatearFecha(incidencia.abierta_en)}
+                {incidencia.resuelta_en
+                  ? ` · Resuelta en ${formatearFecha(incidencia.resuelta_en)}`
+                  : ''}
+              </p>
             </Stack>
-          ),
-        };
+            {!resuelta && puedeCorregir && (
+              <Inline gap={0} wrap={false}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  type="button"
+                  onClick={() => onResolver(incidencia)}
+                >
+                  Resolver incidencia
+                </Button>
+              </Inline>
+            )}
+          </Stack>
+        );
       })}
-      emptyState={<EmptyState size="sm" title="No hay incidencias registradas en este viaje." />}
-    />
+    </Stack>
   );
 }
 
-/** Formulario de resolución dentro del modal; resolución obligatoria. */
+/** Formulario de resolución dentro del modal; resolución obligatoria (el contrato la exige). */
 function ResolucionForm({
   enviando,
   onConfirmar,

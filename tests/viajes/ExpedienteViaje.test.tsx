@@ -92,7 +92,9 @@ describe('ExpedienteViaje — descarga correcta', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Descargar expediente' }));
 
-    expect(await screen.findByRole('button', { name: 'En preparación' })).toBeDisabled();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Descargar expediente' })).toBeDisabled(),
+    );
     expect(await screen.findByText('Expediente descargado')).toBeInTheDocument();
 
     expect(solicitudes).toBe(1);

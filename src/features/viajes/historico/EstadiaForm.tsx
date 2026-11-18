@@ -11,29 +11,12 @@ import {
   type EstadiaEntrada,
   type MotivoEstadia,
 } from '@/lib/contracts/historicoViaje';
+import { ETIQUETA_EJE, ETIQUETA_MOTIVO } from './etiquetas';
 
 export interface EstadiaFormProps {
   readonly enviando: boolean;
   readonly onAbrir: (entrada: EstadiaEntrada) => Promise<void>;
 }
-
-/** Etiquetas legibles de los valores del enum, sin alterar los tokens del contrato. */
-const ETIQUETA_MOTIVO: Record<MotivoEstadia, string> = {
-  combustible: 'Combustible',
-  descanso: 'Descanso',
-  alimentos: 'Alimentos',
-  sanitario: 'Sanitario',
-  reten: 'Retén',
-  revision_autoridades: 'Revisión de autoridades',
-  gastos: 'Gastos',
-  espera_entrega: 'Espera de entrega',
-};
-
-const ETIQUETA_EJE: Record<EjeAutorizacionEstadia, string> = {
-  autorizada: 'Autorizada',
-  no_autorizada: 'No autorizada',
-  antes_200km: 'Antes de 200 km',
-};
 
 const OPCIONES_MOTIVO: SelectOption[] = MOTIVOS_ESTADIA.map((motivo) => ({
   value: motivo,

@@ -10,6 +10,7 @@ import { setupServer } from 'msw/node';
 import type { ReactNode } from 'react';
 
 import { DetalleViaje } from '@/features/viajes/detalle/DetalleViaje';
+import { ViajeShell } from '@/features/viajes/ViajeShell';
 import { handlers, handlersConversaciones } from '@/mocks/handlers';
 
 vi.mock('@/context/SessionContext', () => ({
@@ -49,11 +50,14 @@ describe('E8-T17 · el detalle no emite solicitudes a /adjuntos', () => {
     const Wrapper = ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     );
-    render(<DetalleViaje id="VJ-1001" />, { wrapper: Wrapper });
+    render(
+      <ViajeShell id="VJ-1001" seccion="detalle">
+        <DetalleViaje id="VJ-1001" />
+      </ViajeShell>,
+      { wrapper: Wrapper },
+    );
 
-    expect(
-      await screen.findByRole('button', { name: 'Ver histórico del viaje' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: 'Histórico del viaje' })).toBeInTheDocument();
     expect(urls.filter((url) => url.includes('/adjuntos'))).toEqual([]);
   });
 });
