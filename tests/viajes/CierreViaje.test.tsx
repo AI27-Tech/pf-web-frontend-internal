@@ -8,6 +8,7 @@ import type { ReactNode } from 'react';
 import { Rol } from '@ai27-tech/contracts/roles';
 
 import { DetalleViaje } from '@/features/viajes/detalle/DetalleViaje';
+import { ViajeShell } from '@/features/viajes/ViajeShell';
 import { onCut, restablecerCorte } from '@/lib/api/sessionCut';
 import { API_PREFIX } from '@/lib/constants';
 
@@ -64,7 +65,12 @@ function renderDetalle() {
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  return render(<DetalleViaje id="VJ-14" />, { wrapper: Wrapper });
+  return render(
+    <ViajeShell id="VJ-14" seccion="detalle">
+      <DetalleViaje id="VJ-14" />
+    </ViajeShell>,
+    { wrapper: Wrapper },
+  );
 }
 
 async function elegirMotivo(label: string) {

@@ -183,7 +183,7 @@ function resumenesViajes(): ViajeResumen[] {
 }
 
 /** Tamaño de página del listado simulado. */
-const TAMANO_PAGINA = 5;
+const TAMANO_PAGINA = 15;
 
 /**
  * Arma una `PaginaViajesResumen` aplicando el filtro por estado y la paginación

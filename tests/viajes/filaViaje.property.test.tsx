@@ -14,7 +14,7 @@
  * separación de slots por su `data-testid` distinto.
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import fc from 'fast-check';
 
@@ -27,11 +27,10 @@ import type { ViajeVista } from '@/features/viajes/viajeVista';
 const CONDICIONES = Object.values(CondicionViaje) as CondicionViajeTipo[];
 
 /** Mock de useNavigate para el test */
-const mockNavigate = vi.fn();
 
 /** Celda de una columna por su key. Las columnas 'estado'/'condiciones' usan `cell`. */
 function celda(key: string, fila: ViajeVista) {
-  const columnas = obtenerColumnasViaje(mockNavigate);
+  const columnas = obtenerColumnasViaje();
   const col = columnas.find((c) => c.key === key);
   if (!col?.cell) throw new Error(`columna ${key} sin cell`);
   return col.cell(fila, 0);

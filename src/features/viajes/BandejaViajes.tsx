@@ -65,7 +65,7 @@ export function BandejaViajes() {
   const b = useBandejaViajes();
   const { usuario } = useSession();
   const navigate = useNavigate();
-  const columnasViaje = obtenerColumnasViaje(navigate);
+  const columnasViaje = obtenerColumnasViaje();
 
   // Requirement 7.3: un 401 no pinta el error genérico del listado; se delega
   // al flujo de sesión del AppShell (logout limpia el TokenStore y la guarda
@@ -125,6 +125,7 @@ export function BandejaViajes() {
         loading={b.cargando} // Requirement 5.1
         emptyState={<MensajeVacio />} // Requirement 6.1
         aria-label="Bandeja de viajes"
+        density="comfortable"
       />
 
       {/*

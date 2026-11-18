@@ -1,29 +1,28 @@
 /*
  * Pantalla de descarga del expediente del viaje (E8-T17, Bloque A).
  *
- * Solo descarga el expediente de un viaje. No lista ni descarga en lote, y no
- * monta la evidencia (Bloque C). Los mensajes son de trabajo y están pendientes
- * de aprobación de Producto.
+ * Solo descarga el expediente de un viaje. No lista ni descarga en lote, y la
+ * evidencia (Bloque C) se monta debajo. Los mensajes son de trabajo y están
+ * pendientes de aprobación de Producto.
  */
 
 import { useState, type ReactNode } from 'react';
 
 import {
   Alert,
-  Breadcrumb,
+  Badge,
   Button,
   Card,
   CardBody,
   CardFooter,
-  CardHeader,
-  PageHeader,
+  Inline,
+  Section,
   Stack,
   Toast,
   ToastContainer,
 } from '@ai27-tech/ui';
 import { useNavigate } from '@tanstack/react-router';
 
-import { EnlaceRuta } from '@/components/layout/EnlaceRuta';
 import { useSession } from '@/context/SessionContext';
 import { puedeUsarMonitoreo } from '@/features/monitoreo/puedeUsarMonitoreo';
 
@@ -45,16 +44,10 @@ export function ExpedienteViaje({ id }: ExpedienteViajeProps) {
     return <AccesoNoAutorizado onVolver={onVolver} />;
   }
 
-  return <DescargaExpediente id={id} onVolver={onVolver} />;
+  return <DescargaExpediente id={id} />;
 }
 
-function DescargaExpediente({
-  id,
-  onVolver,
-}: {
-  readonly id: string;
-  readonly onVolver: () => void;
-}) {
+function DescargaExpediente({ id }: { readonly id: string }) {
   const d = useDescargaExpediente(id);
   const [avisoCerrado, setAvisoCerrado] = useState(false);
 
@@ -65,51 +58,39 @@ function DescargaExpediente({
 
   return (
     <Stack gap={4}>
-      <PageHeader
-        title="Expediente del viaje"
-        description={`Viaje: ${id}`}
-        breadcrumb={
-          <Breadcrumb
-            items={[
-              { label: 'Viajes', href: '/viajes', as: EnlaceRuta },
-              { label: `Viaje ${id}`, href: `/viajes/${id}`, as: EnlaceRuta },
-              { label: 'Expediente' },
-            ]}
-          />
-        }
-        actions={
-          <Button variant="secondary" type="button" onClick={onVolver}>
-            Volver al detalle
-          </Button>
-        }
-      />
-
       <Card>
-        <CardHeader>
-          <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-            Descarga del expediente
-          </p>
-        </CardHeader>
         <CardBody>
-          <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-            Descarga el expediente completo del viaje: ficha técnica, bitácora y auditoría.
-          </p>
-          {d.esProhibido && (
-            <Mensaje>
-              No tienes autorización para descargar el expediente de este viaje. Puede ser por falta
-              de permiso o porque el viaje está fuera de tu alcance.
-            </Mensaje>
-          )}
-          {d.esNoEncontrado && (
-            <Mensaje>El viaje no existe. No hay expediente que descargar.</Mensaje>
-          )}
-          {d.esErrorRecuperable && (
-            <Mensaje>No se pudo preparar el expediente. Vuelve a intentarlo.</Mensaje>
-          )}
+          <Section
+            title="Descarga del expediente"
+            divider
+            actions={
+              <BotonDescargarExpediente preparando={d.preparando} onDescargar={onDescargar} />
+            }
+          >
+            <Stack gap={3}>
+              <Inline gap={2} align="center" wrap>
+                <span className="ui-text-body-sm" style={{ color: 'var(--ui-color-text-muted)' }}>
+                  Incluye:
+                </span>
+                <Badge variant="neutral">Ficha técnica</Badge>
+                <Badge variant="neutral">Bitácora</Badge>
+                <Badge variant="neutral">Auditoría</Badge>
+              </Inline>
+              {d.esProhibido && (
+                <Mensaje>
+                  No tienes autorización para descargar el expediente de este viaje. Puede ser por
+                  falta de permiso o porque el viaje está fuera de tu alcance.
+                </Mensaje>
+              )}
+              {d.esNoEncontrado && (
+                <Mensaje>El viaje no existe. No hay expediente que descargar.</Mensaje>
+              )}
+              {d.esErrorRecuperable && (
+                <Mensaje>No se pudo preparar el expediente. Vuelve a intentarlo.</Mensaje>
+              )}
+            </Stack>
+          </Section>
         </CardBody>
-        <CardFooter>
-          <BotonDescargarExpediente preparando={d.preparando} onDescargar={onDescargar} />
-        </CardFooter>
       </Card>
 
       <EvidenciaViaje id={id} />

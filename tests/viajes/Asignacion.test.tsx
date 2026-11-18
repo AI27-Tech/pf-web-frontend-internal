@@ -7,6 +7,7 @@ import { setupServer } from 'msw/node';
 import type { ReactNode } from 'react';
 
 import { DetalleViaje } from '@/features/viajes/detalle/DetalleViaje';
+import { ViajeShell } from '@/features/viajes/ViajeShell';
 import { restablecerCorte } from '@/lib/api/sessionCut';
 import { API_PREFIX } from '@/lib/constants';
 
@@ -63,7 +64,12 @@ function renderDetalle() {
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  return render(<DetalleViaje id="VJ-10" />, { wrapper: Wrapper });
+  return render(
+    <ViajeShell id="VJ-10" seccion="detalle">
+      <DetalleViaje id="VJ-10" />
+    </ViajeShell>,
+    { wrapper: Wrapper },
+  );
 }
 
 describe('Asignación de escolta', () => {
@@ -86,7 +92,9 @@ describe('Asignación de escolta', () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={client}>
-        <DetalleViaje id="VJ-10" />
+        <ViajeShell id="VJ-10" seccion="detalle">
+          <DetalleViaje id="VJ-10" />
+        </ViajeShell>
       </QueryClientProvider>,
     );
     await waitFor(() =>
@@ -167,7 +175,9 @@ describe('Asignación de escolta', () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={client}>
-        <DetalleViaje id="VJ-10" />
+        <ViajeShell id="VJ-10" seccion="detalle">
+          <DetalleViaje id="VJ-10" />
+        </ViajeShell>
       </QueryClientProvider>,
     );
     await userEvent.click(await screen.findByRole('button', { name: 'Asignar escolta' }));

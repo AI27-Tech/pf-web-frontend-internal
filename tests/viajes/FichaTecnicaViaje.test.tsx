@@ -116,9 +116,9 @@ describe('FichaTecnicaViaje — lectura y escolta', () => {
 
     expect(await screen.findByText('Escolta (derivada de la asignación)')).toBeInTheDocument();
     expect(await screen.findByText(/Unidad UN-1/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/patrulla · P-101 · ABC-1234 · Juan Pérez, Ana López/),
-    ).toBeInTheDocument();
+    expect(screen.getByText('patrulla')).toBeInTheDocument();
+    expect(screen.getByText('P-101 · ABC-1234')).toBeInTheDocument();
+    expect(screen.getByText('Juan Pérez, Ana López')).toBeInTheDocument();
     expect(screen.getByText(/no se recapturan custodios ni patrullas/i)).toBeInTheDocument();
 
     // No hay controles de edición de la escolta (solo lectura).
@@ -134,7 +134,7 @@ describe('FichaTecnicaViaje — lectura y escolta', () => {
     const items = await screen.findAllByRole('listitem');
     const destinos = items.filter((li) => /Destino [12]/.test(li.textContent ?? ''));
     expect(destinos[0]?.textContent).toContain('Destino 1');
-    expect(destinos[0]?.textContent).toContain('arribó');
+    expect(destinos[0]?.textContent).toContain('Arribó');
     expect(destinos[1]?.textContent).toContain('Destino 2');
   });
 
