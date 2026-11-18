@@ -1,0 +1,24 @@
+# Brechas del modo mock con datos coherentes
+
+Registro de las brechas de `design.md` (sección Brechas) y de las que aparecieron al implementar. Cada estado cita su fuente.
+
+| #   | Brecha                                                         | Estado                           | Fuente y nota                                                                                                                                                                                                                                                                                                                                          |
+| --- | -------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Ficha vacía: `GET /viajes/{id}/ficha` responde 200 sin captura | Resuelta                         | `requirements.md`, sección Preguntas abiertas: `GET /viajes/{id}/ficha` responde `200` con ficha vacía. Respaldo: `TestConsultasFicha` en `pf-svc-operacion/consultas_integration_test.go` (ficha nace vacía). El mock responde 200 con `{ viaje_id, tracto: null, contenedores: [], gps_ids: [] }`.                                                   |
+| 2   | Rechazo de emergencia en viaje terminal                        | Resuelta                         | DEC-135 #5 (`ai27-platform-context`, `decision-log.md`): el `bff` rechaza con `409 viaje_en_estado_terminal` la activación sobre `CERRADO`, `CANCELADO`, `RECHAZADO_POR_AI27` o `RECHAZADO_POR_CLIENTE`. También `pf-pkg-contracts/CHANGELOG.md`, `tracer.37`. Fuera del mock: la carrera entre lectura y activación (DT-16, `docs/DEUDA-TECNICA.md`). |
+| 3   | Caso de Reacción sin `viaje_id`                                | Resuelta                         | DEC-121 #2 (`decision-log.md`) y `pf-pkg-contracts/CHANGELOG.md`, `tracer.34`. El caso no lleva `viaje_id`; el detalle sí trae `ViajeEmergencia` (`cliente_nombre`, `estado`, `origen`, `destinos`, `fecha_hora_servicio`, `tipo_servicio`, `eta_estimado`, `escolta`). El mock sigue esa forma.                                                       |
+| 4   | Estados terminales                                             | Resuelta                         | ADR 19 y DEC-135 #5. Lista: `CERRADO`, `CANCELADO`, `RECHAZADO_POR_AI27` y `RECHAZADO_POR_CLIENTE`.                                                                                                                                                                                                                                                    |
+| 5   | Escolta obligatoria en `ASIGNADO` o posterior                  | Resuelta                         | `requirements.md`, Preguntas abiertas, punto 1: "Un viaje sin escolta en `ASIGNADO` o después no puede existir en el backend." El roster semilla agrega `UN-1003` a `UN-1010`, con sus vehículos y custodios, para cumplirla.                                                                                                                          |
+| 6   | Persistencia sin modo mock                                     | Pendiente de verificación manual | Verificado en build: `pnpm build` no contiene la clave `ai27.mock.almacen-viajes`. Falta la prueba en navegador de la tarea 11.                                                                                                                                                                                                                        |
+| 7   | Reporte de viajes por estado                                   | Resuelta                         | Pregunta 9 respondida por Producto (`e8-t17-dashboard-descarga-evidencia/tasks.md`, tareas 16, 17 y 21, desbloqueadas el 2026-11-04). `src/lib/api/reportes.ts` dice que los conteos son cambios de estado del periodo. El mock cuenta cambios de estado. No filtra por periodo.                                                                       |
+
+## Cambios que el spec no fijaba
+
+Son decisiones de mock. No cambian el contrato:
+
+- El listado muestra el origen largo del detalle, no el texto corto de antes.
+- `cliente_nombre` del detalle de Reacción toma el nombre de `CLIENTES_DEMO`. Si el viaje no tiene cliente, dice "Sin cliente asignado".
+- El id de una emergencia activada es `em-<activacion_id>`, para enlazar caso y viaje.
+- `em-001` queda ligada a `VJ-1010`, `em-002` a `VJ-1006`, `em-003` y `em-004` a `VJ-1001`.
+- Cada viaje de la semilla cuenta un cambio de estado en su alta. Así el reporte no empieza vacío.
+- La versión del almacén subió a 2 para descartar lo guardado con el formato anterior.

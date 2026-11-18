@@ -1,45 +1,65 @@
-/*
+﻿/*
  * Dashboard de monitoreo (E8-T17, Bloque B). Solo viajes y estatus en V1 (DT-09; incidencias
  * y alertas quedan fuera). Los rótulos son de trabajo, pendientes de aprobación de Producto.
  */
 
-import type { ReactNode } from 'react';
+import { useState } from 'react';
 
+import { Link } from '@tanstack/react-router';
 import {
-  Button,
+  Alert,
   Card,
   CardBody,
-  CardHeader,
+  EmptyState,
   FilterBar,
-  Table,
+  PageHeader,
+  Stack,
   type FilterDefinition,
 } from '@ai27-tech/ui';
+import { Truck } from 'lucide-react';
 
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { useSession } from '@/context/SessionContext';
 import { puedeUsarMonitoreo } from '@/features/monitoreo/puedeUsarMonitoreo';
-import type { FilaViaje } from '@/lib/contracts/reportes';
+import { EstadoViaje } from '@/lib/contracts/viajeDetalle';
 
-import { conteosEnCurso } from './conteos';
-import { IndicadorFrescura } from './IndicadorFrescura';
-import { useDashboardMonitoreo, type VistaSeleccionable } from './useDashboardMonitoreo';
+import { FilaKpis } from './FilaKpis';
+import {
+  filtrarViajes,
+  FILTROS_INICIALES,
+  type FiltrosViajes,
+  type Periodo,
+} from './filtrosViajes';
+import { TAMANOS_PAGINA, ajustarPagina } from './paginar';
+import { TarjetaViajes } from './TarjetaViajes';
+import { useDashboardMonitoreo } from './useDashboardMonitoreo';
 
-const ETIQUETA_VISTA: Record<VistaSeleccionable, string> = {
-  en_curso: 'En curso',
-  rango: 'Últimos 7 días',
-};
+const TITULO = 'Dashboard de Monitoreo';
+const DESCRIPCION =
+  'Viajes y estatus de la operación. Incidencias y alertas no se muestran en esta versión.';
 
-/** Filtro de vista para el `FilterBar` de la librería. Siempre hay una vista seleccionada. */
-const FILTRO_VISTA: FilterDefinition = {
-  key: 'vista',
-  label: 'Vista',
-  options: [
-    { value: 'en_curso', label: ETIQUETA_VISTA.en_curso },
-    { value: 'rango', label: ETIQUETA_VISTA.rango },
-  ],
-};
+const OPCIONES_PERIODO = [
+  { value: '', label: 'Todos' },
+  { value: 'hoy', label: 'Hoy' },
+  { value: 'semana', label: 'Esta semana' },
+  { value: 'mes', label: 'Este mes' },
+];
 
-function esVistaSeleccionable(valor: string): valor is VistaSeleccionable {
-  return valor === 'en_curso' || valor === 'rango';
+/** Filtros de la barra. Estado y fecha; los periodos son predefinidos. La fecha coincide si la creación o el cierre caen en el periodo. */
+const FILTROS: FilterDefinition[] = [
+  {
+    key: 'estado',
+    label: 'Estado',
+    options: [
+      { value: '', label: 'Todos' },
+      ...Object.values(EstadoViaje).map((estado) => ({ value: estado, label: estado })),
+    ],
+  },
+  { key: 'fecha', label: 'Fecha', options: OPCIONES_PERIODO },
+];
+
+function aPeriodo(valor: string): Periodo {
+  return valor === 'hoy' || valor === 'semana' || valor === 'mes' ? valor : 'todos';
 }
 
 /**
@@ -51,161 +71,97 @@ export function DashboardMonitoreo() {
   const autorizado = !!usuario && puedeUsarMonitoreo(usuario.rol);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-      <h1 className="ui-text-headline-lg" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-        Dashboard de Monitoreo
-      </h1>
+    <Stack gap={4}>
+      <PageHeader title={TITULO} description={DESCRIPCION} />
       {autorizado ? (
         <DashboardAutorizado />
       ) : (
-        <Mensaje>Este dashboard no está disponible para tu rol.</Mensaje>
+        <Alert variant="danger">Este dashboard no está disponible para tu rol.</Alert>
       )}
-    </div>
+    </Stack>
   );
 }
 
 function DashboardAutorizado() {
   const d = useDashboardMonitoreo();
+  const [pagina, setPagina] = useState(1);
+  const [tamano, setTamano] = useState<number>(TAMANOS_PAGINA[0]);
+  const [filtros, setFiltros] = useState<FiltrosViajes>(FILTROS_INICIALES);
+
+  const filas = d.viajes ? filtrarViajes(d.viajes.filas, filtros, new Date()) : null;
+  const total = filas?.length ?? 0;
+  const paginaVigente = ajustarPagina(pagina, total, tamano);
+
+  const cambiarFiltro = (clave: string, valor: string) => {
+    setPagina(1);
+    if (clave === 'estado') setFiltros((f) => ({ ...f, estado: valor }));
+    if (clave === 'fecha') setFiltros((f) => ({ ...f, periodo: aPeriodo(valor) }));
+  };
+
+  const cambiarTamano = (nuevo: number) => {
+    setTamano(nuevo);
+    setPagina(1);
+  };
+
+  const errorBloqueante = !d.esProhibido && d.error && !d.viajes ? d.error : null;
+  const mostrarContenido = !d.esProhibido && !errorBloqueante;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+    <Stack gap={4}>
       <FilterBar
-        filters={[FILTRO_VISTA]}
-        filterValues={{ vista: d.vista }}
-        onFilterChange={(_clave, valor) => {
-          if (esVistaSeleccionable(valor)) d.cambiarVista(valor);
+        filters={FILTROS}
+        filterValues={{
+          estado: filtros.estado,
+          fecha: filtros.periodo === 'todos' ? '' : filtros.periodo,
         }}
-        onClear={() => d.cambiarVista('en_curso')}
-        showClear={false}
+        onFilterChange={cambiarFiltro}
+        onClear={() => {
+          setPagina(1);
+          setFiltros(FILTROS_INICIALES);
+        }}
         showActiveFilterChips={false}
       />
 
-      {d.esProhibido && <Mensaje>No tienes autorización para ver este reporte.</Mensaje>}
+      {d.esProhibido && (
+        <Alert variant="danger">No tienes autorización para ver este reporte.</Alert>
+      )}
 
-      {!d.esProhibido && d.error && (
+      {errorBloqueante && (
         <Card variant="outlined">
           <CardBody>
-            <Mensaje>No se pudo cargar el dashboard.</Mensaje>
-            <Button variant="primary" type="button" onClick={d.reintentar}>
-              Reintentar
-            </Button>
+            <BloqueError mensaje="No se pudo cargar el dashboard." onReintentar={d.reintentar} />
           </CardBody>
         </Card>
       )}
 
-      {!d.esProhibido && !d.error && d.cargando && <Mensaje>Cargando el dashboard...</Mensaje>}
-
-      {!d.esProhibido && !d.error && !d.cargando && d.vacio && (
-        <Mensaje>Sin viajes para mostrar.</Mensaje>
-      )}
-
-      {!d.esProhibido && !d.error && !d.cargando && d.viajes && !d.vacio && (
-        <>
-          <Card>
-            <CardHeader>
-              <p className="ui-text-body-sm" style={{ margin: 0 }}>
-                Viajes
-              </p>
-            </CardHeader>
-            <CardBody>
-              <IndicadorFrescura proyeccion={d.viajes} />
-              <Table<FilaViaje>
-                aria-label="Viajes del reporte"
-                data={[...d.viajes.filas]}
-                rowKey={(fila) => fila.viaje_id}
-                density="compact"
-                columns={[
-                  { key: 'viaje', header: 'Viaje', accessor: 'viaje_id' },
-                  { key: 'estado', header: 'Estado', accessor: 'estado' },
-                  {
-                    key: 'creado',
-                    header: 'Creado',
-                    cell: (fila: FilaViaje) =>
-                      fila.creado_en ? new Date(fila.creado_en).toLocaleString('es-MX') : '—',
-                  },
-                  {
-                    key: 'cerrado',
-                    header: 'Cerrado',
-                    cell: (fila: FilaViaje) =>
-                      fila.cerrado_en ? new Date(fila.cerrado_en).toLocaleString('es-MX') : '—',
-                  },
-                ]}
-              />
-            </CardBody>
-          </Card>
-
-          {d.vista === 'en_curso' ? (
-            <ConteosCard
-              titulo="Viajes en curso por estado"
-              filas={conteosEnCurso(d.viajes.filas).map((c) => ({
-                estado: c.estado,
-                conteo: c.conteo,
-              }))}
-            />
-          ) : (
-            d.estados && (
-              <Card>
-                <CardHeader>
-                  <p className="ui-text-body-sm" style={{ margin: 0 }}>
-                    Cambios de estado en el periodo
-                  </p>
-                </CardHeader>
-                <CardBody>
-                  <IndicadorFrescura proyeccion={d.estados} />
-                  <ConteosCard
-                    titulo=""
-                    filas={d.estados.conteos.map((c) => ({ estado: c.estado, conteo: c.conteo }))}
-                  />
-                </CardBody>
-              </Card>
-            )
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-function ConteosCard({
-  titulo,
-  filas,
-}: {
-  readonly titulo: string;
-  readonly filas: readonly { readonly estado: string; readonly conteo: number }[];
-}) {
-  return (
-    <Card>
-      {titulo && (
-        <CardHeader>
-          <p className="ui-text-body-sm" style={{ margin: 0 }}>
-            {titulo}
-          </p>
-        </CardHeader>
-      )}
-      <CardBody>
-        <Table<{ readonly estado: string; readonly conteo: number }>
-          aria-label={titulo || 'Conteos por estado'}
-          data={[...filas]}
-          rowKey={(fila) => fila.estado}
-          density="compact"
-          columns={[
-            { key: 'estado', header: 'Estado', accessor: 'estado' },
-            { key: 'conteo', header: 'Conteo', accessor: 'conteo' },
-          ]}
+      {mostrarContenido && d.vacio && (
+        <EmptyState
+          size="sm"
+          icon={<Truck size={20} aria-hidden="true" />}
+          title="Sin viajes para mostrar."
+          description="No hay viajes en el periodo seleccionado."
         />
-      </CardBody>
-    </Card>
-  );
-}
+      )}
 
-function Mensaje({ children }: { readonly children: ReactNode }) {
-  return (
-    <p
-      className="ui-text-body-sm"
-      role="status"
-      style={{ margin: 0, color: 'var(--ui-color-text)' }}
-    >
-      {children}
-    </p>
+      {mostrarContenido && !d.vacio && (
+        <div
+          role={d.cargando ? 'status' : undefined}
+          aria-label={d.cargando ? 'Cargando el dashboard' : undefined}
+        >
+          <Stack gap={4}>
+            <FilaKpis vista={d.vista} viajes={d.viajes} />
+
+            <TarjetaViajes
+              filas={filas}
+              pagina={paginaVigente}
+              tamano={tamano}
+              onPaginaChange={setPagina}
+              onTamanoChange={cambiarTamano}
+              enlaceVerTodos={<Link to="/viajes">Ver todos los viajes</Link>}
+            />
+          </Stack>
+        </div>
+      )}
+    </Stack>
   );
 }

@@ -20,7 +20,10 @@ import { setupServer } from 'msw/node';
 import type { ReactNode } from 'react';
 
 import { DetalleViaje } from '@/features/viajes/detalle/DetalleViaje';
+import { ViajeShell } from '@/features/viajes/ViajeShell';
 import { API_PREFIX } from '@/lib/constants';
+
+import { escribirFechaHora } from '../helpers/fechaHora';
 
 const path = (segment: string) => `${API_PREFIX}${segment}`;
 
@@ -31,9 +34,14 @@ vi.mock('@/context/SessionContext', () => ({
   useSession: () => ({ sesion: { accessToken: 'token-de-prueba' }, logout: logoutSpy }),
 }));
 
-vi.mock('@tanstack/react-router', () => ({
-  useNavigate: () => navigateSpy,
-}));
+vi.mock('@tanstack/react-router', async () => {
+  const { createElement } = await import('react');
+  return {
+    useNavigate: () => navigateSpy,
+    Link: ({ to, children }: { to: string; children?: unknown }) =>
+      createElement('a', { href: to }, children as never),
+  };
+});
 
 const server = setupServer();
 
@@ -65,7 +73,12 @@ function renderDetalle() {
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  return render(<DetalleViaje id="VJ-9" />, { wrapper: Wrapper });
+  return render(
+    <ViajeShell id="VJ-9" seccion="detalle">
+      <DetalleViaje id="VJ-9" />
+    </ViajeShell>,
+    { wrapper: Wrapper },
+  );
 }
 
 describe('E8-T9 · guard de aprobación (fecha/hora obligatoria)', () => {
@@ -73,7 +86,7 @@ describe('E8-T9 · guard de aprobación (fecha/hora obligatoria)', () => {
     server.use(http.get(path('/viajes/:id/detalle'), () => HttpResponse.json(solicitud(null))));
     renderDetalle();
 
-    const botonAprobar = await screen.findByRole('button', { name: /Transicionar a: APROBADO/i });
+    const botonAprobar = await screen.findByRole('button', { name: /Avanzar a: Aprobado/i });
     expect(botonAprobar).toBeDisabled();
     // Se ofrece completar la fecha/hora.
     expect(screen.getByRole('button', { name: /Completar fecha y hora/i })).toBeInTheDocument();
@@ -87,7 +100,7 @@ describe('E8-T9 · guard de aprobación (fecha/hora obligatoria)', () => {
     );
     renderDetalle();
 
-    const botonAprobar = await screen.findByRole('button', { name: /Transicionar a: APROBADO/i });
+    const botonAprobar = await screen.findByRole('button', { name: /Avanzar a: Aprobado/i });
     expect(botonAprobar).toBeEnabled();
   });
 
@@ -99,7 +112,7 @@ describe('E8-T9 · guard de aprobación (fecha/hora obligatoria)', () => {
       ),
       http.patch(path('/viajes/:id/fecha-hora'), async ({ request }) => {
         const body = (await request.json()) as { fecha_hora_servicio?: string };
-        // Como el bff: exige RFC3339 con zona. El input datetime-local da hora local sin zona.
+        // Como el bff: exige RFC3339 con zona. El control de fecha y hora da hora local sin zona.
         if (body.fecha_hora_servicio !== new Date('2026-10-21T10:00').toISOString()) {
           return HttpResponse.json({ error: { codigo: 'fecha_hora_invalida' } }, { status: 400 });
         }
@@ -110,19 +123,20 @@ describe('E8-T9 · guard de aprobación (fecha/hora obligatoria)', () => {
     renderDetalle();
 
     // Al inicio Aprobar está deshabilitado.
-    const botonAprobar = await screen.findByRole('button', { name: /Transicionar a: APROBADO/i });
+    const botonAprobar = await screen.findByRole('button', { name: /Avanzar a: Aprobado/i });
     expect(botonAprobar).toBeDisabled();
 
-    // Abrir el modal y completar la fecha/hora. El input datetime-local se
-    // localiza por su placeholder (el FormField no asocia label por htmlFor).
-    await userEvent.click(screen.getByRole('button', { name: /Completar fecha y hora/i }));
-    const campo = await screen.findByPlaceholderText('DD/MM/YYYY HH:MM');
-    await userEvent.type(campo, '2026-10-21T10:00');
+    // Abrir el modal y completar la fecha/hora. El campo se localiza por su label,
+    // que FormField asocia al input de fecha del DateTimeInput.
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /Completar fecha y hora/i }));
+    const campo = await screen.findByLabelText(/Fecha y hora del servicio/);
+    await escribirFechaHora(user, campo, '2026-10-21T10:00');
     await userEvent.click(screen.getByRole('button', { name: /^Confirmar$/i }));
 
     // Tras invalidar la lectura, Aprobar queda habilitado.
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: /Transicionar a: APROBADO/i })).toBeEnabled(),
+      expect(screen.getByRole('button', { name: /Avanzar a: Aprobado/i })).toBeEnabled(),
     );
   });
 });
@@ -139,11 +153,9 @@ describe('ETA: el valor del input local viaja en RFC3339', () => {
     );
     renderDetalle();
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Editar ETA' }));
-    await userEvent.type(
-      await screen.findByPlaceholderText('DD/MM/YYYY HH:MM'),
-      '2026-10-21T18:30',
-    );
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Editar ETA' }));
+    await escribirFechaHora(user, await screen.findByLabelText(/ETA estimado/), '2026-10-21T18:30');
     await userEvent.click(screen.getByRole('button', { name: /^Confirmar$/i }));
 
     await waitFor(() => expect(recibido).toBe(new Date('2026-10-21T18:30').toISOString()));
@@ -160,7 +172,7 @@ describe('E8-T9 · rechazar exige motivo', () => {
     renderDetalle();
 
     const botonRechazar = await screen.findByRole('button', {
-      name: /Transicionar a: RECHAZADO_POR_AI27/i,
+      name: /Pasar a: Rechazada por AI27/i,
     });
     await userEvent.click(botonRechazar);
 
@@ -203,7 +215,7 @@ describe('E8-T9 · e2e de las dos ramas', () => {
     );
     renderDetalle();
 
-    const botonAprobar = await screen.findByRole('button', { name: /Transicionar a: APROBADO/i });
+    const botonAprobar = await screen.findByRole('button', { name: /Avanzar a: Aprobado/i });
     await userEvent.click(botonAprobar);
 
     // El estado mostrado pasa a APROBADO tras invalidar la lectura.
@@ -238,7 +250,7 @@ describe('E8-T9 · e2e de las dos ramas', () => {
     renderDetalle();
 
     await userEvent.click(
-      await screen.findByRole('button', { name: /Transicionar a: RECHAZADO_POR_AI27/i }),
+      await screen.findByRole('button', { name: /Pasar a: Rechazada por AI27/i }),
     );
     await userEvent.type(await screen.findByRole('textbox'), 'Cliente fuera de alcance');
     await userEvent.click(screen.getByRole('button', { name: /^Confirmar$/i }));

@@ -1,4 +1,412 @@
-﻿# CHANGELOG
+# CHANGELOG
+
+## 2026:11:18 17:14
+
+**Resumen:** Rediseño de las pestañas del viaje (Detalle, Ficha técnica, Histórico y Expediente) con `@ai27-tech/ui`. La ficha se edita en un modal, el histórico lee todas las páginas de bitácora, estadías e incidencias, y las emergencias activas se muestran como alerta en el detalle.
+**Cambios:**
+
+- **Ficha técnica:** dos columnas: contexto de solo lectura a la izquierda, ficha confirmada y edición a la derecha. La ficha muestra tracto, contenedores en tabla y GPS como badges con su identificador. La edición pasa a un modal y el borrador vive en el padre, así que cerrar sin guardar no pierde lo capturado. Guardar cierra el modal y muestra un toast. Se quita el `Card` envolvente del editor, porque su `overflow: hidden` impedía que la barra «Guardar ficha» quedara fija. El esqueleto de carga tiene la forma de la vista.
+- **Detalle del viaje:** datos del viaje y escolta con `Section`; ruta con `Timeline`; escolta con un bloque por unidad. La alerta de emergencias activas va junto a la de incidencia: roja si hay casos sin atender y ámbar si todos están en atención. Se quita el aviso verde de éxito de la activación.
+- **Histórico del viaje:** la bitácora pasa a bloques con autor, hora y texto, en un contenedor con scroll de 24rem que baja a la última nota. Las estadías van en tabla a ancho completo, con badges de autorización y estado, duración «En curso» para las abiertas y confirmación al cerrar, porque el cierre no se puede deshacer. Las incidencias van en bloques. Los formularios de nota, estadía e incidencia van en modales. Motivo y autorización se muestran con etiquetas en español (`etiquetas.ts`). Cada sección va en una tarjeta con `Section` y separador.
+- **Lectura completa de listas paginadas:** bitácora, estadías e incidencias solo leían la primera página, así que las entradas nuevas no aparecían. `leerTodasLasPaginas` sigue `cursor_siguiente` hasta el final.
+- **Expediente y evidencia:** la descarga va en una `Section` con el botón en el encabezado, que muestra estado de carga con `loading`; el contenido se lista con badges y los errores van en `Alert`. La evidencia avisa que el almacén de V1 aún no está listo, muestra el motivo cuando un adjunto no es descargable, abre el selector de archivo con un botón que muestra el nombre elegido y limpia la selección tras una subida exitosa.
+- **Emergencias:** la lista de casos se carga una sola vez en el detalle, y la comparten la alerta y el carril. `useEmergenciasViaje` acepta `habilitado` para no pedir la lista a roles sin carril. Los errores de activación siguen como alerta roja.
+- **Pruebas:** nuevas `FichaConfirmadaLectura` y `FichaModalEdicion`. Se ajustan `FichaEditor`, `FichaTecnicaViaje`, `HistoricoViaje`, `ExpedienteViaje`, `EvidenciaViaje` y `activacion` a la nueva disposición. Se agregan pruebas de paginación de bitácora y estadías, de la confirmación al cerrar una estadía y de la alerta de emergencias.
+  **Verificación:** `tsc --noEmit` sin errores. `eslint` sin errores en `src/features/viajes`, `src/features/emergencias` y `tests/emergencias`. Pruebas de `tests/viajes` y `tests/emergencias`: 307 de 307 en verde. No se revisó en navegador.
+  **Pendiente:**
+- Revisión visual de las pestañas en navegador: ancho de columnas, scroll de bitácora y altura igual de las tarjetas de la fila superior.
+- Texto de resolución de incidencias: `ResolucionIncidenciaEntrada.resolucion` es obligatorio en el contrato. Mostrarlo o dejar de pedirlo requiere cambios en `pf-pkg-contracts` y `operacion`.
+- Textos de trabajo pendientes de aprobación de Producto: aviso del almacén de evidencia y alerta de emergencias activas.
+- Un caso de emergencia resuelto y no cerrado no genera alerta.
+- La paginación completa de estadías e incidencias se verificó con MSW, no contra el backend real.
+  **Archivos modificados:**
+- `src/features/viajes/ficha/FichaTecnicaViaje.tsx`
+- `src/features/viajes/ficha/FichaEditor.tsx`
+- `src/features/viajes/historico/HistoricoViaje.tsx`
+- `src/features/viajes/historico/useHistoricoViaje.ts`
+- `src/features/viajes/historico/EstadiaForm.tsx`
+- `src/features/viajes/historico/etiquetas.ts` (nuevo)
+- `src/features/viajes/detalle/DetalleViaje.tsx`
+- `src/features/viajes/ViajeShell.tsx`
+- `src/features/viajes/AvisoActivacionEmergencia.tsx` (nuevo)
+- `src/features/viajes/activacionEmergenciaContexto.ts`
+- `src/features/viajes/expediente/ExpedienteViaje.tsx`
+- `src/features/viajes/expediente/BotonDescargarExpediente.tsx`
+- `src/features/viajes/evidencia/EvidenciaViaje.tsx`
+- `src/features/viajes/evidencia/ListaAdjuntos.tsx`
+- `src/features/viajes/evidencia/SubirEvidencia.tsx`
+- `src/features/emergencias/activacion/AccionEmergencia.tsx`
+- `src/features/emergencias/activacion/AlertaEmergenciasActivas.tsx` (nuevo)
+- `src/features/emergencias/activacion/SeccionEmergenciasViaje.tsx`
+- `src/features/emergencias/activacion/useEmergenciasViaje.ts`
+- `tests/viajes/FichaConfirmadaLectura.test.tsx` (nuevo)
+- `tests/viajes/FichaModalEdicion.test.tsx` (nuevo)
+- `tests/viajes/FichaEditor.test.tsx`
+- `tests/viajes/FichaTecnicaViaje.test.tsx`
+- `tests/viajes/HistoricoViaje.test.tsx`
+- `tests/viajes/ExpedienteViaje.test.tsx`
+- `tests/viajes/EvidenciaViaje.test.tsx`
+- `tests/emergencias/activacion.test.tsx`
+- `CHANGELOG.md`
+
+## 2026:11:17 15:35
+
+**Resumen:** Dashboard de monitoreo (E8-T17, Bloque B) rediseñado con `@ai27-tech/ui`: KPI de viajes en tránsito y aprobados, tabla de viajes con filtros de estado y fecha, y el spec `dashboard-monitoreo-ui` con sus brechas. La entrada cubre toda la rama: los tres commits de spec y los cambios sin commitear del dashboard.
+**Cambios:**
+
+- Spec `dashboard-monitoreo-ui`: requisitos, diseño, tareas con su estado actual, `BRECHAS-UI.md` (brechas 1 a 9) y `.config.kiro`. Se quitan del alcance el CSS propio, las animaciones y el indicador de frescura.
+- Funciones puras: mapa estado→Badge (EN_TRANSITO en `secure`, con punto y pulso; sin `solid` ni `pill`), conteos por estado, paginación, y filtro por estado y fecha con periodos predefinidos (hoy, esta semana, este mes).
+- Componentes: `TarjetaKpi` (Card, Stat y Badge), `FilaKpis` (en curso: viajes en tránsito y aprobados; últimos 7 días: viajes del periodo y cerrados) y `TarjetaViajes` (tabla con paginación y enlace a la bandeja).
+- `DashboardMonitoreo`: barra de filtros (Estado y Fecha), `PageHeader`, y estados de error, vacío y sin acceso. Se quitan el selector de vista, la distribución por estado, el botón «Actualizar» y el indicador de proyección.
+- Hook `useDashboardMonitoreo`: se conserva `reintentar`. Se quitan `recargando`, `actualizar` y `actualizadoEn`. Las claves de consulta y el sondeo no cambian.
+- Pruebas: `funcionesPuras.test.ts` y `filtrosViajes.test.ts` (unitarias), y `tests/viajes/DashboardMonitoreo.test.tsx` reescrito para el comportamiento actual (KPI, filtro de estado, vacío, error con reintento y 403).
+  **Verificación:** `tsc --build` sin errores. `eslint .` sin avisos. `vitest run`: 659 de 659 en verde (89 archivos). `format:check` falla en 400 archivos, incluidos archivos sin cambios en esta rama; es un problema previo del repo. No se ejecutó `test:e2e` ni la verificación manual en `dev:mock`.
+  **Pendiente:** revisar la fuente de datos de «Todos los viajes» (el contrato exige `desde` y `hasta` sin `en_curso`); enviar las brechas a la librería; revisión visual en claro y oscuro (tarea 8.2); pruebas de componente adicionales (tarea 7.1).
+  **Archivos modificados:**
+- `.kiro/specs/dashboard-monitoreo-ui/.config.kiro`
+- `.kiro/specs/dashboard-monitoreo-ui/BRECHAS-UI.md`
+- `.kiro/specs/dashboard-monitoreo-ui/design.md`
+- `.kiro/specs/dashboard-monitoreo-ui/requirements.md`
+- `.kiro/specs/dashboard-monitoreo-ui/tasks.md`
+- `src/features/monitoreo/dashboard/DashboardMonitoreo.tsx`
+- `src/features/monitoreo/dashboard/useDashboardMonitoreo.ts`
+- `src/features/monitoreo/dashboard/FilaKpis.tsx` (nuevo)
+- `src/features/monitoreo/dashboard/TarjetaKpi.tsx` (nuevo)
+- `src/features/monitoreo/dashboard/TarjetaViajes.tsx` (nuevo)
+- `src/features/monitoreo/dashboard/distribucion.ts` (nuevo)
+- `src/features/monitoreo/dashboard/estadoBadge.ts` (nuevo)
+- `src/features/monitoreo/dashboard/filtrosViajes.ts` (nuevo)
+- `src/features/monitoreo/dashboard/filtrosViajes.test.ts` (nuevo)
+- `src/features/monitoreo/dashboard/funcionesPuras.test.ts` (nuevo)
+- `src/features/monitoreo/dashboard/kpis.ts` (nuevo)
+- `src/features/monitoreo/dashboard/paginar.ts` (nuevo)
+- `tests/viajes/DashboardMonitoreo.test.tsx`
+- `CHANGELOG.md`
+
+## 2026:11:17 09:27
+
+**Resumen:** Bloque 9 del spec `adopcion-ui-0-3-0` (R8, R9, R10): las cargas de bloque usan `Skeleton*` dentro de un `role="status"` con nombre accesible; los «No hay …» de bloque usan `EmptyState`; el selector de clientes es searchable; los conteos del dashboard pasan a `Stat` en `Grid`.
+**Cambios:**
+
+- **Cargas:** `ClienteSelector`, roster de `CrearViaje`, `ListaTrabajo`, `SeccionEmergenciasViaje`, `BandejaConversaciones`, `FichaTecnicaViaje`, `DashboardMonitoreo` y las listas de `HistoricoViaje`.
+- **Vacíos:** `EmptyState` en `ClienteSelector`, `CrearViaje`, `ListaCasos`, `SelectorCaso`, `PanelConversacion`, `UnidadForm`, `UnidadesMonitoristaForm`, `FichaEditor`, `FichaTecnicaViaje`, `DetalleViaje`, `DashboardMonitoreo`, los `emptyState` de `Timeline` (histórico y `PanelCaso`).
+- **Selector de clientes:** `Select variant="searchable"` con `noResultsText`.
+- **Dashboard:** las tablas de conteo pasan a `Stat` en `Grid`. `IndicadorFrescura` y el texto DEC-136 se conservan.
+- **Pruebas:** ajustes de selectores en `DashboardMonitoreo`, `ClienteSelector`, `CrearViaje` y `BandejaConversaciones`. La prueba de texto libre del selector se reescribió para la búsqueda.
+- **Especificación:** `tasks.md` con bloque 9 marcado y `BRECHAS.md` con la sección 9.
+  **Verificación:** `tsc --build` sin errores. `vitest run`: 631 de 631 en verde. `eslint .` sin avisos. `vite build --mode mock` sin errores. `test:e2e`: 5 de 5 en verde.
+  **Pendiente:** `Stat` sin `loading` (decisión en BRECHAS.md, sección 9). Revisión visual en claro y oscuro (tarea 12.2).
+
+## 2026:11:13 16:50
+
+**Resumen:** Bloque 8 del spec `adopcion-ui-0-3-0` (R6): la bitácora, las estadías y las incidencias del histórico de viaje, y las notas de `PanelCaso`, pasan a `Timeline` de `@ai27-tech/ui`. Las acciones por registro se conservan en `content`.
+**Cambios:**
+
+- **Histórico del viaje** (`HistoricoViaje.tsx`): tres listas sobre `Timeline`. Estadía y acción «Cerrar estadía»; incidencia en atención (`warning`) o resuelta (`completed`), con «Resolver incidencia» solo si `puedeCorregir`. Las cargas usan un contenedor `role="status"` con `aria-label`.
+- **Notas de emergencia** (`PanelCaso.tsx`): las notas pasan a `Timeline`. «Nota de resolución» va en `content`. «Cargar más notas» queda fuera.
+- **Especificación:** `tasks.md` con bloque 8 marcado y `BRECHAS.md` con la sección 8.
+  **Verificación:** `tsc --build` sin errores. `vitest run`: 631 de 631 en verde, sin cambios en las pruebas. `eslint .` sin avisos. `vite build --mode mock` sin errores.
+  **Pendiente:** revisión visual de la línea de tiempo en claro y oscuro (tarea 12.2). Los puntos de bitácora y notas usan `status: completed` por decisión propia, no por D-D.
+
+## 2026:11:13 18:15
+
+**Resumen:** Bloque 7 del spec `adopcion-ui-0-3-0` (R7): los `input type="datetime-local"` de crear viaje, ETA y fecha-hora pasan a `DateTimeInput` de `@ai27-tech/ui`. Se añadió un helper de pruebas para escribir en ese control, porque tiene dos partes (fecha y hora) que no responden a `fireEvent`.
+
+**Cambios:**
+
+- **Crear viaje y detalle:** `CrearViaje.tsx`, `etaForm.tsx` y `fechaHoraForm.tsx` usan `DateTimeInput`. Se quitó el comentario que decía que la librería no tenía selector de fecha. El placeholder «DD/MM/YYYY HH:MM» se quitó (ahora se ve «DD/MM/AAAA»).
+- **Pruebas:** nuevo `tests/helpers/fechaHora.ts` con `escribirFechaHora`, y su prueba de humo. `CrearViaje.test.tsx` y `DecisionSolicitud.test.tsx` usan el helper. Una prueba nueva verifica el error de fecha vacía.
+- **Comentario:** `adaptadorCrearViaje.ts` ya no dice «datetime-local». `fechaHoraAISO` no cambió.
+- **Especificación:** `tasks.md` con bloque 7 marcado y `BRECHAS.md` con la sección 7.
+
+**Verificación:** `tsc --build` sin errores. `vitest run`: 631 de 631 en verde. `eslint src tests e2e` sin avisos. `playwright test`: 5 de 5 en verde.
+
+**Pendiente:** confirmar el texto del placeholder nuevo, revisar en navegador si Enter en el campo de fecha envía el formulario, y decidir cómo mostrar la precarga de ETA y fecha-hora que llega con zona horaria (BRECHAS.md, sección 7.6).
+
+## 2026:11:13 17:30
+
+**Resumen:** Bloque 6 del spec `adopcion-ui-0-3-0` (R5): los pares etiqueta-valor de la ficha técnica y del panel de usuario pasan a `DescriptionList`. Se eliminó la función local `Dato`. `DetalleViaje` queda sin cambios por una decisión pendiente, y `ExpedienteViaje` no tenía pares manuales.
+
+**Cambios:**
+
+- **Ficha técnica** (`FichaTecnicaViaje.tsx`): `DatosViaje` y `FichaConfirmada` usan `DescriptionList` de 2 columnas. Destinos ocupa el ancho completo. Se quitó `Dato`.
+- **Panel de usuario** (`PanelUsuario.tsx`): la tabla de dato y valor pasa a `DescriptionList`. Se quitaron `datoCampo` y `datoValor` de `mensajes.ts`.
+- **Especificación:** `tasks.md` con bloque 6 marcado y `BRECHAS.md` con la sección 6.
+
+**Verificación:** `tsc --build` sin errores. `vitest run`: 629 de 629 en verde. `eslint` sin avisos en `src/features/viajes/ficha`, `src/features/administracion` y `tests`.
+
+**Pendiente:** decidir la cabecera de `DetalleViaje` (BRECHAS.md, 6.3) y si los encabezados de las tarjetas de ficha pasan a `Section` (6.4). Revisión visual en claro y oscuro (tarea 12.2).
+
+## 2026:11:13 17:00
+
+**Resumen:** Bloque 5 del spec `adopcion-ui-0-3-0` (R4): los `div` con `display: flex` o `grid` en línea pasan a `Stack`, `Inline` y `Grid` de `@ai27-tech/ui`, en `src/features` y en los componentes compartidos de `components/layout` y de la ruta de panel. Quedan 11 apariciones de 97: 3 en `AppShell` (fuera de alcance por D3) y 8 en `Form` o `CardFooter`, que son componentes de la librería sin props de disposición.
+
+**Cambios:**
+
+- **Viajes:** historico (`HistoricoViaje` y formularios), detalle (`DetalleViaje` y formularios), evidencia, expediente, crear, ficha y bandeja.
+- **Emergencias:** `PanelCaso`, bandeja, lista, diálogo, banner y activación.
+- **Roster y catálogos:** unidades, formularios, vehículos y custodios.
+- **Conversaciones y monitoreo:** lista, banner, bandeja, dashboard, indicador de frescura.
+- **Layout y ruta:** `SessionTopbar`, `StubPage` y `routes/_private/jefe-operativo/panel.tsx`.
+- **Especificación:** `tasks.md` con bloque 5 marcado y `BRECHAS.md` con la sección 5.
+
+**Verificación:** `tsc --build` sin errores. `vitest run`: 629 de 629 en verde. `eslint` sin avisos en `src`, `tests` y `e2e`. `playwright test`: 5 de 5 en verde.
+
+**Pendiente:** unificar el enfoque de los formularios (`Stack as={Form}` frente a `Stack` dentro de `Form`), y la revisión visual en claro y oscuro (tarea 12.2).
+
+## 2026:11:13 16:00
+
+**Resumen:** Bloque 4 del spec `adopcion-ui-0-3-0`: los encabezados de página pasan a `PageHeader`, las rutas de detalle usan `Breadcrumb` con navegación TanStack, y los bloques con `h2` pasan a `Section`. Se corrigió el selector del vehículo en la prueba e2e de roster. `Section` no pinta encabezado fuera del modo plegable, así que sus títulos llevan `role="heading" aria-level={2}`; esto se propone a la librería en `BRECHAS.md`, sección 4.
+
+**Cambios:**
+
+- **Encabezados (4.1 y 4.2):** `PageHeader` en Catálogos, Roster, BandejaViajes, BandejaEmergencias, BandejaConversaciones, DashboardMonitoreo, StubPage y Administración. En Administración, el foco y `aria-labelledby` se conservan con un `span` dentro del título.
+- **Breadcrumb (4.3):** DetalleViaje, FichaTecnicaViaje, HistoricoViaje y ExpedienteViaje. Nuevo `src/components/layout/EnlaceRuta.tsx`, que pasa `href` como `to` a `Link`.
+- **Section (4.4):** Catálogos, Roster, UnidadesMonitoristas, PanelCaso, SeccionEmergenciasViaje, SeccionUsuarios y PanelUsuario. Se quitaron los `aria-label` que la librería ignoraba.
+- **Pruebas:** 9 archivos en `tests/viajes/` con stub de `Link`; prueba nueva de encabezados de Administración (3 casos) y de enlaces del breadcrumb (1 caso). `e2e/roster.spec.ts`: selector del vehículo corregido.
+- **Especificación:** `tasks.md` con bloque 4 marcado y `BRECHAS.md` con la sección 4.
+
+**Verificación:** `tsc --build`, `eslint src tests e2e` y `vite build --mode mock` sin errores. `vitest run`: 629 de 629 en verde. `playwright test`: 5 de 5 en verde.
+
+**Pendiente:** revisión visual en claro y oscuro (tarea 12.2). Decidir si los nombres de las secciones pasan a «Datos del viaje» y «Emergencias del viaje» (BRECHAS.md, sección 4.3).
+
+## 2026:11:13 13:40
+
+**Resumen:** Bloque 3 del spec `adopcion-ui-0-3-0`: los mensajes `role="alert|status"` escritos a mano pasan al componente `Alert` de `@ai27-tech/ui`, por área. Se migraron 80 de 99 usos. Los 19 que quedan son textos de carga (bloque 9), una región `aria-live`, un error de campo y cuatro bloques de resultado en `CrearViaje`; todos están documentados en `BRECHAS.md`, sección 3.
+
+**Cambios:**
+
+- **Roster** (`roster/`): `Alert` en `Roster`, `UnidadForm`, `UnidadesMonitoristas` y `UnidadesMonitoristaForm`. Errores con reintento usan `BloqueError`.
+- **Catálogos** (`catalogos/`): `Alert` en `Catalogos`, `CustodioForm` y `VehiculoForm`.
+- **Administración** (`administracion/`): 12 archivos. Diálogos, `PanelUsuario`, `AlcanceEditor` y secciones.
+- **Emergencias** (`emergencias/`): `Alert` en bandeja, panel, lista, diálogo y activación. Región `aria-live` sin cambios.
+- **Conversaciones** (`conversaciones/`): `Alert` y `BloqueError` en bandeja, lista y panel. El panel vuelve a tocarse en el bloque 10.
+- **Viajes y monitoreo** (`viajes/`, `monitoreo/dashboard/`): `Alert` y `BloqueError` en crear, detalle, evidencia, expediente, ficha, histórico, bandeja y dashboard.
+- **Especificación:** `tasks.md` con bloque 3 marcado y `BRECHAS.md` con la sección 3.
+
+**Verificación:** `tsc --build`, `eslint .` y `vite build --mode mock` sin errores. `vitest run`: 625 de 625 en verde. No se cambiaron pruebas en este bloque.
+
+**Archivos modificados:** 40 archivos bajo `src/features/` (listados en el commit de cada área), `.kiro/specs/adopcion-ui-0-3-0/tasks.md`, `.kiro/specs/adopcion-ui-0-3-0/BRECHAS.md` y `CHANGELOG.md`.
+
+## 2026:11:13 12:45
+
+**Resumen:** Se corrigieron las 21 pruebas en rojo. La causa era la librería `0.3.0-beta.1`: el `Select` dentro de `FormField` toma como nombre accesible la etiqueta del campo y ya no el placeholder. Las pruebas ahora buscan el selector por su etiqueta. También se eliminaron los wrappers locales `components/ui/Button.tsx` y `Input.tsx`, porque el portal debe usar solo `@ai27-tech/ui`.
+
+**Cambios:**
+
+- **Pruebas corregidas** (solo cambian los selectores; las aserciones de valor se conservan con `toHaveTextContent`):
+  - `tests/viajes/ClienteSelector.test.tsx` y `tests/viajes/CrearViaje.test.tsx`: `Cliente` en lugar de `Selecciona un cliente`.
+  - `tests/roster/Roster.test.tsx`: `Vehículo` en lugar de `Elige un vehículo`.
+  - `tests/viajes/CierreViaje.test.tsx`: `Motivo de cierre`.
+  - `tests/viajes/HistoricoViaje.test.tsx`: `Motivo de la estadía` y `Eje de autorización`.
+- **Eliminado:** `src/components/ui/Button.tsx`, `src/components/ui/Input.tsx` y `tests/Button.test.tsx` (3 pruebas).
+- **Documentado:** `.kiro/specs/adopcion-ui-0-3-0/BRECHAS.md` (causa, corrección y decisión de 1.2) y `tasks.md`.
+
+**Verificación:** `tsc --build`, `eslint .` y `vite build --mode mock` sin errores. `vitest run`: 625 de 625 en verde.
+
+**Archivos modificados:**
+
+- `tests/viajes/ClienteSelector.test.tsx`
+- `tests/viajes/CrearViaje.test.tsx`
+- `tests/viajes/CierreViaje.test.tsx`
+- `tests/viajes/HistoricoViaje.test.tsx`
+- `tests/roster/Roster.test.tsx`
+- `src/components/ui/Button.tsx` (eliminado)
+- `src/components/ui/Input.tsx` (eliminado)
+- `tests/Button.test.tsx` (eliminado)
+- `.kiro/specs/adopcion-ui-0-3-0/BRECHAS.md`
+- `CHANGELOG.md`
+
+## 2026:11:13 12:30
+
+**Resumen:** Se eliminó el wrapper local `components/ui/Button.tsx` y su prueba, porque el portal debe usar solo `@ai27-tech/ui`. Se documentó la causa de las 21 pruebas en rojo: el `Select` de la librería `0.3.0-beta.1` cambió el nombre accesible de su botón al asociar la etiqueta de `FormField`.
+
+**Cambios:**
+
+- **Eliminado:** `src/components/ui/Button.tsx` y `tests/Button.test.tsx` (3 pruebas).
+- **Actualizado:** `.kiro/specs/adopcion-ui-0-3-0/BRECHAS.md` y `tasks.md`.
+
+**Verificación:** `tsc --build` y `eslint .` sin errores. `vitest run`: 604 en verde y 21 en rojo.
+
+## 2026:11:13 12:05
+
+**Resumen:** Bloques 1 y 2 del spec `adopcion-ui-0-3-0`: base, línea base medida y componente `BloqueError`. Se eliminó el wrapper local `components/ui/Input.tsx` (sin importadores). Se conservó `components/ui/Button.tsx` porque lo importa `tests/Button.test.tsx`; la decisión queda pendiente en `BRECHAS.md`.
+
+**Cambios:**
+
+- **Steering de la librería:** `.kiro/steering/ai27-ui-library.md`, copia de `ai27-tech-library-first.md` con `inclusion: always`.
+- **Eliminado:** `src/components/ui/Input.tsx` (sin importadores, R13).
+- **Nuevo:** `src/components/feedback/BloqueError.tsx`, composición de `Alert variant="danger"` con botón "Reintentar" dentro del cuerpo (D1, D-B).
+- **Pruebas:** `tests/feedback/BloqueError.test.tsx` (3 pruebas: rol `alert`, botón dentro del aviso, callback de reintento).
+- **Especificación:** `.kiro/specs/adopcion-ui-0-3-0/BRECHAS.md` (línea base y revisión del CHANGELOG de la librería) y `tasks.md` con bloques 1 y 2 marcados.
+
+**Verificación:** `tsc --build` y `eslint .` sin errores. `vitest run`: 607 pruebas en verde y 21 en rojo, las mismas 21 que había antes de los cambios (ver `BRECHAS.md`, sección 1). **Brecha:** esta línea base no coincide con "625 pruebas en verde" de la entrada del 2026:11:11.
+
+**Archivos modificados:**
+
+- `.kiro/steering/ai27-ui-library.md` (nuevo)
+- `.kiro/specs/adopcion-ui-0-3-0/BRECHAS.md` (nuevo)
+- `.kiro/specs/adopcion-ui-0-3-0/tasks.md`
+- `src/components/ui/Input.tsx` (eliminado)
+- `src/components/feedback/BloqueError.tsx` (nuevo)
+- `tests/feedback/BloqueError.test.tsx` (nuevo)
+- `CHANGELOG.md`
+
+## 2026:11:13 12:00
+
+**Resumen:** Spec `adopcion-ui-0-3-0` para llevar el portal interno al catálogo de `@ai27-tech/ui@0.3.0-beta.1`. Solo documentación: no se modificó código. Recoge la línea base (115 `display:flex|grid` en línea, unos 70 avisos `role="alert|status"` manuales, 12 `<h1>` manuales, 3 `datetime-local`, historiales a mano) y propone 12 bloques de tareas. Las 6 decisiones (D1 a D6) quedaron resueltas el mismo día: sí a `Alert` con "Reintentar" y a `Breadcrumb`; `AppShell` y `Tabs` fuera de este spec; mensajería al final y condicionada al contrato; cargas con contenedor `role="status"`.
+
+**Cambios:**
+
+- Nuevo spec con requisitos, diseño y tareas.
+
+**Archivos modificados:**
+
+- `.kiro/specs/adopcion-ui-0-3-0/requirements.md` (nuevo)
+- `.kiro/specs/adopcion-ui-0-3-0/design.md` (nuevo)
+- `.kiro/specs/adopcion-ui-0-3-0/tasks.md` (nuevo)
+- `CHANGELOG.md`
+
+## 2026:11:11 11:24
+
+**Resumen:** Modo mock con datos coherentes (spec `modo-mock-coherencia-datos`, tareas 1 a 10). Un solo almacén de viajes alimenta listado, detalle, ficha, expediente, incidencias, escolta, emergencias y reportes. Así una transición, una reserva o una emergencia se ve igual en todas las pantallas del mock. Los datos se guardan en `localStorage` solo en modo mock.
+
+**Cambios:**
+
+- **Almacén único** (`src/mocks/almacen-viajes.ts`, nuevo): estado de viajes, semilla con un viaje por cada valor de `EstadoViaje`, lista de estados terminales, persistencia en `localStorage` con clave versionada (`ai27.mock.almacen-viajes.v2`) y `reiniciarAlmacenMock()`. Solo guarda cuando `VITE_ENABLE_MOCKS === 'true'`.
+- **Fachadas** (`src/mocks/data.ts`): se quitan `VIAJES_DEMO`, `DETALLES_VIAJES`, `FICHAS_DEMO`, `INCIDENCIAS_DEMO` y `FILAS_REPORTE_DEMO`. Las funciones exportadas conservan su firma. Cada mutación escribe una vez en el almacén y lo guarda.
+- **Incidencias:** abrir una incidencia agrega la condición `INCIDENCIA`; resolver la última la quita. Un rechazo no cambia el almacén.
+- **Escolta** (`src/mocks/roster.ts`): la reserva vive en el viaje. Una unidad reservada en otro viaje no terminal responde `409 recurso_no_disponible`. Al entrar en estado terminal se libera. Con datos de roster nuevos (`UN-1003` a `UN-1010`) cada viaje en `ASIGNADO` o posterior tiene escolta. Una transición a un estado que la exige sin escolta se rechaza.
+- **Emergencias** (`src/mocks/emergencias.ts`): casos y emergencias por viaje salen del almacén. Se quitan `VIAJE_DEMO` y los ids `viaje-001` y `viaje-terminal`. El detalle de Reacción toma los datos del viaje (`ViajeEmergencia`), incluido el nombre del cliente. Activar en viaje terminal responde `409 viaje_en_estado_terminal` según el estado real.
+- **Ficha** (`src/mocks/handlers.ts`): un viaje sin ficha responde `200` con la forma vacía del contrato. El `404` queda para viaje inexistente. Se quitó el handler duplicado.
+- **Reportes:** `reporteViajesMock` deriva filas del almacén. `reporteEstadosMock` cuenta cambios de estado, según la respuesta de Producto a la Pregunta 9 de E8-T17. Se quita el estado `COMPLETADO` y los ids `VJ-R1` a `VJ-R4`.
+- **Pruebas** (`tests/roster/Roster.test.tsx`): la prueba de alta busca la unidad nueva en la página donde aparece, porque el roster ahora tiene más unidades.
+- **Especificación:** `.kiro/specs/modo-mock-coherencia-datos/` con `tasks.md` (tareas 1 a 10 cerradas) y `BRECHAS.md` (cada brecha con su fuente).
+
+**Decisiones de mock que no fijaba la especificación:** el listado muestra el origen largo del viaje; `em-001` y `em-002` quedan ligadas a `VJ-1010` y `VJ-1006`; el id de una emergencia activada es `em-<activacion_id>`; cada viaje de la semilla cuenta un cambio de estado en su alta.
+
+**Verificación:** `pnpm typecheck` y `eslint` sin errores. `pnpm vitest run`: 85 archivos y 625 pruebas en verde. `pnpm build:mock` y `pnpm build` correctos. El build normal no contiene la clave del almacén. **Pendiente:** la validación manual de los escenarios 1 a 7 y de la recarga en `pnpm dev:mock` (tarea 11 del spec).
+
+**Archivos modificados:**
+
+- `src/mocks/almacen-viajes.ts` (nuevo)
+- `src/mocks/data.ts`
+- `src/mocks/roster.ts`
+- `src/mocks/emergencias.ts`
+- `src/mocks/handlers.ts`
+- `tests/roster/Roster.test.tsx`
+- `.kiro/specs/modo-mock-coherencia-datos/tasks.md` (tareas 1 a 10 marcadas)
+- `.kiro/specs/modo-mock-coherencia-datos/BRECHAS.md` (nuevo)
+
+## 2026:11:10 17:00
+
+**Resumen:** E8-T19 cierra todo lo que se puede verificar sin servidor: el aviso de un rechazo `403` o `409` ya sobrevive a una recarga fallida del detalle, la lista de organizaciones se vuelve a leer tras crear o editar, y el alcance de un Monitorista muestra vehículo y custodios legibles. Se fusionó `pf-wfi-d` y se documenta el Bloque B de usuarios, organizaciones, alcance y revocación (sin entrada previa en este archivo).
+
+**Cambios:**
+
+- **Bloque B de `/administracion`** (`src/features/administracion/`): `SeccionUsuarios`, `PanelUsuario`, `AltaUsuarioDialog`, `AlcanceEditor`, `SeccionOrganizaciones`, `DesactivarOrganizacionDialog` y los diálogos de rol, desactivar, organización y revocación, con el adaptador real inyectado en la ruta y los handlers MSW de `src/mocks/administracion.ts`.
+- **Rechazos del servidor** (`PanelUsuario`, `CambioRolDialog`, `DesactivarUsuarioDialog`): un `403` o `409` muestra su aviso en el panel y vuelve a leer el detalle; si esa lectura falla, el aviso se conserva (R7.3, R7.4).
+- **Organizaciones** (`SeccionOrganizaciones`): crear o editar ya recarga la lista.
+- **Alcance** (`AlcanceEditor`, `opcionesUnidades.ts`): las unidades se muestran con económico, placas y custodios (B-16, `tracer.38`); la tabla titula sus columnas según lo que se elige.
+- **Fusión con `pf-wfi-d`**: se retiró la credencial propia `DEMO_ADMINISTRADOR`; el administrador demo sale de las cuentas por rol.
+- Pruebas: `tests/administracion/panel-y-secciones.test.tsx` (8, incluye la tarea 17.6) y `propiedades.test.ts` (17, fast-check).
+
+**Verificación:** `tsc --build`, `eslint .`, `vite build --mode mock` y `vitest run` (625) en verde. Sin prueba contra el servidor real: `identidad`, `bff` y core responden 404 (DEC-144). Quedan sin escribir las pruebas opcionales 4.7, 5.2, 6.3, 13.2, 17.1 a 17.5 y 17.7.
+
+## 2026:11:10 16:48
+
+**Resumen:** La administración de E8-T19 usa `@ai27-tech/ui` como fuente de verdad. Se eliminan los componentes propios que reimplementaban la librería: los diálogos usan `Modal` directo y las listas usan `Table` con sus estados de carga y vacío. Se corrige una doble codificación de acentos en las pruebas del Bloque B.
+**Cambios:**
+
+- **Componentes eliminados** (`src/features/administracion/`): `EstadoBadge` (pasa a `Badge`), `RegionConsulta` (pasa a `Card`, y `Table` lleva `loading` y `emptyState`), `DialogoAdministracion` (pasa a `Modal`), `SelectorRol` y `SelectorOrganizacion` (pasan a `FormSection` y `Radio` dentro de cada diálogo) y `AvisoBloqueo` (pasa a `Card`).
+- **Diálogos** (`AltaUsuarioDialog`, `CambioRolDialog`, `DesactivarUsuarioDialog`, `DesactivarOrganizacionDialog`, `OrganizacionFormDialog`, `RevocarSesionesDialog`): usan `Modal` con `closeOnEsc`, `closeOnOverlayClick` y `showCloseButton` según haya una solicitud pendiente. Se quita la prop `idEncabezadoSeccion`, que `Modal` ya no necesita.
+- **Pruebas** (`tests/administracion/dialogos-bloque-b.test.tsx` y `flujos-bloque-b.test.tsx`): se corrigen acentos dañados por una doble codificación (UTF-8 leído como Windows-1252 y guardado otra vez en UTF-8). No cambia ninguna prueba.
+  **Pendiente:** al cerrar un diálogo no hay respaldo de foco al encabezado de la sección; `Modal` solo devuelve el foco al elemento que abrió el diálogo. La paginación por cursor usa botones Anterior y Siguiente, porque `Pagination` de la librería es numérica. La librería no trae componentes de texto, encabezado ni layout, así que se usan `p`, `h2`, `h3` y clases utilitarias.
+  **Verificación:** `tsc --build` y `eslint .` sin errores. `vitest run`: 85 archivos y 625 pruebas en verde. Sin prueba contra el servidor real (DEC-144).
+
+## 2026:11:10 15:30
+
+**Resumen:** "Mis unidades" de cada Monitorista en `/roster` (E8-T21, DEC-140 #1, DEC-142 #2, DEC-145). La tarjeta "Unidades de cada Monitorista" deja de ser un aviso de pendiente: lista los Monitoristas activos con sus unidades legibles y permite reemplazar el conjunto con "Editar unidades". Sube el pin de `@ai27-tech/contracts` a `0.1.0-tracer.40`. Para funcionar de punta a punta necesita core con la ola tracer.40 (pf-svc-core #78).
+
+**Cambios:**
+
+- `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`: `@ai27-tech/contracts` pasa de `0.1.0-tracer.39` a `0.1.0-tracer.40`; la versión nueva entra en `minimumReleaseAgeExclude`. No rompió typecheck.
+- `src/lib/api/alcance.ts` y `src/lib/contracts/alcance.ts` (nuevos): `listarMonitoristasActivos` (`GET /sujetos?rol=monitorista&activo=true`), `obtenerAlcanceSujeto` y `fijarUnidadesSujeto` (`PUT`, 204), con los tipos generados del `bff`. Quedan aparte del módulo de administración de E8-T19.
+- `src/lib/api/client.ts`: el cliente acepta `PUT`.
+- `src/features/roster/useUnidadesMonitoristas.ts` (nuevo): lee todas las páginas de Monitoristas activos con su alcance y el roster completo. Fijar invalida `['alcance']` y espera la recarga.
+- `src/features/roster/UnidadesMonitoristas.tsx` y `UnidadesMonitoristaForm.tsx` (nuevos): tabla con el nombre del Monitorista (o su identificador, o "Monitorista sin nombre") y cada unidad como en el roster (`P-101 · ABC-1234`); una unidad inactiva asignada sale marcada "Inactiva". El diálogo ofrece las unidades activas y las ya asignadas aunque estén inactivas, para poder quitarlas. Envío único (también con doble clic) y sin cambios no se guarda. Estados de carga, vacío ("No hay Monitoristas activos."), error con reintento y 403 sin cerrar la sesión.
+- `src/features/roster/mensajes.ts`: `mensajeErrorAlcance` para `409 rol_sin_alcance`, `409 sujeto_desactivado`, `403 autoescalamiento`, `400` (unidad inexistente) y `403`.
+- `src/features/roster/Roster.tsx`: usa la tarjeta nueva en lugar del aviso.
+- `src/mocks/roster.ts`: handlers MSW de las tres operaciones con las reglas del `bff` (el `jefe_operativo` solo con `rol=monitorista`; 400, 409 y 404).
+- `tests/roster/Roster.test.tsx`: 10 pruebas nuevas (lista legible, filtro y paginación, vacío, 403 al listar y al guardar, conjunto completo con un solo PUT, unidad inactiva marcada y quitada, 409 `rol_sin_alcance` y `sujeto_desactivado`, administrador). La prueba de paginación del roster descuenta la lectura completa que hace la tarjeta nueva.
+
+**Verificación:** `pnpm lint` y `pnpm typecheck` sin errores. `pnpm test`: 77 archivos y 533 pruebas en verde. `pnpm build` correcto. `pnpm test:e2e`: 5 de 5. En navegador contra el demo (core tracer.40): `demo-jefe_operativo` y `demo-administrador` asignan y quitan la unidad sembrada a `demo-monitorista`; `identidad.alcance_unidad` lo refleja. `./demo.sh recorrido`: 46 pasos, 0 fallas.
+
+**Archivos modificados:**
+
+- `package.json`
+- `pnpm-lock.yaml`
+- `pnpm-workspace.yaml`
+- `src/lib/api/alcance.ts`
+- `src/lib/api/client.ts`
+- `src/lib/contracts/alcance.ts`
+- `src/features/roster/Roster.tsx`
+- `src/features/roster/UnidadesMonitoristas.tsx`
+- `src/features/roster/UnidadesMonitoristaForm.tsx`
+- `src/features/roster/mensajes.ts`
+- `src/features/roster/useUnidadesMonitoristas.ts`
+- `src/mocks/roster.ts`
+- `tests/roster/Roster.test.tsx`
+- `CHANGELOG.md`
+
+## 2026:11:10 13:54
+
+**Resumen:** E8-T19 sube el pin a `@ai27-tech/contracts@0.1.0-tracer.40` y escribe el adaptador HTTP real de `AdministracionPort` sobre los tipos generados (tareas 19.1 y 19.2). El servidor (`identidad`, `bff`, core) aún no sirve las rutas: responden 404 y no pasan a `-m` antes del demo del 11 (DEC-144). Por eso el adaptador no se inyecta por omisión; se cablea en la tarea 16.1.
+
+**Cambios:**
+
+- **Pin:** `package.json`, `pnpm-lock.yaml` y `minimumReleaseAgeExclude` de `pnpm-workspace.yaml` pasan de `tracer.39` a `tracer.40`.
+- **Adaptador real** (`src/lib/api/administracion.ts`): `crearAdministracionHttp()` con las 15 operaciones del tag `administracion` del `bff`. Traduce wire a modelo de vista sin inventar `nombre` ni `identificador_usuario`. `fijarAlcance` hace el `PUT` (204) y vuelve a leer el alcance. `revocarSesiones` limita la espera con `AbortSignal.timeout`.
+- **Cliente HTTP** (`src/lib/api/client.ts`): admite `PUT` y `AbortSignal` (B-18).
+- **Modelos** (`src/lib/contracts/administracion.ts`): `esPropio` reemplaza a `idpSubject` (B-14); `nombre` e `identificadorUsuario` son opcionales (B-15); `Organizacion` pierde `tenant` (el id es el tenant, DEC-112) y gana `usuariosActivos`; el alcance y el cambio de alcance siguen la forma del wire; `ResultadoRevocacion` trae `sesionesRevocadas`.
+- **`relacionConSesion`** toma `es_propio` del servidor; ya no compara identificadores.
+- **`clasificarError`**: `sujeto_desactivado`, `rol_cruza_audiencia`, `autoescalamiento` (403), los tres códigos de alcance y `organizacion_desactivada`.
+- **Diálogos:** texto de respaldo para usuarios sin nombre (`etiquetas.ts`); el alta de organización genera un `id` con `crypto.randomUUID()` al abrir y lo reutiliza al reintentar (DEC-144 #2).
+- Pruebas: `tests/administracion/adaptadorHttp.test.ts` (17) y ajustes en `dialogos-bloque-b` y `dod-autoescalada`.
+- Spec de E8-T19 (`BRECHAS.md`, `requirements.md`, `design.md`, `tasks.md`) actualizado con `tracer.40` y las decisiones DEC-139 a DEC-145.
+
+**Verificación:** con los tipos de `tracer.40`: `tsc --build`, `eslint .`, `vite build --mode mock` y `vitest run` (559) en verde. No hay prueba de punta a punta: el servidor no sirve las rutas todavía.
+
+## 2026:11:10 12:15
+
+**Resumen:** Modo mock con inicio de sesión para los siete roles internos (spec `modo-mock-roles-internos`). Cada rol entra con su cuenta `<cuenta>@demo.ai27` y la contraseña `demo1234`. Cada cuenta tiene su propio `sub` y su `sesion_id`. La renovación conserva rol, `sub` y `sesion_id`, y las conversaciones mock siguen a la cuenta que inició sesión.
+
+**Cambios:**
+
+- `src/mocks/data.ts`: catálogo `CUENTAS_DEMO` con las siete cuentas. Sustituye `DEMO_CREDENTIALS` y `DEMO_CLAIMS`. Nuevas funciones `sujetoDeCuenta`, `sesionDeCuenta`, `cuentaPorCredenciales`, `cuentaPorRol` y `cuentaPorRefreshToken`. `createSessionWire(cuenta)` emite el `refresh_token` como `mock.refresh.<cuenta>.<uuid>`. `SUJETO_CONVERSACIONES_DEMO` pasa de `usr-demo-1` a `usr-demo-operador`.
+- `src/mocks/handlers.ts`: `POST /sesion` valida contra el catálogo y responde 401 sin `access_token` si las credenciales son inválidas, vacías, ausentes o si el cuerpo no es JSON. Al iniciar sesión reinicia el estado de conversaciones con el sujeto de la cuenta. `POST /sesion/refresh` toma la cuenta del `refresh_token` y responde 401 si el token no corresponde a ninguna cuenta. Se reparó el texto con codificación doble en las líneas de sesión.
+- Pruebas nuevas: `tests/sesion/cuentasDemo.test.ts` (login, refresh, unicidad de `sub` y `sesion_id`, y 401) y `tests/conversaciones/sujetoSesion.test.ts`. Se ajustaron `tests/contracts/sesion.test.ts` y `tests/sesion/SessionContext.test.tsx` a la nueva firma de `createSessionWire`.
+- `README.md` y `.env.example`: documentan las siete cuentas y la contraseña común.
+- Spec `.kiro/specs/modo-mock-roles-internos/`: requisitos, diseño, tareas, línea base de verificación y metadatos.
+
+**Verificación:** `pnpm typecheck` y `pnpm lint` sin errores. `pnpm test`: 77 archivos y 523 pruebas en verde. `pnpm test:e2e` (login, roster y session-cut): 5 de 5. `pnpm build` produce un `dist/` sin `demo1234` ni `@demo.ai27`.
+
+**Archivos modificados:**
+
+- `.env.example`
+- `README.md`
+- `src/mocks/data.ts`
+- `src/mocks/handlers.ts`
+- `tests/contracts/sesion.test.ts`
+- `tests/sesion/SessionContext.test.tsx`
+- `tests/sesion/cuentasDemo.test.ts`
+- `tests/conversaciones/sujetoSesion.test.ts`
+- `.kiro/specs/modo-mock-roles-internos/.config.kiro`
+- `.kiro/specs/modo-mock-roles-internos/design.md`
+- `.kiro/specs/modo-mock-roles-internos/linea-base.md`
+- `.kiro/specs/modo-mock-roles-internos/requirements.md`
+- `.kiro/specs/modo-mock-roles-internos/tasks.md`
+- `.kiro/specs/modo-mock-roles-internos/tasks.meta.json`
 
 ## 2026:11:09 13:11
 

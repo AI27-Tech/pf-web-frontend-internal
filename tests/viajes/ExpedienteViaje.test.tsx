@@ -26,7 +26,14 @@ vi.mock('@/context/SessionContext', () => ({
     logout: vi.fn(),
   }),
 }));
-vi.mock('@tanstack/react-router', () => ({ useNavigate: () => navigateSpy }));
+vi.mock('@tanstack/react-router', async () => {
+  const { createElement } = await import('react');
+  return {
+    useNavigate: () => navigateSpy,
+    Link: ({ to, children }: { to: string; children?: unknown }) =>
+      createElement('a', { href: to }, children as never),
+  };
+});
 
 const blobsCreados: Blob[] = [];
 const anclasClic: { download: string }[] = [];
@@ -85,7 +92,9 @@ describe('ExpedienteViaje — descarga correcta', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Descargar expediente' }));
 
-    expect(await screen.findByRole('button', { name: 'En preparación' })).toBeDisabled();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Descargar expediente' })).toBeDisabled(),
+    );
     expect(await screen.findByText('Expediente descargado')).toBeInTheDocument();
 
     expect(solicitudes).toBe(1);

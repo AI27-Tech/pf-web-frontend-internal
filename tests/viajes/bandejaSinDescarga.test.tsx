@@ -14,7 +14,12 @@ import { BandejaViajes } from '@/features/viajes/BandejaViajes';
 vi.mock('@/context/SessionContext', () => ({
   useSession: () => ({ sesion: { accessToken: 'token-de-prueba' }, logout: vi.fn() }),
 }));
-vi.mock('@tanstack/react-router', () => ({ useNavigate: () => vi.fn() }));
+vi.mock('@tanstack/react-router', () => ({
+  useNavigate: () => vi.fn(),
+  Link: ({ children, ...props }: { children: ReactNode; 'aria-label'?: string }) => (
+    <a {...props}>{children}</a>
+  ),
+}));
 
 const server = setupServer();
 

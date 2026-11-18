@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Textarea } from '@ai27-tech/ui';
+import { Alert, Button, Grid, Textarea } from '@ai27-tech/ui';
 import { ErrorEmergenciaCerrada } from '@/lib/api/emergencias';
 import { esNotaValida, LONGITUD_MAXIMA_NOTA, normalizarNota } from '../nota';
 
@@ -21,7 +21,9 @@ export function NotaEmergencia({ enviando, onEnviar, error }: NotaEmergenciaProp
   const cerrada = error instanceof ErrorEmergenciaCerrada;
 
   return (
-    <form
+    <Grid
+      as="form"
+      gap={2}
       onSubmit={(evento) => {
         evento.preventDefault();
         if (!valida || enviando) return;
@@ -29,7 +31,6 @@ export function NotaEmergencia({ enviando, onEnviar, error }: NotaEmergenciaProp
           if (ok) setTexto('');
         });
       }}
-      style={{ display: 'grid', gap: 'var(--ui-space-2)' }}
     >
       <label htmlFor="nota-emergencia">Nota (1 a {LONGITUD_MAXIMA_NOTA} caracteres)</label>
       <Textarea
@@ -44,12 +45,12 @@ export function NotaEmergencia({ enviando, onEnviar, error }: NotaEmergenciaProp
       <small>
         {texto.length} / {LONGITUD_MAXIMA_NOTA}
       </small>
-      {error && <p role="alert">{error.message}</p>}
+      {error && <Alert variant="danger">{error.message}</Alert>}
       <div>
         <Button type="submit" disabled={!valida || enviando || cerrada}>
           {enviando ? 'Enviando...' : 'Agregar nota'}
         </Button>
       </div>
-    </form>
+    </Grid>
   );
 }

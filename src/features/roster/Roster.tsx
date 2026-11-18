@@ -3,15 +3,28 @@
  *
  * Entran el Jefe Operativo y el Administrador, los dos con edición completa. Lista
  * el roster por página, da de alta unidades y las edita (vehículo, custodios,
- * activar o desactivar). La asignación de "mis unidades" a cada Monitorista llega
- * con la ola de contrato de E8-T19 (tracer.40); aquí solo queda su lugar marcado.
+ * activar o desactivar) y asigna "mis unidades" a cada Monitorista (DEC-140 #1,
+ * DEC-142 #2, tracer.40).
  */
 
 import { useState } from 'react';
 
-import { Badge, Button, Card, CardBody, CardHeader, Modal, Table } from '@ai27-tech/ui';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  Inline,
+  Modal,
+  PageHeader,
+  Section,
+  Stack,
+  Table,
+} from '@ai27-tech/ui';
 import type { Column } from '@ai27-tech/ui';
 
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { useSession } from '@/context/SessionContext';
 import { esProhibido } from '@/lib/api/errors';
 import type { Unidad } from '@/lib/contracts/unidades';
@@ -21,31 +34,29 @@ import { useCustodios, useVehiculos } from '../catalogos/useCatalogos';
 import { custodiosLegibles, vehiculoLegible } from '../viajes/unidadLegible';
 import { mensajeErrorRoster } from './mensajes';
 import { UnidadForm } from './UnidadForm';
+import { UnidadesMonitoristas } from './UnidadesMonitoristas';
 import { useRoster } from './useRoster';
 
-const TEXTO = 'var(--ui-color-text)';
 const TEXTO_TENUE = 'var(--ui-color-text-muted)';
 
 export function Roster() {
   const { usuario } = useSession();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-      <h1 className="ui-text-headline-lg" style={{ margin: 0, color: TEXTO }}>
-        Roster de unidades
-      </h1>
+    <Stack gap={4}>
+      <PageHeader title="Roster de unidades" />
       {puedeArmarRoster(usuario?.rol) ? (
         <RosterAutorizado />
       ) : (
         <Card variant="outlined">
           <CardBody>
-            <p role="alert" className="ui-text-body-sm" style={{ margin: 0, color: TEXTO }}>
+            <Alert variant="danger">
               No tienes acceso al roster. Esta sección es del Jefe Operativo y del Administrador.
-            </p>
+            </Alert>
           </CardBody>
         </Card>
       )}
-    </div>
+    </Stack>
   );
 }
 
@@ -96,43 +107,27 @@ function RosterAutorizado() {
   return (
     <>
       <Card variant="outlined">
-        <CardHeader>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 className="ui-text-body-md" style={{ margin: 0, color: TEXTO }}>
+        <Section
+          title={
+            <span role="heading" aria-level={2}>
               Unidades
-            </h2>
+            </span>
+          }
+          actions={
             <Button variant="primary" onClick={() => abrir({ modo: 'alta' })}>
               Nueva unidad
             </Button>
-          </div>
-        </CardHeader>
-        <CardBody>
+          }
+        >
           {aviso && (
-            <p
-              role="status"
-              className="ui-text-body-sm"
-              style={{ margin: '0 0 var(--ui-space-2)', color: 'var(--ui-color-success)' }}
-            >
+            <Alert variant="success" style={{ marginBottom: 'var(--ui-space-2)' }}>
               {aviso}
-            </p>
+            </Alert>
           )}
           {esProhibido(r.error) ? (
-            <p role="alert" className="ui-text-body-sm" style={{ margin: 0, color: TEXTO }}>
-              No tienes permiso para consultar el roster.
-            </p>
+            <Alert variant="danger">No tienes permiso para consultar el roster.</Alert>
           ) : r.error ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
-              <p
-                role="alert"
-                className="ui-text-body-sm"
-                style={{ margin: 0, color: 'var(--ui-color-error)' }}
-              >
-                No se pudo cargar el roster.
-              </p>
-              <Button variant="secondary" onClick={r.reintentar}>
-                Reintentar
-              </Button>
-            </div>
+            <BloqueError mensaje="No se pudo cargar el roster." onReintentar={r.reintentar} />
           ) : r.cargando ? (
             <p className="ui-text-body-sm" style={{ margin: 0, color: TEXTO_TENUE }}>
               Cargando el roster...
@@ -148,14 +143,13 @@ function RosterAutorizado() {
                 density="compact"
               />
               {(r.hayAnterior || r.haySiguiente) && (
-                <nav
+                <Inline
+                  as="nav"
                   aria-label="Páginas del roster"
-                  style={{
-                    display: 'flex',
-                    gap: 'var(--ui-space-2)',
-                    alignItems: 'center',
-                    marginTop: 'var(--ui-space-2)',
-                  }}
+                  gap={2}
+                  align="center"
+                  wrap={false}
+                  style={{ marginTop: 'var(--ui-space-2)' }}
                 >
                   <Button
                     variant="secondary"
@@ -174,26 +168,14 @@ function RosterAutorizado() {
                   >
                     Página siguiente
                   </Button>
-                </nav>
+                </Inline>
               )}
             </>
           )}
-        </CardBody>
+        </Section>
       </Card>
 
-      <Card variant="outlined">
-        <CardHeader>
-          <h2 className="ui-text-body-md" style={{ margin: 0, color: TEXTO }}>
-            Unidades de cada Monitorista
-          </h2>
-        </CardHeader>
-        <CardBody>
-          <p className="ui-text-body-sm" style={{ margin: 0, color: TEXTO_TENUE }}>
-            Pendiente: asignar "mis unidades" a cada Monitorista llega con la ola de contrato de
-            E8-T19.
-          </p>
-        </CardBody>
-      </Card>
+      <UnidadesMonitoristas />
 
       <Modal
         open={edicion !== null}
@@ -206,11 +188,11 @@ function RosterAutorizado() {
               Cargando vehículos y custodios...
             </p>
           ) : vehiculos.error || custodios.error ? (
-            <p role="alert" className="ui-text-body-sm" style={{ margin: 0 }}>
+            <Alert variant="danger">
               {esProhibido(vehiculos.error) || esProhibido(custodios.error)
                 ? 'No tienes permiso para consultar vehículos y custodios.'
                 : 'No se pudieron cargar los vehículos y custodios.'}
-            </p>
+            </Alert>
           ) : (
             <UnidadForm
               key={edicion.modo === 'editar' ? edicion.unidad.id : 'alta'}

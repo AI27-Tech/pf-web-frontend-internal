@@ -249,7 +249,9 @@ describe('Bandeja de trabajo (Requirement 1)', () => {
       ),
     );
     renderBandeja();
-    expect(within(lista()).getByText('Cargando conversaciones...')).toBeInTheDocument();
+    expect(
+      within(lista()).getByRole('status', { name: 'Cargando conversaciones' }),
+    ).toBeInTheDocument();
     expect(
       await within(lista()).findByText('La bandeja no tiene conversaciones.'),
     ).toBeInTheDocument();

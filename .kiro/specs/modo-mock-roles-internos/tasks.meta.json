@@ -1,0 +1,442 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Registrar la línea base de verificación": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332191640
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332201199
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332343428
+      }
+    ],
+    "1.2 Confirmar los miembros de `Rol` con grep": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332191734
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332201300
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332343534
+      }
+    ],
+    "1.3 Reemplazar `DEMO_CREDENTIALS` y `DEMO_CLAIMS` por el catálogo": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332191833
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332349464
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332646577
+      }
+    ],
+    "1.4 Ajustar `createSessionWire(cuenta)` y `mockAccessToken(rol)`": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332191904
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332659255
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332805279
+      }
+    ],
+    "2.1 Reparar la codificación de las líneas de sesión": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332191965
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332349553
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332646855
+      }
+    ],
+    "2.2 Validar credenciales y reiniciar conversaciones al iniciar sesión": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332192024
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332812047
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332968183
+      }
+    ],
+    "3.1 Conservar la cuenta al renovar": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332192084
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332972072
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333040285
+      }
+    ],
+    "4.1 Cambiar `SUJETO_CONVERSACIONES_DEMO`": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332192143
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332812174
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332968349
+      }
+    ],
+    "4.2 Revisar las pruebas de conversaciones y de viajes que usan `usr-demo-1`": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332192224
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332972674
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333040469
+      }
+    ],
+    "5.1 Ajustar las pruebas existentes que usan la firma anterior": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332192308
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332812265
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332968446
+      }
+    ],
+    "5.2 Crear `tests/sesion/cuentasDemo.test.ts`": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332192376
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333045798
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333167402
+      }
+    ],
+    "5.3 Probar el sujeto de conversaciones tras iniciar sesión": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332192452
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333045933
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333167759
+      }
+    ],
+    "6.1 Actualizar `README.md`": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332192531
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332659401
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332805512
+      }
+    ],
+    "6.2 Actualizar `.env.example`": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332192635
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332659502
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332805601
+      }
+    ],
+    "7.1 Confirmar qué comando generó el `dist/` actual": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332192770
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332201413
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332343635
+      }
+    ],
+    "7.2 Confirmar que ningún archivo de entorno ni la shell activan los mocks": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332192853
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332201519
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332343738
+      }
+    ],
+    "7.3 Control positivo de la búsqueda con `pnpm build:mock`": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332192919
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333173295
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333240225
+      }
+    ],
+    "7.4 Build de producción sin credenciales demo": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332192977
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333243983
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333509812
+      }
+    ],
+    "8.1 Correr `pnpm typecheck`": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332193037
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333510021
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333655150
+      }
+    ],
+    "8.2 Correr `pnpm lint`": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332193090
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333510106
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333655272
+      }
+    ],
+    "8.3 Correr `pnpm test`": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332193151
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333510188
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333655396
+      }
+    ],
+    "8.4 Correr los e2e de login, roster y session-cut": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332193209
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333658524
+      }
+    ],
+    "9. Checkpoint - Ensure all tests pass, ask the user if questions arise.": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332193266
+      },
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333922267
+      }
+    ],
+    "1. Catálogo de cuentas y helpers en `src/mocks/data.ts`": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332805415
+      }
+    ],
+    "6. Documentación": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332805701
+      }
+    ],
+    "2. `POST /sesion` en `src/mocks/handlers.ts`": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794332968259
+      }
+    ],
+    "3. `POST /sesion/refresh` en `src/mocks/handlers.ts`": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333040375
+      }
+    ],
+    "4. Sujeto de conversaciones": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333040542
+      }
+    ],
+    "5. Pruebas": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333167971
+      }
+    ],
+    "7. Verificación de build (Requisito 4)": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333509908
+      }
+    ],
+    "8. Verificación final": [
+      {
+        "executionId": "0563211b-64f1-4eb8-80e6-10361d932e21",
+        "chatSessionId": "sess_96a04b47-a6fb-4e1b-8ed0-4d55feada3cd",
+        "timestamp": 1794333932149
+      }
+    ]
+  }
+}

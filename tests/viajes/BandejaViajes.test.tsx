@@ -34,6 +34,9 @@ vi.mock('@/context/SessionContext', () => ({
 
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => navigateSpy,
+  Link: ({ children, ...props }: { children: ReactNode; 'aria-label'?: string }) => (
+    <a {...props}>{children}</a>
+  ),
 }));
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));

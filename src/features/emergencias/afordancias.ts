@@ -67,3 +67,16 @@ export function puedeActivar(rol: Rol | null, estadoViaje: string): boolean {
 export function puedeAnotar(rol: Rol | null, caso: CasoParaAfordancias): boolean {
   return (tieneRol(rol, ROLES_MONITOREO) || rol === 'administrador') && caso.estado !== 'cerrada';
 }
+
+/** Roles que ven el carril de emergencias del viaje (DEC-045 #9: administrador no activa). */
+export const ROLES_CON_CARRIL: readonly Rol[] = [
+  'monitorista',
+  'supervisor',
+  'coordinador',
+  'administrador',
+];
+
+/** El botón de activar vive en la cabecera del detalle: se muestra si el carril lo permite y el viaje no es terminal. */
+export function puedeMostrarActivacion(rol: Rol | null, estadoViaje: string): boolean {
+  return rol !== null && ROLES_CON_CARRIL.includes(rol) && puedeActivar(rol, estadoViaje);
+}

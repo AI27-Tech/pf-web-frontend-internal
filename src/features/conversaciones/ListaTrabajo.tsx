@@ -1,4 +1,5 @@
-import { Badge, Button, Card } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Card, Grid, Inline, SkeletonText } from '@ai27-tech/ui';
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { ErrorSinAcceso, ErrorSinBandeja } from '@/lib/api/conversaciones';
 import type { Conversacion } from '@/lib/contracts/conversaciones';
 import { capacidades } from './afordancias';
@@ -40,31 +41,32 @@ export function ListaTrabajo({
   if (cargando)
     return (
       <Card variant="outlined">
-        <p role="status">Cargando conversaciones...</p>
+        <div role="status" aria-label="Cargando conversaciones">
+          <SkeletonText lines={4} />
+        </div>
       </Card>
     );
   if (error instanceof ErrorSinBandeja)
     return (
       <Card variant="outlined">
-        <p role="status">No tienes una bandeja asignada.</p>
+        <Alert variant="info">No tienes una bandeja asignada.</Alert>
       </Card>
     );
   if (error instanceof ErrorSinAcceso)
     return (
       <Card variant="outlined">
-        <p role="alert">No tienes autorización para esta bandeja.</p>
+        <Alert variant="danger">No tienes autorización para esta bandeja.</Alert>
       </Card>
     );
   if (error && !items.length)
     return (
       <Card variant="outlined">
-        <p role="alert">{error.message}</p>
-        <Button onClick={reintentar}>Reintentar</Button>
+        <BloqueError mensaje={error.message} onReintentar={reintentar} />
       </Card>
     );
   return (
     <Card variant="outlined">
-      <div style={{ display: 'grid', gap: 'var(--ui-space-2)' }}>
+      <Grid gap={2}>
         <BannerEstado
           razon={null}
           desactualizada={desactualizada}
@@ -95,28 +97,27 @@ export function ListaTrabajo({
                 }}
               >
                 <strong>{nombres[item.cliente_id] ?? 'Cliente no disponible'}</strong>
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: 'var(--ui-space-2)',
-                    marginTop: 'var(--ui-space-1)',
-                  }}
+                <Inline
+                  gap={2}
+                  wrap={false}
+                  align="stretch"
+                  style={{ marginTop: 'var(--ui-space-1)' }}
                 >
                   <Badge variant={c.puedeResponder ? 'secure' : 'neutral'}>{estado}</Badge>
                   {item.atendida_en && <Badge variant="secure">Atendida</Badge>}
                   <small>{new Date(item.abierta_en).toLocaleString()}</small>
-                </div>
+                </Inline>
               </button>
             );
           })
         )}
-        {error && items.length > 0 && <p role="alert">{error.message}</p>}
+        {error && items.length > 0 && <Alert variant="danger">{error.message}</Alert>}
         {hayMas && (
           <Button variant="outline" onClick={onMas} disabled={cargandoMas}>
             {cargandoMas ? 'Cargando...' : 'Cargar más'}
           </Button>
         )}
-      </div>
+      </Grid>
     </Card>
   );
 }

@@ -25,6 +25,7 @@ export interface DashboardMonitoreoHook {
   readonly vacio: boolean;
   readonly error: Error | null;
   readonly esProhibido: boolean;
+  /** Vuelve a pedir las consultas activas. Lo usa el bloque de error. */
   readonly reintentar: () => void;
 }
 
