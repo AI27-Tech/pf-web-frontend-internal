@@ -1,0 +1,177 @@
+# Implementation Plan: Afinación de acciones y vistas por rol, módulo a módulo (v3)
+
+Las tareas marcadas con `*` son pruebas. Las tareas 0.x no cambian código.
+
+Cada módulo sigue el mismo ciclo (Requirement 0), y cada ciclo tiene estos cinco pasos:
+
+- **a. Línea base.** Búsqueda dirigida de cómo decide el rol hoy cada acción del módulo (archivo y línea). Resultado: tabla corta en la conversación.
+- **b. Comparación.** Matriz objetivo contra línea base; lista de diferencias.
+- **c. Decisión.** Las filas `D` y `P` se resuelven con el usuario. Sin respuesta, la fila no se toca.
+- **d. Implementación.** Política, UI, mocks y pruebas del módulo.
+- **e. Cierre.** Matriz marcada, pruebas en verde, nota en este archivo.
+
+## Grafo de dependencias
+
+```
+0.x (verificación) ─ 1 (M0 política) ─ 2 (M1 navegación) ─┬─ 3 (M2 bandeja) ─ 4 (M3 crear)
+                                                          ├─ 5 (M4 detalle) ─ 6 (M5 ficha) ─ 7 (M6 histórico) ─ 8 (M7 expediente)
+                                                          ├─ 9 (M8 dashboard)
+                                                          ├─ 10 (M9 emergencias)
+                                                          ├─ 11 (M10 conversaciones)
+                                                          ├─ 12 (M11 roster) ─ 13 (M12 administración)
+                                                          └─ 14 (M13 catálogos y reportes)
+                                  pin >= .45 ─ 15 (M14 solicitudes) ─ 16 (validación final)
+```
+
+Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 12 y 13 necesitan `>= .43` (0.3). La 15 necesita `>= .45`.
+
+## 0. Verificación
+
+- [ ] 0.1 Responder Q-1 a Q-4 de `BRECHAS.md` (pin, alcance de M14, rama, orden).
+- [ ] 0.2 Enviar al Lead las preguntas Q-5 a Q-10. No bloquean M0, M1 ni los módulos con filas `C`.
+- [ ] 0.3 Subir `@ai27-tech/contracts` al pin acordado en Q-1 **solo con confirmación**. Revisar `CHANGELOG.md` de contratos, correr typecheck y corregir lo que rompa el enum del viaje y `Rol` (nueve valores). Verificar los tipos `MiAlcance`, `ViajeResumen.cliente` y `unidades`, `AlcanceSujeto.clientes_*` y `ClientesSujetoEntrada`.
+- [ ] 0.4 Confirmar la rama de trabajo (Q-3) antes del primer commit.
+
+## 1. M0: Política de capacidades (Requirement T1, 1)
+
+- [ ] 1.1 Ciclo a y b: levantar la línea base de lógica por rol fuera de `mocks/` (`navigationConfig.ts`, `DetalleViaje.tsx`, `features/emergencias/afordancias.ts` y el resto del conteo de `design.md`).
+- [ ] 1.2 Crear `src/lib/permisos/` (`roles.ts`, `capacidades.ts`, `excepciones.ts`, `puede.ts`, `transiciones.ts`) con la matriz de `requirements.md`. Las filas `P` entran como capacidad **sin cambiar el comportamiento actual** hasta resolverse.
+- [ ] 1.3 Convertir `puedeArmarRoster`, `puedeUsarMonitoreo`, `puedeCerrar`, `puedeAdministrar`, `puedeCorregirIncidencia` y las afordancias de emergencias en adaptadores sobre `puede`.
+- [ ] 1.4 Definir la página de inicio de `cotizacion` y revisar la de `administrador` (`getInitialRouteForRole`), según P-A.
+- [ ]* 1.5 Prueba de tabla: cada capacidad × los ocho roles internos; rol sintético sin capacidades; ADM en toda capacidad o en excepciones.
+- [ ]* 1.6 Prueba de transiciones: todo destino ofrecido tiene capacidad; los `disparador: cliente` no se ofrecen.
+- [ ] 1.7 Cierre de M0.
+
+## 2. M1: Navegación y acceso por URL (Requirement 2)
+
+- [ ] 2.1 Ciclo a y b del menú y de las guardas de ruta (`routes/_private/*`).
+- [ ] 2.2 Decidir si `tokenStore` permite `beforeLoad` por rol; si no, solo componente.
+- [ ] 2.3 Crear `RequiereCapacidad` y `SinPermiso` (con `EmptyState`).
+- [ ] 2.4 Reescribir `NAV_ITEMS` a un solo modelo con capacidad; retirar `ocultarPara`. Catálogos y Reportes conservan sus reglas actuales como lista blanca.
+- [ ] 2.5 Envolver con `RequiereCapacidad` las rutas de la matriz M1 (`/roster`, `/administracion`, `/jefe-operativo/panel`, `/monitoreo/dashboard`, `/viajes/crear`, `/viajes/$id/{ficha,expediente,historico}`, y `/viajes` y `/viajes/$id` para EJE y REA).
+- [ ] 2.6 Mocks: sesión demo para los ocho roles.
+- [ ]* 2.7 Pruebas: menú por rol (incluido `cotizacion`) y URL directa por rol restringido, sin cerrar sesión (E7, E14).
+- [ ] 2.8 Cierre de M1.
+
+## 3. M2: Bandeja de viajes (Requirement 3; requiere 0.3)
+
+- [ ] 3.1 Ciclo a y b de `BandejaViajes.tsx` y su filtro de estados.
+- [ ] 3.2 Columnas Cliente y Escolta con `cliente` y `unidades`; respaldo al `id` y "sin escolta".
+- [ ] 3.3 Filtro de estado desde el enum generado; retirar `estadosVisiblesPara` si el pin es `.45` o posterior.
+- [ ] 3.4 `lib/api/alcance.ts`: `obtenerMiAlcance`; hook `useMiAlcance` que solo se invoca con lista vacía y rol con `alcance.leerPropio`.
+- [ ] 3.5 `EmptyState` que distingue "sin clientes asignados" de "sin viajes" (E11, E12); JO y ADM siempre "sin viajes".
+- [ ] 3.6 Botón "Crear viaje" por `viaje.crear`.
+- [ ] 3.7 Mocks: `listarViajes` con filtro por "mis clientes", `403` para EJE y REA, `obtenerMiAlcance`.
+- [ ]* 3.8 Pruebas de columnas, vacíos por rol, `403` y llamadas que no deben ocurrir (propiedad 5).
+- [ ] 3.9 Cierre de M2.
+
+## 4. M3: Crear viaje (Requirement 4)
+
+- [ ] 4.1 Ciclo a y b de `CrearViaje.tsx` y `useCrearViaje`.
+- [ ] 4.2 Habilitar a ADM; resolver B-07 sobre `listarClientes` para ADM antes de implementar la carga de clientes.
+- [ ] 4.3 Manejo de `403` y `404` según Requirement T2.
+- [ ]* 4.4 Pruebas con JO y ADM (feliz) y MON (negativa).
+- [ ] 4.5 Cierre de M3.
+
+## 5. M4: Detalle del viaje (Requirement 5)
+
+- [ ] 5.1 Ciclo a y b de `DetalleViaje.tsx` (hoy solo filtra `CERRADO` por rol) y `NavegacionViaje.tsx`.
+- [ ] 5.2 Filtrar `d.acciones` con `capacidadDeTransicion` y `puede`.
+- [ ] 5.3 Aplicar capacidades a ETA, botón de emergencia y pestañas. Retirar de la UI aprobar, rechazar y la fecha previa a aprobar (pin `>= .45`).
+- [ ] 5.4 Fila `completarFechaHora`: implementar solo tras responder B-08.
+- [ ] 5.5 Errores: `404` = "viaje no encontrado", `403` = "sin permiso"; corregir el copy "rol o alcance"; `Toast` en acciones.
+- [ ]* 5.6 Pruebas por rol y estado (`APROBADO`, `ASIGNADO`, `EN_TRANSITO`, `EN_DESTINO`, terminal) con E1, E2, E5, E6 y E8. Regresiones de E8-T8, T10 y T14.
+- [ ] 5.7 Cierre de M4.
+
+## 6. M5: Ficha técnica (Requirement 6)
+
+- [ ] 6.1 Ciclo a y b de `FichaTecnicaViaje.tsx`, `FichaEditor.tsx` y `useFichaTecnica`.
+- [ ] 6.2 Montar los hooks de datos dentro de `RequiereCapacidad(viaje.ficha.ver)`: EJE y REA no piden `obtenerAsignacion` (E7).
+- [ ] 6.3 Modo solo lectura para JO; edición con `viaje.ficha.editar` (incluye ADM).
+- [ ]* 6.4 Pruebas: E3, E4 y E7. Regresión de E8-T12.
+- [ ] 6.5 Cierre de M5.
+
+## 7. M6: Histórico (Requirement 7)
+
+- [ ] 7.1 Ciclo a y b de `features/viajes/historico`.
+- [ ] 7.2 Capacidades en estadías, notas e incidencias; corrección de incidencias para SUP y COO.
+- [ ] 7.3 Filas en `P` (lectura de JO, ADM en resolver): implementar tras B-04 y B-09.
+- [ ]* 7.4 Pruebas por rol. Regresión de E8-T13.
+- [ ] 7.5 Cierre de M6.
+
+## 8. M7: Expediente y evidencia (Requirement 8)
+
+- [ ] 8.1 Ciclo a y b de `EvidenciaViaje`, `ExpedienteViaje` y descarga.
+- [ ] 8.2 Pestaña y acciones por `monitoreo.consultar`; `404` fuera de alcance como "no encontrado".
+- [ ] 8.3 Fila "subir adjunto": sin cambio hasta responder B-03.
+- [ ]* 8.4 Pruebas por rol. Regresión de E8-T17.
+- [ ] 8.5 Cierre de M7.
+
+## 9. M8: Dashboard de monitoreo (Requirement 9)
+
+- [ ] 9.1 Ciclo a y b.
+- [ ] 9.2 Guarda con `monitoreo.dashboard`; sin filtro por cliente en el navegador.
+- [ ]* 9.3 Pruebas por rol. Cierre de M8.
+
+## 10. M9: Emergencias (Requirement 10)
+
+- [ ] 10.1 Ciclo a y b de `features/emergencias` (afordancias, `PanelCaso`, `SeccionEmergenciasViaje`).
+- [ ] 10.2 Menú "Emergencias" solo para REA, SUP y COO; carril del viaje para MON, SUP, COO y ADM.
+- [ ] 10.3 Botón "activar" sin ADM mientras B-02 siga abierto.
+- [ ] 10.4 Afordancias sobre `puede`; conservar la regla de estado y del responsable.
+- [ ]* 10.5 Pruebas por rol y estado del caso (E13 y E16). Regresión de E8-T18.
+- [ ] 10.6 Cierre de M9.
+
+## 11. M10: Conversaciones (Requirement 11)
+
+- [ ] 11.1 Ciclo a y b de `features/conversaciones`.
+- [ ] 11.2 Bandeja de chat del viaje para EJE; SUP y COO en solo lectura, sin reclamar, responder, liberar, transferir ni marcar atendida.
+- [ ] 11.3 Fila de ADM (B-05) y override (PM-008): sin cambio hasta responder.
+- [ ]* 11.4 Pruebas por rol y `409`/`403` sin `onRetry`. Regresión de E8-T15.
+- [ ] 11.5 Cierre de M10.
+
+## 12. M11: Roster (Requirement 12; requiere 0.3)
+
+- [ ] 12.1 Ciclo a y b de `features/roster`.
+- [ ] 12.2 `fijarClientesSujeto` y `ClientesMonitoristas` (reemplaza `UnidadesMonitoristas` y `useUnidadesMonitoristas`); solo activos para agregar.
+- [ ] 12.3 Clientes desactivados: marcados en la lista y fuera del payload (E10).
+- [ ] 12.4 `UnidadForm`: campo opcional "Cliente al que sirve" con `null` para quitar; texto de que no define el alcance.
+- [ ] 12.5 Errores `400`, `409 rol_sin_alcance` y rechazo por unidad con reserva.
+- [ ] 12.6 Mocks de `fijarClientesSujeto` y `AlcanceSujeto` con `clientes_*`.
+- [ ]* 12.7 Pruebas: E9, E10 y `409`. Cierre de M11.
+
+## 13. M12: Administración (Requirement 13; requiere 0.3)
+
+- [ ] 13.1 Ciclo a y b de `features/administracion` (incluye `AlcanceEditor`).
+- [ ] 13.2 Selector de rol de nueve valores; `cotizacion` incluido.
+- [ ] 13.3 `AlcanceEditor` migra de `opcionesUnidadesAlcance` a clientes, con los criterios 3 a 7 de Requirement 12.
+- [ ]* 13.4 Pruebas. Regresión de E8-T19. Cierre de M12.
+
+## 14. M13: Catálogos y Reportes (Requirement 14)
+
+- [ ] 14.1 Ciclo a y b: mover las reglas actuales a la política sin cambiarlas.
+- [ ] 14.2 `403` por sección como "sin permiso".
+- [ ] 14.3 Fila de `cotizacion` y de solo lectura: tras Q-10.
+- [ ]* 14.4 Pruebas. Cierre de M13.
+
+## 15. M14: Solicitudes (Requirement 15; requiere `>= .45` y B-10)
+
+- [ ] 15.1 Resolver Q-2 y B-10 antes de empezar.
+- [ ] 15.2 Ciclo a y b del panel del Jefe Operativo (stub E8-T20) y de la aprobación actual (E8-T9).
+- [ ] 15.3 Bandeja y detalle de solicitudes por capacidad; JO sin datos comerciales.
+- [ ] 15.4 Acciones por rol: aprobar y rechazar (JO, ADM); cotizar, reprogramar y confirmar pago (COT, ADM); revertir pago (ADM).
+- [ ] 15.5 Conversación de la solicitud (COT, ADM) y su bandeja.
+- [ ] 15.6 Mocks de solicitudes con las guardas del contrato.
+- [ ]* 15.7 Pruebas: E14 y E15. Cierre de M14.
+
+## 16. Validación final
+
+- [ ] 16.1 Typecheck, lint, suite completa en una sola ejecución, build con mocks.
+- [ ] 16.2 Buscar en `src/` comparaciones `rol ===` y listas de roles fuera de `lib/permisos` (debe quedar solo lo declarado).
+- [ ] 16.3 Checklist de PR de `ai27-tech-library-first` (sin `svg` ni colores nuevos; `Stack`, `Inline`, `Grid`; iconos de `lucide-react`).
+- [ ] 16.4 Actualizar este spec con las respuestas a Q-1 a Q-10 y los avances reales. Marcar `alineacion-ui-roles-capacidades` como reemplazado.
+- [ ] 16.5 Cerrar DT-24 en el repo de contexto: **lo registra el Lead**; este spec solo lo propone.
+
+## Pendientes de definición dentro del spec
+
+- **P-A.** Página de inicio de `cotizacion` y de `administrador` (el panel del JO es stub): decidir con el usuario en la tarea 1.4.
