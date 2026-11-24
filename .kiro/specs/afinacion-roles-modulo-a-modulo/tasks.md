@@ -1,4 +1,4 @@
-# Implementation Plan: Afinación de acciones y vistas por rol, módulo a módulo (v3)
+﻿# Implementation Plan: Afinación de acciones y vistas por rol, módulo a módulo (v3)
 
 Las tareas marcadas con `*` son pruebas. Las tareas 0.x no cambian código.
 
@@ -20,16 +20,16 @@ Cada módulo sigue el mismo ciclo (Requirement 0), y cada ciclo tiene estos cinc
                                                           ├─ 11 (M10 conversaciones)
                                                           ├─ 12 (M11 roster) ─ 13 (M12 administración)
                                                           └─ 14 (M13 catálogos y reportes)
-                                  pin >= .45 ─ 15 (M14 solicitudes) ─ 16 (validación final)
+                                  pin .46 (0.3) ─ 15 (M14 solicitudes) ─ 16 (validación final)
 ```
 
-Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 12 y 13 necesitan `>= .43` (0.3). La 15 necesita `>= .45`.
+Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 4, 12, 13 y 15 necesitan `tracer.46` (0.3). Los pendientes de backend (`BRECHAS.md`, BE-1 a BE-7) no bloquean ninguna fase: el panel sigue la tabla de `requirements.md` y no espera el `403`.
 
 ## 0. Verificación
 
-- [ ] 0.1 Responder Q-1 a Q-4 de `BRECHAS.md` (pin, alcance de M14, rama, orden).
-- [ ] 0.2 Enviar al Lead las preguntas Q-5 a Q-10. No bloquean M0, M1 ni los módulos con filas `C`.
-- [ ] 0.3 Subir `@ai27-tech/contracts` al pin acordado en Q-1 **solo con confirmación**. Revisar `CHANGELOG.md` de contratos, correr typecheck y corregir lo que rompa el enum del viaje y `Rol` (nueve valores). Verificar los tipos `MiAlcance`, `ViajeResumen.cliente` y `unidades`, `AlcanceSujeto.clientes_*` y `ClientesSujetoEntrada`.
+- [ ] 0.1 Confirmar Q-3 (rama) y Q-4 (orden) de `BRECHAS.md`, y P-A (inicio del Administrador).
+- [ ] 0.2 Sin preguntas abiertas al Lead: solo quedan los pendientes de backend (`BRECHAS.md`, BE-1 a BE-7).
+- [ ] 0.3 Subir `@ai27-tech/contracts` directo a `0.1.0-tracer.46` (decidido). Revisar `CHANGELOG.md` de contratos, correr typecheck y corregir lo que rompa el enum del viaje y `Rol` (nueve valores). Verificar `MiAlcance`, `ViajeResumen.cliente` y `unidades`, `AlcanceSujeto.clientes_*`, `ClientesSujetoEntrada` y las operaciones de solicitudes.
 - [ ] 0.4 Confirmar la rama de trabajo (Q-3) antes del primer commit.
 
 ## 1. M0: Política de capacidades (Requirement T1, 1)
@@ -37,7 +37,7 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 12 y 13 necesitan
 - [ ] 1.1 Ciclo a y b: levantar la línea base de lógica por rol fuera de `mocks/` (`navigationConfig.ts`, `DetalleViaje.tsx`, `features/emergencias/afordancias.ts` y el resto del conteo de `design.md`).
 - [ ] 1.2 Crear `src/lib/permisos/` (`roles.ts`, `capacidades.ts`, `excepciones.ts`, `puede.ts`, `transiciones.ts`) con la matriz de `requirements.md`. Las filas `P` entran como capacidad **sin cambiar el comportamiento actual** hasta resolverse.
 - [ ] 1.3 Convertir `puedeArmarRoster`, `puedeUsarMonitoreo`, `puedeCerrar`, `puedeAdministrar`, `puedeCorregirIncidencia` y las afordancias de emergencias en adaptadores sobre `puede`.
-- [ ] 1.4 Definir la página de inicio de `cotizacion` y revisar la de `administrador` (`getInitialRouteForRole`), según P-A.
+- [ ] 1.4 Página de inicio: `cotizacion` aterriza en la bandeja de solicitudes; revisar la de `administrador` (`getInitialRouteForRole`), según P-A.
 - [ ]* 1.5 Prueba de tabla: cada capacidad × los ocho roles internos; rol sintético sin capacidades; ADM en toda capacidad o en excepciones.
 - [ ]* 1.6 Prueba de transiciones: todo destino ofrecido tiene capacidad; los `disparador: cliente` no se ofrecen.
 - [ ] 1.7 Cierre de M0.
@@ -47,7 +47,7 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 12 y 13 necesitan
 - [ ] 2.1 Ciclo a y b del menú y de las guardas de ruta (`routes/_private/*`).
 - [ ] 2.2 Decidir si `tokenStore` permite `beforeLoad` por rol; si no, solo componente.
 - [ ] 2.3 Crear `RequiereCapacidad` y `SinPermiso` (con `EmptyState`).
-- [ ] 2.4 Reescribir `NAV_ITEMS` a un solo modelo con capacidad; retirar `ocultarPara`. Catálogos y Reportes conservan sus reglas actuales como lista blanca.
+- [ ] 2.4 Reescribir `NAV_ITEMS` a un solo modelo con capacidad; retirar `ocultarPara`. Catálogos para JO (lectura), COO y ADM; Reportes para MON, SUP, COO y ADM; `cotizacion` no ve ninguno.
 - [ ] 2.5 Envolver con `RequiereCapacidad` las rutas de la matriz M1 (`/roster`, `/administracion`, `/jefe-operativo/panel`, `/monitoreo/dashboard`, `/viajes/crear`, `/viajes/$id/{ficha,expediente,historico}`, y `/viajes` y `/viajes/$id` para EJE y REA).
 - [ ] 2.6 Mocks: sesión demo para los ocho roles.
 - [ ]* 2.7 Pruebas: menú por rol (incluido `cotizacion`) y URL directa por rol restringido, sin cerrar sesión (E7, E14).
@@ -57,7 +57,7 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 12 y 13 necesitan
 
 - [ ] 3.1 Ciclo a y b de `BandejaViajes.tsx` y su filtro de estados.
 - [ ] 3.2 Columnas Cliente y Escolta con `cliente` y `unidades`; respaldo al `id` y "sin escolta".
-- [ ] 3.3 Filtro de estado desde el enum generado; retirar `estadosVisiblesPara` si el pin es `.45` o posterior.
+- [ ] 3.3 Filtro de estado desde el enum generado; sin función por rol (el pin `.46` ya no tiene estados previos a `APROBADO`).
 - [ ] 3.4 `lib/api/alcance.ts`: `obtenerMiAlcance`; hook `useMiAlcance` que solo se invoca con lista vacía y rol con `alcance.leerPropio`.
 - [ ] 3.5 `EmptyState` que distingue "sin clientes asignados" de "sin viajes" (E11, E12); JO y ADM siempre "sin viajes".
 - [ ] 3.6 Botón "Crear viaje" por `viaje.crear`.
@@ -68,7 +68,7 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 12 y 13 necesitan
 ## 4. M3: Crear viaje (Requirement 4)
 
 - [ ] 4.1 Ciclo a y b de `CrearViaje.tsx` y `useCrearViaje`.
-- [ ] 4.2 Habilitar a ADM; resolver B-07 sobre `listarClientes` para ADM antes de implementar la carga de clientes.
+- [ ] 4.2 Habilitar a ADM; ADM carga clientes con `listarClientes` (decisión del Lead 3).
 - [ ] 4.3 Manejo de `403` y `404` según Requirement T2.
 - [ ]* 4.4 Pruebas con JO y ADM (feliz) y MON (negativa).
 - [ ] 4.5 Cierre de M3.
@@ -77,8 +77,8 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 12 y 13 necesitan
 
 - [ ] 5.1 Ciclo a y b de `DetalleViaje.tsx` (hoy solo filtra `CERRADO` por rol) y `NavegacionViaje.tsx`.
 - [ ] 5.2 Filtrar `d.acciones` con `capacidadDeTransicion` y `puede`.
-- [ ] 5.3 Aplicar capacidades a ETA, botón de emergencia y pestañas. Retirar de la UI aprobar, rechazar y la fecha previa a aprobar (pin `>= .45`).
-- [ ] 5.4 Fila `completarFechaHora`: implementar solo tras responder B-08.
+- [ ] 5.3 Aplicar capacidades a ETA, botón de emergencia (incluye ADM) y pestañas. Retirar de la UI aprobar, rechazar y la fecha previa a aprobar (pasan a M14).
+- [ ] 5.4 `completarFechaHora` solo para JO y ADM; SUP y COO no (confirmado por el Lead).
 - [ ] 5.5 Errores: `404` = "viaje no encontrado", `403` = "sin permiso"; corregir el copy "rol o alcance"; `Toast` en acciones.
 - [ ]* 5.6 Pruebas por rol y estado (`APROBADO`, `ASIGNADO`, `EN_TRANSITO`, `EN_DESTINO`, terminal) con E1, E2, E5, E6 y E8. Regresiones de E8-T8, T10 y T14.
 - [ ] 5.7 Cierre de M4.
@@ -95,7 +95,7 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 12 y 13 necesitan
 
 - [ ] 7.1 Ciclo a y b de `features/viajes/historico`.
 - [ ] 7.2 Capacidades en estadías, notas e incidencias; corrección de incidencias para SUP y COO.
-- [ ] 7.3 Filas en `P` (lectura de JO, ADM en resolver): implementar tras B-04 y B-09.
+- [ ] 7.3 JO en solo lectura de estadías e incidencias; resolver incidencia para SUP, COO y ADM.
 - [ ]* 7.4 Pruebas por rol. Regresión de E8-T13.
 - [ ] 7.5 Cierre de M6.
 
@@ -103,7 +103,7 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 12 y 13 necesitan
 
 - [ ] 8.1 Ciclo a y b de `EvidenciaViaje`, `ExpedienteViaje` y descarga.
 - [ ] 8.2 Pestaña y acciones por `monitoreo.consultar`; `404` fuera de alcance como "no encontrado".
-- [ ] 8.3 Fila "subir adjunto": sin cambio hasta responder B-03.
+- [ ] 8.3 Fila "subir adjunto" con `monitoreo.consultar` (confirmado por el Lead).
 - [ ]* 8.4 Pruebas por rol. Regresión de E8-T17.
 - [ ] 8.5 Cierre de M7.
 
@@ -117,7 +117,7 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 12 y 13 necesitan
 
 - [ ] 10.1 Ciclo a y b de `features/emergencias` (afordancias, `PanelCaso`, `SeccionEmergenciasViaje`).
 - [ ] 10.2 Menú "Emergencias" solo para REA, SUP y COO; carril del viaje para MON, SUP, COO y ADM.
-- [ ] 10.3 Botón "activar" sin ADM mientras B-02 siga abierto.
+- [ ] 10.3 Botón "activar" para MON, SUP, COO y ADM; `Toast` de sin permiso si el servidor responde `403` a ADM (BE-5).
 - [ ] 10.4 Afordancias sobre `puede`; conservar la regla de estado y del responsable.
 - [ ]* 10.5 Pruebas por rol y estado del caso (E13 y E16). Regresión de E8-T18.
 - [ ] 10.6 Cierre de M9.
@@ -126,7 +126,7 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 12 y 13 necesitan
 
 - [ ] 11.1 Ciclo a y b de `features/conversaciones`.
 - [ ] 11.2 Bandeja de chat del viaje para EJE; SUP y COO en solo lectura, sin reclamar, responder, liberar, transferir ni marcar atendida.
-- [ ] 11.3 Fila de ADM (B-05) y override (PM-008): sin cambio hasta responder.
+- [ ] 11.3 ADM ve Conversaciones y opera como EJE (BE-6); estado "bandeja no disponible" ante `404`. Override (PM-008): sin botones.
 - [ ]* 11.4 Pruebas por rol y `409`/`403` sin `onRetry`. Regresión de E8-T15.
 - [ ] 11.5 Cierre de M10.
 
@@ -149,14 +149,14 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 12 y 13 necesitan
 
 ## 14. M13: Catálogos y Reportes (Requirement 14)
 
-- [ ] 14.1 Ciclo a y b: mover las reglas actuales a la política sin cambiarlas.
+- [ ] 14.1 Ciclo a y b: Catálogos para JO (lectura), COO y ADM; escritura para COO y ADM, vehículos y custodios incluidos (`puedeEscribirCatalogos` hoy es solo ADM); mover las reglas a la política.
 - [ ] 14.2 `403` por sección como "sin permiso".
-- [ ] 14.3 Fila de `cotizacion` y de solo lectura: tras Q-10.
+- [ ] 14.3 Reportes sin cambio de roles; `cotizacion` no ve Catálogos ni Reportes.
 - [ ]* 14.4 Pruebas. Cierre de M13.
 
-## 15. M14: Solicitudes (Requirement 15; requiere `>= .45` y B-10)
+## 15. M14: Solicitudes (Requirement 15; requiere `tracer.46`)
 
-- [ ] 15.1 Resolver Q-2 y B-10 antes de empezar.
+- [ ] 15.1 Tomar el alcance de E10-HU-035 a 038, E1-HU-003 v2 y las operaciones del BFF; se trabaja directo, sin esperar tarea E8.
 - [ ] 15.2 Ciclo a y b del panel del Jefe Operativo (stub E8-T20) y de la aprobación actual (E8-T9).
 - [ ] 15.3 Bandeja y detalle de solicitudes por capacidad; JO sin datos comerciales.
 - [ ] 15.4 Acciones por rol: aprobar y rechazar (JO, ADM); cotizar, reprogramar y confirmar pago (COT, ADM); revertir pago (ADM).
@@ -169,9 +169,9 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 12 y 13 necesitan
 - [ ] 16.1 Typecheck, lint, suite completa en una sola ejecución, build con mocks.
 - [ ] 16.2 Buscar en `src/` comparaciones `rol ===` y listas de roles fuera de `lib/permisos` (debe quedar solo lo declarado).
 - [ ] 16.3 Checklist de PR de `ai27-tech-library-first` (sin `svg` ni colores nuevos; `Stack`, `Inline`, `Grid`; iconos de `lucide-react`).
-- [ ] 16.4 Actualizar este spec con las respuestas a Q-1 a Q-10 y los avances reales. Marcar `alineacion-ui-roles-capacidades` como reemplazado.
+- [ ] 16.4 Actualizar este spec con los avances reales. Marcar `alineacion-ui-roles-capacidades` como reemplazado.
 - [ ] 16.5 Cerrar DT-24 en el repo de contexto: **lo registra el Lead**; este spec solo lo propone.
 
 ## Pendientes de definición dentro del spec
 
-- **P-A.** Página de inicio de `cotizacion` y de `administrador` (el panel del JO es stub): decidir con el usuario en la tarea 1.4.
+- **P-A.** Página de inicio del `administrador` (el panel del JO es stub): decidir con el usuario en la tarea 1.4. La de `cotizacion` ya está decidida.

@@ -1,3 +1,5 @@
+﻿| `reportes.ver` | MON, SUP, COO | M13 |
+
 # Design Document: Afinación de acciones y vistas por rol, módulo a módulo (v3)
 
 ## Overview
@@ -15,7 +17,7 @@ Este diseño extiende el de `alineacion-ui-roles-capacidades` (v2). Lo que no se
 | `features/catalogos/afordancias.ts`                                                             | `ROLES_ROSTER = [JO, ADM]`, `puedeEscribirCatalogos` solo ADM                     | Salen de la política                                                                                 |
 | `features/monitoreo/puedeUsarMonitoreo.ts`                                                      | MON, SUP, COO, ADM                                                                | Sale de la política                                                                                  |
 | `features/viajes/detalle/cierreViaje.ts`                                                        | `puedeCerrar`: JO, ADM                                                            | Sale de la política                                                                                  |
-| `features/viajes/historico/visibilidadCorreccion.ts`                                            | SUP, COO                                                                          | ADM pendiente (B-04)                                                                                 |
+| `features/viajes/historico/visibilidadCorreccion.ts`                                            | SUP, COO                                                                          | Falta ADM (decisión del Lead 6)                                                                      |
 | `features/emergencias/afordancias.ts`                                                           | `ROLES_MONITOREO` y `ROLES_CON_CARRIL` locales; `puedeDevolver` incluye SUP y COO | Correcto en el fondo; sale de la política. La entrada de menú "Emergencias" sigue visible para todos |
 | `features/roster/UnidadesMonitoristas*.tsx`, `useUnidadesMonitoristas.ts`, `lib/api/alcance.ts` | `fijarUnidadesSujeto`                                                             | Retirado por DEC-149 #18                                                                             |
 | `routes/_private.tsx`                                                                           | Solo revisa que haya sesión                                                       | Sin guarda por rol                                                                                   |
@@ -51,32 +53,33 @@ src/components/permisos/
 | `viaje.avanzar`                                                                                   | MON, SUP, COO                                                | M4     |
 | `viaje.cerrar`                                                                                    | JO                                                           | M4     |
 | `viaje.eta`                                                                                       | MON, SUP, COO                                                | M4     |
-| `viaje.fechaHora`                                                                                 | pendiente (B-08)                                             | M4     |
+| `viaje.fechaHora`                                                                                 | JO                                                           | M4     |
 | `viaje.ficha.ver`                                                                                 | JO, MON, SUP, COO                                            | M5     |
 | `viaje.ficha.editar`, `viaje.bitacora.registrar`                                                  | MON, SUP, COO                                                | M5     |
-| `viaje.historico.ver`                                                                             | MON, SUP, COO; JO pendiente (B-09)                           | M6     |
+| `viaje.historico.ver`                                                                             | JO (solo lectura), MON, SUP, COO                             | M6     |
 | `viaje.estadia.operar`, `viaje.incidencia.abrir`                                                  | MON, SUP, COO                                                | M6     |
-| `viaje.incidencia.resolver`                                                                       | SUP, COO; ADM pendiente (B-04)                               | M6     |
+| `viaje.incidencia.resolver`                                                                       | SUP, COO                                                     | M6     |
 | `monitoreo.consultar` (expediente, descarga, adjuntos)                                            | MON, SUP, COO                                                | M7     |
 | `monitoreo.dashboard`                                                                             | MON, SUP, COO                                                | M8     |
 | `emergencia.verDeViaje`, `emergencia.anotar`, `emergencia.cerrar`                                 | MON, SUP, COO                                                | M9     |
-| `emergencia.activar`                                                                              | MON, SUP, COO (excepción ADM, B-02)                          | M9     |
+| `emergencia.activar`                                                                              | MON, SUP, COO                                                | M9     |
 | `emergencia.bandeja`                                                                              | REA, SUP, COO (excepción ADM)                                | M9     |
 | `emergencia.reclamar`, `emergencia.resolver`                                                      | REA (excepción ADM)                                          | M9     |
 | `emergencia.devolver`, `emergencia.transferir`                                                    | REA (solo responsable), SUP, COO (excepción ADM)             | M9     |
-| `conversacion.leer`                                                                               | EJE, SUP, COO (ADM pendiente, B-05)                          | M10    |
-| `conversacion.operar`                                                                             | EJE (excepción ADM)                                          | M10    |
+| `conversacion.leer`                                                                               | EJE, SUP, COO                                                | M10    |
+| `conversacion.operar`                                                                             | EJE                                                          | M10    |
 | `solicitud.listar`, `solicitud.ver`                                                               | JO (solo `PAGADO`), COT                                      | M14    |
 | `solicitud.verComercial`, `solicitud.cotizar`, `solicitud.reprogramar`, `solicitud.confirmarPago` | COT                                                          | M14    |
 | `solicitud.revertirPago`                                                                          | (solo ADM)                                                   | M14    |
 | `solicitud.aprobar`, `solicitud.rechazar`                                                         | JO                                                           | M14    |
 | `solicitud.conversacion`                                                                          | COT                                                          | M14    |
 | `roster.ver`, `roster.unidad.editar`, `alcance.clientes.fijar`                                    | JO                                                           | M11    |
-| `roster.recursos.escribir`, `alcance.subordinados.fijar`                                          | (solo ADM)                                                   | M11    |
+| `alcance.subordinados.fijar`                                                                      | (solo ADM)                                                   | M11    |
+| `catalogos.recursos.escribir` (vehículos y custodios)                                             | COO                                                          | M13    |
 | `alcance.leerPropio`                                                                              | MON, SUP, COO (excepción ADM: el contrato le responde `403`) | M2     |
 | `administracion.usuarios`, `administracion.organizaciones`                                        | (solo ADM)                                                   | M12    |
-| `catalogos.ver`, `reportes.ver`                                                                   | statu quo (P)                                                | M13    |
-| `catalogos.escribir`                                                                              | (solo ADM)                                                   | M13    |
+| `catalogos.ver`                                                                                   | JO (solo lectura), COO                                       | M13    |
+| `catalogos.escribir`                                                                              | COO                                                          | M13    |
 
 `solicitud.listar` y `solicitud.ver` para JO no incluyen datos comerciales; ese filtro lo hace el BFF (DEC-148 #67) y la UI solo evita pintarlos.
 
@@ -96,7 +99,7 @@ Con `tracer.45` ya no hay destinos `APROBADO` ni `RECHAZADO_*` en el viaje: se r
 
 ### Navegación
 
-Cada `NavItem` declara la capacidad que la hace visible; se muestra si `puede(rol, capacidad)`. Se retira `ocultarPara`. Las entradas "Catálogos" y "Reportes" usan `catalogos.ver` y `reportes.ver`, con los roles actuales como lista blanca explícita (statu quo): REA queda fuera, COT queda fuera hasta que el Lead decida (B-06 y Q-10).
+Cada `NavItem` declara la capacidad que la hace visible; se muestra si `puede(rol, capacidad)`. Se retira `ocultarPara`. "Catálogos" usa `catalogos.ver` (JO, COO, ADM) y "Reportes" usa `reportes.ver` (MON, SUP, COO, ADM); `cotizacion` no ve ninguno. Hasta que `catalogos` aplique su cambio (BE-7), solo el Administrador puede escribir: la UI muestra la escritura al COO y trata el `403` con Requirement T2.
 
 ### Guardas de ruta
 
@@ -132,7 +135,7 @@ Se conserva el patrón de v2: `RequiereCapacidad` lee `useSession()` y renderiza
 - Errores: `400` (refresca activos), `409 rol_sin_alcance`.
 - El mismo editor sirve a Administración con el `Select` de rol de nueve valores.
 
-### M14. Solicitudes (condicionado a B-01 y B-10)
+### M14. Solicitudes (se implementa tras subir el pin a `tracer.46`)
 
 Hook por operación del BFF, un `useQuery` o `useMutation` por acción. La respuesta de `obtenerSolicitud` y `listarHistoricoSolicitud` se modela con `cotizacion` y `pago` opcionales; el componente del JO no los renderiza. Tras `aprobarSolicitud`, la navegación va a `/viajes/{id}` con el mismo id; el `404` de `obtenerSolicitud` para JO se trata como solicitud resuelta.
 
@@ -151,4 +154,4 @@ Un helper `autorizarMock(request, capacidad)` lee el rol del token demo y respon
 
 ## Estrategia de pruebas
 
-Prueba de tabla (propiedades 1 y 2), recorrido de transiciones (3), rol sintético (4), pruebas de pantalla por rol con MSW y cuentas demo (5 y 6) y regresiones de E8-T7, T8, T10, T12, T13, T14, T15, T17, T18 y T19. Camino feliz con un rol que tenga la capacidad; negativa con uno que no.
+5. La UI no emite `obtenerMiAlcance` con JO, ADM, EJE, REA ni COT, ni `obtenerAsignacion` con EJE, REA ni COT.
