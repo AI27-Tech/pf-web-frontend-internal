@@ -5,7 +5,6 @@
  * componente. Este archivo contiene solo tipos, datos y funciones; no exporta
  * componentes React.
  */
-
 import type { Rol } from '@ai27-tech/contracts/roles';
 import type React from 'react';
 import {
@@ -14,122 +13,108 @@ import {
   AlertTriangle,
   Settings,
   BarChart3,
+  ClipboardCheck,
+  ClipboardList,
   LayoutDashboard,
   Package,
   Users,
 } from 'lucide-react';
-
-import { ROLES_ROSTER } from '@/features/catalogos/afordancias';
-import { ROLES_CON_MONITOREO } from '@/features/monitoreo/puedeUsarMonitoreo';
-import { ROLES_ADMINISTRACION } from '@/features/administracion/puedeAdministrar';
+import { puede, type Capacidad } from '@/lib/permisos';
 
 /**
  * Definición de una entrada de navegación.
  *
- * Por E8-T4, la navegación muestra las seis áreas y la afordancia de UI solo
- * ESCONDE entradas en los casos que la fuente especifica explícitamente; la
- * negación real de acceso la hace el bff, no esta lista. Por eso el modelo es
- * "oculta para estos roles", no "permitida solo para estos roles": así no se
- * inventan restricciones que la tarea no pide.
+ * Lista blanca: la entrada se muestra si el rol tiene `capacidad` (spec
+ * `afinacion-roles-modulo-a-modulo`, M1). Un rol que la política no nombra no la
+ * ve, incluido cualquier rol futuro. La negación real de acceso la hace el bff.
  */
 export interface NavItem {
   readonly id: string;
   readonly label: string;
   readonly icon: React.ComponentType<{ className?: string }>;
   readonly path: string;
-  /**
-   * Roles para los que la entrada se oculta en la UI. Vacío = visible para
-   * todos los roles internos. La única regla explícita de E8-T4 es que
-   * `reaccion` no ve Reportes ni Catálogos (DEC-022 #9).
-   */
-  readonly ocultarPara: readonly Rol[];
-  /**
-   * Si existe, la entrada solo se muestra a estos roles (E8-T17: el dashboard
-   * lo usan los roles de `puedeUsarMonitoreo`). Se aplica además de `ocultarPara`.
-   */
-  readonly visiblePara?: readonly Rol[];
+  /** Capacidad que hace visible la entrada. */
+  readonly capacidad: Capacidad;
 }
 
-/**
- * Catálogo de navegación: las seis áreas de E8-T4, en el orden de la tarea
- * (Viajes · Conversaciones · Emergencias · Catálogos · Reportes · Administración).
- */
+/** Catálogo de navegación en el orden de la pantalla. */
 export const NAV_ITEMS: readonly NavItem[] = [
+  {
+    id: 'panel-jefe-operativo',
+    label: 'Panel',
+    icon: ClipboardList,
+    path: '/jefe-operativo/panel',
+    capacidad: 'panel.jefeOperativo',
+  },
+  {
+    id: 'solicitudes',
+    label: 'Solicitudes',
+    icon: ClipboardCheck,
+    path: '/solicitudes',
+    capacidad: 'solicitud.listar',
+  },
   {
     id: 'dashboard',
     label: 'Dashboard',
     icon: LayoutDashboard,
     path: '/monitoreo/dashboard',
-    ocultarPara: [],
-    // E8-T17: solo los roles con monitoreo (monitorista, supervisor, coordinador, administrador).
-    visiblePara: ROLES_CON_MONITOREO,
+    capacidad: 'monitoreo.dashboard',
   },
   {
     id: 'viajes',
     label: 'Viajes',
     icon: Truck,
     path: '/viajes',
-    ocultarPara: [],
+    capacidad: 'viajes.listar',
   },
   {
     id: 'roster',
     label: 'Roster',
     icon: Users,
     path: '/roster',
-    ocultarPara: [],
-    // E8-T21 (DEC-142 #3): solo el Jefe Operativo y el Administrador arman el roster.
-    visiblePara: ROLES_ROSTER,
+    capacidad: 'roster.ver',
   },
   {
     id: 'conversaciones',
     label: 'Conversaciones',
     icon: MessageSquare,
     path: '/conversaciones',
-    ocultarPara: [],
+    capacidad: 'conversacion.leer',
   },
   {
     id: 'emergencias',
     label: 'Emergencias',
     icon: AlertTriangle,
     path: '/emergencias',
-    ocultarPara: [],
+    capacidad: 'emergencia.bandeja',
   },
   {
     id: 'catalogos',
     label: 'Catálogos',
     icon: Package,
     path: '/catalogos',
-    // DEC-022 #9: Reacción no ve catálogos.
-    ocultarPara: ['reaccion'],
+    capacidad: 'catalogos.ver',
   },
   {
     id: 'reportes',
     label: 'Reportes',
     icon: BarChart3,
     path: '/reportes',
-    // DEC-022 #9: Reacción no ve reportes. E8-T17 (tarea 30): Jefe operativo y Ejecutivo tampoco.
-    ocultarPara: ['reaccion', 'jefe_operativo', 'ejecutivo'],
+    capacidad: 'reportes.ver',
   },
   {
     id: 'administracion',
     label: 'Administración',
     icon: Settings,
     path: '/administracion',
-    ocultarPara: [],
-    // E8-T19: solo el administrador ve la administración.
-    visiblePara: ROLES_ADMINISTRACION,
+    capacidad: 'administracion.usuarios',
   },
 ];
 
 /**
- * Entradas de navegación visibles para un rol: todas las áreas salvo las que la
- * tarea oculta para ese rol. Es la afordancia de UI de E8-T4 (la negación real
- * la hace el bff). Exportada para poder probarla de forma aislada.
+ * Entradas de navegación visibles para un rol. Afordancia de UI; la negación
+ * real la hace el bff. Exportada para poder probarla de forma aislada.
  */
 export function entradasVisiblesPara(rol: Rol): readonly NavItem[] {
-  return NAV_ITEMS.filter(
-    (item) =>
-      !item.ocultarPara.includes(rol) &&
-      (item.visiblePara === undefined || item.visiblePara.includes(rol)),
-  );
+  return NAV_ITEMS.filter((item) => puede(rol, item.capacidad));
 }

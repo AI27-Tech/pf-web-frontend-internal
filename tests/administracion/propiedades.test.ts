@@ -297,9 +297,9 @@ describe('Property 10 · textos de éxito (2.16)', () => {
 });
 
 describe('Property 11 · opciones de rol (4.8)', () => {
-  it('el selector tiene los ocho roles del enum y sin Auditor', () => {
+  it('el selector tiene los nueve roles del enum y sin Auditor', () => {
     expect(OPCIONES_ROL).toEqual(ROLES);
-    expect(OPCIONES_ROL).toHaveLength(8);
+    expect(OPCIONES_ROL).toHaveLength(9);
     expect(OPCIONES_ROL as readonly string[]).not.toContain('auditor');
   });
 

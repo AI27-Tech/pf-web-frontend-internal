@@ -2,6 +2,7 @@
 
 import { createFileRoute } from '@tanstack/react-router';
 
+import { RequiereCapacidad } from '@/components/permisos/RequiereCapacidad';
 import { ExpedienteViaje } from '@/features/viajes/expediente/ExpedienteViaje';
 
 export const Route = createFileRoute('/_private/viajes/$id/expediente')({
@@ -10,5 +11,9 @@ export const Route = createFileRoute('/_private/viajes/$id/expediente')({
 
 function ExpedienteViajeRoute() {
   const { id } = Route.useParams();
-  return <ExpedienteViaje id={id} />;
+  return (
+    <RequiereCapacidad capacidad="monitoreo.consultar">
+      <ExpedienteViaje id={id} />
+    </RequiereCapacidad>
+  );
 }

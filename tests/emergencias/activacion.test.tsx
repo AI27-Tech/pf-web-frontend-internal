@@ -124,12 +124,12 @@ describe('carril de emergencias del viaje: visibilidad por rol', () => {
     expect(screen.queryByRole('button', { name: 'Activar emergencia' })).not.toBeInTheDocument();
   });
 
-  it('administrador no activa, pero sí anota y cierra', async () => {
+  it('administrador activa (decisión del Lead 5), anota y cierra', async () => {
     sesion.value = { id: 'sujeto-admin', rol: 'administrador' };
     servirCasos([{ id: 'em-9', estado: 'resuelta' }]);
     renderSeccion();
     await userEvent.click(await screen.findByRole('button', { name: /Resuelta/ }));
-    expect(screen.queryByRole('button', { name: 'Activar emergencia' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Activar emergencia' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cerrar emergencia' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Agregar nota' })).toBeInTheDocument();
   });

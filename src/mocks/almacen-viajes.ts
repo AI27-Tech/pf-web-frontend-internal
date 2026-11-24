@@ -33,10 +33,8 @@ export interface CambioEstadoMock {
 
 /** Estados terminales (ADR 19; DEC-135 #5). Liberan escolta y rechazan emergencias. */
 export const ESTADOS_TERMINALES_MOCK: readonly EstadoViaje[] = [
-  EstadoViaje.RechazadoPorAi27,
-  EstadoViaje.RechazadoPorCliente,
   EstadoViaje.Cerrado,
-  EstadoViaje.Cancelado,
+  EstadoViaje.CanceladoPorCliente,
 ];
 
 /** Estados que exigen escolta reservada (requisito 7.3). */
@@ -180,7 +178,7 @@ function viajesHistoricos(): Record<string, RegistroViaje> {
     ),
     'VJ-1002': registroBase(
       'VJ-1002',
-      EstadoViaje.Solicitado,
+      EstadoViaje.Aprobado,
       'Barrio Antiguo, Monterrey',
       [{ nombre: 'Almacén Central Monterrey', numero_envio: 'ENV-1002-A' }],
       HORA,
@@ -237,10 +235,10 @@ function viajesHistoricos(): Record<string, RegistroViaje> {
       3 * 24 * HORA,
       { fechaHoraEnMs: -30 * MINUTO, etaEnMs: 0 },
     ),
-    // Solicitud sin fecha y hora: el guardia de aprobación (E8-T9) la bloquea.
+    // Viaje aprobado sin fecha y hora: JO y ADM la corrigen (M4).
     'VJ-1009': registroBase(
       'VJ-1009',
-      EstadoViaje.Solicitado,
+      EstadoViaje.Aprobado,
       'Zona Centro, Tijuana',
       [{ nombre: 'Bodega Frontera Tijuana', numero_envio: 'ENV-1009-A' }],
       20 * MINUTO,

@@ -6,9 +6,8 @@
  * Por eso la regla vive aquí, declarada explícitamente y derivada de las
  * decisiones de dominio:
  *
- * - DEC-020 #2 / Req 2.5: los rechazos exigen motivo.
- * - E8-T9: rechazar una solicitud exige motivo obligatorio.
  * - Una cancelación deja constancia de por qué se abortó el viaje.
+ * - Con `tracer.45` el rechazo ya no es del viaje: es de la solicitud (M14).
  *
  * Si en el futuro el contrato publica este metadato por arista, este módulo se
  * reemplaza por esa fuente generada (punto único de cambio, igual que la brecha
@@ -23,9 +22,7 @@ import { EstadoViaje, type EstadoViaje as TEstadoViaje } from '@/lib/contracts/v
  * de tiempo los añade `operacion`).
  */
 const DESTINOS_QUE_REQUIEREN_CAUSA: ReadonlySet<TEstadoViaje> = new Set([
-  EstadoViaje.RechazadoPorAi27,
-  EstadoViaje.RechazadoPorCliente,
-  EstadoViaje.Cancelado,
+  EstadoViaje.CanceladoPorCliente,
 ]);
 
 /**

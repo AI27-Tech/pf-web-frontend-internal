@@ -1,4 +1,4 @@
-﻿# Brechas y pendientes: afinación de roles módulo a módulo
+# Brechas y pendientes: afinación de roles módulo a módulo
 
 Fuentes: contexto `origin/main` `0c48d67`; contrato tag `v0.1.0-tracer.46` (último publicado, verificado contra el remoto); pin actual del panel `tracer.40`. No se escribió nada en `ai27-platform-context` ni en `pf-pkg-contracts`.
 
@@ -20,9 +20,9 @@ El panel ya muestra o esconde según la tabla. Mientras estos cambios no lleguen
 
 ## Preguntas abiertas
 
-- **Q-3 (usuario). Rama.** El Lead había pedido `feat/alineacion-ui-roles-capacidades` desde `pf-wfi-d`. Hoy se trabaja en `feature/refinacion-ui-roles`.
+- **Q-3 (usuario). Rama. RESUELTA.** El usuario confirmó que `feature/refinacion-ui-roles` es la rama de trabajo.
 - **Q-4 (usuario). Orden.** Propuesta: M0 y M1 primero, porque bloquean a los demás.
-- **P-A (usuario). Página de inicio del Administrador.** El panel del Jefe Operativo es stub (E8-T20). `cotizacion` ya está definido (bandeja de solicitudes).
+- **P-A (usuario). Página de inicio del Administrador. RESUELTA.** Aterriza en el panel del Jefe Operativo (`/jefe-operativo/panel`), como hoy. El rol ya tiene `panel.jefeOperativo`.
 - **PM-008.** Override conversacional de Supervisor y Coordinador: sigue abierto. No se crean botones.
 
 ## Nota sobre fuentes locales

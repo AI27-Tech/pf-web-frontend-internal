@@ -14,16 +14,13 @@ import { Rol } from '@/lib/contracts';
 import { EstadoViaje } from '@/lib/contracts/viajeDetalle';
 
 const ESTADOS = [
-  EstadoViaje.Solicitado,
   EstadoViaje.Aprobado,
   EstadoViaje.Asignado,
   EstadoViaje.EnTransito,
   EstadoViaje.EnDestino,
   EstadoViaje.EnDescarga,
   EstadoViaje.Cerrado,
-  EstadoViaje.RechazadoPorAi27,
-  EstadoViaje.RechazadoPorCliente,
-  EstadoViaje.Cancelado,
+  EstadoViaje.CanceladoPorCliente,
 ];
 
 describe('propiedades del cierre del servicio', () => {
@@ -62,12 +59,8 @@ describe('propiedades del cierre del servicio', () => {
   it('Property 4: los estados terminales no ofrecen cierre', () => {
     fc.assert(
       fc.property(
-        fc.constantFrom(
-          EstadoViaje.Cerrado,
-          EstadoViaje.RechazadoPorAi27,
-          EstadoViaje.RechazadoPorCliente,
-          EstadoViaje.Cancelado,
-        ),
+        fc.constantFrom(EstadoViaje.Cerrado, EstadoViaje.CanceladoPorCliente),
+
         (estado) => {
           expect(tipoDeCierre(estado)).toBeNull();
         },

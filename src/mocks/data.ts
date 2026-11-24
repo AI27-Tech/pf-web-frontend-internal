@@ -43,7 +43,7 @@ import type {
   TrabajoBandeja as TrabajoBandejaWire,
 } from '@/lib/contracts/conversaciones';
 
-/** Contraseña común de las siete cuentas demo. Decisión confirmada por el usuario. */
+/** Contraseña común de las ocho cuentas demo. Decisión confirmada por el usuario. */
 const CONTRASENA_DEMO = 'demo1234';
 
 /**
@@ -58,6 +58,7 @@ export const CUENTAS_DEMO = [
   { cuenta: 'ejecutivo', rol: Rol.Ejecutivo },
   { cuenta: 'reaccion', rol: Rol.Reaccion },
   { cuenta: 'administrador', rol: Rol.Administrador },
+  { cuenta: 'cotizacion', rol: Rol.Cotizacion },
 ] as const;
 
 /** Nombre de una cuenta del catálogo, por ejemplo `operador`. */

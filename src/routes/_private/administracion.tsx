@@ -9,6 +9,7 @@
 
 import { createFileRoute } from '@tanstack/react-router';
 
+import { RequiereCapacidad } from '@/components/permisos/RequiereCapacidad';
 import { AdministracionProvider } from '@/context/AdministracionContext';
 import { Administracion } from '@/features/administracion/Administracion';
 import type { SeccionAdministracion } from '@/features/administracion/AdministracionAutorizada';
@@ -29,19 +30,21 @@ function AdministracionRoute() {
   const navigate = Route.useNavigate();
 
   return (
-    <AdministracionProvider port={puertoAdministracionHttp}>
-      <Administracion
-        seccion={seccion}
-        usuarioId={usuario ?? null}
-        onCambiarSeccion={(nueva) => {
-          void navigate({ search: { seccion: nueva, usuario: undefined } });
-        }}
-        onAbrirUsuario={(id) => {
-          void navigate({
-            search: { seccion, usuario: id ?? undefined },
-          });
-        }}
-      />
-    </AdministracionProvider>
+    <RequiereCapacidad capacidad="administracion.usuarios">
+      <AdministracionProvider port={puertoAdministracionHttp}>
+        <Administracion
+          seccion={seccion}
+          usuarioId={usuario ?? null}
+          onCambiarSeccion={(nueva) => {
+            void navigate({ search: { seccion: nueva, usuario: undefined } });
+          }}
+          onAbrirUsuario={(id) => {
+            void navigate({
+              search: { seccion, usuario: id ?? undefined },
+            });
+          }}
+        />
+      </AdministracionProvider>
+    </RequiereCapacidad>
   );
 }

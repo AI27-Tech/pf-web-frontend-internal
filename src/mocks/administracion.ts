@@ -239,6 +239,8 @@ function unidadesEfectivas(sujeto: SujetoMock, visitados = new Set<string>()): s
 
 function wireAlcance(sujeto: SujetoMock): AlcanceSujeto {
   return {
+    clientes_ids: [],
+    clientes_efectivos_ids: [],
     unidades_ids: [...sujeto.unidades],
     subordinados_ids: [...sujeto.subordinados],
     unidades_efectivas_ids: unidadesEfectivas(sujeto),

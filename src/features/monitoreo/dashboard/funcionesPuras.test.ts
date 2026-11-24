@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Pruebas de las funciones puras del dashboard de monitoreo. Cubren las propiedades 1 a 7 del
  * design.md y la cobertura del mapa de badges frente al enum generado.
  */
@@ -48,7 +48,7 @@ describe('estadoBadge (propiedad 3)', () => {
   });
 
   it('devuelve el descriptor del estado conocido', () => {
-    expect(badgeDeEstado(EstadoViaje.RechazadoPorAi27).variant).toBe('alert');
+    expect(badgeDeEstado(EstadoViaje.EnTransito).variant).toBe('secure');
   });
 });
 

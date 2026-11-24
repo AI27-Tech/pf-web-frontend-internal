@@ -1,4 +1,4 @@
-﻿# Implementation Plan: Afinación de acciones y vistas por rol, módulo a módulo (v3)
+# Implementation Plan: Afinación de acciones y vistas por rol, módulo a módulo (v3)
 
 Las tareas marcadas con `*` son pruebas. Las tareas 0.x no cambian código.
 
@@ -27,31 +27,31 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 4, 12, 13 y 15 ne
 
 ## 0. Verificación
 
-- [ ] 0.1 Confirmar Q-3 (rama) y Q-4 (orden) de `BRECHAS.md`, y P-A (inicio del Administrador).
-- [ ] 0.2 Sin preguntas abiertas al Lead: solo quedan los pendientes de backend (`BRECHAS.md`, BE-1 a BE-7).
-- [ ] 0.3 Subir `@ai27-tech/contracts` directo a `0.1.0-tracer.46` (decidido). Revisar `CHANGELOG.md` de contratos, correr typecheck y corregir lo que rompa el enum del viaje y `Rol` (nueve valores). Verificar `MiAlcance`, `ViajeResumen.cliente` y `unidades`, `AlcanceSujeto.clientes_*`, `ClientesSujetoEntrada` y las operaciones de solicitudes.
-- [ ] 0.4 Confirmar la rama de trabajo (Q-3) antes del primer commit.
+- [x] 0.1 Confirmar Q-3 (rama) y Q-4 (orden) de `BRECHAS.md`, y P-A (inicio del Administrador).
+- [x] 0.2 Sin preguntas abiertas al Lead: solo quedan los pendientes de backend (`BRECHAS.md`, BE-1 a BE-7).
+- [x] 0.3 Subir `@ai27-tech/contracts` directo a `0.1.0-tracer.46` (decidido). Revisar `CHANGELOG.md` de contratos, correr typecheck y corregir lo que rompa el enum del viaje y `Rol` (nueve valores). Verificar `MiAlcance`, `ViajeResumen.cliente` y `unidades`, `AlcanceSujeto.clientes_*`, `ClientesSujetoEntrada` y las operaciones de solicitudes. _(Hecho con `pnpm add`; `npm install` falla con un error de Arborist. Con `.46` se retiraron `SOLICITADO`, `RECHAZADO_*` y `CANCELADO`: se quitó aprobar y rechazar del detalle y su guard `decisionSolicitud`; el selector de rol ya tiene nueve valores.)_
+- [x] 0.4 Confirmar la rama de trabajo (Q-3) antes del primer commit.
 
 ## 1. M0: Política de capacidades (Requirement T1, 1)
 
-- [ ] 1.1 Ciclo a y b: levantar la línea base de lógica por rol fuera de `mocks/` (`navigationConfig.ts`, `DetalleViaje.tsx`, `features/emergencias/afordancias.ts` y el resto del conteo de `design.md`).
-- [ ] 1.2 Crear `src/lib/permisos/` (`roles.ts`, `capacidades.ts`, `excepciones.ts`, `puede.ts`, `transiciones.ts`) con la matriz de `requirements.md`. Las filas `P` entran como capacidad **sin cambiar el comportamiento actual** hasta resolverse.
-- [ ] 1.3 Convertir `puedeArmarRoster`, `puedeUsarMonitoreo`, `puedeCerrar`, `puedeAdministrar`, `puedeCorregirIncidencia` y las afordancias de emergencias en adaptadores sobre `puede`.
-- [ ] 1.4 Página de inicio: `cotizacion` aterriza en la bandeja de solicitudes; revisar la de `administrador` (`getInitialRouteForRole`), según P-A.
-- [ ]* 1.5 Prueba de tabla: cada capacidad × los ocho roles internos; rol sintético sin capacidades; ADM en toda capacidad o en excepciones.
-- [ ]* 1.6 Prueba de transiciones: todo destino ofrecido tiene capacidad; los `disparador: cliente` no se ofrecen.
-- [ ] 1.7 Cierre de M0.
+- [x] 1.1 Ciclo a y b: levantar la línea base de lógica por rol fuera de `mocks/` (`navigationConfig.ts`, `DetalleViaje.tsx`, `features/emergencias/afordancias.ts` y el resto del conteo de `design.md`).
+- [x] 1.2 Crear `src/lib/permisos/` (`roles.ts`, `capacidades.ts`, `excepciones.ts`, `puede.ts`, `transiciones.ts`) con la matriz de `requirements.md`. Las filas `P` entran como capacidad **sin cambiar el comportamiento actual** hasta resolverse.
+- [x] 1.3 Convertir `puedeArmarRoster`, `puedeUsarMonitoreo`, `puedeCerrar`, `puedeAdministrar`, `puedeCorregirIncidencia` y las afordancias de emergencias en adaptadores sobre `puede`. _(Quedó pendiente `puedeEscribirCatalogos`: pasa a `catalogos.escribir` en 14.1. `ROLES_CON_CARRIL` sigue como adaptador hasta M9.)_
+- [x] 1.4 Página de inicio: `cotizacion` aterriza en la bandeja de solicitudes; revisar la de `administrador` (`getInitialRouteForRole`), según P-A. _(Administrador aterriza en el panel del JO, `cotizacion` en `/solicitudes`, que es un stub marcado `BRECHA-UI` hasta M14.)_
+- [x]* 1.5 Prueba de tabla: cada capacidad × los ocho roles internos; rol sintético sin capacidades; ADM en toda capacidad o en excepciones.
+- [x]* 1.6 Prueba de transiciones: todo destino ofrecido tiene capacidad; los `disparador: cliente` no se ofrecen.
+- [x] 1.7 Cierre de M0.
 
 ## 2. M1: Navegación y acceso por URL (Requirement 2)
 
-- [ ] 2.1 Ciclo a y b del menú y de las guardas de ruta (`routes/_private/*`).
-- [ ] 2.2 Decidir si `tokenStore` permite `beforeLoad` por rol; si no, solo componente.
-- [ ] 2.3 Crear `RequiereCapacidad` y `SinPermiso` (con `EmptyState`).
-- [ ] 2.4 Reescribir `NAV_ITEMS` a un solo modelo con capacidad; retirar `ocultarPara`. Catálogos para JO (lectura), COO y ADM; Reportes para MON, SUP, COO y ADM; `cotizacion` no ve ninguno.
-- [ ] 2.5 Envolver con `RequiereCapacidad` las rutas de la matriz M1 (`/roster`, `/administracion`, `/jefe-operativo/panel`, `/monitoreo/dashboard`, `/viajes/crear`, `/viajes/$id/{ficha,expediente,historico}`, y `/viajes` y `/viajes/$id` para EJE y REA).
-- [ ] 2.6 Mocks: sesión demo para los ocho roles.
-- [ ]* 2.7 Pruebas: menú por rol (incluido `cotizacion`) y URL directa por rol restringido, sin cerrar sesión (E7, E14).
-- [ ] 2.8 Cierre de M1.
+- [x] 2.1 Ciclo a y b del menú y de las guardas de ruta (`routes/_private/*`).
+- [x] 2.2 Decidir si `tokenStore` permite `beforeLoad` por rol; si no, solo componente. _(Decidido: solo componente. `tokenStore.cargar()` sí expone `usuario.rol`, pero la regla pide mostrar "sin permiso" sin redirigir.)_
+- [x] 2.3 Crear `RequiereCapacidad` y `SinPermiso` (con `EmptyState`).
+- [x] 2.4 Reescribir `NAV_ITEMS` a un solo modelo con capacidad; retirar `ocultarPara`. Catálogos para JO (lectura), COO y ADM; Reportes para MON, SUP, COO y ADM; `cotizacion` no ve ninguno. _(Se agregó "Panel" para JO y ADM, y "Solicitudes" para JO, ADM y `cotizacion`.)_
+- [x] 2.5 Envolver con `RequiereCapacidad` las rutas de la matriz M1 (`/roster`, `/administracion`, `/jefe-operativo/panel`, `/monitoreo/dashboard`, `/viajes/crear`, `/viajes/$id/{ficha,expediente,historico}`, y `/viajes` y `/viajes/$id` para EJE y REA).
+- [x] 2.6 Mocks: sesión demo para los ocho roles. _(Los ocho roles internos tienen cuenta demo.)_
+- [x]* 2.7 Pruebas: menú por rol (incluido `cotizacion`) y URL directa por rol restringido, sin cerrar sesión (E7, E14). _(Incluye `cotizacion`, escenario E14.)_
+- [x] 2.8 Cierre de M1.
 
 ## 3. M2: Bandeja de viajes (Requirement 3; requiere 0.3)
 
@@ -174,4 +174,4 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 4, 12, 13 y 15 ne
 
 ## Pendientes de definición dentro del spec
 
-- **P-A.** Página de inicio del `administrador` (el panel del JO es stub): decidir con el usuario en la tarea 1.4. La de `cotizacion` ya está decidida.
+- **P-A. RESUELTA.** `administrador` aterriza en el panel del Jefe Operativo (decisión del usuario); `getInitialRouteForRole` no cambia. Falta solo la página de `cotizacion`, que entra con 0.3.

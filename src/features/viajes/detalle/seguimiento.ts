@@ -6,7 +6,6 @@ import { EstadoViaje } from '@/lib/contracts/viajeDetalle';
  * `nombre_negocio` de cada estado del contrato.
  */
 const PASOS: ReadonlyArray<{ readonly estado: string; readonly titulo: string }> = [
-  { estado: EstadoViaje.Solicitado, titulo: 'Solicitado' },
   { estado: EstadoViaje.Aprobado, titulo: 'Aprobado' },
   { estado: EstadoViaje.Asignado, titulo: 'Asignado' },
   { estado: EstadoViaje.EnTransito, titulo: 'En recorrido' },
@@ -19,14 +18,13 @@ const PASOS: ReadonlyArray<{ readonly estado: string; readonly titulo: string }>
  * obligatorio que los contiene.
  */
 const PASO_DE_ESTADO_OPCIONAL: Readonly<Record<string, number>> = {
-  [EstadoViaje.AptoParaSalida]: 2,
-  [EstadoViaje.EnEmbarque]: 2,
-  [EstadoViaje.EnDescarga]: 4,
+  [EstadoViaje.AptoParaSalida]: 1,
+  [EstadoViaje.EnEmbarque]: 1,
+  [EstadoViaje.EnDescarga]: 3,
 };
 
 /** Nombre de negocio de cada estado (`nombre_negocio` en viaje.estados.yaml). */
 const NOMBRE_ESTADO: Readonly<Record<string, string>> = {
-  [EstadoViaje.Solicitado]: 'Solicitado',
   [EstadoViaje.Aprobado]: 'Aprobado',
   [EstadoViaje.Asignado]: 'Asignado',
   [EstadoViaje.AptoParaSalida]: 'Apto para salida',
@@ -35,9 +33,7 @@ const NOMBRE_ESTADO: Readonly<Record<string, string>> = {
   [EstadoViaje.EnDestino]: 'Arribo a destino',
   [EstadoViaje.EnDescarga]: 'En descarga',
   [EstadoViaje.Cerrado]: 'Cerrado',
-  [EstadoViaje.RechazadoPorAi27]: 'Rechazada por AI27',
-  [EstadoViaje.RechazadoPorCliente]: 'Rechazada por el cliente',
-  [EstadoViaje.Cancelado]: 'Cancelado',
+  [EstadoViaje.CanceladoPorCliente]: 'Cancelado por el cliente',
 };
 
 /** Nombre de negocio de un estado. Un token que el mapa no conoce se muestra tal cual. */

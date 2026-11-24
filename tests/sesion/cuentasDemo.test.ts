@@ -1,7 +1,7 @@
 /*
  * Cuentas demo del modo mock (spec modo-mock-roles-internos, requisitos 1 a 3).
  *
- * Recorre las siete cuentas contra `POST /sesion` y `POST /sesion/refresh` del
+ * Recorre las ocho cuentas contra `POST /sesion` y `POST /sesion/refresh` del
  * mock de MSW, sin pasar por la UI. Las pruebas son por ejemplo sobre el catálogo
  * completo porque el dominio es finito.
  */
@@ -21,7 +21,7 @@ const ORIGEN = window.location.origin;
 const URL_SESION = `${ORIGEN}${API_PREFIX}/sesion`;
 const URL_REFRESH = `${URL_SESION}/refresh`;
 
-/** Contraseña común de las siete cuentas demo (decisión 6 del requisito 1). */
+/** Contraseña común de las ocho cuentas demo (decisión 6 del requisito 1). */
 const CONTRASENA = 'demo1234';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
@@ -52,7 +52,7 @@ function claimsDe(accessToken: string): ClaimsAi27 {
   return claims;
 }
 
-/** Claims de la sesión iniciada por cada una de las siete cuentas. */
+/** Claims de la sesión iniciada por cada una de las ocho cuentas. */
 async function claimsDeTodasLasCuentas(): Promise<ClaimsAi27[]> {
   return Promise.all(
     CUENTAS_DEMO.map(async ({ cuenta }) => claimsDe((await iniciarSesion(cuenta)).access_token)),
@@ -74,14 +74,14 @@ describe('cuentas demo: inicio de sesión (requisitos 1 y 2)', () => {
 });
 
 describe('cuentas demo: unicidad de sujeto y sesión (requisito 2.3)', () => {
-  it('tiene siete cuentas y no repite el sub entre ellas', async () => {
+  it('tiene ocho cuentas y no repite el sub entre ellas', async () => {
     const claims = await claimsDeTodasLasCuentas();
 
-    expect(claims).toHaveLength(7);
+    expect(claims).toHaveLength(8);
     expect(new Set(claims.map((c) => c.sub)).size).toBe(claims.length);
   });
 
-  it('no repite el sesion_id entre las siete cuentas', async () => {
+  it('no repite el sesion_id entre las ocho cuentas', async () => {
     const claims = await claimsDeTodasLasCuentas();
 
     expect(new Set(claims.map((c) => c.sesion_id)).size).toBe(claims.length);

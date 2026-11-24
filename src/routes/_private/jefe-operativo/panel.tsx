@@ -7,10 +7,19 @@
 
 import { createFileRoute } from '@tanstack/react-router';
 import { Card, Stack } from '@ai27-tech/ui';
+import { RequiereCapacidad } from '@/components/permisos/RequiereCapacidad';
 
 export const Route = createFileRoute('/_private/jefe-operativo/panel')({
-  component: JefeOperativoPanelPage,
+  component: JefeOperativoPanelRoute,
 });
+
+function JefeOperativoPanelRoute() {
+  return (
+    <RequiereCapacidad capacidad="panel.jefeOperativo">
+      <JefeOperativoPanelPage />
+    </RequiereCapacidad>
+  );
+}
 
 function JefeOperativoPanelPage() {
   return (

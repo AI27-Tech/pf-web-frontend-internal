@@ -190,4 +190,5 @@ export const ETIQUETAS_ROL: Record<Rol, string> = {
   ejecutivo: 'Ejecutivo',
   reaccion: 'Reacción',
   administrador: 'Administrador',
+  cotizacion: 'Cotización',
 };

@@ -48,7 +48,6 @@ import { CausaForm } from './causaForm';
 import { CierreForm } from './cierreForm';
 import { bloqueoDeCierre, puedeCerrar, tipoDeCierre, ventanaTrasCierre } from './cierreViaje';
 import { requiereCausa } from './causaTransicion';
-import { puedeAprobar } from './decisionSolicitud';
 import { AsignacionForm } from './asignacionForm';
 import { EtaForm } from './etaForm';
 import { nombreEstado, pasosSeguimiento, siguientePaso } from './seguimiento';
@@ -59,6 +58,7 @@ import { SeccionEmergenciasViaje } from '@/features/emergencias/activacion/Secci
 import { AlertaEmergenciasActivas } from '@/features/emergencias/activacion/AlertaEmergenciasActivas';
 import { useEmergenciasViaje } from '@/features/emergencias/activacion/useEmergenciasViaje';
 import { ROLES_CON_CARRIL } from '@/features/emergencias/afordancias';
+import { puede } from '@/lib/permisos';
 import { useActivacionEmergencia } from '@/features/viajes/activacionEmergenciaContexto';
 import { AvisoActivacionEmergencia } from '@/features/viajes/AvisoActivacionEmergencia';
 
@@ -216,12 +216,6 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
       return;
     }
 
-    // Guard de aprobación (E8-T9, Req 2.1): no enviar APROBADO sin fecha/hora,
-    // aunque el botón ya esté deshabilitado (defensa en profundidad).
-    if (a_estado === EstadoViaje.Aprobado && !puedeAprobar(viajeInterno)) {
-      setModalFechaHoraAbierto(true);
-      return;
-    }
     if (requiereCausa(a_estado)) {
       setCausaPendiente(a_estado);
       return;
@@ -320,9 +314,8 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
     }
   };
 
-  // Confirmación desde el modal de completar fecha/hora (E8-T9, Req 3.3-3.4).
-  // Al confirmar, la lectura se invalida y `fecha_hora_servicio` queda reflejada,
-  // habilitando Aprobar sin recargar la pantalla a mano.
+  // Confirmación desde el modal de corregir fecha/hora (E8-T9, Req 3.3-3.4).
+  // Al confirmar, la lectura se invalida y `fecha_hora_servicio` queda reflejada.
   const handleFechaHoraConfirm = async (fecha_hora_servicio: string) => {
     try {
       await d.completarFechaHora(fecha_hora_servicio);
@@ -339,13 +332,9 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
     }
   };
 
-  // Guard de aprobación (E8-T9, Req 2): Aprobar solo se habilita cuando el viaje
-  // es una solicitud con `fecha_hora_servicio` presente.
   const incidenciaAbierta = condicionesActivas.find((c) => c.tipo === 'INCIDENCIA');
-  const aprobarHabilitado = puedeAprobar(viajeInterno);
-  // La solicitud en SOLICITADO sin fecha/hora necesita completarla antes de aprobar.
-  const faltaFechaHora =
-    viajeInterno.estado === EstadoViaje.Solicitado && !viajeInterno.fecha_hora_servicio;
+  // Corregir la fecha y hora del servicio: JO y ADM, mientras el viaje no sea terminal (M4).
+  const puedeCorregirFechaHora = puede(usuario?.rol, 'viaje.fechaHora') && !viajeTerminal;
 
   const siguienteEstado = siguientePaso(viajeInterno.estado);
   const accionPrincipal: EstadoViaje | undefined =
@@ -354,9 +343,6 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
   const secundarias = accionesVisibles.filter((a) => a !== accionPrincipal && !requiereCausa(a));
   const destructivas = accionesVisibles.filter((a) => requiereCausa(a));
   const motivoBloqueo = (a: EstadoViaje): string | null => {
-    if (a === EstadoViaje.Aprobado && !aprobarHabilitado) {
-      return 'Falta la fecha y hora del servicio para aprobar.';
-    }
     if (a === EstadoViaje.Cerrado && bloqueoCierre) return bloqueoCierre;
     return null;
   };
@@ -485,19 +471,20 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
             </CardBody>
           </Card>
 
-          {/* Aviso de fecha/hora faltante en una solicitud (E8-T9, Req 2.2, 3.1).
-          Aprobar queda bloqueado hasta completarla. */}
-          {faltaFechaHora && (
+          {puedeCorregirFechaHora && (
             <Card variant="outlined">
               <CardBody>
                 <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
-                  Falta la fecha y hora del servicio. No se puede aprobar la solicitud hasta
-                  completarla.
+                  {viajeInterno.fecha_hora_servicio
+                    ? 'Puedes corregir la fecha y hora del servicio.'
+                    : 'Falta la fecha y hora del servicio.'}
                 </p>
               </CardBody>
               <CardFooter>
                 <Button variant="secondary" onClick={() => setModalFechaHoraAbierto(true)}>
-                  Completar fecha y hora
+                  {viajeInterno.fecha_hora_servicio
+                    ? 'Corregir fecha y hora'
+                    : 'Completar fecha y hora'}
                 </Button>
               </CardFooter>
             </Card>
