@@ -54,6 +54,7 @@ import { EtaForm } from './etaForm';
 import { nombreEstado, pasosSeguimiento, siguientePaso } from './seguimiento';
 import { FechaHoraForm } from './fechaHoraForm';
 import { useDetalleViaje } from './useDetalleViaje';
+import styles from './progresoViaje.module.css';
 import { SeccionEmergenciasViaje } from '@/features/emergencias/activacion/SeccionEmergenciasViaje';
 import { AlertaEmergenciasActivas } from '@/features/emergencias/activacion/AlertaEmergenciasActivas';
 import { useEmergenciasViaje } from '@/features/emergencias/activacion/useEmergenciasViaje';
@@ -388,10 +389,11 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
         </CardHeader>
         <CardBody>
           <Timeline
+            className={styles.progreso}
             orientation="horizontal"
             items={pasosSeguimiento(viajeInterno.estado)}
             minItemWidth="6rem"
-            stackBelow={576}
+            stackBelow={640}
             aria-label="Progreso del viaje"
           />
         </CardBody>
