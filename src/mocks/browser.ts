@@ -6,11 +6,30 @@
  * apagada. Ver README, "El backend simulado".
  */
 
+import { delay, http } from 'msw';
 import { setupWorker } from 'msw/browser';
+import { API_PREFIX } from '@/lib/constants';
 
 import { handlers } from './handlers';
 
-const worker = setupWorker(...handlers);
+/**
+ * Latencia artificial: sin ella los estados de carga nunca se ven. Debe superar el
+ * `defaultPendingMs` del router (150 ms, ver `app/router.tsx`) para que el esqueleto y la
+ * barra de carga alcancen a pintarse; con menos, la pantalla llega antes de que aparezcan.
+ * Está exagerada a propósito (el portal del cliente usa 900 ms) para que la carga se note.
+ */
+const LATENCY_MS = 2500;
+
+/*
+ * Un solo handler antepuesto a todos los demás: espera y no responde, así que MSW sigue con
+ * el handler real de la ruta. Solo vive en el navegador; las pruebas (msw/node) no pasan
+ * por aquí y no se hacen más lentas.
+ */
+const latencia = http.all(`${API_PREFIX}/*`, async () => {
+  await delay(LATENCY_MS);
+});
+
+const worker = setupWorker(latencia, ...handlers);
 
 /** Registra el service worker de MSW y espera a que esté listo. */
 export async function enableMocks(): Promise<void> {
