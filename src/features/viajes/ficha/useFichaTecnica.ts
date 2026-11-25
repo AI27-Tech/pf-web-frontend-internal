@@ -8,7 +8,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useSession } from '@/context/SessionContext';
-import { ApiError, esProhibido, esSesionInvalida } from '@/lib/api/errors';
+import { ApiError, esNoEncontrado, esProhibido, esSesionInvalida } from '@/lib/api/errors';
 import { guardarFicha, listarGps, obtenerFicha } from '@/lib/api/fichaTecnica';
 import { obtenerAsignacion, obtenerDetalle } from '@/lib/api/viajeDetalle';
 import type {
@@ -36,6 +36,8 @@ export interface FichaTecnicaHook {
   readonly esNoAutorizado: boolean;
   /** 403 en el detalle o la ficha: sin permiso para esta ficha; la sesión sigue. */
   readonly esProhibido: boolean;
+  /** 404 en el detalle: el viaje no existe o queda fuera del alcance. */
+  readonly esNoEncontrado: boolean;
   readonly guardando: boolean;
   readonly reintentar: () => void;
   readonly reintentarGps: () => void;
@@ -118,6 +120,7 @@ export function useFichaTecnica(id: string): FichaTecnicaHook {
     // Solo el detalle y la ficha bloquean la pantalla; GPS, escolta y guardado
     // dicen su falta de permiso en su propia sección.
     esProhibido: esProhibido(detalleQuery.error) || esProhibido(fichaQuery.error),
+    esNoEncontrado: esNoEncontrado(detalleQuery.error),
     guardando: mutation.isPending,
     reintentar: () => {
       void detalleQuery.refetch();

@@ -37,7 +37,10 @@ import type { Column, TimelineItemData } from '@ai27-tech/ui';
 import { useNavigate } from '@tanstack/react-router';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
+import { RequiereCapacidad } from '@/components/permisos/RequiereCapacidad';
 import { useSession } from '@/context/SessionContext';
+import { esProhibido } from '@/lib/api/errors';
+import { puede } from '@/lib/permisos';
 import type { DispositivoGps, FichaTecnica } from '@/lib/contracts/fichaTecnica';
 import type { Unidad } from '@/lib/contracts/unidades';
 import { custodiosLegibles, vehiculoLegible } from '../unidadLegible';
@@ -47,14 +50,30 @@ import { datosDesdeFicha, type DatosFichaTecnica } from './adaptadorFichaTecnica
 import { FichaEditor } from './FichaEditor';
 import { useFichaTecnica, type FichaTecnicaHook } from './useFichaTecnica';
 
+const MENSAJE_GUARDAR_SIN_PERMISO = 'No tienes permiso para guardar la ficha técnica.';
+
 export interface FichaTecnicaViajeProps {
   readonly id: string;
 }
 
+/**
+ * Ficha técnica del viaje. Los hooks de datos viven en `ContenidoFicha`, que solo se monta
+ * con `viaje.ficha.ver`: EJE y REA ven "sin permiso" y no se pide la ficha ni la escolta (E7).
+ */
 export function FichaTecnicaViaje({ id }: FichaTecnicaViajeProps) {
+  return (
+    <RequiereCapacidad capacidad="viaje.ficha.ver">
+      <ContenidoFicha id={id} />
+    </RequiereCapacidad>
+  );
+}
+
+function ContenidoFicha({ id }: FichaTecnicaViajeProps) {
   const { usuario } = useSession();
   const f = useFichaTecnica(id);
   const navigate = useNavigate();
+  // JO la ve en solo lectura; editar es de quien tiene `viaje.ficha.editar` (M5).
+  const puedeEditar = puede(usuario?.rol, 'viaje.ficha.editar');
 
   if (f.esNoAutorizado) {
     return <DelegacionSesion id={id} />;
@@ -64,10 +83,9 @@ export function FichaTecnicaViaje({ id }: FichaTecnicaViajeProps) {
     return <SinPermiso onVolver={() => void navigate({ to: '/viajes/$id', params: { id } })} />;
   }
 
-  if (usuario?.rol !== 'monitorista') {
-    return (
-      <AccesoNoAutorizado onVolver={() => void navigate({ to: '/viajes/$id', params: { id } })} />
-    );
+  // Un 404 del detalle es "no encontrado": el viaje no existe o queda fuera del alcance.
+  if (f.esNoEncontrado) {
+    return <ViajeNoEncontrado onVolver={() => void navigate({ to: '/viajes' })} />;
   }
 
   if (f.error) {
@@ -98,7 +116,7 @@ export function FichaTecnicaViaje({ id }: FichaTecnicaViajeProps) {
       </Stack>
 
       <Stack gap={4}>
-        <FichaSeccion key={id} viajeId={id} f={f} />
+        <FichaSeccion key={id} viajeId={id} f={f} puedeEditar={puedeEditar} />
       </Stack>
     </Grid>
   );
@@ -107,6 +125,7 @@ export function FichaTecnicaViaje({ id }: FichaTecnicaViajeProps) {
 interface AvisoFicha {
   readonly id: string;
   readonly mensaje: string;
+  readonly tipo: 'success' | 'error';
 }
 
 /**
@@ -114,7 +133,15 @@ interface AvisoFicha {
  * así que el borrador vive aquí: cerrar sin guardar no pierde lo capturado. La clave
  * por viaje reinicia el borrador al cambiar de viaje.
  */
-function FichaSeccion({ viajeId, f }: { readonly viajeId: string; readonly f: FichaTecnicaHook }) {
+function FichaSeccion({
+  viajeId,
+  f,
+  puedeEditar,
+}: {
+  readonly viajeId: string;
+  readonly f: FichaTecnicaHook;
+  readonly puedeEditar: boolean;
+}) {
   const [editando, setEditando] = useState(false);
   const [borrador, setBorrador] = useState<DatosFichaTecnica | null>(null);
   const [avisos, setAvisos] = useState<AvisoFicha[]>([]);
@@ -129,9 +156,9 @@ function FichaSeccion({ viajeId, f }: { readonly viajeId: string; readonly f: Fi
       return typeof cambio === 'function' ? cambio(base) : cambio;
     });
 
-  const avisarGuardada = () => {
+  const avisar = (mensaje: string, tipo: AvisoFicha['tipo']) => {
     const id = `aviso-ficha-${avisoIdRef.current++}`;
-    setAvisos((previos) => [...previos, { id, mensaje: 'Ficha técnica guardada.' }]);
+    setAvisos((previos) => [...previos, { id, mensaje, tipo }]);
     setTimeout(() => {
       setAvisos((previos) => previos.filter((aviso) => aviso.id !== id));
     }, 4000);
@@ -145,7 +172,7 @@ function FichaSeccion({ viajeId, f }: { readonly viajeId: string; readonly f: Fi
             <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
               Ficha técnica confirmada
             </p>
-            {f.ficha && (
+            {f.ficha && puedeEditar && (
               <Button variant="primary" type="button" onClick={() => setEditando(true)}>
                 Editar ficha
               </Button>
@@ -155,38 +182,44 @@ function FichaSeccion({ viajeId, f }: { readonly viajeId: string; readonly f: Fi
         {f.ficha ? (
           <FichaConfirmada ficha={f.ficha} gps={f.gps} />
         ) : (
-          <EstadoFichaVacia inexistente={f.fichaVacia} onCapturar={() => setEditando(true)} />
+          <EstadoFichaVacia
+            inexistente={f.fichaVacia}
+            onCapturar={puedeEditar ? () => setEditando(true) : undefined}
+          />
         )}
       </Card>
 
-      <Modal
-        open={editando}
-        onClose={() => setEditando(false)}
-        title="Editar ficha técnica"
-        size="lg"
-      >
-        <FichaEditor
-          viajeId={viajeId}
-          datos={datos}
-          setDatos={cambiarDatos}
-          gps={f.gps}
-          cargandoGps={f.cargandoGps}
-          errorGps={f.errorGps}
-          reintentarGps={f.reintentarGps}
-          guardar={f.guardar}
-          guardando={f.guardando}
-          onGuardado={() => {
-            setEditando(false);
-            avisarGuardada();
-          }}
-        />
-      </Modal>
+      {puedeEditar && (
+        <Modal
+          open={editando}
+          onClose={() => setEditando(false)}
+          title="Editar ficha técnica"
+          size="lg"
+        >
+          <FichaEditor
+            viajeId={viajeId}
+            datos={datos}
+            setDatos={cambiarDatos}
+            gps={f.gps}
+            cargandoGps={f.cargandoGps}
+            errorGps={f.errorGps}
+            reintentarGps={f.reintentarGps}
+            guardar={f.guardar}
+            guardando={f.guardando}
+            onGuardado={() => {
+              setEditando(false);
+              avisar('Ficha técnica guardada.', 'success');
+            }}
+            onSinPermiso={() => avisar(MENSAJE_GUARDAR_SIN_PERMISO, 'error')}
+          />
+        </Modal>
+      )}
 
       <ToastContainer position="top-right">
         {avisos.map((aviso) => (
           <Toast
             key={aviso.id}
-            variant="success"
+            variant={aviso.tipo}
             title={aviso.mensaje}
             onClose={() =>
               setAvisos((previos) => previos.filter((previo) => previo.id !== aviso.id))
@@ -266,6 +299,9 @@ function Escolta({
             >
               Cargando la escolta...
             </p>
+          ) : esProhibido(error) ? (
+            // Un 403 no se arregla reintentando (T2.1).
+            <Alert variant="danger">No tienes permiso para ver la escolta de este viaje.</Alert>
           ) : error ? (
             // BloqueError fija la etiqueta "Reintentar"; esta prueba exige "Reintentar escolta".
             <Alert variant="danger">
@@ -408,12 +444,13 @@ function FichaConfirmada({
   );
 }
 
+/** Sin ficha. Sin `onCapturar` (rol de solo lectura) no se ofrece el botón. */
 function EstadoFichaVacia({
   inexistente,
   onCapturar,
 }: {
   readonly inexistente: boolean;
-  readonly onCapturar: () => void;
+  readonly onCapturar: (() => void) | undefined;
 }) {
   return (
     <CardBody>
@@ -423,9 +460,11 @@ function EstadoFichaVacia({
             ? 'La ficha aún no existe para este viaje.'
             : 'La ficha no tiene datos capturados.'}
         </p>
-        <Button variant="primary" type="button" onClick={onCapturar}>
-          Capturar ficha
-        </Button>
+        {onCapturar && (
+          <Button variant="primary" type="button" onClick={onCapturar}>
+            Capturar ficha
+          </Button>
+        )}
       </Stack>
     </CardBody>
   );
@@ -535,17 +574,21 @@ function EstadoVacio({ mensaje }: { readonly mensaje: string }) {
   );
 }
 
-function AccesoNoAutorizado({ onVolver }: { readonly onVolver: () => void }) {
+/** 404: el viaje no existe o queda fuera del alcance. No sugiere un permiso faltante (T2.2). */
+function ViajeNoEncontrado({ onVolver }: { readonly onVolver: () => void }) {
   return (
     <Card variant="outlined">
       <CardBody>
-        <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-          Esta ficha solo está disponible para el monitorista.
-        </p>
+        <EmptyState
+          role="status"
+          size="sm"
+          title="Viaje no encontrado"
+          description="Revisa el identificador o vuelve a la lista de viajes."
+        />
       </CardBody>
       <CardFooter>
         <Button variant="secondary" type="button" onClick={onVolver}>
-          Volver al detalle
+          Volver a viajes
         </Button>
       </CardFooter>
     </Card>

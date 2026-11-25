@@ -85,11 +85,11 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 4, 12, 13 y 15 ne
 
 ## 6. M5: Ficha técnica (Requirement 6)
 
-- [ ] 6.1 Ciclo a y b de `FichaTecnicaViaje.tsx`, `FichaEditor.tsx` y `useFichaTecnica`.
-- [ ] 6.2 Montar los hooks de datos dentro de `RequiereCapacidad(viaje.ficha.ver)`: EJE y REA no piden `obtenerAsignacion` (E7).
-- [ ] 6.3 Modo solo lectura para JO; edición con `viaje.ficha.editar` (incluye ADM).
-- [ ]* 6.4 Pruebas: E3, E4 y E7. Regresión de E8-T12.
-- [ ] 6.5 Cierre de M5.
+- [x] 6.1 Ciclo a y b de `FichaTecnicaViaje.tsx`, `FichaEditor.tsx` y `useFichaTecnica`. _(Línea base: la pantalla exigía `rol === monitorista` después de montar los hooks y mostraba "solo para el monitorista".)_
+- [x] 6.2 Montar los hooks de datos dentro de `RequiereCapacidad(viaje.ficha.ver)`: EJE y REA no piden `obtenerAsignacion` (E7). _(`FichaTecnicaViaje` envuelve su contenido en `RequiereCapacidad(viaje.ficha.ver)`; los hooks viven en `ContenidoFicha`. EJE, REA y `cotizacion` no piden detalle, ficha, GPS ni escolta.)_
+- [x] 6.3 Modo solo lectura para JO; edición con `viaje.ficha.editar` (incluye ADM). _(`Editar ficha`, `Capturar ficha` y el editor salen de `viaje.ficha.editar`. JO lee sin controles. Un `403` al guardar avisa con `Toast` y conserva el editor. Un `404` del viaje dice "no encontrado". La bitácora se escribe desde el histórico: queda en 7.2.)_
+- [x]* 6.4 Pruebas: E3, E4 y E7. Regresión de E8-T12. _(`FichaRoles.test.tsx`. Regresión de E8-T12 en verde.)_
+- [x] 6.5 Cierre de M5. _(Typecheck y lint en verde.)_
 
 ## 7. M6: Histórico (Requirement 7)
 

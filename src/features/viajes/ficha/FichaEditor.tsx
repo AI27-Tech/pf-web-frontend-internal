@@ -50,6 +50,8 @@ interface FichaEditorProps {
   readonly setDatos: Dispatch<SetStateAction<DatosFichaTecnica>>;
   /** Se llama tras un guardado confirmado por el BFF. */
   readonly onGuardado?: () => void;
+  /** Se llama cuando el guardado responde 403, para avisar con Toast (T2.3). */
+  readonly onSinPermiso?: () => void;
 }
 
 const ETIQUETAS_TRACTO: Record<CampoTracto, string> = {
@@ -83,6 +85,7 @@ export function FichaEditor({
   datos,
   setDatos,
   onGuardado,
+  onSinPermiso,
 }: FichaEditorProps) {
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
   const [enviandoLocal, setEnviandoLocal] = useState(false);
@@ -111,6 +114,7 @@ export function FichaEditor({
       setDatos(datosDesdeFicha(respuesta));
       onGuardado?.();
     } catch (error) {
+      if (esProhibido(error)) onSinPermiso?.();
       setErrorEnvio(mensajeErrorGuardarFicha(error));
     } finally {
       envioEnCurso.current = false;
