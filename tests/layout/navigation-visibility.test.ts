@@ -19,7 +19,7 @@ function labels(rol: Rol): string[] {
 }
 
 const MENU_ESPERADO: Record<string, string[]> = {
-  [Rol.JefeOperativo]: ['Panel', 'Solicitudes', 'Viajes', 'Roster', 'Catálogos'],
+  [Rol.JefeOperativo]: ['Pendientes', 'Solicitudes', 'Viajes', 'Roster', 'Catálogos'],
   [Rol.Cotizacion]: ['Solicitudes'],
   [Rol.Monitorista]: ['Dashboard', 'Viajes', 'Reportes'],
   [Rol.Supervisor]: ['Dashboard', 'Viajes', 'Conversaciones', 'Emergencias', 'Reportes'],
@@ -32,9 +32,9 @@ const MENU_ESPERADO: Record<string, string[]> = {
     'Reportes',
   ],
   [Rol.Administrador]: [
-    'Panel',
-    'Solicitudes',
     'Dashboard',
+    'Pendientes',
+    'Solicitudes',
     'Viajes',
     'Roster',
     'Conversaciones',

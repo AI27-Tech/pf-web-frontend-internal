@@ -24,9 +24,10 @@ export function AppShell({ children }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   const handleLogout = async () => {
-    // Limpia la sesión (contexto + TokenStore) y lleva al login.
-    await logout();
+    // Navega al login antes de limpiar la sesión. Si se limpiara primero, AppShell
+    // pintaría su estado "Sin sesión" mientras la navegación espera al servidor.
     void navigate({ to: '/login' });
+    await logout();
   };
 
   if (!usuario) {
@@ -37,6 +38,7 @@ export function AppShell({ children }: AppShellProps) {
           alignItems: 'center',
           justifyContent: 'center',
           minHeight: '100vh',
+          backgroundColor: 'var(--ui-color-surface-muted)',
         }}
       >
         <div style={{ textAlign: 'center' }}>
@@ -73,7 +75,7 @@ export function AppShell({ children }: AppShellProps) {
       }}
     >
       {/* Sidebar: ocupa la altura completa a la izquierda; maneja su propio ancho.
-          El cierre de sesión vive al fondo del sidebar (arriba del botón contraer). */}
+          El cierre de sesión vive en el modal de configuración del grupo "Cuenta". */}
       <NavigationSidebar
         collapsed={collapsed}
         onToggleCollapse={() => setCollapsed((prev) => !prev)}

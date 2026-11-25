@@ -33,7 +33,7 @@ function JefeOperativoPanelPage() {
           color: 'var(--ui-color-text)',
         }}
       >
-        Panel del Jefe Operativo
+        Pendientes
       </h1>
       <p
         style={{

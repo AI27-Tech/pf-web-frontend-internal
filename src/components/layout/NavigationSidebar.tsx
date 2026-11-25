@@ -10,11 +10,13 @@
 
 import { Sidebar, SidebarGroup, SidebarItem } from '@ai27-tech/ui';
 import type { SidebarItemProps } from '@ai27-tech/ui';
-import { LogOut } from 'lucide-react';
+import { useState } from 'react';
+import { SlidersHorizontal } from 'lucide-react';
 import { Link, useLocation } from '@tanstack/react-router';
 
 import { useSession } from '@/context/SessionContext';
-import { entradasVisiblesPara } from './navigationConfig';
+import { ConfiguracionModal } from './ConfiguracionModal';
+import { gruposVisiblesPara } from './navigationConfig';
 
 /**
  * SidebarItem que navega con TanStack Router.
@@ -32,7 +34,7 @@ interface NavigationSidebarProps {
   readonly collapsed: boolean;
   /** Alterna el colapso. La librería pinta el botón cuando esto se pasa. */
   readonly onToggleCollapse: () => void;
-  /** Cierra la sesión. Se invoca desde el botón al fondo del sidebar. */
+  /** Cierra la sesión. Se invoca desde el modal de configuración. */
   readonly onLogout: () => void;
 }
 
@@ -73,6 +75,7 @@ export function NavigationSidebar({
 }: NavigationSidebarProps) {
   const { usuario } = useSession();
   const location = useLocation();
+  const [configuracionAbierta, setConfiguracionAbierta] = useState(false);
 
   if (!usuario) {
     return (
@@ -97,8 +100,8 @@ export function NavigationSidebar({
     );
   }
 
-  // Mostrar todas las áreas salvo las que la tarea oculta para este rol.
-  const visibleItems = entradasVisiblesPara(usuario.rol);
+  // Entradas agrupadas por área (Inicio, Operación, Gestión) y filtradas por rol.
+  const grupos = gruposVisiblesPara(usuario.rol);
 
   return (
     <Sidebar
@@ -107,8 +110,8 @@ export function NavigationSidebar({
       collapsed={collapsed}
       onToggleCollapse={onToggleCollapse}
     >
-      <SidebarGroup>
-        {visibleItems.length === 0 ? (
+      {grupos.length === 0 ? (
+        <SidebarGroup>
           <div
             style={{
               padding: 'var(--ui-space-2)',
@@ -118,36 +121,47 @@ export function NavigationSidebar({
           >
             Sin permisos para acceder
           </div>
-        ) : (
-          visibleItems.map((item) => {
-            const IconComponent = item.icon;
-            const isActive = location.pathname.startsWith(item.path);
-            return (
-              <NavLinkItem
-                key={item.id}
-                as={Link}
-                to={item.path}
-                active={isActive}
-                icon={<IconComponent />}
-                label={item.label}
-              >
-                {item.label}
-              </NavLinkItem>
-            );
-          })
-        )}
-      </SidebarGroup>
+        </SidebarGroup>
+      ) : (
+        grupos.map((grupo) => (
+          <SidebarGroup key={grupo.id} label={grupo.label}>
+            {grupo.items.map((item) => {
+              const IconComponent = item.icon;
+              const isActive = location.pathname.startsWith(item.path);
+              return (
+                <NavLinkItem
+                  key={item.id}
+                  as={Link}
+                  to={item.path}
+                  active={isActive}
+                  icon={<IconComponent />}
+                  label={item.label}
+                >
+                  {item.label}
+                </NavLinkItem>
+              );
+            })}
+          </SidebarGroup>
+        ))
+      )}
 
-      {/*
-        Grupo de sesión empujado al fondo del nav con margin-top:auto, de modo
-        que el botón de cerrar sesión quede al pie de la lista y por ARRIBA del
-        botón de contraer que la librería pinta al final de la barra.
-      */}
-      <SidebarGroup style={{ marginTop: 'auto' }}>
-        <SidebarItem icon={<LogOut />} label="Cerrar sesión" onClick={onLogout}>
-          Cerrar sesión
+      {/* Grupo de cuenta: sigue el orden de los demás grupos, después de Gestión. */}
+      <SidebarGroup label="Cuenta">
+        <SidebarItem
+          icon={<SlidersHorizontal />}
+          label="Configuración"
+          onClick={() => setConfiguracionAbierta(true)}
+        >
+          Configuración
         </SidebarItem>
       </SidebarGroup>
+
+      <ConfiguracionModal
+        open={configuracionAbierta}
+        onClose={() => setConfiguracionAbierta(false)}
+        usuario={usuario}
+        onLogout={onLogout}
+      />
     </Sidebar>
   );
 }
