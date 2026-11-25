@@ -9,10 +9,19 @@
 
 import type {
   AlcanceSujeto,
+  MiAlcance,
   PaginaUsuariosAdmin,
   UnidadesSujetoEntrada,
 } from '../contracts/alcance';
 import { request } from './client';
+
+/**
+ * Clientes efectivos del propio usuario (GET /sesion/alcance). Solo monitorista,
+ * supervisor y coordinador; la UI no la llama con otro rol (Requirement T2.7).
+ */
+export function obtenerMiAlcance(accessToken: string): Promise<MiAlcance> {
+  return request<MiAlcance>('/sesion/alcance', { accessToken });
+}
 
 /** Una página de Monitoristas activos; sin `cursor` pide la primera. */
 export function listarMonitoristasActivos(

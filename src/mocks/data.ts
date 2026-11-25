@@ -174,13 +174,29 @@ export function createSessionWire(cuenta: CuentaDemo): SesionWire {
  * no hay una copia propia: el estado se guarda una sola vez.
  */
 
+/**
+ * Clientes efectivos de cada rol con alcance (DEC-149 #18, #24): la unión de los clientes
+ * propios y los de los subordinados. Los demás roles no tienen alcance propio.
+ */
+export const CLIENTES_EFECTIVOS_DEMO: Readonly<Record<string, readonly string[]>> = {
+  [Rol.Monitorista]: ['CLI-1001', 'CLI-1002'],
+  [Rol.Supervisor]: ['CLI-1001', 'CLI-1002', 'CLI-1003'],
+  [Rol.Coordinador]: ['CLI-1001', 'CLI-1002', 'CLI-1003'],
+};
+
 /** Resumen de cada viaje del almacén, en el orden en que se creó. */
 function resumenesViajes(): ViajeResumen[] {
-  return Object.values(obtenerAlmacen().viajes).map(({ detalle }) => ({
-    id: detalle.viaje.id,
-    estado: detalle.viaje.estado,
-    origen: detalle.viaje.origen,
-  }));
+  return Object.values(obtenerAlmacen().viajes).map(({ detalle, escolta }) => {
+    const clienteId = detalle.viaje.cliente_id;
+    const nombre = CLIENTES_DEMO.find((c) => c.id === clienteId)?.nombre;
+    return {
+      id: detalle.viaje.id,
+      estado: detalle.viaje.estado,
+      origen: detalle.viaje.origen,
+      ...(clienteId && { cliente: { id: clienteId, ...(nombre !== undefined && { nombre }) } }),
+      unidades: escolta.map((id) => ({ id })),
+    };
+  });
 }
 
 /** Tamaño de página del listado simulado. */
@@ -196,8 +212,12 @@ const TAMANO_PAGINA = 15;
 export function listarViajesMock(
   estado: string | null,
   cursor: string | null,
+  /** Clientes del alcance del solicitante; `null` = sin restricción (Jefe Operativo y Administrador). */
+  clientesDelAlcance: readonly string[] | null = null,
 ): PaginaViajesResumen {
-  const todos = resumenesViajes();
+  const todos = resumenesViajes().filter(
+    (v) => clientesDelAlcance === null || (v.cliente && clientesDelAlcance.includes(v.cliente.id)),
+  );
   const filtrados = estado ? todos.filter((v) => v.estado === estado) : todos;
 
   const inicio = cursor ? Number.parseInt(cursor, 10) || 0 : 0;

@@ -55,15 +55,15 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 4, 12, 13 y 15 ne
 
 ## 3. M2: Bandeja de viajes (Requirement 3; requiere 0.3)
 
-- [ ] 3.1 Ciclo a y b de `BandejaViajes.tsx` y su filtro de estados.
-- [ ] 3.2 Columnas Cliente y Escolta con `cliente` y `unidades`; respaldo al `id` y "sin escolta".
-- [ ] 3.3 Filtro de estado desde el enum generado; sin función por rol (el pin `.46` ya no tiene estados previos a `APROBADO`).
-- [ ] 3.4 `lib/api/alcance.ts`: `obtenerMiAlcance`; hook `useMiAlcance` que solo se invoca con lista vacía y rol con `alcance.leerPropio`.
-- [ ] 3.5 `EmptyState` que distingue "sin clientes asignados" de "sin viajes" (E11, E12); JO y ADM siempre "sin viajes".
-- [ ] 3.6 Botón "Crear viaje" por `viaje.crear`.
-- [ ] 3.7 Mocks: `listarViajes` con filtro por "mis clientes", `403` para EJE y REA, `obtenerMiAlcance`.
-- [ ]* 3.8 Pruebas de columnas, vacíos por rol, `403` y llamadas que no deben ocurrir (propiedad 5).
-- [ ] 3.9 Cierre de M2.
+- [x] 3.1 Ciclo a y b de `BandejaViajes.tsx` y su filtro de estados.
+- [x] 3.2 Columnas Cliente y Escolta con `cliente` y `unidades`; respaldo al `id` y "sin escolta".
+- [x] 3.3 Filtro de estado desde el enum generado; sin función por rol (el pin `.46` ya no tiene estados previos a `APROBADO`). _(Ya salía del enum generado; no había función por rol.)_
+- [x] 3.4 `lib/api/alcance.ts`: `obtenerMiAlcance`; hook `useMiAlcance` que solo se invoca con lista vacía y rol con `alcance.leerPropio`.
+- [x] 3.5 `EmptyState` que distingue "sin clientes asignados" de "sin viajes" (E11, E12); JO y ADM siempre "sin viajes".
+- [x] 3.6 Botón "Crear viaje" por `viaje.crear`.
+- [x] 3.7 Mocks: `listarViajes` con filtro por "mis clientes", `403` para EJE y REA, `obtenerMiAlcance`. _(`autorizarMock` lee el rol del token y usa la política. `CLIENTES_EFECTIVOS_DEMO` define el alcance; los viajes semilla traen `cliente_id`; versión del almacén 3.)_
+- [x]* 3.8 Pruebas de columnas, vacíos por rol, `403` y llamadas que no deben ocurrir (propiedad 5).
+- [x] 3.9 Cierre de M2.
 
 ## 4. M3: Crear viaje (Requirement 4)
 

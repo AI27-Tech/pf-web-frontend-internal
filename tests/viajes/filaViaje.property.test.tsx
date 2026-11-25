@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Feature: e8-t7-bandeja-viajes, Property 3: Estado y condiciones separados (P15)
  *
  * Property 3 (Validates: Requirements 2.1, 2.2, 2.3, 2.4):
@@ -50,6 +50,7 @@ describe('Feature: e8-t7-bandeja-viajes, Property 3: Estado y condiciones separa
           id: 'v1',
           estado,
           origen: 'CDMX',
+          unidades: [],
           condiciones_activas: condiciones,
         };
 
@@ -103,6 +104,7 @@ describe('e8-t7-bandeja-viajes · variantes de condición (ejemplo, tarea 5.3)',
       id: 'v1',
       estado: 'EN_TRANSITO',
       origen: 'CDMX',
+      unidades: [],
       condiciones_activas: [CondicionViaje.Incidencia, CondicionViaje.SinSenal],
     };
     render(<div>{celda('condiciones', fila)}</div>);

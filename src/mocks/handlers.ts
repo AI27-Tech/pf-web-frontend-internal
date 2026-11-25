@@ -15,6 +15,7 @@ import {
   cuentaPorRefreshToken,
   listarClientesMock,
   createSessionWire,
+  CLIENTES_EFECTIVOS_DEMO,
   listarViajesMock,
   obtenerDetalleViajeMock,
   transicionarViajeMock,
@@ -57,6 +58,7 @@ import {
 } from './data';
 import type { TransicionEntrada, EtaEntrada, FechaHoraEntrada } from '@/lib/contracts/viajeDetalle';
 import { EstadoViaje } from '@/lib/contracts/viajeDetalle';
+import { autorizarMock, rolDeSolicitud } from './autorizacion';
 import { handlersEmergencias } from './emergencias';
 import {
   handlersRoster,
@@ -268,9 +270,38 @@ export const handlers = [
     ) {
       return HttpResponse.json({ mensaje: 'Sesi├│n finalizada' }, { status: 401 });
     }
+    // Como el BFF: ejecutivo y reacción reciben 403; monitoreo ve solo los clientes de su alcance.
+    const denegado = autorizarMock(request, 'viajes.listar');
+    if (denegado) return denegado;
+    const rol = rolDeSolicitud(request);
+    const alcance = rol ? (CLIENTES_EFECTIVOS_DEMO[rol] ?? null) : null;
     const url = new URL(request.url);
-    const pagina = listarViajesMock(url.searchParams.get('estado'), url.searchParams.get('cursor'));
-    return HttpResponse.json(pagina, { status: 200 });
+    const pagina = listarViajesMock(
+      url.searchParams.get('estado'),
+      url.searchParams.get('cursor'),
+      alcance,
+    );
+    // El número económico de la escolta sale del roster, como lo compone `catalogos`.
+    const items = pagina.items.map((viaje) => ({
+      ...viaje,
+      unidades: (viaje.unidades ?? []).map(({ id }) => {
+        const economico = unidadDelRosterMock(id)?.vehiculo?.economico;
+        return economico ? { id, economico } : { id };
+      }),
+    }));
+    return HttpResponse.json({ ...pagina, items }, { status: 200 });
+  }),
+
+  // GET /sesion/alcance — clientes efectivos del propio usuario (DEC-149 #24). Solo
+  // monitorista, supervisor y coordinador; otro rol recibe 403.
+  http.get(path('/sesion/alcance'), ({ request }) => {
+    const denegado = autorizarMock(request, 'alcance.leerPropio');
+    if (denegado) return denegado;
+    const rol = rolDeSolicitud(request);
+    return HttpResponse.json(
+      { clientes_efectivos_ids: [...((rol && CLIENTES_EFECTIVOS_DEMO[rol]) || [])] },
+      { status: 200 },
+    );
   }),
 
   // GET /gps — catálogo registrado; el wrapper vuelve a filtrar activos como defensa.

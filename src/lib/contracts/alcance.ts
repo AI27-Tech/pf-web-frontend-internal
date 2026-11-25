@@ -15,6 +15,12 @@ export type UsuarioAdmin = Schemas['UsuarioAdmin'];
 
 export type PaginaUsuariosAdmin = Schemas['PaginaUsuariosAdmin'];
 
+/**
+ * Alcance del propio usuario (obtenerMiAlcance, DEC-149 #24): solo los clientes efectivos.
+ * Lo leen monitorista, supervisor y coordinador; otro rol recibe 403.
+ */
+export type MiAlcance = Schemas['MiAlcance'];
+
 /** Unidades propias, subordinados y unidades efectivas de un usuario (DEC-140). */
 export type AlcanceSujeto = Schemas['AlcanceSujeto'];
 
