@@ -149,7 +149,7 @@ describe('ExpedienteViaje — errores clasificados', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Descargar expediente' }));
 
     expect(
-      await screen.findByText('El viaje no existe. No hay expediente que descargar.'),
+      await screen.findByText('Viaje no encontrado. No hay expediente que descargar.'),
     ).toBeInTheDocument();
     expect(blobsCreados).toHaveLength(0);
   });
@@ -205,9 +205,7 @@ describe('ExpedienteViaje — roles sin acceso', () => {
       sesionFalsa.rol = rol;
       renderExpediente();
 
-      expect(
-        screen.getByText('Este expediente no está disponible para tu rol.'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('Sin permiso')).toBeInTheDocument();
       expect(
         screen.queryByRole('button', { name: 'Descargar expediente' }),
       ).not.toBeInTheDocument();

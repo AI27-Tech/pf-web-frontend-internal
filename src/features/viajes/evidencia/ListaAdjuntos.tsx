@@ -1,4 +1,6 @@
 import { Alert, Badge, Button, SkeletonTable, Stack, Table } from '@ai27-tech/ui';
+import { ErrorAdjuntosProhibido } from '@/lib/api/adjuntos';
+import { ErrorViajeInexistente } from '@/lib/api/expediente';
 import type { Adjunto, EstadoEscaneo } from '@/lib/contracts/adjuntos';
 import { esDescargable } from './adjuntoDescargable';
 
@@ -44,6 +46,14 @@ export function ListaAdjuntos({
   onDescargar,
   descargando,
 }: ListaAdjuntosProps) {
+  // Un 404 es "no encontrado" (fuera de alcance, T2.2) y un 403 es "sin permiso" (T2.1): ninguno
+  // se arregla reintentando.
+  if (error instanceof ErrorViajeInexistente) {
+    return <Alert variant="danger">Viaje no encontrado.</Alert>;
+  }
+  if (error instanceof ErrorAdjuntosProhibido) {
+    return <Alert variant="danger">No tienes permiso para ver la evidencia de este viaje.</Alert>;
+  }
   if (error) {
     return (
       <Stack gap={3} align="start">

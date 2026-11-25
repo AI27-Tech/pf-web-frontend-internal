@@ -11,20 +11,16 @@ import { useState, type ReactNode } from 'react';
 import {
   Alert,
   Badge,
-  Button,
   Card,
   CardBody,
-  CardFooter,
   Inline,
   Section,
   Stack,
   Toast,
   ToastContainer,
 } from '@ai27-tech/ui';
-import { useNavigate } from '@tanstack/react-router';
 
-import { useSession } from '@/context/SessionContext';
-import { puedeUsarMonitoreo } from '@/features/monitoreo/puedeUsarMonitoreo';
+import { RequiereCapacidad } from '@/components/permisos/RequiereCapacidad';
 
 import { EvidenciaViaje } from '@/features/viajes/evidencia/EvidenciaViaje';
 
@@ -35,16 +31,16 @@ export interface ExpedienteViajeProps {
   readonly id: string;
 }
 
+/**
+ * Expediente del viaje. Los hooks de datos viven en `DescargaExpediente`, que solo se monta
+ * con `monitoreo.consultar` (M7): los demás roles ven "sin permiso" y no se pide nada.
+ */
 export function ExpedienteViaje({ id }: ExpedienteViajeProps) {
-  const { usuario } = useSession();
-  const navigate = useNavigate();
-  const onVolver = () => void navigate({ to: '/viajes/$id', params: { id } });
-
-  if (!usuario || !puedeUsarMonitoreo(usuario.rol)) {
-    return <AccesoNoAutorizado onVolver={onVolver} />;
-  }
-
-  return <DescargaExpediente id={id} />;
+  return (
+    <RequiereCapacidad capacidad="monitoreo.consultar">
+      <DescargaExpediente id={id} />
+    </RequiereCapacidad>
+  );
 }
 
 function DescargaExpediente({ id }: { readonly id: string }) {
@@ -78,12 +74,11 @@ function DescargaExpediente({ id }: { readonly id: string }) {
               </Inline>
               {d.esProhibido && (
                 <Mensaje>
-                  No tienes autorización para descargar el expediente de este viaje. Puede ser por
-                  falta de permiso o porque el viaje está fuera de tu alcance.
+                  No tienes autorización para descargar el expediente de este viaje.
                 </Mensaje>
               )}
               {d.esNoEncontrado && (
-                <Mensaje>El viaje no existe. No hay expediente que descargar.</Mensaje>
+                <Mensaje>Viaje no encontrado. No hay expediente que descargar.</Mensaje>
               )}
               {d.esErrorRecuperable && (
                 <Mensaje>No se pudo preparar el expediente. Vuelve a intentarlo.</Mensaje>
@@ -110,21 +105,4 @@ function DescargaExpediente({ id }: { readonly id: string }) {
 
 function Mensaje({ children }: { readonly children: ReactNode }) {
   return <Alert variant="danger">{children}</Alert>;
-}
-
-function AccesoNoAutorizado({ onVolver }: { readonly onVolver: () => void }) {
-  return (
-    <Card variant="outlined">
-      <CardBody>
-        <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-          Este expediente no está disponible para tu rol.
-        </p>
-      </CardBody>
-      <CardFooter>
-        <Button variant="secondary" type="button" onClick={onVolver}>
-          Volver al detalle
-        </Button>
-      </CardFooter>
-    </Card>
-  );
 }

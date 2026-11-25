@@ -101,11 +101,11 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 4, 12, 13 y 15 ne
 
 ## 8. M7: Expediente y evidencia (Requirement 8)
 
-- [ ] 8.1 Ciclo a y b de `EvidenciaViaje`, `ExpedienteViaje` y descarga.
-- [ ] 8.2 Pestaña y acciones por `monitoreo.consultar`; `404` fuera de alcance como "no encontrado".
-- [ ] 8.3 Fila "subir adjunto" con `monitoreo.consultar` (confirmado por el Lead).
-- [ ]* 8.4 Pruebas por rol. Regresión de E8-T17.
-- [ ] 8.5 Cierre de M7.
+- [x] 8.1 Ciclo a y b de `EvidenciaViaje`, `ExpedienteViaje` y descarga. _(Línea base: la pantalla y la lista usaban `puedeUsarMonitoreo` (`monitoreo.dashboard`); el 403 del expediente hablaba de "alcance".)_
+- [x] 8.2 Pestaña y acciones por `monitoreo.consultar`; `404` fuera de alcance como "no encontrado". _(`ExpedienteViaje` envuelve su contenido en `RequiereCapacidad(monitoreo.consultar)`. Un `404` de la lista, de la subida o de la descarga dice "Viaje no encontrado"; un `403` de la lista y de la descarga de adjunto dice "sin permiso" y no ofrece reintentar.)_
+- [x] 8.3 Fila "subir adjunto" con `monitoreo.consultar` (confirmado por el Lead). _(La subida vive en `EvidenciaViaje`, que ya exige `monitoreo.consultar`.)_
+- [x]* 8.4 Pruebas por rol. Regresión de E8-T17. _(`ExpedienteRoles.test.tsx`. Regresión de E8-T17 en verde.)_
+- [x] 8.5 Cierre de M7. _(Typecheck y lint en verde.)_
 
 ## 9. M8: Dashboard de monitoreo (Requirement 9)
 

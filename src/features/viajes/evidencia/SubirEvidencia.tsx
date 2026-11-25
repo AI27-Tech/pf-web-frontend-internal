@@ -5,6 +5,7 @@ import {
   ErrorSubidaFallida,
   ErrorSubidaRechazada,
 } from '@/lib/api/adjuntos';
+import { ErrorViajeInexistente } from '@/lib/api/expediente';
 
 export interface SubirEvidenciaProps {
   readonly subiendo: boolean;
@@ -18,6 +19,7 @@ function mensajeErrorSubida(error: Error): string {
   if (error instanceof ErrorAdjuntosProhibido) {
     return 'No tienes autorización para subir evidencia a este viaje.';
   }
+  if (error instanceof ErrorViajeInexistente) return 'Viaje no encontrado.';
   if (error instanceof ErrorSubidaFallida) {
     return 'No se pudo transferir el archivo. Vuelve a intentarlo.';
   }
