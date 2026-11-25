@@ -15,7 +15,11 @@ import { Rol } from '@ai27-tech/contracts/roles';
 
 import { Solicitudes } from '@/features/solicitudes/Solicitudes';
 import { mockAccessToken } from '@/mocks/data';
-import { handlersSolicitudes, reiniciarSolicitudesMock } from '@/mocks/solicitudes';
+import {
+  ajustarSolicitudMock,
+  handlersSolicitudes,
+  reiniciarSolicitudesMock,
+} from '@/mocks/solicitudes';
 
 const server = setupServer(...handlersSolicitudes);
 const logoutSpy = vi.fn();
@@ -98,7 +102,7 @@ describe('M14 · bandeja', () => {
     montar(null);
 
     expect((await screen.findAllByText('18500.00 MXN')).length).toBeGreaterThan(0);
-    expect(filas()).toHaveLength(1 + 5);
+    expect(filas()).toHaveLength(1 + 6);
     expect(screen.getByRole('columnheader', { name: 'Cotización' })).toBeInTheDocument();
     expect(screen.getByText('Todos los estados')).toBeInTheDocument();
     expect(peticiones).toContain('GET /api/v1/solicitudes');
@@ -108,7 +112,7 @@ describe('M14 · bandeja', () => {
     rolActual = Rol.Administrador;
     montar(null);
 
-    expect(await screen.findAllByRole('button', { name: /^Abrir solicitud/ })).toHaveLength(5);
+    expect(await screen.findAllByRole('button', { name: /^Abrir solicitud/ })).toHaveLength(6);
   });
 
   it.each([Rol.Ejecutivo, Rol.Monitorista, Rol.Supervisor, Rol.Coordinador, Rol.Reaccion])(
@@ -324,6 +328,382 @@ describe('M14 · detalle del Administrador', () => {
 
     expect(await screen.findByRole('button', { name: 'Confirmar pago' })).toBeInTheDocument();
     expect(boton('Aprobar')).toBeNull();
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* tracer.47 (15.9): fecha pasada, moneda y monto, pago tardío                */
+/* -------------------------------------------------------------------------- */
+
+const DIA_MS = 24 * 60 * 60 * 1000;
+
+/** Solicitud con el wire mínimo que pinta el detalle; `extra` pisa lo que haga falta. */
+function solicitudWire(extra: Record<string, unknown> = {}) {
+  return {
+    id: 'SOL-1001',
+    estado: 'SOLICITADO',
+    cliente_id: 'CLI-1001',
+    cliente: { id: 'CLI-1001', nombre: 'Cliente Uno' },
+    origen: 'Manzanillo',
+    destinos: [{ nombre: 'Guadalajara' }],
+    fecha_hora_servicio: new Date(Date.now() + 10 * DIA_MS).toISOString(),
+    tipo_servicio: 'custodia',
+    tracto: null,
+    cotizacion: null,
+    pago: null,
+    marca_penalizacion: false,
+    motivo_rechazo: null,
+    avisos: [],
+    creado_en: new Date(Date.now() - DIA_MS).toISOString(),
+    ...extra,
+  };
+}
+
+const fechaPasada = () => new Date(Date.now() - 2 * DIA_MS).toISOString();
+
+async function servirSolicitud(extra: Record<string, unknown>) {
+  const { http, HttpResponse } = await import('msw');
+  server.use(http.get('*/solicitudes/:id', () => HttpResponse.json(solicitudWire(extra))));
+  return { http, HttpResponse };
+}
+
+describe('M14 · tracer.47: cotizar con moneda fija, monto sin signo y fecha futura (15.9)', () => {
+  beforeEach(() => {
+    rolActual = Rol.Cotizacion;
+  });
+
+  it('la moneda es MXN sin selector y el monto acepta cero', async () => {
+    const user = userEvent.setup();
+    montar('SOL-1001');
+
+    await user.click(await screen.findByRole('button', { name: 'Cotizar' }));
+    const dialogo = await screen.findByRole('dialog');
+    expect(within(dialogo).queryByLabelText(/Moneda/)).toBeNull();
+    expect(within(dialogo).getByText('MXN')).toBeInTheDocument();
+
+    await user.type(within(dialogo).getByLabelText(/Monto/), '0');
+    const enviar = within(dialogo).getByRole('button', { name: 'Enviar cotización' });
+    expect(enviar).toBeEnabled();
+    await user.click(enviar);
+
+    expect(await screen.findByText('Cotización enviada.')).toBeInTheDocument();
+    expect(cuerpos[0]).toMatchObject({ monto: '0', moneda: 'MXN' });
+  });
+
+  it('un monto negativo no se acepta: no hay signo en el formato', async () => {
+    const user = userEvent.setup();
+    montar('SOL-1001');
+
+    await user.click(await screen.findByRole('button', { name: 'Cotizar' }));
+    const dialogo = await screen.findByRole('dialog');
+    await user.type(within(dialogo).getByLabelText(/Monto/), '-100');
+
+    expect(within(dialogo).getByText(/Escribe el importe con números/)).toBeInTheDocument();
+    expect(within(dialogo).getByRole('button', { name: 'Enviar cotización' })).toBeDisabled();
+  });
+
+  it('una fecha y hora del servicio en el pasado se señala en el campo y bloquea el envío', async () => {
+    await servirSolicitud({ fecha_hora_servicio: fechaPasada() });
+    const user = userEvent.setup();
+    montar('SOL-1001');
+
+    await user.click(await screen.findByRole('button', { name: 'Cotizar' }));
+    const dialogo = await screen.findByRole('dialog');
+    await user.type(within(dialogo).getByLabelText(/Monto/), '9500');
+
+    expect(
+      within(dialogo).getByText('La fecha y hora del servicio debe ser posterior a este momento.'),
+    ).toBeInTheDocument();
+    expect(within(dialogo).getByRole('button', { name: 'Enviar cotización' })).toBeDisabled();
+    expect(cuerpos).toEqual([]);
+  });
+
+  it('un 400 sin código al cotizar nombra las causas y conserva lo capturado', async () => {
+    const { http, HttpResponse } = await import('msw');
+    server.use(
+      http.put('*/solicitudes/:id/cotizacion', () =>
+        HttpResponse.json({ mensaje: 'solicitud invalida' }, { status: 400 }),
+      ),
+    );
+    const user = userEvent.setup();
+    montar('SOL-1001');
+
+    await user.click(await screen.findByRole('button', { name: 'Cotizar' }));
+    const dialogo = await screen.findByRole('dialog');
+    await user.type(within(dialogo).getByLabelText(/Monto/), '9500');
+    await user.click(within(dialogo).getByRole('button', { name: 'Enviar cotización' }));
+
+    expect(
+      await within(dialogo).findByText(/fecha y hora del servicio sea posterior a este momento/),
+    ).toBeInTheDocument();
+    expect(within(dialogo).getByLabelText(/Monto/)).toHaveValue('9500');
+  });
+});
+
+describe('M14 · tracer.47: reprogramar y aprobar con fecha pasada (15.9)', () => {
+  it('reprogramar con una fecha pasada se señala en el campo y bloquea el envío', async () => {
+    rolActual = Rol.Cotizacion;
+    await servirSolicitud({
+      id: 'SOL-1003',
+      estado: 'PAGADO',
+      fecha_hora_servicio: fechaPasada(),
+    });
+    const user = userEvent.setup();
+    montar('SOL-1003');
+
+    await user.click(await screen.findByRole('button', { name: 'Reprogramar' }));
+    const dialogo = await screen.findByRole('dialog');
+    await user.type(within(dialogo).getByLabelText(/Motivo de la reprogramación/), 'Sin escolta');
+
+    expect(
+      within(dialogo).getByText('La fecha y hora del servicio debe ser posterior a este momento.'),
+    ).toBeInTheDocument();
+    expect(within(dialogo).getByRole('button', { name: 'Reprogramar' })).toBeDisabled();
+  });
+
+  it('un 400 sin código al reprogramar se explica y conserva el motivo', async () => {
+    rolActual = Rol.Cotizacion;
+    const { http, HttpResponse } = await import('msw');
+    server.use(
+      http.put('*/solicitudes/:id/fecha-hora', () =>
+        HttpResponse.json({ mensaje: 'solicitud invalida' }, { status: 400 }),
+      ),
+    );
+    const user = userEvent.setup();
+    montar('SOL-1003');
+
+    await user.click(await screen.findByRole('button', { name: 'Reprogramar' }));
+    const dialogo = await screen.findByRole('dialog');
+    await user.type(within(dialogo).getByLabelText(/Motivo de la reprogramación/), 'Sin escolta');
+    await user.click(within(dialogo).getByRole('button', { name: 'Reprogramar' }));
+
+    expect(
+      await within(dialogo).findByText(/debe ser posterior a este momento/),
+    ).toBeInTheDocument();
+    expect(within(dialogo).getByLabelText(/Motivo de la reprogramación/)).toHaveValue(
+      'Sin escolta',
+    );
+  });
+
+  it.each([Rol.JefeOperativo, Rol.Administrador])(
+    '%s: un 409 fecha_hora_servicio_pasada al aprobar se explica, manda a reprogramar y no navega',
+    async (rol) => {
+      rolActual = rol;
+      const { http, HttpResponse } = await import('msw');
+      server.use(
+        http.post('*/solicitudes/:id/aprobacion', () =>
+          HttpResponse.json(
+            { codigo: 'fecha_hora_servicio_pasada', mensaje: 'x' },
+            { status: 409 },
+          ),
+        ),
+      );
+      const user = userEvent.setup();
+      const { onVerViaje } = montar('SOL-1003');
+
+      await user.click(await screen.findByRole('button', { name: 'Aprobar' }));
+      const dialogo = await screen.findByRole('dialog');
+      await user.click(within(dialogo).getByRole('button', { name: 'Aprobar' }));
+
+      expect(
+        await within(dialogo).findByText(/La fecha y hora del servicio ya pasó/),
+      ).toBeInTheDocument();
+      expect(within(dialogo).getByText(/Cotización que la reprograme/)).toBeInTheDocument();
+      expect(onVerViaje).not.toHaveBeenCalled();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    },
+  );
+
+  it('el servidor simulado aplica la misma guarda: aprobar con fecha pasada es 409', async () => {
+    rolActual = Rol.Administrador;
+    ajustarSolicitudMock('SOL-1003', { fecha_hora_servicio: fechaPasada() });
+    const user = userEvent.setup();
+    const { onVerViaje } = montar('SOL-1003');
+
+    await user.click(await screen.findByRole('button', { name: 'Aprobar' }));
+    const dialogo = await screen.findByRole('dialog');
+    await user.click(within(dialogo).getByRole('button', { name: 'Aprobar' }));
+
+    expect(
+      await within(dialogo).findByText(/La fecha y hora del servicio ya pasó/),
+    ).toBeInTheDocument();
+    expect(onVerViaje).not.toHaveBeenCalled();
+  });
+});
+
+describe('M14 · tracer.47: pago tardío VENCIDA → PAGADO (15.9)', () => {
+  beforeEach(() => {
+    rolActual = Rol.Cotizacion;
+  });
+
+  /** `DD/MM/AAAA` de hace `dias` días, en hora local (lo que escribe quien captura). */
+  function haceDias(dias: number): string {
+    const fecha = new Date(Date.now() - dias * DIA_MS);
+    const dos = (n: number) => String(n).padStart(2, '0');
+    return `${dos(fecha.getDate())}/${dos(fecha.getMonth() + 1)}/${fecha.getFullYear()}`;
+  }
+
+  it('una solicitud VENCIDA solo ofrece confirmar el pago, como excepción', async () => {
+    montar('SOL-1006');
+
+    expect(await screen.findByRole('button', { name: 'Confirmar pago' })).toBeInTheDocument();
+    expect(boton('Cotizar')).toBeNull();
+    expect(boton('Recotizar')).toBeNull();
+    expect(boton('Reprogramar')).toBeNull();
+  });
+
+  it('confirma con una fecha dentro de la vigencia y la solicitud pasa a PAGADO', async () => {
+    const user = userEvent.setup();
+    montar('SOL-1006');
+
+    await user.click(await screen.findByRole('button', { name: 'Confirmar pago' }));
+    const dialogo = await screen.findByRole('dialog');
+    expect(within(dialogo).getByText(/La cotización venció/)).toBeInTheDocument();
+    await user.type(within(dialogo).getByLabelText(/Fecha del pago/), haceDias(10));
+    await user.tab();
+    await user.click(within(dialogo).getByRole('button', { name: 'Confirmar pago' }));
+
+    expect(await screen.findByText(/Pago confirmado\./)).toBeInTheDocument();
+    // Ya está PAGADO: Cotización reprograma y el histórico registra la excepción.
+    expect(await screen.findByRole('button', { name: 'Reprogramar' })).toBeInTheDocument();
+    expect(await screen.findByText('Pago confirmado tras el vencimiento')).toBeInTheDocument();
+  });
+
+  it('un segundo pago tardío (409 transicion_no_permitida) tiene texto propio', async () => {
+    const { http, HttpResponse } = await import('msw');
+    server.use(
+      http.put('*/solicitudes/:id/pago', () =>
+        HttpResponse.json({ codigo: 'transicion_no_permitida', mensaje: 'x' }, { status: 409 }),
+      ),
+    );
+    const user = userEvent.setup();
+    montar('SOL-1006');
+
+    await user.click(await screen.findByRole('button', { name: 'Confirmar pago' }));
+    const dialogo = await screen.findByRole('dialog');
+    await user.type(within(dialogo).getByLabelText(/Fecha del pago/), haceDias(10));
+    await user.tab();
+    await user.click(within(dialogo).getByRole('button', { name: 'Confirmar pago' }));
+
+    expect(
+      await within(dialogo).findByText(/ya tuvo su pago tardío, que solo se acepta una vez/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('el servidor simulado rechaza el segundo pago tardío con transicion_no_permitida', async () => {
+    ajustarSolicitudMock('SOL-1006', { pagoTardioUsado: true });
+    const user = userEvent.setup();
+    montar('SOL-1006');
+
+    await user.click(await screen.findByRole('button', { name: 'Confirmar pago' }));
+    const dialogo = await screen.findByRole('dialog');
+    await user.type(within(dialogo).getByLabelText(/Fecha del pago/), haceDias(10));
+    await user.tab();
+    await user.click(within(dialogo).getByRole('button', { name: 'Confirmar pago' }));
+
+    expect(await within(dialogo).findByText(/solo se acepta una vez/)).toBeInTheDocument();
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* 15.11: `null` es "oculto" para el Jefe Operativo                            */
+/* -------------------------------------------------------------------------- */
+
+describe('M14 · el Jefe Operativo trata null como "oculto" (15.11; DEC-148 #67 y #73)', () => {
+  it.each([
+    ['null explícito', { cotizacion: null, pago: null }],
+    ['ausentes', {}],
+  ])('cotizacion y pago %s: ni sección comercial ni "sin cotizar"', async (_nombre, comercial) => {
+    await servirSolicitud({ id: 'SOL-1003', estado: 'PAGADO', ...comercial });
+    montar('SOL-1003');
+
+    expect(await screen.findByRole('button', { name: 'Aprobar' })).toBeInTheDocument();
+    expect(screen.queryByText('Cotización y pago')).toBeNull();
+    expect(
+      screen.queryByText(/Cotización vigente|Referencia del pago|Fecha del pago|Notas de la/),
+    ).toBeNull();
+    expect(screen.queryByText(/sin cotizar|sin cotización|sin pago|no se ha cotizado/i)).toBeNull();
+  });
+
+  it('el histórico no pinta el motivo de pago_revertido ni el importe, aunque llegaran; el de reprogramada sí', async () => {
+    const { http, HttpResponse } = await import('msw');
+    const en = (dias: number) => new Date(Date.now() - dias * DIA_MS).toISOString();
+    server.use(
+      http.get('*/solicitudes/:id/historico', () =>
+        HttpResponse.json({
+          items: [
+            { accion: 'creada', en: en(6) },
+            {
+              accion: 'cotizada',
+              de_estado: 'SOLICITADO',
+              a_estado: 'COTIZADO',
+              cotizacion: {
+                version: 1,
+                monto: '18500.00',
+                moneda: 'MXN',
+                fecha_hora_servicio: en(-3),
+                entregada_en: en(5),
+                vigente_hasta: '2026-12-01',
+              },
+              en: en(5),
+            },
+            {
+              accion: 'pago_revertido',
+              de_estado: 'PAGADO',
+              a_estado: 'COTIZADO',
+              motivo: 'Se confirmó por error el SPEI-99887 de 18500 pesos',
+              en: en(3),
+            },
+            { accion: 'reprogramada', motivo: 'Sin escolta ese día', en: en(1) },
+          ],
+        }),
+      ),
+    );
+    montar('SOL-1003');
+
+    expect(await screen.findByText('Pago revertido')).toBeInTheDocument();
+    expect(screen.getByText(/Motivo: Sin escolta ese día/)).toBeInTheDocument();
+    expect(screen.queryByText(/SPEI-99887/)).toBeNull();
+    expect(screen.queryByText(/Se confirmó por error/)).toBeNull();
+    expect(screen.queryByText(/18500/)).toBeNull();
+    expect(screen.queryByText(/versión 1/)).toBeNull();
+  });
+
+  it('Cotización sí ve el motivo de pago_revertido y la versión de cada cotización', async () => {
+    rolActual = Rol.Cotizacion;
+    const { http, HttpResponse } = await import('msw');
+    server.use(
+      http.get('*/solicitudes/:id/historico', () =>
+        HttpResponse.json({
+          items: [
+            {
+              accion: 'pago_revertido',
+              de_estado: 'PAGADO',
+              a_estado: 'COTIZADO',
+              motivo: 'Se confirmó por error',
+              en: new Date().toISOString(),
+            },
+            {
+              accion: 'recotizada',
+              cotizacion: {
+                version: 2,
+                monto: '17000.00',
+                moneda: 'MXN',
+                fecha_hora_servicio: new Date().toISOString(),
+                entregada_en: new Date().toISOString(),
+                vigente_hasta: '2026-12-01',
+              },
+              en: new Date().toISOString(),
+            },
+          ],
+        }),
+      ),
+    );
+    montar('SOL-1003');
+
+    expect(await screen.findByText(/Motivo: Se confirmó por error/)).toBeInTheDocument();
+    expect(screen.getByText(/17000\.00 MXN \(versión 2\)/)).toBeInTheDocument();
   });
 });
 

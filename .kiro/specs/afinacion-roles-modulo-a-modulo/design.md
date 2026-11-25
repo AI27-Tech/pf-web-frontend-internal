@@ -73,6 +73,7 @@ src/components/permisos/
 | `solicitud.revertirPago`                                                                          | (solo ADM)                                                   | M14    |
 | `solicitud.aprobar`, `solicitud.rechazar`                                                         | JO                                                           | M14    |
 | `solicitud.conversacion`                                                                          | COT                                                          | M14    |
+| `solicitud.transferir`                                                                            | COT (solo el responsable; destino condicionado a Q-D)        | M14    |
 | `roster.ver`, `roster.unidad.editar`, `alcance.clientes.fijar`                                    | JO                                                           | M11    |
 | `alcance.subordinados.fijar`                                                                      | (solo ADM)                                                   | M11    |
 | `catalogos.recursos.escribir` (vehículos y custodios)                                             | COO                                                          | M13    |
@@ -139,7 +140,7 @@ Se conserva el patrón de v2: `RequiereCapacidad` lee `useSession()` y renderiza
 
 Hook por operación del BFF, un `useQuery` o `useMutation` por acción. La respuesta de `obtenerSolicitud` y `listarHistoricoSolicitud` se modela con `cotizacion` y `pago` opcionales; el componente del JO no los renderiza. Tras `aprobarSolicitud`, la navegación va a `/viajes/{id}` con el mismo id; el `404` de `obtenerSolicitud` para JO se trata como solicitud resuelta. `null` o ausencia de `cotizacion` y `pago` significa "oculto" para el JO (documentado en `tracer.47`), y el `motivo` de `pago_revertido` tampoco se pinta.
 
-**Transferir.** En conversaciones de solicitud, `transferirConversacion` envía `responsable_destino_id` igual al `UsuarioAdmin.id` de un usuario `cotizacion`; `mensajeria` valida el rol (`409 destino_no_es_cotizacion`). Queda condicionado a Q-D (un usuario `cotizacion` no puede listar usuarios). En conversaciones del viaje y en emergencias no hay selector posible: el destino es el `sub` del token, que el panel no conoce.
+**Transferir.** En conversaciones de solicitud, `transferirConversacion` envía `responsable_destino_id` igual al `UsuarioAdmin.id` de un usuario `cotizacion`; `mensajeria` valida el rol (`409 destino_no_es_cotizacion`). Queda condicionado a Q-D (un usuario `cotizacion` no puede listar usuarios). Construido: `DialogoTransferir` lista a los usuarios `cotizacion` activos con `listarSujetos?rol=cotizacion&activo=true` (`lib/api/usuarios.ts`), excluye al propio usuario y solo se ofrece al responsable del reclamo en una conversación `tipo=solicitud`. Si el listado responde `403` (hoy, `cotizacion`), el diálogo lo explica y no hay selector. `409 destino_no_es_cotizacion` tiene texto propio (`ErrorDestinoNoEsCotizacion`). En conversaciones del viaje y en emergencias no hay selector posible: el destino es el `sub` del token, que el panel no conoce.
 
 ## Mocks
 

@@ -108,6 +108,8 @@ export function ListaTrabajo({
                 >
                   <Badge variant={c.puedeResponder ? 'secure' : 'neutral'}>{estado}</Badge>
                   {item.atendida_en && <Badge variant="secure">Atendida</Badge>}
+                  {/* El cliente escribió y AI27 no ha respondido (DEC-148 #54; E10-HU-038). */}
+                  {item.sin_respuesta && <Badge variant="warning">Sin respuesta</Badge>}
                   <small>{new Date(item.abierta_en).toLocaleString()}</small>
                 </Inline>
               </button>

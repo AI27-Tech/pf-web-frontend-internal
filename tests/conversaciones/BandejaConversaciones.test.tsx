@@ -840,6 +840,41 @@ describe('Ausencia de gestos excluidos de V1 (Requirements 7 y 9)', () => {
     expect(document.body).not.toHaveTextContent(/pendiente|no le[ií]dos?|sin leer/i);
   });
 
+  // 11.6 (Requirement 11.5; DEC-148 #76, DT-28): el destino de una transferencia en el viaje es el
+  // `sub` del destinatario, que el panel no conoce, y un id de sujeto responde
+  // `409 destino_invalido_en_viaje`. Por eso el panel no ofrece transferir, ni siquiera al
+  // responsable, y tampoco consulta a quién transferir ni a quién pertenece el reclamo.
+  it('el Ejecutivo responsable de una conversación del viaje no ve transferir ni pide usuarios', async () => {
+    const peticiones: string[] = [];
+    const registrar = ({ request }: { request: Request }) => {
+      peticiones.push(`${request.method} ${new URL(request.url).pathname}`);
+    };
+    server.events.on('request:start', registrar);
+    const usuario = userEvent.setup();
+    renderBandeja(ID.mia);
+    await esperarBotonDelPanel('Marcar atendida');
+
+    // Tiene el reclamo: ve devolver y marcar atendida, pero no transferir.
+    expect(botonDelPanel('Devolver al pool')).toBeInTheDocument();
+    expect(within(panel()).queryByRole('button', { name: /transferi/i })).not.toBeInTheDocument();
+    await usuario.click(botonDelPanel('Devolver al pool'));
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(document.querySelector('select')).toBeNull();
+    expect(peticiones.some((p) => p.includes('/sujetos') || p.includes('/transferencias'))).toBe(
+      false,
+    );
+    server.events.removeListener('request:start', registrar);
+  });
+  it('no muestra quién es el responsable a partir de reclamo_activo.responsable_id', async () => {
+    renderBandeja(ID.deOtro);
+    await within(panel()).findByText('Lo estamos revisando.');
+    await esperarListaCargada();
+
+    // El reclamo ajeno solo se dice como "Otra persona": el id es un sub, no un nombre.
+    expect(within(panel()).getByText(TEXTO_BANNER.otro)).toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent(new RegExp(OTRA_PERSONA));
+    expect(document.body).not.toHaveTextContent(/responsable_id|responsable:/i);
+  });
   it('la fila no lleva vista previa del último mensaje ni conteo de no leídos', async () => {
     renderBandeja();
     await esperarListaCargada();

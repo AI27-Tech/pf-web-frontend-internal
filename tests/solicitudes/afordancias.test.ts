@@ -20,11 +20,13 @@ const ESPERADO: Record<string, Partial<Record<EstadoSolicitud, readonly AccionSo
     SOLICITADO: ['cotizar'],
     COTIZADO: ['cotizar', 'confirmarPago'],
     PAGADO: ['reprogramar'],
+    VENCIDA: ['confirmarPago'],
   },
   administrador: {
     SOLICITADO: ['cotizar'],
     COTIZADO: ['cotizar', 'confirmarPago'],
     PAGADO: ['reprogramar', 'revertirPago', 'aprobar', 'rechazar'],
+    VENCIDA: ['confirmarPago'],
   },
 };
 

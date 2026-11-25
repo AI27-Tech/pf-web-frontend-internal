@@ -281,6 +281,16 @@ function datosComerciales(solicitud: Solicitud): DescriptionListItem[] {
   ];
 }
 
+/**
+ * El `motivo` de `pago_revertido` es texto libre que puede nombrar montos o referencias: el `bff`
+ * lo manda `null` al Jefe Operativo y la UI tampoco lo pinta si llegara (DEC-148 #73). El de
+ * `reprogramada` es operativo y sí se muestra.
+ */
+function motivoVisible(item: HistoricoSolicitudItem, comercial: boolean): boolean {
+  if (!item.motivo) return false;
+  return comercial || item.accion !== 'pago_revertido';
+}
+
 function itemDeHistorico(item: HistoricoSolicitudItem, indice: number, comercial: boolean) {
   const cambio =
     item.de_estado && item.a_estado
@@ -290,9 +300,11 @@ function itemDeHistorico(item: HistoricoSolicitudItem, indice: number, comercial
         : undefined;
   const detalle = [
     cambio,
-    // La versión de la cotización es dato comercial: el Jefe Operativo no la ve.
-    comercial && item.cotizacion ? `${item.cotizacion.monto} ${item.cotizacion.moneda}` : undefined,
-    item.motivo ? `Motivo: ${item.motivo}` : undefined,
+    // Cada versión de la cotización es dato comercial: el Jefe Operativo no la ve (DEC-148 #67).
+    comercial && item.cotizacion
+      ? `${item.cotizacion.monto} ${item.cotizacion.moneda} (versión ${item.cotizacion.version})`
+      : undefined,
+    motivoVisible(item, comercial) ? `Motivo: ${item.motivo}` : undefined,
   ].filter(Boolean);
   return {
     id: `${item.en}-${indice}`,

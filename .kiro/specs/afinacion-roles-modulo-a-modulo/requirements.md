@@ -532,6 +532,8 @@ La conversación de solicitud tiene su matriz propia en M14.
 8. THE panel del Jefe Operativo (E8-T20) SHALL sustituir "Solicitudes por aprobar" por la bandeja de solicitudes `PAGADO` cuando este módulo se implemente.
 9. THE transferencia de una conversación de solicitud SHALL enviar como `responsable_destino_id` el `UsuarioAdmin.id` de un usuario con rol `cotizacion` y SHALL mostrar un texto propio ante `409 destino_no_es_cotizacion`; SHALL quedar condicionada a Q-D (cómo elige el destino un usuario `cotizacion`).
 10. THE UI SHALL tratar como errores de validación visibles el `409 fecha_hora_servicio_pasada` al aprobar, el `400` por fecha pasada al crear, cotizar o reprogramar, y el `409 transicion_no_permitida` del segundo pago tardío; la moneda SHALL fijarse en `MXN` sin selector y el monto SHALL aceptar cero.
+11. WHEN una solicitud está `VENCIDA`, THE UI SHALL ofrecer a `cotizacion` y `administrador` confirmar el pago como excepción (una sola vez por solicitud, con la fecha del pago dentro de la vigencia) y ninguna otra acción (E10-HU-037; DEC-148 #35 y #64).
+12. THE bandeja de conversaciones SHALL marcar "Sin respuesta" cuando `Conversacion.sin_respuesta` sea `true` (E10-HU-038; DEC-148 #54).
 
 ---
 

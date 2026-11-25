@@ -1,5 +1,5 @@
 /*
- * Contrato de solicitudes (M14, tracer.46, generado).
+ * Contrato de solicitudes (M14, tracer.47, generado).
  *
  * Los tipos del wire salen de `@ai27-tech/contracts`; aquí solo se nombran. El Jefe Operativo
  * recibe la solicitud sin `cotizacion` ni `pago`: la UI trata `null` o ausencia como "oculto",
@@ -21,14 +21,8 @@ export type ReprogramacionEntrada = Schemas['ReprogramacionEntrada'];
 export type PagoEntrada = Schemas['PagoEntrada'];
 export type MotivoEntrada = Schemas['MotivoEntrada'];
 
-/** Todos los estados de la solicitud. El `Record` de etiquetas obliga a cubrir cada uno. */
-export const ESTADOS_SOLICITUD: readonly EstadoSolicitud[] = [
-  'SOLICITADO',
-  'COTIZADO',
-  'PAGADO',
-  'APROBADO',
-  'RECHAZADO_POR_AI27',
-  'RECHAZADO_POR_CLIENTE',
-  'CANCELADO_POR_CLIENTE',
-  'VENCIDA',
-];
+/**
+ * Todos los estados de la solicitud, tal como los publica el paquete (ADR 38). El `Record` de
+ * etiquetas obliga a cubrir cada uno.
+ */
+export { ESTADOS_SOLICITUD } from '@ai27-tech/contracts/estados/solicitud';

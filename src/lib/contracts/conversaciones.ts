@@ -10,5 +10,6 @@ export type PaginaMensajes = Schemas['PaginaMensajes'];
 export type EnviarMensajeInternaEntrada = Schemas['EnviarMensajeInternaEntrada'];
 export type VersionEsperadaEntrada = Schemas['VersionEsperadaEntrada'];
 export type ReciboEntrada = Schemas['ReciboEntrada'];
+export type TransferenciaEntrada = Schemas['TransferenciaEntrada'];
 export type Cliente = Schemas['Cliente'];
 export type PaginaClientes = Schemas['PaginaClientes'];

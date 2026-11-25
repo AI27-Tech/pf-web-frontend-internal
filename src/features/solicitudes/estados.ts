@@ -49,7 +49,7 @@ const ETIQUETA_ACCION: Readonly<Record<string, string>> = {
   recotizada: 'Recotización enviada',
   reprogramada: 'Fecha y hora reprogramada',
   pago_confirmado: 'Pago confirmado',
-  pago_confirmado_tardio: 'Pago confirmado fuera de vigencia',
+  pago_confirmado_tardio: 'Pago confirmado tras el vencimiento',
   pago_revertido: 'Pago revertido',
   cotizacion_rechazada: 'Cotización rechazada por el cliente',
   cancelada: 'Solicitud cancelada',
@@ -69,6 +69,17 @@ export function formatearFechaHora(valor: string | null | undefined): string {
   const fecha = new Date(valor);
   if (Number.isNaN(fecha.getTime())) return valor;
   return fecha.toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+/**
+ * `true` si el valor de `DateTimeInput` no es posterior al instante actual. El servidor aplica la
+ * misma regla en `America/Mexico_City` (DEC-148 #66); aquí se compara el instante, que no depende
+ * de la zona del navegador. Un valor vacío o inválido no es "pasado": lo cubre la obligatoriedad.
+ */
+export function esFechaPasada(valor: string, ahora: Date = new Date()): boolean {
+  if (!valor) return false;
+  const instante = new Date(valor).getTime();
+  return !Number.isNaN(instante) && instante <= ahora.getTime();
 }
 
 /** "13 nov 2026" para una fecha de calendario `YYYY-MM-DD`, sin pasar por la zona horaria. */

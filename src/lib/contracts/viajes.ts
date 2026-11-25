@@ -22,7 +22,7 @@ export type PaginaViajesResumen = components['schemas']['PaginaViajesResumen'];
 /**
  * Enum de estados del viaje (procedencia: `@ai27-tech/contracts/estados`).
  *
- * Objeto const-as-data: a la vez VALOR (`{ Solicitado, EnTransito, … }`) y TIPO
+ * Objeto const-as-data: a la vez VALOR (`{ Aprobado, EnTransito, … }`) y TIPO
  * (union de los tokens de ADR 19). Se reexporta tal cual del contrato.
  */
 export { EstadoViaje } from '@ai27-tech/contracts/estados';

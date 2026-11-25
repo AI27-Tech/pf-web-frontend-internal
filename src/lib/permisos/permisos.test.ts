@@ -77,6 +77,7 @@ const ESPERADO: Record<Capacidad, string> = {
   'solicitud.aprobar': 'JO ADM',
   'solicitud.rechazar': 'JO ADM',
   'solicitud.conversacion': 'COT ADM',
+  'solicitud.transferir': 'COT ADM',
   'catalogos.ver': 'JO COO ADM',
   'catalogos.escribir': 'COO ADM',
 };

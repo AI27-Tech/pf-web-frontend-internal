@@ -53,6 +53,9 @@ export function BandejaConversacionesBase({
   const nombres = useNombresCliente(origen === 'viaje' || puede(usuario?.rol, 'clientes.listar'));
   const detalle = useConversacion(id);
   const capacidadOperar = origen === 'solicitud' ? 'solicitud.conversacion' : 'conversacion.operar';
+  // Transferir solo existe en la solicitud: el destino es el id del sujeto (DEC-148 #74). En el
+  // viaje sería el `sub` del destinatario, que el panel no conoce (DT-28).
+  const puedeTransferir = origen === 'solicitud' && puede(usuario?.rol, 'solicitud.transferir');
   const panelVisible = Boolean(detalle.conversacion && !detalle.cargando);
   return (
     <Grid gap={4} style={{ gridTemplateColumns: 'minmax(18rem, 32rem) minmax(0, 1fr)' }}>
@@ -100,6 +103,7 @@ export function BandejaConversacionesBase({
             onReclamar={() => void detalle.reclamar()}
             onDevolver={() => void detalle.devolver()}
             onAtendida={() => void detalle.atendida()}
+            {...(puedeTransferir ? { onTransferir: detalle.transferir } : {})}
           />
         ) : (
           <div>

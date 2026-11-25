@@ -12,7 +12,9 @@ import {
 } from '@ai27-tech/ui';
 import type { Conversacion, Mensaje } from '@/lib/contracts/conversaciones';
 import { capacidades } from './afordancias';
+import type { AccionEnCurso } from './useConversacion';
 import { BannerEstado } from './BannerEstado';
+import { DialogoTransferir } from './DialogoTransferir';
 
 interface PanelConversacionProps {
   conversacion: Conversacion;
@@ -23,7 +25,7 @@ interface PanelConversacionProps {
   borrador: string;
   setBorrador: (v: string) => void;
   enviando: boolean;
-  accionEnCurso: 'reclamar' | 'devolver' | 'atendida' | null;
+  accionEnCurso: AccionEnCurso | null;
   error: Error | null;
   desactualizada: boolean;
   actualizadoEn: Date | null;
@@ -34,6 +36,11 @@ interface PanelConversacionProps {
   onReclamar: () => void;
   onDevolver: () => void;
   onAtendida: () => void;
+  /**
+   * Solo en conversaciones de solicitud y para quien tiene `solicitud.transferir`: el destino es
+   * un usuario de `cotizacion`. En viaje y emergencias no se ofrece (DT-28).
+   */
+  onTransferir?: (destinoId: string, motivo: string) => Promise<Error | null>;
 }
 
 export function PanelConversacion({
@@ -55,8 +62,10 @@ export function PanelConversacion({
   onReclamar,
   onDevolver,
   onAtendida,
+  onTransferir,
 }: PanelConversacionProps) {
   const [confirmarDevolucion, setConfirmarDevolucion] = useState(false);
+  const [transferir, setTransferir] = useState(false);
   const estado = capacidades(conversacion, sujetoId);
   // El estado de la conversación y del reclamo decide qué es posible; el rol, qué se ofrece (M10).
   const c = soloLectura
@@ -69,6 +78,9 @@ export function PanelConversacion({
       }
     : estado;
   const reclamante = conversacion.reclamo_activo?.responsable_id === sujetoId;
+  // Solo el responsable transfiere, y solo una conversación de solicitud.
+  const puedeTransferir =
+    Boolean(onTransferir) && conversacion.tipo === 'solicitud' && c.puedeDevolverAlPool;
   const devolver = () => {
     if (borrador.trim()) setConfirmarDevolucion(true);
     else onDevolver();
@@ -101,6 +113,15 @@ export function PanelConversacion({
         {c.puedeDevolverAlPool && (
           <Button variant="outline" onClick={devolver} disabled={accionEnCurso !== null}>
             Devolver al pool
+          </Button>
+        )}
+        {puedeTransferir && (
+          <Button
+            variant="outline"
+            onClick={() => setTransferir(true)}
+            disabled={accionEnCurso !== null}
+          >
+            Transferir
           </Button>
         )}
         {c.puedeMarcarAtendida && !conversacion.atendida_en && (
@@ -138,6 +159,15 @@ export function PanelConversacion({
           onSend={() => onEnviar(borrador)}
           disabled={!reclamante || !c.puedeResponder || enviando}
           placeholder={c.razonCompositor ? 'No puedes responder todavía' : 'Escribe una respuesta'}
+        />
+      )}
+      {transferir && onTransferir && (
+        <DialogoTransferir
+          abierto
+          sujetoId={sujetoId}
+          enviando={accionEnCurso === 'transferir'}
+          onCerrar={() => setTransferir(false)}
+          onTransferir={onTransferir}
         />
       )}
       <Modal

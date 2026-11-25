@@ -1,5 +1,5 @@
 /*
- * Mocks de solicitudes (M14, tracer.46): bandeja, detalle, histórico, cotización, reprogramación,
+ * Mocks de solicitudes (M14, tracer.47): bandeja, detalle, histórico, cotización, reprogramación,
  * pago, aprobación y rechazo. Emulan la frontera del `bff` (Requirement T3): rol por capacidad,
  * estado de origen, vigencia del pago y los `codigo` de máquina del contrato. No son la
  * autoridad. El estado vive en memoria; `reiniciarSolicitudesMock()` lo devuelve a la semilla.
@@ -7,6 +7,9 @@
  * La bandeja de conversaciones de solicitud responde vacía.
  * El Jefe Operativo solo ve `PAGADO`, sin `cotizacion` ni `pago` (DEC-148 #22 y #67); una
  * solicitud fuera de `PAGADO` le responde `404`. Aprobar no crea el viaje en el almacén simulado.
+ * Guardas de `tracer.47`: fecha y hora del servicio en el pasado (`400` al cotizar y reprogramar,
+ * `409 fecha_hora_servicio_pasada` al aprobar), moneda solo `MXN`, monto sin signo y un solo
+ * pago tardío `VENCIDA → PAGADO` por solicitud (DEC-148 #62, #64, #66 y #68).
  */
 import { http, HttpResponse } from 'msw';
 import { API_PREFIX } from '@/lib/constants';
@@ -28,6 +31,8 @@ interface SolicitudMock extends Omit<Solicitud, 'cotizacion' | 'pago' | 'cliente
   cotizacion: Cotizacion | null;
   pago: Pago | null;
   historico: HistoricoSolicitudItem[];
+  /** Ya hubo un pago tardío (`VENCIDA → PAGADO`); el segundo responde `409`. */
+  pagoTardioUsado?: boolean;
 }
 
 const VIGENCIA_DIAS = 15;
@@ -177,6 +182,28 @@ function semilla(): SolicitudMock[] {
         },
       ],
     },
+    {
+      ...base,
+      id: 'SOL-1006',
+      estado: 'VENCIDA',
+      cliente_id: 'CLI-1003',
+      origen: 'Salina Cruz',
+      destinos: [{ nombre: 'Oaxaca' }],
+      fecha_hora_servicio: futuro(5),
+      cotizacion: cotizada(20, futuro(5)),
+      pago: null,
+      creado_en: hace(22).toISOString(),
+      historico: [
+        { accion: 'creada', actor_id: 'CLI-1003', en: hace(22).toISOString() },
+        {
+          accion: 'vencida',
+          de_estado: 'COTIZADO',
+          a_estado: 'VENCIDA',
+          actor_id: null,
+          en: hace(4).toISOString(),
+        },
+      ],
+    },
   ];
 }
 
@@ -189,6 +216,17 @@ export function reiniciarSolicitudesMock(): void {
 
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Ajusta una solicitud simulada. Lo usan las pruebas para armar lo que el servidor no deja
+ * alcanzar por la API: una fecha y hora del servicio ya pasada, o un pago tardío ya usado.
+ */
+export function ajustarSolicitudMock(
+  id: string,
+  cambios: Partial<Pick<SolicitudMock, 'fecha_hora_servicio' | 'pagoTardioUsado'>>,
+): void {
+  const solicitud = solicitudes.find((s) => s.id === id);
+  if (solicitud) Object.assign(solicitud, cambios);
+}
 function error(status: number, codigo: string, mensaje: string) {
   return HttpResponse.json({ codigo, mensaje }, { status });
 }
@@ -198,6 +236,7 @@ function wire(solicitud: SolicitudMock, rol: Rol | null): Solicitud {
   const { cotizacion, pago } = solicitud;
   const resto: Partial<SolicitudMock> = { ...solicitud };
   delete resto.historico;
+  delete resto.pagoTardioUsado;
   delete resto.cotizacion;
   delete resto.pago;
   const cliente = CLIENTES_DEMO.find((c) => c.id === solicitud.cliente_id);
@@ -256,6 +295,9 @@ const textoNoVacio = (valor: unknown): valor is string =>
 const fechaValida = (valor: unknown): valor is string =>
   typeof valor === 'string' && !Number.isNaN(new Date(valor).getTime());
 
+/** Posterior al instante actual (DEC-148 #66); el servidor la mide en `America/Mexico_City`. */
+const fechaFutura = (valor: string): boolean => new Date(valor).getTime() > Date.now();
+
 export const handlersSolicitudes = [
   // Pool de conversaciones de solicitud (cotizacion y administrador). Vacío: el almacén de
   // conversaciones simuladas es del viaje; leer, reclamar y responder sigue el mismo mecanismo.
@@ -310,10 +352,17 @@ export const handlersSolicitudes = [
       !cuerpo ||
       typeof cuerpo.monto !== 'string' ||
       !/^\d+(\.\d+)?$/.test(cuerpo.monto) ||
-      !textoNoVacio(cuerpo.moneda) ||
+      cuerpo.moneda !== 'MXN' ||
       !fechaValida(cuerpo.fecha_hora_servicio)
     ) {
-      return error(400, 'validacion', 'monto, moneda y fecha_hora_servicio son obligatorios');
+      return error(400, 'validacion', 'monto, moneda (MXN) y fecha_hora_servicio son obligatorios');
+    }
+    // Fecha pasada: `400` sin `codigo` propio (DEC-148 #66).
+    if (!fechaFutura(cuerpo.fecha_hora_servicio)) {
+      return HttpResponse.json(
+        { mensaje: 'la fecha y hora del servicio ya pasó' },
+        { status: 400 },
+      );
     }
     if (solicitud.estado !== 'SOLICITADO' && solicitud.estado !== 'COTIZADO') {
       return transicionNoPermitida();
@@ -350,13 +399,20 @@ export const handlersSolicitudes = [
     if (!cuerpo || !fechaValida(cuerpo.fecha_hora_servicio) || !textoNoVacio(cuerpo.motivo)) {
       return error(400, 'validacion', 'fecha_hora_servicio y motivo son obligatorios');
     }
+    if (!fechaFutura(cuerpo.fecha_hora_servicio)) {
+      return HttpResponse.json(
+        { mensaje: 'la fecha y hora del servicio ya pasó' },
+        { status: 400 },
+      );
+    }
     if (solicitud.estado !== 'PAGADO') return transicionNoPermitida();
     solicitud.fecha_hora_servicio = cuerpo.fecha_hora_servicio;
     registrar(solicitud, 'reprogramada', { motivo: cuerpo.motivo.trim() });
     return HttpResponse.json(wire(solicitud, rol));
   }),
 
-  // Confirmar pago: COTIZADO → PAGADO; la fecha cae dentro de la vigencia de la última cotización.
+  // Confirmar pago: COTIZADO → PAGADO, o VENCIDA → PAGADO una sola vez (pago tardío); la fecha cae
+  // dentro de la vigencia de la última cotización.
   http.put(path('/solicitudes/:id/pago'), async ({ params, request }) => {
     const denegado = autorizarMock(request, 'solicitud.confirmarPago');
     if (denegado) return denegado;
@@ -371,7 +427,12 @@ export const handlersSolicitudes = [
     ) {
       return error(400, 'validacion', 'fecha_pago es obligatoria (YYYY-MM-DD)');
     }
-    if (solicitud.estado !== 'COTIZADO' || !solicitud.cotizacion) return transicionNoPermitida();
+    const tardio = solicitud.estado === 'VENCIDA';
+    if (!solicitud.cotizacion || (solicitud.estado !== 'COTIZADO' && !tardio)) {
+      return transicionNoPermitida();
+    }
+    // Un segundo `VENCIDA → PAGADO` no deja cambios (DEC-148 #64).
+    if (tardio && solicitud.pagoTardioUsado) return transicionNoPermitida();
     const entrega = solicitud.cotizacion.entregada_en.slice(0, 10);
     if (cuerpo.fecha_pago < entrega || cuerpo.fecha_pago > solicitud.cotizacion.vigente_hasta) {
       return error(
@@ -387,7 +448,11 @@ export const handlersSolicitudes = [
       confirmado_en: new Date().toISOString(),
     };
     solicitud.avisos = [];
-    registrar(solicitud, 'pago_confirmado', { de_estado: de, a_estado: 'PAGADO' });
+    if (tardio) solicitud.pagoTardioUsado = true;
+    registrar(solicitud, tardio ? 'pago_confirmado_tardio' : 'pago_confirmado', {
+      de_estado: de,
+      a_estado: 'PAGADO',
+    });
     return HttpResponse.json(wire(solicitud, rol));
   }),
 
@@ -423,6 +488,9 @@ export const handlersSolicitudes = [
     if (solicitud.estado !== 'PAGADO') return transicionNoPermitida();
     if (!solicitud.fecha_hora_servicio) {
       return error(409, 'fecha_hora_servicio_requerida', 'falta la fecha y hora del servicio');
+    }
+    if (!fechaFutura(solicitud.fecha_hora_servicio)) {
+      return error(409, 'fecha_hora_servicio_pasada', 'la fecha y hora del servicio ya pasó');
     }
     const de = cambiarEstado(solicitud, 'APROBADO');
     registrar(solicitud, 'aprobada', { de_estado: de, a_estado: 'APROBADO' });

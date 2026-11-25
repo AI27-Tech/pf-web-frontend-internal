@@ -19,7 +19,8 @@ interface ReglaAccion {
 const REGLAS: Readonly<Record<AccionSolicitud, ReglaAccion>> = {
   cotizar: { capacidad: 'solicitud.cotizar', desde: ['SOLICITADO', 'COTIZADO'] },
   reprogramar: { capacidad: 'solicitud.reprogramar', desde: ['PAGADO'] },
-  confirmarPago: { capacidad: 'solicitud.confirmarPago', desde: ['COTIZADO'] },
+  // `VENCIDA` admite un pago tardío, una sola vez (E10-HU-037, DEC-148 #35 y #64).
+  confirmarPago: { capacidad: 'solicitud.confirmarPago', desde: ['COTIZADO', 'VENCIDA'] },
   revertirPago: { capacidad: 'solicitud.revertirPago', desde: ['PAGADO'] },
   aprobar: { capacidad: 'solicitud.aprobar', desde: ['PAGADO'] },
   rechazar: { capacidad: 'solicitud.rechazar', desde: ['PAGADO'] },

@@ -20,7 +20,13 @@ import {
 } from '@ai27-tech/ui';
 import type { Solicitud } from '@/lib/contracts/solicitudes';
 import type { AccionSolicitud } from './afordancias';
-import { aValorDateTime, deValorDateTime, formatearFecha, formatearFechaHora } from './estados';
+import {
+  aValorDateTime,
+  deValorDateTime,
+  esFechaPasada,
+  formatearFecha,
+  formatearFechaHora,
+} from './estados';
 import { mensajeErrorSolicitud } from './mensajes';
 import { useAccionesSolicitud } from './useSolicitudes';
 
@@ -225,8 +231,16 @@ export function DialogoRevertirPago(props: DialogoBaseProps) {
 
 /* -------------------------------------------------------------------------- */
 
-/** Importe como decimal en texto, sin signo ni separador de miles (contrato `Monto`). */
+/**
+ * Importe como decimal en texto, sin signo ni separador de miles (contrato `Monto`). El cero se
+ * acepta (clientes con contrato prepagado) y un negativo no entra: no hay signo en el patrón.
+ */
 const FORMATO_MONTO = /^\d+(\.\d+)?$/;
+
+/** Única moneda que acepta `operacion` (DEC-148 #62): la pantalla la fija, sin selector. */
+const MONEDA = 'MXN';
+
+const TEXTO_FECHA_PASADA = 'La fecha y hora del servicio debe ser posterior a este momento.';
 
 export function DialogoCotizar(props: DialogoBaseProps) {
   const { solicitud, abierto, onCerrar } = props;
@@ -239,7 +253,6 @@ export function DialogoCotizar(props: DialogoBaseProps) {
   );
   const previa = solicitud.cotizacion;
   const [monto, setMonto] = useState(previa?.monto ?? '');
-  const [moneda, setMoneda] = useState(previa?.moneda ?? 'MXN');
   const [fecha, setFecha] = useState(
     aValorDateTime(previa?.fecha_hora_servicio ?? solicitud.fecha_hora_servicio),
   );
@@ -250,7 +263,8 @@ export function DialogoCotizar(props: DialogoBaseProps) {
     montoLimpio.length > 0 && !FORMATO_MONTO.test(montoLimpio)
       ? 'Escribe el importe con números y, si hace falta, punto decimal.'
       : undefined;
-  const completo = FORMATO_MONTO.test(montoLimpio) && moneda.trim().length > 0 && fecha.length > 0;
+  const errorFecha = esFechaPasada(fecha) ? TEXTO_FECHA_PASADA : undefined;
+  const completo = FORMATO_MONTO.test(montoLimpio) && fecha.length > 0 && !errorFecha;
 
   return (
     <Marco
@@ -265,7 +279,7 @@ export function DialogoCotizar(props: DialogoBaseProps) {
         void enviar(() =>
           acciones.cotizar.mutateAsync({
             monto: montoLimpio,
-            moneda: moneda.trim().toUpperCase(),
+            moneda: MONEDA,
             fecha_hora_servicio: deValorDateTime(fecha),
             ...(notas.trim() ? { notas: notas.trim() } : {}),
           }),
@@ -285,15 +299,10 @@ export function DialogoCotizar(props: DialogoBaseProps) {
           disabled={enviando}
         />
       </FormField>
-      <FormField label="Moneda" htmlFor="cotizacion-moneda" required>
-        <Input
-          id="cotizacion-moneda"
-          value={moneda}
-          onChange={(evento) => setMoneda(evento.target.value)}
-          disabled={enviando}
-        />
-      </FormField>
-      <FormField label="Fecha y hora del servicio" required>
+      <p>
+        Moneda: <strong>{MONEDA}</strong>
+      </p>
+      <FormField label="Fecha y hora del servicio" error={errorFecha} required>
         <DateTimeInput value={fecha} onChange={setFecha} disabled={enviando} />
       </FormField>
       <FormField label="Notas" htmlFor="cotizacion-notas">
@@ -315,13 +324,14 @@ export function DialogoReprogramar(props: DialogoBaseProps) {
   const { error, enviando, enviar } = useEnvio('reprogramar', props, 'Fecha y hora reprogramada.');
   const [fecha, setFecha] = useState(aValorDateTime(solicitud.fecha_hora_servicio));
   const [motivo, setMotivo] = useState('');
+  const errorFecha = esFechaPasada(fecha) ? TEXTO_FECHA_PASADA : undefined;
   return (
     <Marco
       titulo="Reprogramar solicitud"
       textoConfirmar="Reprogramar"
       abierto={abierto}
       enviando={enviando}
-      puedeConfirmar={fecha.length > 0 && motivo.trim().length > 0}
+      puedeConfirmar={fecha.length > 0 && !errorFecha && motivo.trim().length > 0}
       error={error}
       onCerrar={onCerrar}
       onConfirmar={() =>
@@ -337,7 +347,7 @@ export function DialogoReprogramar(props: DialogoBaseProps) {
         Acuerda la nueva fecha con el cliente en la conversación de la solicitud. No hay pago nuevo
         ni cambio de estado.
       </p>
-      <FormField label="Nueva fecha y hora del servicio" required>
+      <FormField label="Nueva fecha y hora del servicio" error={errorFecha} required>
         <DateTimeInput value={fecha} onChange={setFecha} disabled={enviando} />
       </FormField>
       <FormField label="Motivo de la reprogramación" htmlFor="reprogramacion-motivo" required>
@@ -382,6 +392,12 @@ export function DialogoConfirmarPago(props: DialogoBaseProps) {
         )
       }
     >
+      {solicitud.estado === 'VENCIDA' && (
+        <Alert variant="warning">
+          La cotización venció. Un pago hecho dentro de la vigencia se acepta como excepción, una
+          sola vez por solicitud, y queda en el histórico.
+        </Alert>
+      )}
       <p>
         El pago ocurre fuera de Argos. Confirma aquí que el cliente pagó.
         {vigencia

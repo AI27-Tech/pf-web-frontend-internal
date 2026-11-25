@@ -98,6 +98,8 @@ const BASE = {
   'solicitud.aprobar': [JO],
   'solicitud.rechazar': [JO],
   'solicitud.conversacion': [COT],
+  // Solo el responsable del reclamo transfiere (lo decide el estado); Q-D de BRECHAS.md: COT no lista usuarios.
+  'solicitud.transferir': [COT],
 
   // M13: catálogos
   'catalogos.ver': [JO, COO],
