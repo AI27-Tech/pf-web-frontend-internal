@@ -154,9 +154,9 @@ export function mapearOrganizacion(wire: OrganizacionWire): Organizacion {
 
 function mapearAlcance(wire: AlcanceSujeto): AlcanceEfectivo {
   return {
-    unidadesIds: wire.unidades_ids,
+    clientesIds: wire.clientes_ids,
     subordinadosIds: wire.subordinados_ids,
-    unidadesEfectivasIds: wire.unidades_efectivas_ids,
+    clientesEfectivosIds: wire.clientes_efectivos_ids,
   };
 }
 
@@ -320,10 +320,10 @@ export function crearAdministracionHttp(): AdministracionPort {
     async fijarAlcance(id, cambio, accessToken) {
       // Los PUT reemplazan la lista completa y responden 204 (DEC-145): se vuelve
       // a leer para mostrar solo lo que devuelve el `bff`.
-      if (cambio.tipo === 'unidades') {
-        await request<void>(ruta(id, '/alcance/unidades'), {
+      if (cambio.tipo === 'clientes') {
+        await request<void>(ruta(id, '/alcance/clientes'), {
           method: 'PUT',
-          body: { unidades_ids: cambio.ids },
+          body: { clientes_ids: cambio.ids },
           accessToken,
         });
       } else {

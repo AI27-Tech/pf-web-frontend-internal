@@ -11,7 +11,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAdministracionPort } from '@/context/AdministracionContext';
 import { useSession } from '@/context/SessionContext';
 import type { AdministracionPort } from '@/lib/api/administracion';
-import { listarTodasUnidades } from '@/lib/api/unidades';
+import { listarTodosClientes } from '@/lib/api/clientes';
 import type { ConsultaUsuarios, Rol, UsuarioResumen } from '@/lib/contracts/administracion';
 
 export const CLAVE_ADMINISTRACION = 'administracion';
@@ -61,13 +61,13 @@ export function useUsuario(id: string) {
 }
 
 /** Organizaciones completas (activas e inactivas). El selector filtra las activas. */
-export function useOrganizaciones() {
+export function useOrganizaciones(enabled = true) {
   const port = useAdministracionPort();
   const token = useToken();
   return useQuery({
     queryKey: [CLAVE_ADMINISTRACION, 'organizaciones'],
     queryFn: () => port.listarOrganizaciones(token),
-    enabled: port.capacidades.organizaciones,
+    enabled: enabled && port.capacidades.organizaciones,
   });
 }
 
@@ -82,12 +82,12 @@ export function useAlcance(id: string, enabled: boolean) {
   });
 }
 
-/** Unidades del roster para las opciones del alcance de un Monitorista (lectura). */
-export function useUnidadesAlcance(enabled: boolean) {
+/** Clientes activos (`listarClientes`): las opciones de "mis clientes" de un Monitorista. */
+export function useClientesAlcance(enabled: boolean) {
   const token = useToken();
   return useQuery({
-    queryKey: [CLAVE_ADMINISTRACION, 'unidades'],
-    queryFn: () => listarTodasUnidades(token),
+    queryKey: [CLAVE_ADMINISTRACION, 'clientes-activos'],
+    queryFn: () => listarTodosClientes(token),
     enabled,
   });
 }

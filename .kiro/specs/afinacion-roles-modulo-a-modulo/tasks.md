@@ -142,10 +142,11 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 4, 12, 13 y 15 ne
 
 ## 13. M12: Administración (Requirement 13; requiere 0.3)
 
-- [ ] 13.1 Ciclo a y b de `features/administracion` (incluye `AlcanceEditor`).
-- [ ] 13.2 Selector de rol de nueve valores; `cotizacion` incluido.
-- [ ] 13.3 `AlcanceEditor` migra de `opcionesUnidadesAlcance` a clientes, con los criterios 3 a 7 de Requirement 12.
-- [ ]* 13.4 Pruebas. Regresión de E8-T19. Cierre de M12.
+- [x] 13.1 Ciclo a y b de `features/administracion` (incluye `AlcanceEditor`). _(Línea base: el módulo ya abría solo con `administracion.usuarios` (`puedeAdministrar`), sin comparar `rol ===` del actor; las comparaciones con `Rol.*` de `afordancias.ts` son sobre el rol del usuario administrado. Diferencia: `AlcanceEditor` y el contrato local seguían en unidades (`unidades_ids`, `PUT /alcance/unidades`).)_
+- [x] 13.2 Selector de rol de nueve valores; `cotizacion` incluido. _(Ya salía de `ROLES` del contrato generado: el alta ofrece los nueve y el cambio de rol los ocho internos, sin `cliente` (DEC-139, DEC-141). Solo se corrigió el comentario de `OPCIONES_ROL`. Queda cubierto con prueba.)_
+- [x] 13.3 `AlcanceEditor` migra de `opcionesUnidadesAlcance` a clientes, con los criterios 3 a 7 de Requirement 12. _(`AlcanceEditor`: "mis clientes" con `listarClientes` (solo activos), `PUT /alcance/clientes` en el adaptador, `AlcanceEfectivo` con `clientesIds` y `clientesEfectivosIds`. Un cliente asignado que no está entre los activos se muestra con el nombre de su organización (mismo id, DEC-144 #2; `listarOrganizaciones` solo se pide si hay desactivados), marca "Desactivado" y no se reenvía. `400` explica el cliente inexistente o desactivado y vuelve a pedir los activos; `409 rol_sin_alcance` dice que el usuario ya no es Monitorista. No se puede guardar sin la lista de activos, para no descartar clientes por error. Se retiró `opcionesUnidades.ts` y `useUnidadesAlcance`. Supervisor y Coordinador siguen con subordinados. Mocks: `PUT /sujetos/{id}/alcance/clientes` con las guardas del contrato.)_
+- [x]* 13.4 Pruebas. Regresión de E8-T19. Cierre de M12. _(`alcance-clientes.test.tsx`: opciones activas, desactivado con nombre y fuera del payload, limpiar al guardar, `400`, `409`, lista de activos no disponible, Supervisor sin cambio y nueve roles en el alta. `adaptadorHttp.test.ts` ajustado a clientes. Las 105 pruebas de `tests/administracion` en verde, typecheck y lint de lo tocado en verde.)_
+  - **Nota de mocks (no bloquea).** En el `bff` simulado, `handlersRoster` va antes que `handlersAdministracion` y responde `GET /sujetos` y `GET/PUT /sujetos/{id}/alcance...` con sus propios sujetos (`SUJ-400x`). Con `enableMocks`, el panel de Administración ve esos sujetos, no los de `handlersAdministracion`. Ya pasaba con "mis unidades"; unificar los sujetos simulados queda fuera de M12.
 
 ## 14. M13: Catálogos y Reportes (Requirement 14)
 

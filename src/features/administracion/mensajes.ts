@@ -92,8 +92,7 @@ export const TEXTOS_ADMINISTRACION = {
   buscarUsuario: 'Buscar por nombre o identificador',
   todosLosRoles: 'Todos los roles',
   columnaNombre: 'Nombre',
-  columnaVehiculo: 'Vehículo',
-  columnaCustodios: 'Custodios',
+  columnaCliente: 'Cliente',
   columnaIdentificador: 'Identificador',
   columnaRol: 'Rol',
   columnaOrganizacion: 'Organización',
@@ -111,10 +110,19 @@ export const TEXTOS_ADMINISTRACION = {
   cargandoUsuario: 'Cargando usuario…',
   alcanceTitulo: 'Alcance de monitoreo',
   alcanceVacio: 'Sin alcance asignado.',
-  alcanceEfectivo: 'Unidades efectivas (tal como lo devuelve el servidor)',
+  alcanceEfectivo: 'Clientes efectivos (tal como lo devuelve el servidor)',
+  alcanceClientesDesactivados:
+    'Estos clientes están desactivados y se quitarán al guardar: no se pueden volver a asignar.',
+  alcanceClienteDesactivado: 'Desactivado',
+  alcanceClientesInvalidos:
+    'Algún cliente elegido no existe o está desactivado. Ya se actualizó la lista de clientes activos; revise la selección.',
+  alcanceClientesRolSinAlcance:
+    'El usuario ya no es Monitorista y no puede tener clientes asignados. Recargue el usuario.',
+  alcanceClientesNoDisponibles:
+    'No se pudo leer la lista de clientes activos. Recargue para volver a intentarlo.',
   alcanceSinOpciones: 'No hay opciones disponibles para este alcance.',
   alcanceGuardar: 'Guardar alcance',
-  alcanceTipoUnidades: 'Unidades',
+  alcanceTipoClientes: 'Clientes',
   alcanceTipoMonitoristas: 'Monitoristas',
   alcanceTipoSupervisores: 'Supervisores',
   organizacionesTitulo: 'Organizaciones',

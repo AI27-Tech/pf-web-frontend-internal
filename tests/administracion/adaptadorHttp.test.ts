@@ -243,32 +243,34 @@ describe('adaptador HTTP · organizaciones', () => {
 
 describe('adaptador HTTP · alcance y revocación', () => {
   const alcanceWire = {
-    unidades_ids: ['un1'],
+    clientes_ids: ['cli1'],
+    clientes_efectivos_ids: ['cli1'],
+    unidades_ids: [],
     subordinados_ids: [],
-    unidades_efectivas_ids: ['un1'],
+    unidades_efectivas_ids: [],
   };
 
-  it('fijarAlcance de unidades reemplaza la lista completa y vuelve a leer el alcance', async () => {
+  it('fijarAlcance de clientes reemplaza la lista completa y vuelve a leer el alcance', async () => {
     fetchSimulado
       .mockResolvedValueOnce(responder(204))
       .mockResolvedValueOnce(responder(200, alcanceWire));
 
     const alcance = await crearAdministracionHttp().fijarAlcance(
       'u1',
-      { tipo: 'unidades', ids: ['un1'] },
+      { tipo: 'clientes', ids: ['cli1'] },
       TOKEN,
     );
 
     expect(ultimaPeticion(-2)).toMatchObject({
       metodo: 'PUT',
-      ruta: '/sujetos/u1/alcance/unidades',
-      cuerpo: { unidades_ids: ['un1'] },
+      ruta: '/sujetos/u1/alcance/clientes',
+      cuerpo: { clientes_ids: ['cli1'] },
     });
     expect(ultimaPeticion()).toMatchObject({ metodo: 'GET', ruta: '/sujetos/u1/alcance' });
     expect(alcance).toEqual({
-      unidadesIds: ['un1'],
+      clientesIds: ['cli1'],
       subordinadosIds: [],
-      unidadesEfectivasIds: ['un1'],
+      clientesEfectivosIds: ['cli1'],
     });
   });
 
