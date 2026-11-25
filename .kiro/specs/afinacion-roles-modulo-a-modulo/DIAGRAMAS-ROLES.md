@@ -170,7 +170,7 @@ flowchart LR
   L --> C2["Confirmar pago, también el tardío desde VENCIDA<br/>confirmarPago"]
   L --> C3["Reprogramar fecha y hora, solo en PAGADO, con motivo<br/>reprogramarSolicitud"]
   L --> C4["Ver histórico con versiones de la cotización<br/>listarHistoricoSolicitud"]
-  L --> C5["Conversación de la solicitud: reclamar, responder,<br/>liberar, marcar atendida<br/>Transferir a otro COT: por definir, Q-D"]
+  L --> C5["Conversación de la solicitud: reclamar, responder,<br/>liberar, marcar atendida<br/>Transferir a otro COT ⚠ destino con listarSujetos rol=cotizacion"]
   COT -. "No ve ni hace" .-> N["Viajes, ficha, Catálogos, Reportes, emergencias,<br/>chat del viaje, revertir pago, aprobar o rechazar"]
 ```
 
@@ -380,13 +380,13 @@ sequenceDiagram
 
 ### HP-07. Conversación de la solicitud (pool de cotización)
 
-| #   | Rol         | Acción (operación)                                                             | Resultado esperado                                                                                                                                                                      |
-| --- | ----------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | COT o ADM   | `listarTrabajoBandejaSolicitudes`                                              | Ve las conversaciones de solicitud con `tipo=solicitud`                                                                                                                                 |
-| 2   | COT         | `reclamarConversacion`, `enviarMensaje`, `marcarAtendida`                      | Atiende al cliente                                                                                                                                                                      |
-| 3   | EJE         | Abrir la conversación por id                                                   | `403`; EJE nunca la ve                                                                                                                                                                  |
-| 4   | Cliente     | Solicitud terminada                                                            | COT y cliente conservan 3 días de escritura; luego solo lectura                                                                                                                         |
-| 5   | COT o ADM ⚠ | `transferirConversacion` con el `UsuarioAdmin.id` de otro usuario `cotizacion` | Pasa al destino; `409 destino_no_es_cotizacion` si no tiene el rol. Pendiente Q-D: COT no puede listar usuarios, así que solo ADM podría elegir destino. Backend en `-m`, sin desplegar |
+| #   | Rol         | Acción (operación)                                                             | Resultado esperado                                                                                                                                                                                                                       |
+| --- | ----------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | COT o ADM   | `listarTrabajoBandejaSolicitudes`                                              | Ve las conversaciones de solicitud con `tipo=solicitud`                                                                                                                                                                                  |
+| 2   | COT         | `reclamarConversacion`, `enviarMensaje`, `marcarAtendida`                      | Atiende al cliente                                                                                                                                                                                                                       |
+| 3   | EJE         | Abrir la conversación por id                                                   | `403`; EJE nunca la ve                                                                                                                                                                                                                   |
+| 4   | Cliente     | Solicitud terminada                                                            | COT y cliente conservan 3 días de escritura; luego solo lectura                                                                                                                                                                          |
+| 5   | COT o ADM ⚠ | `transferirConversacion` con el `UsuarioAdmin.id` de otro usuario `cotizacion` | Pasa al destino; `409 destino_no_es_cotizacion` si no tiene el rol. El selector usa `listarSujetos?rol=cotizacion&activo=true`; hasta que backend abra esa lectura a COT (BE-10), solo ADM elige destino. Backend en `-m`, sin desplegar |
 
 ### HP-08. Alta de un Monitorista y "mis clientes"
 
