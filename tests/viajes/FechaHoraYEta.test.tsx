@@ -119,6 +119,7 @@ describe('corregir fecha y hora del servicio', () => {
 
 describe('ETA: el valor del input local viaja en RFC3339', () => {
   it('Editar ETA manda la hora con zona, como la exige el bff', async () => {
+    rolActual = 'monitorista';
     let recibido: string | undefined;
     server.use(
       http.get(path('/viajes/:id/detalle'), () => HttpResponse.json(viajeAprobado(null))),

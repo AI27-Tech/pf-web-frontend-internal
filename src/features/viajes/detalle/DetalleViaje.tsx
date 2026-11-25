@@ -38,7 +38,7 @@ import {
 } from '@ai27-tech/ui';
 import { BloqueError } from '@/components/feedback/BloqueError';
 import { useSession } from '@/context/SessionContext';
-import { ApiError } from '@/lib/api/errors';
+import { ApiError, esNoEncontrado, esProhibido } from '@/lib/api/errors';
 import { ErrorAsignacion, ErrorTransicion } from '@/lib/api/viajeDetalle';
 import type { CondicionAbierta, ViajeInterno } from '@/lib/contracts/viajeDetalle';
 import { EstadoViaje, esTerminal } from '@/lib/contracts/viajeDetalle';
@@ -46,7 +46,8 @@ import type { MotivoCierre } from '@/lib/contracts/cierreViaje';
 
 import { CausaForm } from './causaForm';
 import { CierreForm } from './cierreForm';
-import { bloqueoDeCierre, puedeCerrar, tipoDeCierre, ventanaTrasCierre } from './cierreViaje';
+import { bloqueoDeCierre, tipoDeCierre, ventanaTrasCierre } from './cierreViaje';
+import { accionesPermitidas } from './accionesTransicion';
 import { requiereCausa } from './causaTransicion';
 import { AsignacionForm } from './asignacionForm';
 import { EtaForm } from './etaForm';
@@ -90,6 +91,10 @@ function faseDelBucle(estado: string): string | null {
   }
 }
 
+/** Avisos de un `403` y un `404` al ejecutar una acción (Requirement T2.3 y T2.4). */
+const MENSAJE_ACCION_SIN_PERMISO = 'No tienes permiso para realizar esta acción.';
+const MENSAJE_VIAJE_NO_DISPONIBLE = 'Este viaje ya no está disponible.';
+
 /** Tipo para el estado de toasts */
 interface ToastItem {
   id: string;
@@ -110,6 +115,7 @@ interface ToastItem {
 export function DetalleViaje({ id }: DetalleViajeProps) {
   const { casoActivado } = useActivacionEmergencia();
   const { usuario } = useSession();
+  const navigate = useNavigate();
   // Una sola lista de casos para la alerta y el carril. Solo roles con carril la piden.
   const tieneCarril = usuario ? ROLES_CON_CARRIL.includes(usuario.rol) : false;
   const emergencias = useEmergenciasViaje(id, { habilitado: tieneCarril });
@@ -151,6 +157,11 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
     return <SinPermiso />;
   }
 
+  // Un 404 es "no encontrado" (no existe o queda fuera del alcance): no sugiere un permiso.
+  if (d.esNoEncontrado) {
+    return <ViajeNoEncontrado />;
+  }
+
   // Requirement 7.1/7.2: error generico con reintento
   if (d.error) {
     return <EstadoError onReintentar={d.reintentar} />;
@@ -174,9 +185,24 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
   const bloqueoCierre = tipoCierre
     ? bloqueoDeCierre(viajeInterno.estado as EstadoViaje, condicionesActivas)
     : null;
-  const accionesVisibles = d.acciones.filter(
-    (accion) => accion !== EstadoViaje.Cerrado || (usuario !== null && puedeCerrar(usuario.rol)),
-  );
+  // Estado y rol: la máquina de estados fija las aristas y la política, las que ejerce el rol (M4).
+  const accionesVisibles = accionesPermitidas(d.acciones, usuario?.rol);
+  const puedeFijarEta = puede(usuario?.rol, 'viaje.eta') && !viajeTerminal;
+
+  // 403 y 404 comunes a toda acción (T2.3, T2.4): avisa con Toast y deja la pantalla intacta;
+  // si el viaje ya no existe para el usuario, vuelve a la lista. Devuelve true si lo atendió.
+  const avisarFalloDeAccion = (err: unknown): boolean => {
+    if (esProhibido(err)) {
+      addToast(MENSAJE_ACCION_SIN_PERMISO, 'error');
+      return true;
+    }
+    if (esNoEncontrado(err)) {
+      addToast(MENSAJE_VIAJE_NO_DISPONIBLE, 'error');
+      void navigate({ to: '/viajes' });
+      return true;
+    }
+    return false;
+  };
 
   // Envío real de la transición (con causa opcional). Clasifica el 409 por el
   // código REAL devuelto por el wrapper (Req 3.3).
@@ -185,7 +211,9 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
       await d.transicionar(a_estado, causa);
       addToast('Viaje transicionado correctamente', 'success');
     } catch (err) {
-      if (err instanceof ErrorTransicion) {
+      if (avisarFalloDeAccion(err)) {
+        // 403 y 404 ya avisados (E8): el detalle queda intacto.
+      } else if (err instanceof ErrorTransicion) {
         // Requirement 3.3: avisos de carrera (409) sin romper la UI
         if (err.codigo === 'transicion_no_permitida') {
           addToast('La transicion no es permitida en este estado.', 'error');
@@ -252,6 +280,8 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
         const mensaje = 'No tienes permiso para asignar la escolta de este viaje.';
         addToast(mensaje, 'error');
         throw new Error(mensaje, { cause: err });
+      } else if (avisarFalloDeAccion(err)) {
+        // 404: el viaje ya no está disponible; se avisó y se volvió a la lista.
       } else if (!(err instanceof ApiError && err.kind === 'noAutorizado')) {
         addToast('No se pudo asignar la escolta.', 'error');
       }
@@ -289,6 +319,8 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
       } else if (err instanceof ApiError && err.status === 403) {
         mensaje = 'El cierre requiere Jefe Operativo o Administrador';
         addToast(mensaje, 'error');
+      } else if (avisarFalloDeAccion(err)) {
+        mensaje = MENSAJE_VIAJE_NO_DISPONIBLE;
       } else {
         addToast(mensaje, 'error');
       }
@@ -304,7 +336,9 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
       setModalEtaAbierto(false);
       addToast('ETA actualizado correctamente', 'success');
     } catch (err) {
-      if (err instanceof ErrorTransicion) {
+      if (avisarFalloDeAccion(err)) {
+        // 403 y 404 ya avisados.
+      } else if (err instanceof ErrorTransicion) {
         if (err.codigo === 'viaje_en_estado_terminal') {
           addToast('No se puede fijar ETA en un viaje terminal.', 'error');
         }
@@ -322,7 +356,9 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
       setModalFechaHoraAbierto(false);
       addToast('Fecha y hora del servicio registrada', 'success');
     } catch (err) {
-      if (err instanceof ErrorTransicion) {
+      if (avisarFalloDeAccion(err)) {
+        // 403 y 404 ya avisados.
+      } else if (err instanceof ErrorTransicion) {
         addToast('No se pudo registrar la fecha y hora.', 'error');
       } else {
         addToast('Error al guardar la fecha y hora.', 'error');
@@ -548,8 +584,8 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
             </Card>
           )}
 
-          {/* Formulario de ETA (Req 4.1): solo se ofrece si el viaje NO es terminal. */}
-          {!viajeTerminal && (
+          {/* Formulario de ETA (Req 4.1): solo si el viaje NO es terminal y el rol puede fijarlo (M4). */}
+          {puedeFijarEta && (
             <Card>
               <CardHeader>
                 <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
@@ -733,10 +769,34 @@ function EstadoError({ onReintentar }: { readonly onReintentar: () => void }) {
 }
 
 /**
- * Sin permiso (403): la sesión es válida pero el rol o el alcance no llega a este viaje.
+ * Sin permiso (403): la sesión es válida pero el rol no tiene acceso a este viaje.
+ * El alcance responde 404, no 403 (Requirement T2.6).
  */
 function SinPermiso() {
   return <Alert variant="danger">No tienes permiso para ver el detalle de este viaje.</Alert>;
+}
+
+/**
+ * No encontrado (404): el viaje no existe o no es visible para este usuario. No sugiere un
+ * permiso faltante (Requirement T2.2).
+ */
+function ViajeNoEncontrado() {
+  return (
+    <Card>
+      <CardBody>
+        <EmptyState
+          role="status"
+          title="Viaje no encontrado"
+          description="Revisa el identificador o vuelve a la lista de viajes."
+          action={
+            <Link to="/viajes" className="ui-text-body-sm">
+              Volver a viajes
+            </Link>
+          }
+        />
+      </CardBody>
+    </Card>
+  );
 }
 
 /**

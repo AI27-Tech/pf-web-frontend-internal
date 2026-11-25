@@ -75,13 +75,13 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 4, 12, 13 y 15 ne
 
 ## 5. M4: Detalle del viaje (Requirement 5)
 
-- [ ] 5.1 Ciclo a y b de `DetalleViaje.tsx` (hoy solo filtra `CERRADO` por rol) y `NavegacionViaje.tsx`.
-- [ ] 5.2 Filtrar `d.acciones` con `capacidadDeTransicion` y `puede`.
-- [ ] 5.3 Aplicar capacidades a ETA, botón de emergencia (incluye ADM) y pestañas. Retirar de la UI aprobar, rechazar y la fecha previa a aprobar (pasan a M14).
-- [ ] 5.4 `completarFechaHora` solo para JO y ADM; SUP y COO no (confirmado por el Lead).
-- [ ] 5.5 Errores: `404` = "viaje no encontrado", `403` = "sin permiso"; corregir el copy "rol o alcance"; `Toast` en acciones.
-- [ ]* 5.6 Pruebas por rol y estado (`APROBADO`, `ASIGNADO`, `EN_TRANSITO`, `EN_DESTINO`, terminal) con E1, E2, E5, E6 y E8. Regresiones de E8-T8, T10 y T14.
-- [ ] 5.7 Cierre de M4.
+- [x] 5.1 Ciclo a y b de `DetalleViaje.tsx` (hoy solo filtra `CERRADO` por rol) y `NavegacionViaje.tsx`. _(Línea base: solo `CERRADO` se filtraba por rol; ETA y pestañas decidían con `rol ===` o sin guarda. Ver 5.2 y 5.3.)_
+- [x] 5.2 Filtrar `d.acciones` con `capacidadDeTransicion` y `puede`. _(`accionesPermitidas` en `accionesTransicion.ts`: arista del estado más `capacidadDeTransicion` y `puede`. Un destino sin capacidad no se ofrece.)_
+- [x] 5.3 Aplicar capacidades a ETA, botón de emergencia (incluye ADM) y pestañas. Retirar de la UI aprobar, rechazar y la fecha previa a aprobar (pasan a M14). _(ETA por `viaje.eta`; el botón de emergencia ya salía de `puede`; pestañas por `viaje.ficha.ver`, `viaje.historico.ver` y `monitoreo.consultar`. Aprobar, rechazar y la fecha previa se retiraron en 0.3.)_
+- [x] 5.4 `completarFechaHora` solo para JO y ADM; SUP y COO no (confirmado por el Lead). _(Ya estaba sobre `viaje.fechaHora`; cubierto por `FechaHoraYEta.test.tsx`.)_
+- [x] 5.5 Errores: `404` = "viaje no encontrado", `403` = "sin permiso"; corregir el copy "rol o alcance"; `Toast` en acciones. _(`404` del detalle: "Viaje no encontrado" sin pedir reintento ni hablar de permisos; `403` de acción y de lectura sin "rol o alcance"; `403` y `404` de acción con `Toast`, y `404` vuelve a `/viajes`. `esNoEncontrado` en `lib/api/errors.ts`.)_
+- [x]* 5.6 Pruebas por rol y estado (`APROBADO`, `ASIGNADO`, `EN_TRANSITO`, `EN_DESTINO`, terminal) con E1, E2, E5, E6 y E8. Regresiones de E8-T8, T10 y T14. _(`DetalleViajeRoles.test.tsx`. Se ajustaron `Asignacion`, `FechaHoraYEta` y `DetalleViajeExpediente`, que no declaraban rol. Regresiones de T8, T10 y T14 en verde.)_
+- [x] 5.7 Cierre de M4. _(Typecheck, lint de lo tocado y suite completa en verde: 96 archivos, 1274 pruebas.)_
 
 ## 6. M5: Ficha técnica (Requirement 6)
 

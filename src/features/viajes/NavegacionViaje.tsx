@@ -3,13 +3,13 @@
  * expediente y evidencia (@ai27-tech/ui `Tabs`).
  *
  * Cada sección sigue siendo su propia ruta; la pestaña activa la marca `actual`
- * y el cambio navega a la ruta correspondiente. La visibilidad de cada pestaña
- * es la misma que tenían los botones que reemplaza.
+ * y el cambio navega a la ruta correspondiente. Cada pestaña aparece solo si el rol
+ * tiene la capacidad de su sección (M4), la misma que guarda su ruta.
  */
 import { Tab, TabList, Tabs } from '@ai27-tech/ui';
 import { useNavigate } from '@tanstack/react-router';
 import { useSession } from '@/context/SessionContext';
-import { puedeUsarMonitoreo } from '@/features/monitoreo/puedeUsarMonitoreo';
+import { puede } from '@/lib/permisos';
 
 export type SeccionViaje = 'detalle' | 'ficha' | 'historico' | 'expediente';
 
@@ -22,8 +22,9 @@ export function NavegacionViaje({ id, actual }: NavegacionViajeProps) {
   const { usuario } = useSession();
   const navigate = useNavigate();
 
-  const verFicha = usuario?.rol === 'monitorista';
-  const verExpediente = usuario ? puedeUsarMonitoreo(usuario.rol) : false;
+  const verFicha = puede(usuario?.rol, 'viaje.ficha.ver');
+  const verHistorico = puede(usuario?.rol, 'viaje.historico.ver');
+  const verExpediente = puede(usuario?.rol, 'monitoreo.consultar');
 
   const irA = (destino: SeccionViaje) => {
     switch (destino) {
@@ -48,7 +49,7 @@ export function NavegacionViaje({ id, actual }: NavegacionViajeProps) {
       <TabList>
         <Tab value="detalle">Detalle</Tab>
         {verFicha && <Tab value="ficha">Ficha técnica</Tab>}
-        <Tab value="historico">Histórico del viaje</Tab>
+        {verHistorico && <Tab value="historico">Histórico del viaje</Tab>}
         {verExpediente && <Tab value="expediente">Expediente y evidencia</Tab>}
       </TabList>
     </Tabs>

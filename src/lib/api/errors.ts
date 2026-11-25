@@ -67,3 +67,8 @@ export function esSesionInvalida(error: unknown): boolean {
 export function esProhibido(error: unknown): boolean {
   return error instanceof ApiError && error.kind === 'prohibido';
 }
+
+/** El recurso no existe o queda fuera del alcance (404): la pantalla lo dice sin sugerir un permiso. */
+export function esNoEncontrado(error: unknown): boolean {
+  return error instanceof ApiError && error.kind === 'noEncontrado';
+}

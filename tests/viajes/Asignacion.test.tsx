@@ -17,7 +17,11 @@ const logoutSpy = vi.fn();
 const navigateSpy = vi.fn();
 
 vi.mock('@/context/SessionContext', () => ({
-  useSession: () => ({ sesion: { accessToken: 'token-de-prueba' }, logout: logoutSpy }),
+  useSession: () => ({
+    sesion: { accessToken: 'token-de-prueba' },
+    usuario: { id: 'u-1', rol: 'jefe_operativo' },
+    logout: logoutSpy,
+  }),
 }));
 vi.mock('@tanstack/react-router', async () => {
   const { createElement } = await import('react');

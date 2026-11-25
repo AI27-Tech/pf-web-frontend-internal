@@ -59,7 +59,7 @@ describe('DetalleViaje · enlace a Expediente y evidencia por rol', () => {
       sesionRol.rol = rol;
       renderDetalle();
 
-      expect(await screen.findByRole('tab', { name: 'Histórico del viaje' })).toBeInTheDocument();
+      expect(await screen.findByRole('tab', { name: 'Detalle' })).toBeInTheDocument();
       expect(screen.queryByRole('tab', { name: 'Expediente y evidencia' })).not.toBeInTheDocument();
     },
   );

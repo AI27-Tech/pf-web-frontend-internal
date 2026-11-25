@@ -13,7 +13,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useSession } from '@/context/SessionContext';
 import { listarUnidades } from '@/lib/api/unidades';
-import { ApiError, esProhibido, esSesionInvalida } from '@/lib/api/errors';
+import { ApiError, esNoEncontrado, esProhibido, esSesionInvalida } from '@/lib/api/errors';
 import { entradaDeCierre, type MotivoCierre } from '@/lib/contracts/cierreViaje';
 import {
   asignarEscolta,
@@ -49,6 +49,8 @@ export interface DetalleViajeHook {
   readonly esNoAutorizado: boolean;
   /** true si el detalle respondió 403: sin permiso para este viaje; la sesión sigue. */
   readonly esProhibido: boolean;
+  /** true si el detalle respondió 404: el viaje no existe o queda fuera del alcance (T2). */
+  readonly esNoEncontrado: boolean;
   /** Reintenta la lectura del detalle. */
   readonly reintentar: () => void;
   /** Transiciona el viaje a un nuevo estado. Invalida la lectura. */
@@ -219,6 +221,7 @@ export function useDetalleViaje(
     error,
     esNoAutorizado,
     esProhibido: esProhibidoDetalle,
+    esNoEncontrado: esNoEncontrado(query.error),
     reintentar: () => void query.refetch(),
     transicionar: transicionarHandler,
     cerrarServicio: cerrarServicioHandler,
