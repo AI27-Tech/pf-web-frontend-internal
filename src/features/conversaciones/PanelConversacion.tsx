@@ -18,6 +18,8 @@ interface PanelConversacionProps {
   conversacion: Conversacion;
   mensajes: Mensaje[];
   sujetoId: string;
+  /** El rol solo consulta (SUP y COO): sin reclamar, responder, devolver ni marcar atendida. */
+  soloLectura: boolean;
   borrador: string;
   setBorrador: (v: string) => void;
   enviando: boolean;
@@ -38,6 +40,7 @@ export function PanelConversacion({
   conversacion,
   mensajes,
   sujetoId,
+  soloLectura,
   borrador,
   setBorrador,
   enviando,
@@ -54,7 +57,17 @@ export function PanelConversacion({
   onAtendida,
 }: PanelConversacionProps) {
   const [confirmarDevolucion, setConfirmarDevolucion] = useState(false);
-  const c = capacidades(conversacion, sujetoId);
+  const estado = capacidades(conversacion, sujetoId);
+  // El estado de la conversación y del reclamo decide qué es posible; el rol, qué se ofrece (M10).
+  const c = soloLectura
+    ? {
+        ...estado,
+        puedeReclamar: false,
+        puedeResponder: false,
+        puedeDevolverAlPool: false,
+        puedeMarcarAtendida: false,
+      }
+    : estado;
   const reclamante = conversacion.reclamo_activo?.responsable_id === sujetoId;
   const devolver = () => {
     if (borrador.trim()) setConfirmarDevolucion(true);
@@ -67,6 +80,9 @@ export function PanelConversacion({
         desactualizada={desactualizada}
         actualizadoEn={actualizadoEn}
       />
+      {soloLectura && (
+        <Alert variant="info">Solo lectura: tu rol consulta la conversación, no la atiende.</Alert>
+      )}
       {error && (
         <Alert variant="danger" aria-live="assertive">
           {error.message}
@@ -111,13 +127,15 @@ export function PanelConversacion({
           <EmptyState size="sm" title="No hay mensajes todavía." />
         )}
       </MessageList>
-      <MessageComposer
-        value={borrador}
-        onChange={setBorrador}
-        onSend={() => onEnviar(borrador)}
-        disabled={!reclamante || !c.puedeResponder || enviando}
-        placeholder={c.razonCompositor ? 'No puedes responder todavía' : 'Escribe una respuesta'}
-      />
+      {!soloLectura && (
+        <MessageComposer
+          value={borrador}
+          onChange={setBorrador}
+          onSend={() => onEnviar(borrador)}
+          disabled={!reclamante || !c.puedeResponder || enviando}
+          placeholder={c.razonCompositor ? 'No puedes responder todavía' : 'Escribe una respuesta'}
+        />
+      )}
       <Modal
         open={confirmarDevolucion}
         onClose={() => setConfirmarDevolucion(false)}

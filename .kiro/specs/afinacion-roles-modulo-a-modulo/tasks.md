@@ -124,11 +124,11 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 4, 12, 13 y 15 ne
 
 ## 11. M10: Conversaciones (Requirement 11)
 
-- [ ] 11.1 Ciclo a y b de `features/conversaciones`.
-- [ ] 11.2 Bandeja de chat del viaje para EJE; SUP y COO en solo lectura, sin reclamar, responder, liberar, transferir ni marcar atendida.
-- [ ] 11.3 ADM ve Conversaciones y opera como EJE (BE-6); estado "bandeja no disponible" ante `404`. Override (PM-008): sin botones.
-- [ ]* 11.4 Pruebas por rol y `409`/`403` sin `onRetry`. Regresión de E8-T15.
-- [ ] 11.5 Cierre de M10.
+- [x] 11.1 Ciclo a y b de `features/conversaciones`. _(Línea base: la bandeja no consultaba el rol; las afordancias dependían solo del estado y del reclamo. El menú ya usaba `conversacion.leer`.)_
+- [x] 11.2 Bandeja de chat del viaje para EJE; SUP y COO en solo lectura, sin reclamar, responder, liberar, transferir ni marcar atendida. _(Ruta `/conversaciones` dentro de `RequiereCapacidad(conversacion.leer)`. Sin `conversacion.operar` (SUP y COO) el panel no ofrece reclamar, devolver ni marcar atendida, no dibuja el compositor y avisa "Solo lectura". Los recibos solo los envía el reclamante, así que SUP y COO no los mandan.)_
+- [x] 11.3 ADM ve Conversaciones y opera como EJE (BE-6); estado "bandeja no disponible" ante `404`. Override (PM-008): sin botones. _(ADM opera con `conversacion.operar`. Un `404` de la bandeja muestra "Bandeja no disponible" como aviso informativo, sin `Toast` ni error. Sin botones de override (PM-008) ni de transferir (DT-28). `onRetry` no se usa en los mensajes: los errores `409` y `403` salen en el `Alert` del panel, no con `deliveryError`.)_
+- [x]* 11.4 Pruebas por rol y `409`/`403` sin `onRetry`. Regresión de E8-T15. _(Cuatro pruebas nuevas en `BandejaConversaciones.test.tsx`; se ajustó la del supervisor ante una conversación ajena, que esperaba un compositor deshabilitado. Regresión de E8-T15 en verde.)_
+- [x] 11.5 Cierre de M10. _(Typecheck, lint y pruebas de conversaciones y navegación en verde.)_
 
 ## 12. M11: Roster (Requirement 12; requiere 0.3)
 

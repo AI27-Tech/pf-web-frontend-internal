@@ -826,7 +826,8 @@ describe('Ausencia de gestos excluidos de V1 (Requirements 7 y 9)', () => {
     ]) {
       expect(botones.filter((nombre) => prohibido.test(nombre))).toEqual([]);
     }
-    expect(composer()).toBeDisabled();
+    // Con rol de solo lectura el compositor no se dibuja (M10).
+    expect(within(panel()).queryByLabelText('Mensaje')).not.toBeInTheDocument();
     expect(within(panel()).getByText(TEXTO_BANNER.otro)).toBeInTheDocument();
 
     // Sin selector de destino ni nombres de Ejecutivos.
@@ -1057,5 +1058,51 @@ describe('Recibo de lectura', () => {
       await new Promise((resolver) => setTimeout(resolver, 20));
     });
     expect(solicitudes('recibo')).toHaveLength(0);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* M10: roles (spec afinacion-roles-modulo-a-modulo, Requirement 11)           */
+/* -------------------------------------------------------------------------- */
+
+describe('Conversaciones por rol (M10)', () => {
+  it.each(['supervisor', 'coordinador'])(
+    '%s lee la conversación sin reclamar, responder, devolver ni marcar atendida',
+    async (rol) => {
+      iniciarSesionComo('usr-lectura-1', rol);
+      renderBandeja(ID.pool);
+      expect(await within(panel()).findByText(/Solo lectura: tu rol consulta/)).toBeInTheDocument();
+      expect(within(panel()).getByRole('log')).toBeInTheDocument();
+      for (const nombre of ['Reclamar', 'Devolver al pool', 'Marcar atendida']) {
+        expect(sinBotonDelPanel(nombre)).not.toBeInTheDocument();
+      }
+      expect(within(panel()).queryByLabelText('Mensaje')).not.toBeInTheDocument();
+    },
+  );
+
+  it('supervisor tampoco ve los gestos en una conversación reclamada por otra persona', async () => {
+    iniciarSesionComo('usr-lectura-1', 'supervisor');
+    renderBandeja(ID.deOtro);
+    await within(panel()).findByText('Lo estamos revisando.');
+    expect(sinBotonDelPanel('Devolver al pool')).not.toBeInTheDocument();
+    expect(sinBotonDelPanel('Marcar atendida')).not.toBeInTheDocument();
+    expect(solicitudes('recibo')).toHaveLength(0);
+  });
+
+  it('administrador opera como ejecutivo: ve Reclamar y el compositor', async () => {
+    iniciarSesionComo('usr-admin-1', 'administrador');
+    renderBandeja(ID.pool);
+    expect(await esperarBotonDelPanel('Reclamar')).toBeInTheDocument();
+    expect(composer()).toBeInTheDocument();
+    expect(within(panel()).queryByText(/Solo lectura: tu rol consulta/)).not.toBeInTheDocument();
+  });
+
+  it('un 404 de la bandeja a administrador es "bandeja no disponible", sin error', async () => {
+    iniciarSesionComo('usr-admin-1', 'administrador');
+    forzarFalloConversaciones('bandeja', { tipo: 'http', status: 404, codigo: 'no_encontrado' });
+    renderBandeja();
+    expect(await within(lista()).findByText('Bandeja no disponible.')).toBeInTheDocument();
+    expect(filas()).toHaveLength(0);
+    expect(screen.queryByText(/permiso|autoriz/i)).not.toBeInTheDocument();
   });
 });

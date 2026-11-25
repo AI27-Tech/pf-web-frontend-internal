@@ -3,6 +3,7 @@ import { Alert, Grid, PageHeader, SkeletonText } from '@ai27-tech/ui';
 import { BloqueError } from '@/components/feedback/BloqueError';
 import { ErrorConversacionNoDisponible } from '@/lib/api/conversaciones';
 import { useSession } from '@/context/SessionContext';
+import { puede } from '@/lib/permisos';
 import { useTrabajoBandeja } from './useTrabajoBandeja';
 import { useNombresCliente } from './useNombresCliente';
 import { useConversacion } from './useConversacion';
@@ -49,6 +50,7 @@ export function BandejaConversaciones() {
             conversacion={detalle.conversacion}
             mensajes={detalle.mensajes}
             sujetoId={usuario?.id ?? ''}
+            soloLectura={!puede(usuario?.rol, 'conversacion.operar')}
             borrador={detalle.borrador}
             setBorrador={detalle.setBorrador}
             enviando={detalle.enviando}

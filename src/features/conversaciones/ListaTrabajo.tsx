@@ -49,7 +49,10 @@ export function ListaTrabajo({
   if (error instanceof ErrorSinBandeja)
     return (
       <Card variant="outlined">
-        <Alert variant="info">No tienes una bandeja asignada.</Alert>
+        {/* 404: estado "bandeja no disponible" (no es un error ni un Toast); sesión y menú siguen. */}
+        <Alert variant="info">
+          <strong>Bandeja no disponible.</strong> No tienes una bandeja asignada.
+        </Alert>
       </Card>
     );
   if (error instanceof ErrorSinAcceso)
