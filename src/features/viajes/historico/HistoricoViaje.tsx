@@ -10,6 +10,7 @@
  * incidencias van en columnas; las estadías, en una tabla a ancho completo.
  */
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 
 import {
   Alert,
@@ -38,6 +39,8 @@ import type { Column } from '@ai27-tech/ui';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
 import { useSession } from '@/context/SessionContext';
+import { esNoEncontrado } from '@/lib/api/errors';
+import { puede } from '@/lib/permisos';
 import {
   ErrorAutorizacionInsuficiente,
   ErrorCondicionYaAbierta,
@@ -56,7 +59,6 @@ import { EstadiaForm } from './EstadiaForm';
 import { ETIQUETA_EJE, ETIQUETA_MOTIVO } from './etiquetas';
 import { IncidenciaForm } from './IncidenciaForm';
 import { NotaForm } from './NotaForm';
-import { puedeCorregirIncidencia } from './visibilidadCorreccion';
 import { useHistoricoViaje } from './useHistoricoViaje';
 
 export interface HistoricoViajeProps {
@@ -119,7 +121,7 @@ function DelegacionSesion() {
   );
 }
 
-/** Sin permiso (403): la sesión es válida pero el rol o el alcance no llega al histórico. */
+/** Sin permiso (403): la sesión es válida pero el rol no tiene acceso al histórico. */
 function SinPermiso() {
   return (
     <Card variant="outlined">
@@ -130,8 +132,25 @@ function SinPermiso() {
   );
 }
 
+/** No encontrado (404): el viaje no existe o queda fuera del alcance. No sugiere un permiso. */
+function ViajeNoEncontrado() {
+  return (
+    <Card variant="outlined">
+      <CardBody>
+        <EmptyState
+          role="status"
+          size="sm"
+          title="Viaje no encontrado"
+          description="Revisa el identificador o vuelve a la lista de viajes."
+        />
+      </CardBody>
+    </Card>
+  );
+}
+
 export function HistoricoViaje({ id }: HistoricoViajeProps) {
   const { usuario } = useSession();
+  const navigate = useNavigate();
   const h = useHistoricoViaje(id);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [incidenciaAResolver, setIncidenciaAResolver] = useState<Incidencia | null>(null);
@@ -158,16 +177,32 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
     return <SinPermiso />;
   }
 
-  const puedeCorregir = usuario ? puedeCorregirIncidencia(usuario.rol) : false;
+  if (h.esNoEncontrado) {
+    return <ViajeNoEncontrado />;
+  }
 
-  // Un 403 en una acción se dice como falta de permiso; la vista y la sesión siguen.
-  const avisarFallo = (error: unknown, mensaje: string) =>
+  // Cada gesto de escritura sale de su capacidad (M6); JO ve el histórico en solo lectura.
+  const rol = usuario?.rol;
+  const puedeCorregir = puede(rol, 'viaje.incidencia.resolver');
+  const puedeRegistrarNota = puede(rol, 'viaje.bitacora.registrar');
+  const puedeOperarEstadia = puede(rol, 'viaje.estadia.operar');
+  const puedeAbrirIncidencia = puede(rol, 'viaje.incidencia.abrir');
+
+  // Un 403 en una acción se dice como falta de permiso y un 404, como viaje que ya no está
+  // disponible (vuelve a la lista); la vista y la sesión siguen (T2.3, T2.4).
+  const avisarFallo = (error: unknown, mensaje: string) => {
+    if (esNoEncontrado(error)) {
+      addToast('Este viaje ya no está disponible.', 'error');
+      void navigate({ to: '/viajes' });
+      return;
+    }
     addToast(
       error instanceof ErrorAutorizacionInsuficiente
         ? 'No tienes permiso para esta acción en este viaje.'
         : mensaje,
       'error',
     );
+  };
 
   // Al confirmar, el modal se cierra. Ante un error se queda abierto para corregir.
   const registrarNota = async (texto: string) => {
@@ -230,6 +265,8 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
     } catch (error) {
       if (error instanceof ErrorAutorizacionInsuficiente) {
         addToast('No tienes autorización para resolver incidencias.', 'error');
+      } else if (esNoEncontrado(error)) {
+        avisarFallo(error, 'No se pudo resolver la incidencia.');
       } else {
         addToast('No se pudo resolver la incidencia.', 'error');
       }
@@ -247,9 +284,11 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
                 title={`Bitácora${sufijoCantidad(h.bitacora.datos?.items.length)}`}
                 divider
                 actions={
-                  <Button variant="primary" type="button" onClick={() => setNotaAbierta(true)}>
-                    Nueva nota
-                  </Button>
+                  puedeRegistrarNota ? (
+                    <Button variant="primary" type="button" onClick={() => setNotaAbierta(true)}>
+                      Nueva nota
+                    </Button>
+                  ) : undefined
                 }
               >
                 <BitacoraLista estado={h.bitacora} />
@@ -263,13 +302,15 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
                 title={`Incidencias${sufijoCantidad(h.incidencias.datos?.items.length)}`}
                 divider
                 actions={
-                  <Button
-                    variant="secondary"
-                    type="button"
-                    onClick={() => setIncidenciaAbierta(true)}
-                  >
-                    Marcar incidencia
-                  </Button>
+                  puedeAbrirIncidencia ? (
+                    <Button
+                      variant="secondary"
+                      type="button"
+                      onClick={() => setIncidenciaAbierta(true)}
+                    >
+                      Marcar incidencia
+                    </Button>
+                  ) : undefined
                 }
               >
                 <IncidenciasLista
@@ -288,12 +329,17 @@ export function HistoricoViaje({ id }: HistoricoViajeProps) {
               title={`Estadías${sufijoCantidad(h.estadias.datos?.items.length)}`}
               divider
               actions={
-                <Button variant="secondary" type="button" onClick={() => setEstadiaAbierta(true)}>
-                  Abrir estadía
-                </Button>
+                puedeOperarEstadia ? (
+                  <Button variant="secondary" type="button" onClick={() => setEstadiaAbierta(true)}>
+                    Abrir estadía
+                  </Button>
+                ) : undefined
               }
             >
-              <EstadiasTabla estado={h.estadias} onCerrar={setEstadiaACerrar} />
+              <EstadiasTabla
+                estado={h.estadias}
+                onCerrar={puedeOperarEstadia ? setEstadiaACerrar : undefined}
+              />
             </Section>
           </CardBody>
         </Card>
@@ -485,7 +531,8 @@ function EstadiasTabla({
   onCerrar,
 }: {
   readonly estado: ReturnType<typeof useHistoricoViaje>['estadias'];
-  readonly onCerrar: (estadia: Estadia) => void;
+  /** Sin `onCerrar` (rol de solo lectura) la tabla no ofrece cerrar. */
+  readonly onCerrar: ((estadia: Estadia) => void) | undefined;
 }) {
   const ahora = useAhora(60_000);
 
@@ -536,7 +583,7 @@ function EstadiasTabla({
       key: 'accion',
       header: '',
       cell: (e) =>
-        e.cierre === null || e.cierre === undefined ? (
+        onCerrar && (e.cierre === null || e.cierre === undefined) ? (
           <Button variant="secondary" size="sm" type="button" onClick={() => onCerrar(e)}>
             Cerrar
           </Button>

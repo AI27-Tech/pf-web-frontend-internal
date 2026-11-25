@@ -93,11 +93,11 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 4, 12, 13 y 15 ne
 
 ## 7. M6: Histórico (Requirement 7)
 
-- [ ] 7.1 Ciclo a y b de `features/viajes/historico`.
-- [ ] 7.2 Capacidades en estadías, notas e incidencias; corrección de incidencias para SUP y COO.
-- [ ] 7.3 JO en solo lectura de estadías e incidencias; resolver incidencia para SUP, COO y ADM.
-- [ ]* 7.4 Pruebas por rol. Regresión de E8-T13.
-- [ ] 7.5 Cierre de M6.
+- [x] 7.1 Ciclo a y b de `features/viajes/historico`. _(Línea base: nota, incidencia y estadía se ofrecían a todo rol con acceso al histórico, JO incluido; solo la resolución usaba la política.)_
+- [x] 7.2 Capacidades en estadías, notas e incidencias; corrección de incidencias para SUP y COO. _(Nueva nota por `viaje.bitacora.registrar`, marcar incidencia por `viaje.incidencia.abrir`, abrir y cerrar estadía por `viaje.estadia.operar`, resolver por `viaje.incidencia.resolver`.)_
+- [x] 7.3 JO en solo lectura de estadías e incidencias; resolver incidencia para SUP, COO y ADM. _(JO lee los tres bloques sin gestos de escritura. Un `403` de acción avisa con `Toast`; un `404`, con "ya no está disponible" y vuelve a `/viajes`; un `404` de lectura dice "Viaje no encontrado".)_
+- [x]* 7.4 Pruebas por rol. Regresión de E8-T13. _(`HistoricoRoles.test.tsx`. Regresión de E8-T13 en verde.)_
+- [x] 7.5 Cierre de M6. _(Typecheck y lint en verde.)_
 
 ## 8. M7: Expediente y evidencia (Requirement 8)
 
