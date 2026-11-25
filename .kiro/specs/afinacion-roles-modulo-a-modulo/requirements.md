@@ -6,13 +6,13 @@ Reemplaza a `alineacion-ui-roles-capacidades` (v2, a `tracer.41`). Conserva su i
 
 **Fuentes y su estado:**
 
-| Fuente                                   | Lo que se leyó                                                                                                                                         | Estado                                                                                                                                                          |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Contexto `repos/ai27-platform-context`   | `origin/main` `0c48d67` (`argos-context/decision-log.md`, DEC-148 #1 a #73, DEC-149 #1 a #24; `DEUDA-TECNICA.md` DT-24; `.scratch/brief-roles-panel/`) | El checkout local está en `df42d43`, 40 commits atrás y con cambios locales ajenos en `scripts/`. **No se hizo pull**; se leyó con `git show origin/main:...`.  |
-| Contrato `repos/pf-pkg-contracts`        | Tag `v0.1.0-tracer.46` (`bff.yaml`, `operacion.yaml`, `estados/viaje.estados.yaml`, `CHANGELOG.md`)                                                    | Último tag publicado. El checkout local está en la rama `feat/ficha-tecnica-e-historico-tracer21` (`d2a3de2`, tag `tracer.37`): no representa lo que se libera. |
-| Pin del panel                            | `@ai27-tech/contracts@0.1.0-tracer.40` (`package.json`)                                                                                                | Seis tracers atrás de `.46`. **Decidido: se sube directo a `.46`** (tarea 0.3), sin pasar por `.43`.                                                            |
-| Decisiones del Lead sobre el brief       | Respuesta a `BRIEF-LEAD.md` (11 puntos)                                                                                                                | Vigentes; ver "Decisiones del Lead". Los puntos de backend son tareas del Lead y **el panel sigue la tabla de este documento sin esperar el `403`**.            |
-| Notas del Lead (2026-11-18 y 2026-11-19) | `RESPUESTA-SEGUIMIENTO-2026-11-17.md`, `NOTA-ANGEL-2026-11-19.md` y las tres notas pegadas en la sesión                                                | Vigente lo de `NOTA-ANGEL-2026-11-19.md`: gana sobre `NOTA-ANGEL-MIS-CLIENTES.md` y sobre P-5.                                                                  |
+| Fuente                                   | Lo que se leyó                                                                                                                                                  | Estado                                                                                                                                                                                                                                                                                              |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Contexto `repos/ai27-platform-context`   | `origin/main` `5629dac` (`argos-context/decision-log.md`, DEC-148 #1 a #79, DEC-152, DEC-149 #1 a #24; `DEUDA-TECNICA.md` DT-24; `.scratch/brief-roles-panel/`) | El checkout local está en `df42d43`, 40 commits atrás y con cambios locales ajenos en `scripts/`. **No se hizo pull**; se leyó con `git show origin/main:...`.                                                                                                                                      |
+| Contrato `repos/pf-pkg-contracts`        | Tag `v0.1.0-tracer.47` (`bff.yaml`, `operacion.yaml`, `estados/viaje.estados.yaml`, `CHANGELOG.md`)                                                             | Último tag publicado (`.47` solo cambia descripciones; la ola `tracer.48`, roles por operación de DEC-152, está en espera hasta que el backend coincida). El checkout local está en la rama `feat/ficha-tecnica-e-historico-tracer21` (`d2a3de2`, tag `tracer.37`): no representa lo que se libera. |
+| Pin del panel                            | `@ai27-tech/contracts@0.1.0-tracer.46` (`package.json`)                                                                                                         | Un tracer atrás de `.47`. **Decidido por el Lead: subir a `.47`**, mismo salto que DT-24 (tarea 0.3, reabierta).                                                                                                                                                                                    |
+| Decisiones del Lead sobre el brief       | Respuesta a `BRIEF-LEAD.md` (11 puntos)                                                                                                                         | Vigentes; ver "Decisiones del Lead". Los puntos de backend son tareas del Lead y **el panel sigue la tabla de este documento sin esperar el `403`**.                                                                                                                                                |
+| Notas del Lead (2026-11-18 y 2026-11-19) | `RESPUESTA-SEGUIMIENTO-2026-11-17.md`, `NOTA-ANGEL-2026-11-19.md` y las tres notas pegadas en la sesión                                                         | Vigente lo de `NOTA-ANGEL-2026-11-19.md`: gana sobre `NOTA-ANGEL-MIS-CLIENTES.md` y sobre P-5.                                                                                                                                                                                                      |
 
 ## Qué cambió desde el spec v2
 
@@ -28,7 +28,7 @@ Reemplaza a `alineacion-ui-roles-capacidades` (v2, a `tracer.41`). Conserva su i
 
 ## Decisiones del Lead sobre el brief
 
-Respuesta a `BRIEF-LEAD.md`. Regla general: el panel sigue esta tabla y **no espera el `403`**; si el backend aún no devuelve la negativa o la acción, la UI la trata con Requirement T2.
+Respuesta a `BRIEF-LEAD.md`, registrada como **DEC-152** (DECIDIDA). Regla general: el panel sigue esta tabla y **no espera el `403`**; si el backend aún no devuelve la negativa o la acción, la UI la trata con Requirement T2.
 
 | #   | Decisión                                                                                                                                                                                                                                                                                          | Efecto en el panel                                                                | Backend pendiente                                             |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------- |
@@ -395,19 +395,20 @@ El detalle de emergencia de Reacción no cambia: ve la escolta de su caso por `o
 4. THE botón "activar" SHALL ocultarse si el viaje está en `CERRADO` o `CANCELADO_POR_CLIENTE`.
 5. WHEN `cerrarEmergenciaPorId` responde `404` por viaje fuera de alcance, THE UI SHALL tratarlo como "no encontrado".
 6. THE UI SHALL NOT permitir a REA cerrar ni anotar, ni a SUP o COO reclamar o resolver.
+7. THE UI SHALL NOT ofrecer "transferir" un caso de emergencia (criterio 5 de Requirement 11).
 
 ### M10. Conversaciones
 
 #### Matriz de acciones
 
-| Acción (operación)                                                     | JO  | MON | SUP     | COO     | ADM                   | EJE                   | REA | COT | Fuente                                                        | Est                                    |
-| ---------------------------------------------------------------------- | --- | --- | ------- | ------- | --------------------- | --------------------- | --- | --- | ------------------------------------------------------------- | -------------------------------------- |
-| Ver bandeja y leer mensajes (`listarTrabajoBandeja`, `listarMensajes`) | ✘   | ✘   | 👁       | 👁       | ✔                     | ✔                     | ✘   | ✘   | DEC-127, DEC-131; decisión del Lead 7                         | C (backend pendiente: hoy `404` a ADM) |
-| Reclamar (`reclamarConversacion`)                                      | ✘   | ✘   | ✘ `403` | ✘ `403` | ✔                     | ✔                     | ✘   | ✘   | DEC-127, DEC-131; decisión del Lead 7                         | C (backend pendiente)                  |
-| Responder (`enviarMensaje`)                                            | ✘   | ✘   | ✘ `403` | ✘ `403` | ✔ con reclamo activo  | ✔ con reclamo activo  | ✘   | ✘   | Addendum §7; decisión del Lead 7                              | C (backend pendiente)                  |
-| Liberar, transferir, marcar atendida                                   | ✘   | ✘   | ✘ `403` | ✘ `403` | ✔ solo el responsable | ✔ solo el responsable | ✘   | ✘   | DEC-117, DEC-118; decisión del Lead 7                         | C (backend pendiente)                  |
-| Registrar recibos                                                      | ✘   | ✘   | ✘ `403` | ✘ `403` | ✔                     | ✔                     | ✘   | ✘   | DEC-131; decisión del Lead 7                                  | C (backend pendiente)                  |
-| Override auditado y recuperar conversaciones abandonadas               | ✘   | ✘   | ?       | ?       | ?                     | ✘                     | ✘   | ✘   | RESPUESTA #2 (herencia completa; alcance abierto como PM-008) | P                                      |
+| Acción (operación)                                                     | JO  | MON | SUP     | COO     | ADM                   | EJE                   | REA | COT | Fuente                                                                                                             | Est                                    |
+| ---------------------------------------------------------------------- | --- | --- | ------- | ------- | --------------------- | --------------------- | --- | --- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------- |
+| Ver bandeja y leer mensajes (`listarTrabajoBandeja`, `listarMensajes`) | ✘   | ✘   | 👁       | 👁       | ✔                     | ✔                     | ✘   | ✘   | DEC-127, DEC-131; decisión del Lead 7                                                                              | C (backend pendiente: hoy `404` a ADM) |
+| Reclamar (`reclamarConversacion`)                                      | ✘   | ✘   | ✘ `403` | ✘ `403` | ✔                     | ✔                     | ✘   | ✘   | DEC-127, DEC-131; decisión del Lead 7                                                                              | C (backend pendiente)                  |
+| Responder (`enviarMensaje`)                                            | ✘   | ✘   | ✘ `403` | ✘ `403` | ✔ con reclamo activo  | ✔ con reclamo activo  | ✘   | ✘   | Addendum §7; decisión del Lead 7                                                                                   | C (backend pendiente)                  |
+| Liberar, transferir, marcar atendida                                   | ✘   | ✘   | ✘ `403` | ✘ `403` | ✔ solo el responsable | ✔ solo el responsable | ✘   | ✘   | DEC-117, DEC-118; decisión del Lead 7. El panel no ofrece transferir: sin selector de destino (DEC-148 #76, DT-28) | C (backend pendiente)                  |
+| Registrar recibos                                                      | ✘   | ✘   | ✘ `403` | ✘ `403` | ✔                     | ✔                     | ✘   | ✘   | DEC-131; decisión del Lead 7                                                                                       | C (backend pendiente)                  |
+| Override auditado y recuperar conversaciones abandonadas               | ✘   | ✘   | ?       | ?       | ?                     | ✘                     | ✘   | ✘   | RESPUESTA #2 (herencia completa; alcance abierto como PM-008)                                                      | P                                      |
 
 La conversación de solicitud tiene su matriz propia en M14.
 
@@ -419,7 +420,7 @@ La conversación de solicitud tiene su matriz propia en M14.
 2. WHEN SUP o COO abren una conversación, THE UI SHALL NOT mostrar reclamar, responder, liberar, transferir ni marcar atendida.
 3. WHEN una acción de mensajería falla por `409 conflicto_version_reclamo`, `409 conversacion_solo_lectura` o `403`, THE UI SHALL NOT pasar `onRetry`; SHALL explicar el motivo con `deliveryError`.
 4. THE orden de los mensajes SHALL ser por `secuencia`.
-5. THE UI SHALL NOT crear botones de override hasta que PM-008 defina su alcance, ni la pantalla de transferir conversación hasta resolver DT-28 (el panel no tiene el `sub` del destino).
+5. THE UI SHALL NOT crear botones de override hasta que PM-008 defina su alcance, ni ofrecer transferir en conversaciones del viaje ni en emergencias: el panel no conoce el `sub` del destino y un id de sujeto responde `409 destino_invalido_en_viaje` (DEC-148 #76 y #77, DT-28). Tampoco SHALL mostrar el nombre del responsable a partir de `reclamo_activo.responsable_id`, que es un `sub`.
 6. WHEN `listarTrabajoBandeja` responde `404` a ADM (backend pendiente), THE UI SHALL mostrar un estado "bandeja no disponible" con sesión y menú intactos, sin `Toast` de error.
 
 ### M11. Roster (`/roster`)
@@ -496,23 +497,24 @@ La conversación de solicitud tiene su matriz propia en M14.
 
 ### M14. Solicitudes y Panel del Jefe Operativo (V2, condicionado)
 
-**Condición.** Se implementa en este spec después de subir el pin a `tracer.46` (tarea 0.3). El alcance sale de E10-HU-035 a 038, E1-HU-003 v2 y las operaciones del BFF; no hay tarea E8 de origen y no se espera una.
+**Condición.** Se implementa en este spec después de subir el pin a `tracer.47` (tarea 0.3). El alcance sale de E10-HU-035 a 038, E1-HU-003 v2 y las operaciones del BFF; no hay tarea E8 de origen y no se espera una.
 
 #### Matriz de acciones
 
-| Acción (operación)                                            | JO                                | MON | SUP | COO | ADM     | EJE           | REA | COT     | Fuente                  | Est |
-| ------------------------------------------------------------- | --------------------------------- | --- | --- | --- | ------- | ------------- | --- | ------- | ----------------------- | --- |
-| Listar (`listarSolicitudes`)                                  | ✔ solo `PAGADO`                   | ✘   | ✘   | ✘   | ✔ todas | ✘             | ✘   | ✔ todas | `bff.yaml`; DEC-148 #22 | C   |
-| Ver una solicitud (`obtenerSolicitud`)                        | ✔ `PAGADO`                        | ✘   | ✘   | ✘   | ✔       | ✘             | ✘   | ✔       | idem                    | C   |
-| Ver datos comerciales (monto, moneda, notas, versiones, pago) | ✘                                 | ✘   | ✘   | ✘   | ✔       | ✘             | ✘   | ✔       | DEC-148 #67             | C   |
-| Ver histórico (`listarHistoricoSolicitud`)                    | ✔ `PAGADO`, sin datos comerciales | ✘   | ✘   | ✘   | ✔       | ✘             | ✘   | ✔       | DEC-148 #67, #73        | C   |
-| Cotizar o recotizar (`cotizarSolicitud`)                      | ✘                                 | ✘   | ✘   | ✘   | ✔       | ✘             | ✘   | ✔       | `bff.yaml`              | C   |
-| Reprogramar en `PAGADO` (`reprogramarSolicitud`)              | ✘                                 | ✘   | ✘   | ✘   | ✔       | ✘             | ✘   | ✔       | `bff.yaml`              | C   |
-| Confirmar pago (`confirmarPago`)                              | ✘                                 | ✘   | ✘   | ✘   | ✔       | ✘             | ✘   | ✔       | `bff.yaml`              | C   |
-| Revertir pago (`revertirPago`)                                | ✘                                 | ✘   | ✘   | ✘   | ✔       | ✘             | ✘   | ✘       | DEC-148 #37             | C   |
-| Aprobar (`aprobarSolicitud`)                                  | ✔                                 | ✘   | ✘   | ✘   | ✔       | ✘             | ✘   | ✘       | `bff.yaml`; DEC-148 #4  | C   |
-| Rechazar con motivo (`rechazarSolicitud`)                     | ✔                                 | ✘   | ✘   | ✘   | ✔       | ✘             | ✘   | ✘       | `bff.yaml`; DEC-020 #2  | C   |
-| Bandeja y conversación de la solicitud                        | ✘                                 | ✘   | ✘   | ✘   | ✔       | ✘ `404`/`403` | ✘   | ✔       | DEC-148 #12, #28, #31   | C   |
+| Acción (operación)                                                  | JO                                | MON | SUP | COO | ADM     | EJE           | REA | COT     | Fuente                          | Est                                                          |
+| ------------------------------------------------------------------- | --------------------------------- | --- | --- | --- | ------- | ------------- | --- | ------- | ------------------------------- | ------------------------------------------------------------ |
+| Listar (`listarSolicitudes`)                                        | ✔ solo `PAGADO`                   | ✘   | ✘   | ✘   | ✔ todas | ✘             | ✘   | ✔ todas | `bff.yaml`; DEC-148 #22         | C                                                            |
+| Ver una solicitud (`obtenerSolicitud`)                              | ✔ `PAGADO`                        | ✘   | ✘   | ✘   | ✔       | ✘             | ✘   | ✔       | idem                            | C                                                            |
+| Ver datos comerciales (monto, moneda, notas, versiones, pago)       | ✘                                 | ✘   | ✘   | ✘   | ✔       | ✘             | ✘   | ✔       | DEC-148 #67                     | C                                                            |
+| Ver histórico (`listarHistoricoSolicitud`)                          | ✔ `PAGADO`, sin datos comerciales | ✘   | ✘   | ✘   | ✔       | ✘             | ✘   | ✔       | DEC-148 #67, #73                | C                                                            |
+| Cotizar o recotizar (`cotizarSolicitud`)                            | ✘                                 | ✘   | ✘   | ✘   | ✔       | ✘             | ✘   | ✔       | `bff.yaml`                      | C                                                            |
+| Reprogramar en `PAGADO` (`reprogramarSolicitud`)                    | ✘                                 | ✘   | ✘   | ✘   | ✔       | ✘             | ✘   | ✔       | `bff.yaml`                      | C                                                            |
+| Confirmar pago (`confirmarPago`)                                    | ✘                                 | ✘   | ✘   | ✘   | ✔       | ✘             | ✘   | ✔       | `bff.yaml`                      | C                                                            |
+| Revertir pago (`revertirPago`)                                      | ✘                                 | ✘   | ✘   | ✘   | ✔       | ✘             | ✘   | ✘       | DEC-148 #37                     | C                                                            |
+| Aprobar (`aprobarSolicitud`)                                        | ✔                                 | ✘   | ✘   | ✘   | ✔       | ✘             | ✘   | ✘       | `bff.yaml`; DEC-148 #4          | C                                                            |
+| Rechazar con motivo (`rechazarSolicitud`)                           | ✔                                 | ✘   | ✘   | ✘   | ✔       | ✘             | ✘   | ✘       | `bff.yaml`; DEC-020 #2          | C                                                            |
+| Bandeja y conversación de la solicitud                              | ✘                                 | ✘   | ✘   | ✘   | ✔       | ✘ `404`/`403` | ✘   | ✔       | DEC-148 #12, #28, #31           | C                                                            |
+| Transferir una conversación de solicitud (`transferirConversacion`) | ✘                                 | ✘   | ✘   | ✘   | ✔       | ✘             | ✘   | ✔       | DEC-148 #74; DT-28; `tracer.47` | P (Q-D: COT no puede listar usuarios para elegir el destino) |
 
 #### Requirement 15
 
@@ -528,6 +530,8 @@ La conversación de solicitud tiene su matriz propia en M14.
 6. THE rechazo SHALL pedir el motivo obligatorio y SHALL NOT mencionar reembolso (se maneja fuera de Argos).
 7. THE `ejecutivo`, `supervisor`, `coordinador`, `monitorista` y `reaccion` SHALL NOT ver la conversación ni la bandeja de solicitudes.
 8. THE panel del Jefe Operativo (E8-T20) SHALL sustituir "Solicitudes por aprobar" por la bandeja de solicitudes `PAGADO` cuando este módulo se implemente.
+9. THE transferencia de una conversación de solicitud SHALL enviar como `responsable_destino_id` el `UsuarioAdmin.id` de un usuario con rol `cotizacion` y SHALL mostrar un texto propio ante `409 destino_no_es_cotizacion`; SHALL quedar condicionada a Q-D (cómo elige el destino un usuario `cotizacion`).
+10. THE UI SHALL tratar como errores de validación visibles el `409 fecha_hora_servicio_pasada` al aprobar, el `400` por fecha pasada al crear, cotizar o reprogramar, y el `409 transicion_no_permitida` del segundo pago tardío; la moneda SHALL fijarse en `MXN` sin selector y el monto SHALL aceptar cero.
 
 ---
 
@@ -550,11 +554,11 @@ La conversación de solicitud tiene su matriz propia en M14.
 | E13 | Borde    | ADM activa una emergencia                                 | Ve el botón; si el servidor responde `403` (backend pendiente), `Toast` de sin permiso y pantalla intacta |
 | E14 | Negativo | `cotizacion` inicia sesión                                | No ve Viajes, Dashboard, Roster, Emergencias ni Conversaciones del viaje; aterriza en Solicitudes         |
 | E15 | Borde    | JO aprueba una solicitud `PAGADO`                         | El viaje nace con el mismo id; la solicitud sale de su bandeja y el `404` posterior no es error           |
-| E16 | Negativo | SUP abre un caso en la bandeja de emergencias             | Puede devolver y transferir; no reclama ni resuelve                                                       |
+| E16 | Negativo | SUP abre un caso en la bandeja de emergencias             | Puede devolver; no reclama ni resuelve, y el panel no ofrece transferir (sin selector de destino)         |
 
 ## Dependencias
 
-- Pin `tracer.46` (tarea 0.3): lo necesitan M2, M3 (enum del viaje), M11, M12 y M14. La política (M0), la navegación (M1) y los módulos de detalle (M4 a M10, M13) se pueden trabajar antes con los tipos actuales.
+- Pin `tracer.47` (tarea 0.3): lo necesitan M2, M3 (enum del viaje), M11, M12 y M14. La política (M0), la navegación (M1) y los módulos de detalle (M4 a M10, M13) se pueden trabajar antes con los tipos actuales.
 - Extremo a extremo del alcance: backend en `-m` con la ola publicada. Sin fecha comprometida; solo por hito (Lead, 2026-11-18).
 
 ## Fuera de alcance
@@ -572,4 +576,4 @@ Viven en `BRECHAS.md`. Las 11 preguntas del brief quedaron respondidas; restan l
 
 ## Trazabilidad
 
-DEC-149 #1 a #24; DEC-148 #1, #3, #4, #12, #20 a #22, #28, #31, #37, #67, #73; DEC-045 #9; DEC-022 #1, #9; DEC-060; DEC-126 a DEC-135; DEC-139 a DEC-142; ADR 21, 27, 38, 39; E4-HU-018 v2; E1-HU-003 v2; E10-HU-035 a 038; DT-24; `bff.yaml` `tracer.46` (`obtenerMiAlcance`, `listarViajes`, `obtenerViajeInterno`, `obtenerAsignacion`, `fijarClientesSujeto`, `listarSolicitudes`, `aprobarSolicitud`, `listarBandejaEmergencias`, entre otras).
+DEC-152; DEC-149 #1 a #24; DT-28; DEC-148 #1, #3, #62 a #79, #4, #12, #20 a #22, #28, #31, #37, #67, #73; DEC-045 #9; DEC-022 #1, #9; DEC-060; DEC-126 a DEC-135; DEC-139 a DEC-142; ADR 21, 27, 38, 39; E4-HU-018 v2; E1-HU-003 v2; E10-HU-035 a 038; DT-24; `bff.yaml` `tracer.46` (`obtenerMiAlcance`, `listarViajes`, `obtenerViajeInterno`, `obtenerAsignacion`, `fijarClientesSujeto`, `listarSolicitudes`, `aprobarSolicitud`, `listarBandejaEmergencias`, entre otras).

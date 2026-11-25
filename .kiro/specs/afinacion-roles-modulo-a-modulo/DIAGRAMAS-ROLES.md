@@ -2,8 +2,8 @@
 
 Documento de trabajo para armar Happy Paths. Todo sale de este spec (`requirements.md`) y de las fuentes en su última versión leída:
 
-- **Contrato:** tag `v0.1.0-tracer.46` (último publicado en el remoto). La ola `tracer.47` es solo de documentación y aún no existe como tag.
-- **Contexto:** `origin/main` `c6d405c` (DEC-148 #1 a #76, DEC-149 #1 a #24, `BRIEF-FRONTENDS.md` del 2026-11-24).
+- **Contrato:** tag `v0.1.0-tracer.47` (último publicado en el remoto; solo cambia descripciones). La ola `tracer.48` (roles por operación de DEC-152) está en espera.
+- **Contexto:** `origin/main` `5629dac` (DEC-148 #1 a #79, DEC-149 #1 a #24, DEC-152, `BRIEF-FRONTENDS.md` actualizado).
 - **Decisiones del Lead** sobre el brief de roles (11 puntos y el seguimiento).
 
 ## Cómo leerlo
@@ -93,7 +93,7 @@ flowchart LR
   I --> I1["Resolver o corregir incidencia<br/>resolverIncidencia"]
   B --> B1["Ver todos los casos, detalle y notas<br/>listarBandejaEmergencias, obtenerEmergencia"]
   B --> B2["Devolver al pool cualquier caso<br/>liberarReclamoEmergenciaPorId"]
-  B --> B3["Transferir cualquier caso<br/>transferirEmergenciaPorId"]
+  B --> B3["⏸ Transferir: no se construye<br/>sin selector de destino"]
   CH --> CH1["Solo lectura<br/>listarTrabajoBandeja, listarMensajes"]
   CT --> CT1["Leer y escribir todo Catálogos,<br/>vehículos y custodios incluidos ⚠"]
   SC -. "No hacen" .-> N["Aprobar, asignar escolta, cerrar viaje,<br/>reclamar o resolver emergencias,<br/>reclamar o responder conversaciones,<br/>override conversacional (PM-008 abierto)"]
@@ -140,7 +140,7 @@ flowchart LR
   C2 --> C3["Responder, con reclamo activo<br/>enviarMensaje"]
   C2 --> C4["Marcar atendida<br/>marcarAtendida"]
   C2 --> C5["Liberar al pool<br/>liberarReclamo"]
-  C2 --> C6["⏸ Transferir<br/>transferirConversacion, DT-28"]
+  C2 --> C6["⏸ Transferir: no se construye<br/>sin selector de destino, DT-28"]
   C1 --> C7["Registrar recibos<br/>registrarReciboEntregado, registrarReciboLeido"]
   EJE -. "No ve ni hace" .-> N["Viajes, ficha, solicitudes ni su conversación,<br/>Catálogos, Reportes, emergencias"]
 ```
@@ -155,7 +155,7 @@ flowchart LR
   B --> R["Reclamar un caso abierta sin responsable<br/>reclamarEmergenciaPorId"]
   R --> RS["Resolver con nota obligatoria<br/>resolverEmergenciaPorId"]
   R --> DV["Devolver al pool, solo el responsable<br/>liberarReclamoEmergenciaPorId"]
-  R --> TR["Transferir a otro REA, solo el responsable<br/>transferirEmergenciaPorId"]
+  R --> TR["⏸ Transferir: no se construye<br/>sin selector de destino"]
   REA -. "No ve ni hace" .-> N["Viajes, ficha, cerrar ni anotar casos,<br/>Catálogos, Reportes, conversaciones"]
 ```
 
@@ -170,7 +170,7 @@ flowchart LR
   L --> C2["Confirmar pago, también el tardío desde VENCIDA<br/>confirmarPago"]
   L --> C3["Reprogramar fecha y hora, solo en PAGADO, con motivo<br/>reprogramarSolicitud"]
   L --> C4["Ver histórico con versiones de la cotización<br/>listarHistoricoSolicitud"]
-  L --> C5["Conversación de la solicitud: reclamar, responder,<br/>liberar, marcar atendida<br/>⏸ transferir"]
+  L --> C5["Conversación de la solicitud: reclamar, responder,<br/>liberar, marcar atendida<br/>Transferir a otro COT: por definir, Q-D"]
   COT -. "No ve ni hace" .-> N["Viajes, ficha, Catálogos, Reportes, emergencias,<br/>chat del viaje, revertir pago, aprobar o rechazar"]
 ```
 
@@ -239,7 +239,7 @@ stateDiagram-v2
   [*] --> abierta : MON, SUP, COO y ADM ⚠ activan sobre un viaje no terminal
   abierta --> en_atencion : REA reclama
   en_atencion --> abierta : Responsable REA, SUP o COO devuelven al pool
-  en_atencion --> en_atencion : Responsable REA, SUP o COO transfieren a otro REA
+  en_atencion --> en_atencion : Transferencia a otro REA (el contrato la permite; el panel no la ofrece)
   en_atencion --> resuelta : Solo el responsable REA, con nota obligatoria
   resuelta --> cerrada : MON, SUP, COO en su alcance, o ADM
   cerrada --> [*]
@@ -338,7 +338,7 @@ sequenceDiagram
   MON->>C: agregarNotaEmergenciaInterno
   REA->>C: resolverEmergenciaPorId, con nota obligatoria
   MON->>C: cerrarEmergenciaPorId
-  Note over SUP,C: SUP y COO pueden devolver o transferir cualquier caso en atención
+  Note over SUP,C: SUP y COO pueden devolver cualquier caso en atención; transferir no se ofrece en el panel
 ```
 
 | #   | Rol                             | Acción (operación)                                    | Resultado esperado                                                      |
@@ -349,7 +349,7 @@ sequenceDiagram
 | 4   | REA (responsable)               | `resolverEmergenciaPorId` con nota                    | Caso `resuelta` (irreversible)                                          |
 | 5   | MON, SUP, COO en alcance, o ADM | `cerrarEmergenciaPorId`                               | Caso `cerrada`; fuera de la bandeja de REA                              |
 
-Alternos: SUP o COO `liberarReclamoEmergenciaPorId` devuelve el caso a `abierta`; `transferirEmergenciaPorId` lo pasa a otro REA. REA no puede cerrar y MON no puede reclamar ni resolver.
+Alternos: SUP o COO `liberarReclamoEmergenciaPorId` devuelve el caso a `abierta`; `transferirEmergenciaPorId` existe en el contrato, pero el panel no lo ofrece (sin selector de destino). REA no puede cerrar y MON no puede reclamar ni resolver.
 
 ### HP-06. Conversación del viaje con el cliente
 
@@ -367,25 +367,26 @@ sequenceDiagram
   SUP->>SUP: Lee la bandeja y los mensajes, sin acciones
 ```
 
-| #   | Rol       | Acción (operación)                       | Resultado esperado                                                 |
-| --- | --------- | ---------------------------------------- | ------------------------------------------------------------------ |
-| 1   | EJE       | `listarTrabajoBandeja`                   | Ve la conversación con la marca `sin_respuesta`                    |
-| 2   | EJE       | `reclamarConversacion`                   | Es el responsable; otro EJE recibe `409 conflicto_version_reclamo` |
-| 3   | EJE       | `enviarMensaje`                          | Mensaje entregado; el orden es por `secuencia`                     |
-| 4   | EJE       | `marcarAtendida`                         | Conversación atendida; responder no la marca sola                  |
-| 5   | EJE       | `liberarReclamo`                         | Vuelve al pool                                                     |
-| 6   | SUP o COO | `listarTrabajoBandeja`, `listarMensajes` | Solo lectura; reclamar o responder da `403`                        |
-| 7   | ADM ⚠     | La misma bandeja                         | Hoy `404` hasta el cambio en `mensajeria`                          |
-| 8   | EJE ⏸     | `transferirConversacion`                 | Sin pantalla hasta resolver DT-28                                  |
+| #   | Rol       | Acción (operación)                       | Resultado esperado                                                                                                 |
+| --- | --------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| 1   | EJE       | `listarTrabajoBandeja`                   | Ve la conversación con la marca `sin_respuesta`                                                                    |
+| 2   | EJE       | `reclamarConversacion`                   | Es el responsable; otro EJE recibe `409 conflicto_version_reclamo`                                                 |
+| 3   | EJE       | `enviarMensaje`                          | Mensaje entregado; el orden es por `secuencia`                                                                     |
+| 4   | EJE       | `marcarAtendida`                         | Conversación atendida; responder no la marca sola                                                                  |
+| 5   | EJE       | `liberarReclamo`                         | Vuelve al pool                                                                                                     |
+| 6   | SUP o COO | `listarTrabajoBandeja`, `listarMensajes` | Solo lectura; reclamar o responder da `403`                                                                        |
+| 7   | ADM ⚠     | La misma bandeja                         | Hoy `404` hasta el cambio en `mensajeria`                                                                          |
+| 8   | EJE       | `transferirConversacion`                 | No se construye: el destino es el `sub` del token y el panel no lo conoce (`409 destino_invalido_en_viaje`; DT-28) |
 
 ### HP-07. Conversación de la solicitud (pool de cotización)
 
-| #   | Rol       | Acción (operación)                                        | Resultado esperado                                              |
-| --- | --------- | --------------------------------------------------------- | --------------------------------------------------------------- |
-| 1   | COT o ADM | `listarTrabajoBandejaSolicitudes`                         | Ve las conversaciones de solicitud con `tipo=solicitud`         |
-| 2   | COT       | `reclamarConversacion`, `enviarMensaje`, `marcarAtendida` | Atiende al cliente                                              |
-| 3   | EJE       | Abrir la conversación por id                              | `403`; EJE nunca la ve                                          |
-| 4   | Cliente   | Solicitud terminada                                       | COT y cliente conservan 3 días de escritura; luego solo lectura |
+| #   | Rol         | Acción (operación)                                                             | Resultado esperado                                                                                                                                                                      |
+| --- | ----------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | COT o ADM   | `listarTrabajoBandejaSolicitudes`                                              | Ve las conversaciones de solicitud con `tipo=solicitud`                                                                                                                                 |
+| 2   | COT         | `reclamarConversacion`, `enviarMensaje`, `marcarAtendida`                      | Atiende al cliente                                                                                                                                                                      |
+| 3   | EJE         | Abrir la conversación por id                                                   | `403`; EJE nunca la ve                                                                                                                                                                  |
+| 4   | Cliente     | Solicitud terminada                                                            | COT y cliente conservan 3 días de escritura; luego solo lectura                                                                                                                         |
+| 5   | COT o ADM ⚠ | `transferirConversacion` con el `UsuarioAdmin.id` de otro usuario `cotizacion` | Pasa al destino; `409 destino_no_es_cotizacion` si no tiene el rol. Pendiente Q-D: COT no puede listar usuarios, así que solo ADM podría elegir destino. Backend en `-m`, sin desplegar |
 
 ### HP-08. Alta de un Monitorista y "mis clientes"
 

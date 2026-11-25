@@ -135,9 +135,11 @@ Se conserva el patrón de v2: `RequiereCapacidad` lee `useSession()` y renderiza
 - Errores: `400` (refresca activos), `409 rol_sin_alcance`.
 - El mismo editor sirve a Administración con el `Select` de rol de nueve valores.
 
-### M14. Solicitudes (se implementa tras subir el pin a `tracer.46`)
+### M14. Solicitudes (se implementa tras subir el pin a `tracer.47`)
 
-Hook por operación del BFF, un `useQuery` o `useMutation` por acción. La respuesta de `obtenerSolicitud` y `listarHistoricoSolicitud` se modela con `cotizacion` y `pago` opcionales; el componente del JO no los renderiza. Tras `aprobarSolicitud`, la navegación va a `/viajes/{id}` con el mismo id; el `404` de `obtenerSolicitud` para JO se trata como solicitud resuelta.
+Hook por operación del BFF, un `useQuery` o `useMutation` por acción. La respuesta de `obtenerSolicitud` y `listarHistoricoSolicitud` se modela con `cotizacion` y `pago` opcionales; el componente del JO no los renderiza. Tras `aprobarSolicitud`, la navegación va a `/viajes/{id}` con el mismo id; el `404` de `obtenerSolicitud` para JO se trata como solicitud resuelta. `null` o ausencia de `cotizacion` y `pago` significa "oculto" para el JO (documentado en `tracer.47`), y el `motivo` de `pago_revertido` tampoco se pinta.
+
+**Transferir.** En conversaciones de solicitud, `transferirConversacion` envía `responsable_destino_id` igual al `UsuarioAdmin.id` de un usuario `cotizacion`; `mensajeria` valida el rol (`409 destino_no_es_cotizacion`). Queda condicionado a Q-D (un usuario `cotizacion` no puede listar usuarios). En conversaciones del viaje y en emergencias no hay selector posible: el destino es el `sub` del token, que el panel no conoce.
 
 ## Mocks
 
