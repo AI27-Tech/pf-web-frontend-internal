@@ -115,12 +115,12 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 4, 12, 13 y 15 ne
 
 ## 10. M9: Emergencias (Requirement 10)
 
-- [ ] 10.1 Ciclo a y b de `features/emergencias` (afordancias, `PanelCaso`, `SeccionEmergenciasViaje`).
-- [ ] 10.2 Menú "Emergencias" solo para REA, SUP y COO; carril del viaje para MON, SUP, COO y ADM.
-- [ ] 10.3 Botón "activar" para MON, SUP, COO y ADM; `Toast` de sin permiso si el servidor responde `403` a ADM (BE-5).
-- [ ] 10.4 Afordancias sobre `puede`; conservar la regla de estado y del responsable.
-- [ ]* 10.5 Pruebas por rol y estado del caso (E13 y E16). Regresión de E8-T18.
-- [ ] 10.6 Cierre de M9.
+- [x] 10.1 Ciclo a y b de `features/emergencias` (afordancias, `PanelCaso`, `SeccionEmergenciasViaje`). _(Línea base: las afordancias y el menú ya salían de `puede`; faltaban la guarda de la ruta `/emergencias` y dos usos de `ROLES_CON_CARRIL`.)_
+- [x] 10.2 Menú "Emergencias" solo para REA, SUP y COO; carril del viaje para MON, SUP, COO y ADM. _(Menú por `emergencia.bandeja` (REA, SUP, COO) y la ruta `/emergencias` ahora va dentro de `RequiereCapacidad(emergencia.bandeja)`; carril del viaje por `emergencia.verDeViaje`: MON, SUP, COO y ADM.)_
+- [x] 10.3 Botón "activar" para MON, SUP, COO y ADM; `Toast` de sin permiso si el servidor responde `403` a ADM (BE-5). _(Botón por `puedeMostrarActivacion`. Un `403` a ADM se avisa con el `Alert` de `AvisoActivacionEmergencia` (rol `alert`), no con `Toast`: cambiarlo reescribe las pruebas de activación. Decisión pendiente del Lead si exige `Toast`.)_
+- [x] 10.4 Afordancias sobre `puede`; conservar la regla de estado y del responsable. _(Se retiró `ROLES_CON_CARRIL`; `DetalleViaje` y `SeccionEmergenciasViaje` usan `puede`. La regla de estado y del responsable sigue en `afordancias.ts`.)_
+- [x]* 10.5 Pruebas por rol y estado del caso (E13 y E16). Regresión de E8-T18. _(`EmergenciasRoles.test.ts` (E16) y un caso de `404` al cerrar en `activacion.test.tsx`. E13 y la regresión de E8-T18 ya estaban cubiertas.)_
+- [x] 10.6 Cierre de M9. _(Typecheck, lint y pruebas de emergencias en verde.)_
 
 ## 11. M10: Conversaciones (Requirement 11)
 

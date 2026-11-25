@@ -12,7 +12,8 @@ import {
   type AvisoEmergencia,
 } from '@/features/emergencias/activacion/AccionEmergencia';
 import { SeccionEmergenciasViaje } from '@/features/emergencias/activacion/SeccionEmergenciasViaje';
-import { puedeMostrarActivacion, ROLES_CON_CARRIL } from '@/features/emergencias/afordancias';
+import { puedeMostrarActivacion } from '@/features/emergencias/afordancias';
+import { puede } from '@/lib/permisos';
 import { AlertaEmergenciasActivas } from '@/features/emergencias/activacion/AlertaEmergenciasActivas';
 import { useEmergenciasViaje } from '@/features/emergencias/activacion/useEmergenciasViaje';
 import type { EmergenciaViaje } from '@/lib/contracts/emergencias';
@@ -65,7 +66,9 @@ function CabeceraDePrueba({
   const [casoActivado, setCasoActivado] = useState<EmergenciaViaje | null>(null);
   const rol = sesion.value.rol as Rol;
   // Misma lista compartida que DetalleViaje: la alerta y el carril leen los mismos casos.
-  const emergencias = useEmergenciasViaje(VIAJE, { habilitado: ROLES_CON_CARRIL.includes(rol) });
+  const emergencias = useEmergenciasViaje(VIAJE, {
+    habilitado: puede(rol, 'emergencia.verDeViaje'),
+  });
   return (
     <ActivacionEmergenciaContext.Provider
       value={{ casoActivado, aviso, cerrarAviso: () => setAviso(null) }}
@@ -371,5 +374,20 @@ describe('permisos de nota y cierre', () => {
     expect(await ultimaAlerta()).toHaveTextContent(
       'No puedes realizar esta acción sobre la emergencia.',
     );
+  });
+
+  it('cerrar con 404 (viaje fuera de alcance) dice "no disponible" sin hablar de permisos', async () => {
+    servirCasos([{ id: 'em-9', estado: 'resuelta' }]);
+    server.use(
+      http.post(path('/panel/emergencias/em-9/cierre'), () =>
+        HttpResponse.json({ codigo: 'no_encontrado' }, { status: 404 }),
+      ),
+    );
+    renderSeccion();
+    await userEvent.click(await screen.findByRole('button', { name: /Resuelta/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar emergencia' }));
+    const alerta = await ultimaAlerta();
+    expect(alerta).toHaveTextContent('La emergencia no está disponible.');
+    expect(alerta.textContent).not.toMatch(/permiso|autoriz|alcance/i);
   });
 });

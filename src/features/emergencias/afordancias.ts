@@ -7,7 +7,7 @@
 import type { Rol } from '@ai27-tech/contracts/roles';
 import type { EstadoEmergencia, Reclamo } from '@/lib/contracts/emergencias';
 import { esTerminal } from '@/lib/contracts/viajeDetalle';
-import { MATRIZ, puede } from '@/lib/permisos';
+import { puede } from '@/lib/permisos';
 
 /** Vista mínima del caso que necesitan las afordancias. */
 export interface CasoParaAfordancias {
@@ -62,12 +62,6 @@ export function puedeActivar(rol: Rol | null, estadoViaje: string): boolean {
 export function puedeAnotar(rol: Rol | null, caso: CasoParaAfordancias): boolean {
   return puede(rol, 'emergencia.anotar') && caso.estado !== 'cerrada';
 }
-
-/**
- * Roles que ven el carril de emergencias del viaje. Adaptador sobre la política
- * (se retira cuando los consumidores usen `puede`, M9).
- */
-export const ROLES_CON_CARRIL: readonly Rol[] = MATRIZ['emergencia.verDeViaje'];
 
 /** El botón de activar vive en la cabecera del detalle: se muestra si el rol puede y el viaje no es terminal. */
 export function puedeMostrarActivacion(rol: Rol | null, estadoViaje: string): boolean {

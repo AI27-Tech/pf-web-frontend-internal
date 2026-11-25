@@ -58,7 +58,6 @@ import styles from './progresoViaje.module.css';
 import { SeccionEmergenciasViaje } from '@/features/emergencias/activacion/SeccionEmergenciasViaje';
 import { AlertaEmergenciasActivas } from '@/features/emergencias/activacion/AlertaEmergenciasActivas';
 import { useEmergenciasViaje } from '@/features/emergencias/activacion/useEmergenciasViaje';
-import { ROLES_CON_CARRIL } from '@/features/emergencias/afordancias';
 import { puede } from '@/lib/permisos';
 import { useActivacionEmergencia } from '@/features/viajes/activacionEmergenciaContexto';
 import { AvisoActivacionEmergencia } from '@/features/viajes/AvisoActivacionEmergencia';
@@ -117,7 +116,7 @@ export function DetalleViaje({ id }: DetalleViajeProps) {
   const { usuario } = useSession();
   const navigate = useNavigate();
   // Una sola lista de casos para la alerta y el carril. Solo roles con carril la piden.
-  const tieneCarril = usuario ? ROLES_CON_CARRIL.includes(usuario.rol) : false;
+  const tieneCarril = puede(usuario?.rol, 'emergencia.verDeViaje');
   const emergencias = useEmergenciasViaje(id, { habilitado: tieneCarril });
   /** true cuando el modal de selección de unidades está abierto (E8-T10). */
   const [modalAsignacionAbierto, setModalAsignacionAbierto] = useState(false);
