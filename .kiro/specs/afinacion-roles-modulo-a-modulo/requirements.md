@@ -419,7 +419,7 @@ La conversación de solicitud tiene su matriz propia en M14.
 2. WHEN SUP o COO abren una conversación, THE UI SHALL NOT mostrar reclamar, responder, liberar, transferir ni marcar atendida.
 3. WHEN una acción de mensajería falla por `409 conflicto_version_reclamo`, `409 conversacion_solo_lectura` o `403`, THE UI SHALL NOT pasar `onRetry`; SHALL explicar el motivo con `deliveryError`.
 4. THE orden de los mensajes SHALL ser por `secuencia`.
-5. THE UI SHALL NOT crear botones de override hasta que PM-008 defina su alcance.
+5. THE UI SHALL NOT crear botones de override hasta que PM-008 defina su alcance, ni la pantalla de transferir conversación hasta resolver DT-28 (el panel no tiene el `sub` del destino).
 6. WHEN `listarTrabajoBandeja` responde `404` a ADM (backend pendiente), THE UI SHALL mostrar un estado "bandeja no disponible" con sesión y menú intactos, sin `Toast` de error.
 
 ### M11. Roster (`/roster`)
@@ -521,7 +521,7 @@ La conversación de solicitud tiene su matriz propia en M14.
 ##### Acceptance Criteria
 
 1. THE bandeja de solicitudes del JO SHALL mostrar solo `PAGADO`; SHALL NOT mostrar ni pedir solicitudes en otro estado.
-2. THE vista del JO SHALL NOT pintar ni pedir `cotizacion` ni `pago`; SHALL tolerar que esos campos falten en la respuesta.
+2. THE vista del JO SHALL NOT pintar ni pedir `cotizacion` ni `pago`; SHALL tratar `null` o ausencia como "oculto", no como "sin cotizar" (DEC-148 #67; la ola `tracer.47` lo documenta).
 3. THE aprobación SHALL exigir la fecha y hora del servicio y SHALL tratar `409` por fecha pasada como error de validación visible.
 4. WHEN `aprobarSolicitud` o `rechazarSolicitud` terminan, THE UI SHALL tratar el `404` posterior de `obtenerSolicitud` para el JO como resolución normal, no como error (la solicitud sale de su bandeja).
 5. WHEN `aprobarSolicitud` termina, THE UI SHALL consultar el viaje con `obtenerViajeInterno` usando el mismo id.
