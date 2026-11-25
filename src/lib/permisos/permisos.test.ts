@@ -34,6 +34,7 @@ const ESPERADO: Record<Capacidad, string> = {
   'administracion.usuarios': 'ADM',
   'administracion.organizaciones': 'ADM',
   'viaje.crear': 'JO ADM',
+  'clientes.listar': 'JO ADM',
   'alcance.leerPropio': 'MON SUP COO',
   'viaje.asignarEscolta': 'JO ADM',
   'viaje.marcarApto': 'JO MON SUP COO ADM',

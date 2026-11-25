@@ -12,7 +12,8 @@ import { Alert, EmptyState, FormField, Select, SkeletonText } from '@ai27-tech/u
 
 import { BloqueError } from '@/components/feedback/BloqueError';
 
-export type EstadoCatalogoClientes = 'brecha' | 'cargando' | 'vacio' | 'error' | 'disponible';
+export type EstadoCatalogoClientes =
+  'brecha' | 'cargando' | 'vacio' | 'error' | 'prohibido' | 'disponible';
 
 export interface ClienteOption {
   readonly id: string;
@@ -54,6 +55,15 @@ export function ClienteSelector({
         <div role="status" aria-label="Cargando catálogo de clientes">
           <SkeletonText lines={1} />
         </div>
+      </EstadoCliente>
+    );
+  }
+
+  // `403` del catálogo: no es un fallo transitorio, así que no se ofrece reintentar.
+  if (estado === 'prohibido') {
+    return (
+      <EstadoCliente error={error}>
+        <Alert variant="warning">No tienes permiso para ver el catálogo de clientes.</Alert>
       </EstadoCliente>
     );
   }

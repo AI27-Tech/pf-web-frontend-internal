@@ -67,11 +67,11 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 4, 12, 13 y 15 ne
 
 ## 4. M3: Crear viaje (Requirement 4)
 
-- [ ] 4.1 Ciclo a y b de `CrearViaje.tsx` y `useCrearViaje`.
-- [ ] 4.2 Habilitar a ADM; ADM carga clientes con `listarClientes` (decisión del Lead 3).
-- [ ] 4.3 Manejo de `403` y `404` según Requirement T2.
-- [ ]* 4.4 Pruebas con JO y ADM (feliz) y MON (negativa).
-- [ ] 4.5 Cierre de M3.
+- [x] 4.1 Ciclo a y b de `CrearViaje.tsx` y `useCrearViaje`.
+- [x] 4.2 Habilitar a ADM; ADM carga clientes con `listarClientes` (decisión del Lead 3). _(Capacidad `clientes.listar` para JO y ADM; el mock la guarda.)_
+- [x] 4.3 Manejo de `403` y `404` según Requirement T2. _(`403` al crear: Toast y la pantalla intacta. `403` al listar clientes: aviso de permiso sin reintentar. `404`: "ya no está disponible", sin hablar de permisos.)_
+- [x]* 4.4 Pruebas con JO y ADM (feliz) y MON (negativa).
+- [x] 4.5 Cierre de M3.
 
 ## 5. M4: Detalle del viaje (Requirement 5)
 

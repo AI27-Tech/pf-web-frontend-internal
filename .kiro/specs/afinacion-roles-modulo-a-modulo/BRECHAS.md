@@ -33,3 +33,7 @@ El panel ya muestra o esconde según la tabla. Mientras estos cambios no lleguen
 ## Sin brechas de UI conocidas
 
 Los módulos usan componentes existentes de `@ai27-tech/ui` (`EmptyState`, `Alert`, `Toast`, `Badge`, `Tabs`, `Table`, `FilterTable`, `Section`, `DescriptionList`). Si el paso 2 de algún ciclo encuentra una falta, se registra aquí con el formato de la sección 7 de `ai27-tech-library-first`.
+
+## Hallazgos de implementación
+
+- **M10 (conversaciones).** `useNombresCliente` llama `listarClientes` con la sesión del Ejecutivo, pero el contrato describe esa operación solo para `jefe_operativo` (y ADM por BE-3). El BFF real probablemente responde `403` y la bandeja caería a mostrar ids. El mock de `/clientes` deja pasar tokens no decodificables y aplica `clientes.listar` a los decodificables. Resolver en M10: o el BFF agrega el nombre del cliente a la bandeja, o se pide ampliar `listarClientes`.

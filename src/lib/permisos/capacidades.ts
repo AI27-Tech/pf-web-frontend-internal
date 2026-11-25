@@ -38,6 +38,7 @@ const BASE = {
 
   // M2 y M3: bandeja y alta
   'viaje.crear': [JO],
+  'clientes.listar': [JO],
   'alcance.leerPropio': MONITOREO,
 
   // M4: acciones del detalle

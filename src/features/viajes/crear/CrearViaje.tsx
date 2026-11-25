@@ -47,6 +47,8 @@ import {
   Switch,
   Table,
   TimePicker,
+  Toast,
+  ToastContainer,
 } from '@ai27-tech/ui';
 import { MapPin } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
@@ -55,6 +57,7 @@ import { BloqueError } from '@/components/feedback/BloqueError';
 import { EnlaceRuta } from '@/components/layout/EnlaceRuta';
 import { useSession } from '@/context/SessionContext';
 import { ApiError } from '@/lib/api/errors';
+import { puede } from '@/lib/permisos';
 import { onCut } from '@/lib/api/sessionCut';
 import type { Unidad } from '@/lib/contracts/unidades';
 import { ClienteSelector } from './ClienteSelector';
@@ -151,11 +154,15 @@ export function CrearViaje() {
   const [resultado, setResultado] = useState<ResultadoCrearViaje | null>(null);
   const [avisoSesionFinalizada, setAvisoSesionFinalizada] = useState(false);
   const envioEnCurso = useRef(false);
-  const c = useCrearViaje(usuario?.rol === 'jefe_operativo');
+  // Sin permiso para crear no se piden clientes ni unidades (Requirement 2.5, T2.7).
+  const autorizado = puede(usuario?.rol, 'viaje.crear');
+  const c = useCrearViaje(autorizado);
+  // Aviso efímero de `403` (Requirement T2.3): la pantalla y lo capturado quedan intactos.
+  const [avisoSinPermiso, setAvisoSinPermiso] = useState(false);
 
   useEffect(() => onCut(() => setAvisoSesionFinalizada(true)), []);
 
-  if (usuario?.rol !== 'jefe_operativo') {
+  if (!autorizado) {
     return <AccesoNoAutorizado onVolver={() => void navigate({ to: '/viajes' })} />;
   }
 
@@ -228,6 +235,10 @@ export function CrearViaje() {
       setResultado(nuevoResultado);
     } catch (error) {
       if (error instanceof ApiError && error.kind === 'sesionFinalizada') return;
+      if (error instanceof ApiError && error.kind === 'prohibido') {
+        setAvisoSinPermiso(true);
+        return;
+      }
       setErrorEnvio(mensajeErrorCrearViaje(error));
     } finally {
       envioEnCurso.current = false;
@@ -244,6 +255,16 @@ export function CrearViaje() {
     <Stack gap={4} style={{ maxWidth: '80rem' }}>
       {avisoSesionFinalizada && (
         <Alert variant="danger">Tu sesión finalizó. La información capturada no se envió.</Alert>
+      )}
+      {avisoSinPermiso && (
+        <ToastContainer position="top-right">
+          <Toast
+            variant="error"
+            title="No tienes permiso para crear viajes."
+            duration={4000}
+            onClose={() => setAvisoSinPermiso(false)}
+          />
+        </ToastContainer>
       )}
       <PageHeader
         breadcrumb={
@@ -274,11 +295,13 @@ export function CrearViaje() {
                   estado={
                     c.cargandoClientes
                       ? 'cargando'
-                      : c.errorClientes
-                        ? 'error'
-                        : c.clientes.length === 0
-                          ? 'vacio'
-                          : 'disponible'
+                      : c.errorClientes instanceof ApiError && c.errorClientes.kind === 'prohibido'
+                        ? 'prohibido'
+                        : c.errorClientes
+                          ? 'error'
+                          : c.clientes.length === 0
+                            ? 'vacio'
+                            : 'disponible'
                   }
                   clientes={c.clientes}
                   value={clienteId}
@@ -632,7 +655,9 @@ function AccesoNoAutorizado({ onVolver }: { readonly onVolver: () => void }) {
   return (
     <Card variant="outlined">
       <CardBody>
-        <Alert variant="danger">Este flujo está disponible para el rol Jefe Operativo.</Alert>
+        <Alert variant="danger">
+          Este flujo está disponible para los roles Jefe Operativo y Administrador.
+        </Alert>
       </CardBody>
       <CardFooter>
         <Button variant="secondary" onClick={onVolver}>

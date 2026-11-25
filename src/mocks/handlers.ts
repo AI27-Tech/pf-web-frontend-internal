@@ -251,12 +251,17 @@ export const handlers = [
   // GET /clientes ÔÇö cat├ílogo proyectado por el BFF (tracer.20). El mock devuelve
   // ├║nicamente clientes activos dentro del alcance del operador demo.
   http.get(path('/clientes'), ({ request }) => {
+    // Jefe Operativo y Administrador (decisión del Lead 3); otro rol recibe 403.
+    const denegado = autorizarMock(request, 'clientes.listar', { permitirSinToken: true });
+    if (denegado) return denegado;
     const url = new URL(request.url);
     return HttpResponse.json(listarClientesMock(url.searchParams.get('cursor')), { status: 200 });
   }),
 
   // POST /viajes ÔÇö creaci├│n por Operaci├│n. El mock devuelve APROBADO.
   http.post(path('/viajes'), async ({ request }) => {
+    const denegado = autorizarMock(request, 'viaje.crear');
+    if (denegado) return denegado;
     const body = (await request.json()) as CrearViajeEntrada;
     return HttpResponse.json(crearViajeMock(body), { status: 201 });
   }),

@@ -19,9 +19,18 @@ export function rolDeSolicitud(request: Request): Rol | null {
 /**
  * `401` sin token válido y `403` si el rol no tiene la capacidad; `null` si pasa.
  * Quien llama devuelve la respuesta cuando no es `null`.
+ *
+ * Con `permitirSinToken` una petición cuyo token no se puede decodificar pasa sin
+ * restricción: lo usan las operaciones que pruebas anteriores llaman con un token de
+ * mentira. Un token decodificable sí se evalúa contra la capacidad.
  */
-export function autorizarMock(request: Request, capacidad: Capacidad): Response | null {
+export function autorizarMock(
+  request: Request,
+  capacidad: Capacidad,
+  opciones: { readonly permitirSinToken?: boolean } = {},
+): Response | null {
   const rol = rolDeSolicitud(request);
+  if (rol === null && opciones.permitirSinToken) return null;
   if (rol === null) {
     return HttpResponse.json(
       { codigo: 'no_autorizado', mensaje: 'token ausente o inválido' },
