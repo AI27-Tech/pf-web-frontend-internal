@@ -168,11 +168,11 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 4, 12, 13 y 15 ne
 
 ## 16. Validación final
 
-- [ ] 16.1 Typecheck, lint, suite completa en una sola ejecución, build con mocks.
-- [ ] 16.2 Buscar en `src/` comparaciones `rol ===` y listas de roles fuera de `lib/permisos` (debe quedar solo lo declarado).
-- [ ] 16.3 Checklist de PR de `ai27-tech-library-first` (sin `svg` ni colores nuevos; `Stack`, `Inline`, `Grid`; iconos de `lucide-react`).
-- [ ] 16.4 Actualizar este spec con los avances reales. Marcar `alineacion-ui-roles-capacidades` como reemplazado.
-- [ ] 16.5 Cerrar DT-24 en el repo de contexto: **lo registra el Lead**; este spec solo lo propone.
+- [x] 16.1 Typecheck, lint, suite completa en una sola ejecución, build con mocks. _(Tras M14: `tsc --build --force` y `eslint .` sin salida; `vitest run`: 104 archivos y 1478 pruebas en verde; `vite build --mode mock` compila. Tras el ajuste de 16.3 se repitieron typecheck, lint de `roster` y `viajes/ficha` y las pruebas de `tests/roster` y `tests/viajes`.)_
+- [x] 16.2 Buscar en `src/` comparaciones `rol ===` y listas de roles fuera de `lib/permisos` (debe quedar solo lo declarado). _(Fuera de mocks, quedan solo comparaciones sobre el rol del usuario administrado o del alta (`administracion/afordancias.ts`, `AltaUsuarioDialog`, `CambioRolDialog`, `validacion.ts`), la lectura de claims (`lib/contracts/jwt.ts`, `sesion.ts`) y la selección de roles que se piden al BFF (`AlcanceEditor`). Ninguna decide qué ve o hace el actor. Las listas de roles de `src/mocks` emulan al servidor (Requirement T3).)_
+- [x] 16.3 Checklist de PR de `ai27-tech-library-first` (sin `svg` ni colores nuevos; `Stack`, `Inline`, `Grid`; iconos de `lucide-react`). _(Sin `<svg>`, `<path>`, colores hexadecimales ni `type="date"` o `type="time"` en lo tocado. Iconos de `lucide-react` (`ClipboardList`, `ShieldOff`). Se reemplazó el CSS en línea de disposición por `Stack` en `ClientesMonitoristaForm`, `UnidadForm` y `FichaEditor`. Sin componente local nuevo, así que no hay `BRECHA-UI`.)_
+- [x] 16.4 Actualizar este spec con los avances reales. Marcar `alineacion-ui-roles-capacidades` como reemplazado. _(Estado de cada módulo en las notas de cierre de arriba. `alineacion-ui-roles-capacidades` lleva el aviso "REEMPLAZADO" en `requirements.md` y `tasks.md`.)_
+- [ ] 16.5 Cerrar DT-24 en el repo de contexto: **lo registra el Lead**; este spec solo lo propone. _(Propuesta de entrada, sin registrar: **DT-24, cerrada.** Owner: Lead. Fecha: la del registro. Cierre: la política de capacidades por rol vive en `src/lib/permisos` y los módulos M0 a M14 del panel interno la consumen; los menús, las guardas de ruta, las acciones y los mocks siguen la matriz de `requirements.md`. Pendientes que no cierra: BE-1 a BE-7 de `BRECHAS.md` (backend) y la unificación de los sujetos simulados de `mocks/roster.ts` y `mocks/administracion.ts`.)_
 
 ## Pendientes de definición dentro del spec
 

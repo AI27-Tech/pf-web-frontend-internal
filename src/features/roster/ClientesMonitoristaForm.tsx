@@ -57,12 +57,13 @@ export function ClientesMonitoristaForm({
   };
 
   return (
-    <Form
+    <Stack
+      as={Form}
+      gap={3}
       onSubmit={(event) => {
         event.preventDefault();
         enviar();
       }}
-      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}
     >
       <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
         <legend className="ui-text-body-sm">Clientes activos</legend>
@@ -109,6 +110,6 @@ export function ClientesMonitoristaForm({
           {enviando ? 'Guardando...' : 'Guardar clientes'}
         </Button>
       </Inline>
-    </Form>
+    </Stack>
   );
 }

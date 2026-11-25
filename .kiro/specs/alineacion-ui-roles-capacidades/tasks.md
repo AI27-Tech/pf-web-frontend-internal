@@ -1,5 +1,7 @@
 # Implementation Plan: Alineación de la UI interna con roles y capacidades (v2)
 
+> **REEMPLAZADO.** Este spec lo sustituye finacion-roles-modulo-a-modulo (política única de capacidades en src/lib/permisos, un módulo a la vez). No se sigue ejecutando; queda como referencia histórica.
+
 Las tareas marcadas con `*` son pruebas. Las tareas 0.x no cambian código.
 
 ## Grafo de dependencias

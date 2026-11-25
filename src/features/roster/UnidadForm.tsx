@@ -117,12 +117,13 @@ export function UnidadForm({
   };
 
   return (
-    <Form
+    <Stack
+      as={Form}
+      gap={3}
       onSubmit={(event) => {
         event.preventDefault();
         enviar();
       }}
-      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}
     >
       <FormField label="Vehículo" required>
         <Select
@@ -194,6 +195,6 @@ export function UnidadForm({
           {enviando ? 'Guardando...' : unidad ? 'Guardar cambios' : 'Crear unidad'}
         </Button>
       </Inline>
-    </Form>
+    </Stack>
   );
 }

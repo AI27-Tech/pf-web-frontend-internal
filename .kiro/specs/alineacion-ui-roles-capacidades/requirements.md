@@ -1,5 +1,7 @@
 # Requirements Document: Alineación de la UI interna con roles y capacidades (v2)
 
+> **REEMPLAZADO.** Este spec lo sustituye finacion-roles-modulo-a-modulo (política única de capacidades en src/lib/permisos, un módulo a la vez). No se sigue ejecutando; queda como referencia histórica.
+
 ## Estado
 
 Reescritura del spec de la rama `feature/alineacion-ui-roles-capacidades` (commit `09ae619`), actualizada a **DEC-149** y al contrato **`v0.1.0-tracer.41`**. Reemplaza a aquel spec; retira PM-001, PM-002, PM-003, PM-006 y PM-007.
