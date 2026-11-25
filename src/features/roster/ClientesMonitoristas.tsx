@@ -1,25 +1,21 @@
 /*
- * Tarjeta "Unidades de cada Monitorista" de /roster (E8-T21, DEC-140 #1, DEC-142 #2).
+ * Tarjeta "Clientes de cada Monitorista" de /roster (DEC-149 #18, M11).
  *
- * Lista los Monitoristas activos con sus unidades legibles y permite reemplazar el
- * conjunto con "Editar unidades". La facultad la decide el servidor: un 403 se dice
- * aquí y no cierra la sesión.
+ * Lista los Monitoristas activos con sus clientes y permite reemplazar el conjunto con
+ * "Editar clientes". La facultad la decide el servidor: un 403 se dice aquí y no cierra la
+ * sesión. El nombre del cliente sale del catálogo de activos; un cliente asignado que no está
+ * ahí se muestra por su id con la marca "desactivado" y no se inventa su nombre.
  */
-
 import { useState } from 'react';
-
 import { Alert, Badge, Button, Card, Inline, Modal, Section, Table } from '@ai27-tech/ui';
 import type { Column } from '@ai27-tech/ui';
-
 import { BloqueError } from '@/components/feedback/BloqueError';
 import { esProhibido } from '@/lib/api/errors';
 import type { UsuarioAdmin } from '@/lib/contracts/alcance';
-import type { Unidad } from '@/lib/contracts/unidades';
-
-import { vehiculoLegible } from '../viajes/unidadLegible';
+import type { Cliente } from '@/lib/contracts/clientes';
+import { ClientesMonitoristaForm } from './ClientesMonitoristaForm';
 import { mensajeErrorAlcance } from './mensajes';
-import { UnidadesMonitoristaForm } from './UnidadesMonitoristaForm';
-import { useUnidadesMonitoristas, type MonitoristaConUnidades } from './useUnidadesMonitoristas';
+import { useClientesMonitoristas, type MonitoristaConClientes } from './useClientesMonitoristas';
 
 const TEXTO_TENUE = 'var(--ui-color-text-muted)';
 
@@ -28,15 +24,15 @@ function nombreMonitorista(m: UsuarioAdmin): string {
   return m.nombre || m.identificador_usuario || 'Monitorista sin nombre';
 }
 
-function UnidadesAsignadas({
+function ClientesAsignados({
   ids,
   porId,
 }: {
   readonly ids: readonly string[];
-  readonly porId: ReadonlyMap<string, Unidad>;
+  readonly porId: ReadonlyMap<string, Cliente>;
 }) {
   if (ids.length === 0) {
-    return <span style={{ color: TEXTO_TENUE }}>Sin unidades</span>;
+    return <span style={{ color: TEXTO_TENUE }}>Sin clientes</span>;
   }
   return (
     <Inline
@@ -47,11 +43,11 @@ function UnidadesAsignadas({
       style={{ margin: 0, padding: 0, listStyle: 'none' }}
     >
       {ids.map((id) => {
-        const unidad = porId.get(id);
+        const cliente = porId.get(id);
         return (
           <Inline as="li" key={id} gap={1} align="center" wrap={false}>
-            <span>{unidad ? vehiculoLegible(unidad) : id}</span>
-            {unidad && !unidad.activa && <Badge variant="neutral">Inactiva</Badge>}
+            <span>{cliente ? cliente.nombre : id}</span>
+            {!cliente && <Badge variant="neutral">Desactivado</Badge>}
           </Inline>
         );
       })}
@@ -59,24 +55,25 @@ function UnidadesAsignadas({
   );
 }
 
-export function UnidadesMonitoristas() {
-  const r = useUnidadesMonitoristas();
-  const [editando, setEditando] = useState<MonitoristaConUnidades | null>(null);
+export function ClientesMonitoristas() {
+  const r = useClientesMonitoristas();
+  const [editando, setEditando] = useState<MonitoristaConClientes | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
-  const porId = new Map(r.unidades.map((u) => [u.id, u]));
 
-  const abrir = (fila: MonitoristaConUnidades) => {
+  const porId = new Map(r.clientes.map((c) => [c.id, c]));
+
+  const abrir = (fila: MonitoristaConClientes) => {
     r.fijar.reset();
     setAviso(null);
     setEditando(fila);
   };
 
-  const columnas: Column<MonitoristaConUnidades>[] = [
+  const columnas: Column<MonitoristaConClientes>[] = [
     { key: 'monitorista', header: 'Monitorista', cell: (f) => nombreMonitorista(f.monitorista) },
     {
-      key: 'unidades',
-      header: 'Unidades asignadas',
-      cell: (f) => <UnidadesAsignadas ids={f.unidadesIds} porId={porId} />,
+      key: 'clientes',
+      header: 'Clientes asignados',
+      cell: (f) => <ClientesAsignados ids={f.clientesIds} porId={porId} />,
     },
     {
       key: 'acciones',
@@ -85,10 +82,10 @@ export function UnidadesMonitoristas() {
         <Button
           variant="secondary"
           size="sm"
-          aria-label={`Editar unidades de ${nombreMonitorista(f.monitorista)}`}
+          aria-label={`Editar clientes de ${nombreMonitorista(f.monitorista)}`}
           onClick={() => abrir(f)}
         >
-          Editar unidades
+          Editar clientes
         </Button>
       ),
     },
@@ -100,7 +97,7 @@ export function UnidadesMonitoristas() {
         <Section
           title={
             <span role="heading" aria-level={2}>
-              Unidades de cada Monitorista
+              Clientes de cada Monitorista
             </span>
           }
         >
@@ -111,11 +108,11 @@ export function UnidadesMonitoristas() {
           )}
           {esProhibido(r.error) ? (
             <Alert variant="danger">
-              No tienes permiso para consultar las unidades de los Monitoristas.
+              No tienes permiso para consultar los clientes de los Monitoristas.
             </Alert>
           ) : r.error ? (
             <BloqueError
-              mensaje="No se pudieron cargar las unidades de los Monitoristas."
+              mensaje="No se pudieron cargar los clientes de los Monitoristas."
               onReintentar={r.reintentar}
             />
           ) : r.cargando ? (
@@ -123,38 +120,37 @@ export function UnidadesMonitoristas() {
               Cargando los Monitoristas...
             </p>
           ) : (
-            <Table<MonitoristaConUnidades>
+            <Table<MonitoristaConClientes>
               columns={columnas}
               data={r.monitoristas}
               rowKey={(f) => f.monitorista.id}
-              aria-label="Unidades de cada Monitorista"
+              aria-label="Clientes de cada Monitorista"
               emptyState="No hay Monitoristas activos."
               density="compact"
             />
           )}
         </Section>
       </Card>
-
       <Modal
         open={editando !== null}
         onClose={() => setEditando(null)}
-        title={editando ? `Unidades de ${nombreMonitorista(editando.monitorista)}` : ''}
+        title={editando ? `Clientes de ${nombreMonitorista(editando.monitorista)}` : ''}
       >
         {editando && (
-          <UnidadesMonitoristaForm
+          <ClientesMonitoristaForm
             key={editando.monitorista.id}
-            actuales={editando.unidadesIds}
-            unidades={r.unidades}
+            actuales={editando.clientesIds}
+            clientes={r.clientes}
             enviando={r.fijar.isPending}
             error={r.fijar.error ? mensajeErrorAlcance(r.fijar.error) : null}
             onCancelar={() => setEditando(null)}
-            onGuardar={(unidadesIds) =>
+            onGuardar={(clientesIds) =>
               r.fijar.mutate(
-                { sujetoId: editando.monitorista.id, unidadesIds },
+                { sujetoId: editando.monitorista.id, clientesIds },
                 {
                   onSuccess: () => {
                     setEditando(null);
-                    setAviso(`Unidades de ${nombreMonitorista(editando.monitorista)} guardadas.`);
+                    setAviso(`Clientes de ${nombreMonitorista(editando.monitorista)} guardados.`);
                   },
                 },
               )

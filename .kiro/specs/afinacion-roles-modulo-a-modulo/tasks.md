@@ -117,7 +117,7 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 4, 12, 13 y 15 ne
 
 - [x] 10.1 Ciclo a y b de `features/emergencias` (afordancias, `PanelCaso`, `SeccionEmergenciasViaje`). _(Línea base: las afordancias y el menú ya salían de `puede`; faltaban la guarda de la ruta `/emergencias` y dos usos de `ROLES_CON_CARRIL`.)_
 - [x] 10.2 Menú "Emergencias" solo para REA, SUP y COO; carril del viaje para MON, SUP, COO y ADM. _(Menú por `emergencia.bandeja` (REA, SUP, COO) y la ruta `/emergencias` ahora va dentro de `RequiereCapacidad(emergencia.bandeja)`; carril del viaje por `emergencia.verDeViaje`: MON, SUP, COO y ADM.)_
-- [x] 10.3 Botón "activar" para MON, SUP, COO y ADM; `Toast` de sin permiso si el servidor responde `403` a ADM (BE-5). _(Botón por `puedeMostrarActivacion`. Un `403` a ADM se avisa con el `Alert` de `AvisoActivacionEmergencia` (rol `alert`), no con `Toast`: cambiarlo reescribe las pruebas de activación. Decisión pendiente del Lead si exige `Toast`.)_
+- [x] 10.3 Botón "activar" para MON, SUP, COO y ADM; `Toast` de sin permiso si el servidor responde `403` a ADM (BE-5). _(Botón por `puedeMostrarActivacion`. Un `403` a ADM se avisa con el `Alert` de `AvisoActivacionEmergencia` (rol `alert`), no con `Toast`: cambiarlo reescribe las pruebas de activación. Decidido por el usuario: se queda el `Alert`.)_
 - [x] 10.4 Afordancias sobre `puede`; conservar la regla de estado y del responsable. _(Se retiró `ROLES_CON_CARRIL`; `DetalleViaje` y `SeccionEmergenciasViaje` usan `puede`. La regla de estado y del responsable sigue en `afordancias.ts`.)_
 - [x]* 10.5 Pruebas por rol y estado del caso (E13 y E16). Regresión de E8-T18. _(`EmergenciasRoles.test.ts` (E16) y un caso de `404` al cerrar en `activacion.test.tsx`. E13 y la regresión de E8-T18 ya estaban cubiertas.)_
 - [x] 10.6 Cierre de M9. _(Typecheck, lint y pruebas de emergencias en verde.)_
@@ -126,19 +126,19 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 4, 12, 13 y 15 ne
 
 - [x] 11.1 Ciclo a y b de `features/conversaciones`. _(Línea base: la bandeja no consultaba el rol; las afordancias dependían solo del estado y del reclamo. El menú ya usaba `conversacion.leer`.)_
 - [x] 11.2 Bandeja de chat del viaje para EJE; SUP y COO en solo lectura, sin reclamar, responder, liberar, transferir ni marcar atendida. _(Ruta `/conversaciones` dentro de `RequiereCapacidad(conversacion.leer)`. Sin `conversacion.operar` (SUP y COO) el panel no ofrece reclamar, devolver ni marcar atendida, no dibuja el compositor y avisa "Solo lectura". Los recibos solo los envía el reclamante, así que SUP y COO no los mandan.)_
-- [x] 11.3 ADM ve Conversaciones y opera como EJE (BE-6); estado "bandeja no disponible" ante `404`. Override (PM-008): sin botones. _(ADM opera con `conversacion.operar`. Un `404` de la bandeja muestra "Bandeja no disponible" como aviso informativo, sin `Toast` ni error. Sin botones de override (PM-008) ni de transferir (DT-28). `onRetry` no se usa en los mensajes: los errores `409` y `403` salen en el `Alert` del panel, no con `deliveryError`.)_
+- [x] 11.3 ADM ve Conversaciones y opera como EJE (BE-6); estado "bandeja no disponible" ante `404`. Override (PM-008): sin botones. _(ADM opera con `conversacion.operar`. Un `404` de la bandeja muestra "Bandeja no disponible" como aviso informativo, sin `Toast` ni error. Sin botones de override (PM-008) ni de transferir (DT-28). `onRetry` no se usa en los mensajes: los errores `409` y `403` salen en el `Alert` del panel, no con `deliveryError`. Decidido por el usuario: se queda así.)_
 - [x]* 11.4 Pruebas por rol y `409`/`403` sin `onRetry`. Regresión de E8-T15. _(Cuatro pruebas nuevas en `BandejaConversaciones.test.tsx`; se ajustó la del supervisor ante una conversación ajena, que esperaba un compositor deshabilitado. Regresión de E8-T15 en verde.)_
 - [x] 11.5 Cierre de M10. _(Typecheck, lint y pruebas de conversaciones y navegación en verde.)_
 
 ## 12. M11: Roster (Requirement 12; requiere 0.3)
 
-- [ ] 12.1 Ciclo a y b de `features/roster`.
-- [ ] 12.2 `fijarClientesSujeto` y `ClientesMonitoristas` (reemplaza `UnidadesMonitoristas` y `useUnidadesMonitoristas`); solo activos para agregar.
-- [ ] 12.3 Clientes desactivados: marcados en la lista y fuera del payload (E10).
-- [ ] 12.4 `UnidadForm`: campo opcional "Cliente al que sirve" con `null` para quitar; texto de que no define el alcance.
-- [ ] 12.5 Errores `400`, `409 rol_sin_alcance` y rechazo por unidad con reserva.
-- [ ] 12.6 Mocks de `fijarClientesSujeto` y `AlcanceSujeto` con `clientes_*`.
-- [ ]* 12.7 Pruebas: E9, E10 y `409`. Cierre de M11.
+- [x] 12.1 Ciclo a y b de `features/roster`. _(Línea base: "mis unidades" con `fijarUnidadesSujeto`; el formulario de unidad no tenía cliente; JO y ADM ya entraban por `puedeArmarRoster`.)_
+- [x] 12.2 `fijarClientesSujeto` y `ClientesMonitoristas` (reemplaza `UnidadesMonitoristas` y `useUnidadesMonitoristas`); solo activos para agregar. _(`ClientesMonitoristas`, `ClientesMonitoristaForm` y `useClientesMonitoristas` reemplazan a los de unidades. `fijarClientesSujeto` en `lib/api/alcance.ts`. Solo se ofrecen clientes activos y un cliente puede estar en varios Monitoristas.)_
+- [x] 12.3 Clientes desactivados: marcados en la lista y fuera del payload (E10). _(Un cliente asignado que no está entre los activos se muestra por su id con la marca "Desactivado", sin pedir organizaciones. Se quita del payload; guardar para limpiarlo sí se permite.)_
+- [x] 12.4 `UnidadForm`: campo opcional "Cliente al que sirve" con `null` para quitar; texto de que no define el alcance. _(Campo opcional "Cliente al que sirve" con la opción "Sin cliente", que envía `cliente_id: null`, y el texto de que no define el alcance.)_
+- [x] 12.5 Errores `400`, `409 rol_sin_alcance` y rechazo por unidad con reserva. _(`400`: mensaje de cliente inexistente o desactivado y se vuelve a pedir la lista de activos. `409 rol_sin_alcance` y `sujeto_desactivado` con su texto. El rechazo `unidad_con_reserva_vigente` se explica sin ofrecer reasignar la escolta.)_
+- [x] 12.6 Mocks de `fijarClientesSujeto` y `AlcanceSujeto` con `clientes_*`. _(Mocks: `AlcanceSujeto` con `clientes_ids` y `clientes_efectivos_ids`, `PUT /sujetos/{id}/alcance/clientes` con las guardas del contrato y `cliente_id` en alta y edición de unidad.)_
+- [x]* 12.7 Pruebas: E9, E10 y `409`. Cierre de M11. _(`Roster.test.tsx`: E9, E10, `400`, `409`, `403`, ADM y cliente de la unidad. Typecheck y lint en verde. Cierre de M11.)_
 
 ## 13. M12: Administración (Requirement 13; requiere 0.3)
 

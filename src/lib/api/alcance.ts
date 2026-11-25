@@ -1,9 +1,9 @@
 /*
- * Wrapper de dominio de "mis unidades" de cada Monitorista (E8-T21, tracer.40).
+ * Wrapper de dominio de "mis clientes" de cada Monitorista (DEC-149 #18, tracer.46).
  *
- * `listarSujetos`, `obtenerAlcanceSujeto` y `fijarUnidadesSujeto` del `bff`. El
+ * `listarSujetos`, `obtenerAlcanceSujeto` y `fijarClientesSujeto` del `bff`. El
  * `jefe_operativo` solo lee con `rol=monitorista`; las reglas (rol con alcance,
- * usuario activo, unidad existente) las aplica el servidor y aquí solo se propaga
+ * usuario activo, cliente activo) las aplica el servidor y aquí solo se propaga
  * el `ApiError` con su `codigo`.
  */
 
@@ -11,7 +11,7 @@ import type {
   AlcanceSujeto,
   MiAlcance,
   PaginaUsuariosAdmin,
-  UnidadesSujetoEntrada,
+  ClientesSujetoEntrada,
 } from '../contracts/alcance';
 import { request } from './client';
 
@@ -37,13 +37,13 @@ export function obtenerAlcanceSujeto(id: string, accessToken: string): Promise<A
   return request<AlcanceSujeto>(`/sujetos/${encodeURIComponent(id)}/alcance`, { accessToken });
 }
 
-/** Reemplaza el conjunto completo de unidades del Monitorista. Responde 204. */
-export function fijarUnidadesSujeto(
+/** Reemplaza el conjunto completo de clientes del Monitorista. Responde 204. */
+export function fijarClientesSujeto(
   id: string,
-  entrada: UnidadesSujetoEntrada,
+  entrada: ClientesSujetoEntrada,
   accessToken: string,
 ): Promise<void> {
-  return request<void>(`/sujetos/${encodeURIComponent(id)}/alcance/unidades`, {
+  return request<void>(`/sujetos/${encodeURIComponent(id)}/alcance/clientes`, {
     method: 'PUT',
     body: entrada,
     accessToken,

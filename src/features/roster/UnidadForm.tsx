@@ -23,6 +23,7 @@ import {
 } from '@ai27-tech/ui';
 
 import type { Custodio, Vehiculo } from '@/lib/contracts/catalogos';
+import type { Cliente } from '@/lib/contracts/clientes';
 import type { Unidad, UnidadModificacion } from '@/lib/contracts/unidades';
 
 import { etiquetaVehiculo } from '../catalogos/mensajes';
@@ -33,6 +34,8 @@ export interface UnidadFormProps {
   readonly unidad?: Unidad;
   readonly vehiculos: readonly Vehiculo[];
   readonly custodios: readonly Custodio[];
+  /** Clientes activos para "Cliente al que sirve". */
+  readonly clientes: readonly Cliente[];
   readonly enviando: boolean;
   readonly error: string | null;
   readonly onGuardar: (datos: GuardadoUnidad) => void;
@@ -43,10 +46,14 @@ function mismosIds(a: readonly string[], b: readonly string[]): boolean {
   return a.length === b.length && a.every((id, i) => id === b[i]);
 }
 
+/** Valor de la opción que quita el cliente; la unidad envía `cliente_id: null`. */
+const SIN_CLIENTE = '__sin_cliente__';
+
 export function UnidadForm({
   unidad,
   vehiculos,
   custodios,
+  clientes,
   enviando,
   error,
   onGuardar,
@@ -55,6 +62,17 @@ export function UnidadForm({
   const [vehiculoId, setVehiculoId] = useState(unidad?.vehiculo_id ?? '');
   const [custodiosIds, setCustodiosIds] = useState<readonly string[]>(unidad?.custodios_ids ?? []);
   const [activa, setActiva] = useState(unidad?.activa ?? true);
+  // '' = sin cliente. Es opcional y no define el alcance de ningún Monitorista.
+  const [clienteId, setClienteId] = useState(unidad?.cliente_id ?? '');
+  const clienteActual = unidad?.cliente_id ?? '';
+  const clientesOfrecidos = [
+    ...clientes.filter((c) => c.estado === 'activo').map((c) => ({ value: c.id, label: c.nombre })),
+    // El cliente que la unidad ya tiene, aunque esté desactivado, para poder verlo y quitarlo.
+    ...(clienteActual !== '' &&
+    !clientes.some((c) => c.id === clienteActual && c.estado === 'activo')
+      ? [{ value: clienteActual, label: `${clienteActual} (desactivado)` }]
+      : []),
+  ];
 
   // Se ofrecen los activos; en edición, también los que la unidad ya tiene.
   const vehiculosOfrecidos = vehiculos.filter(
@@ -72,6 +90,8 @@ export function UnidadForm({
         ...(vehiculoId !== unidad.vehiculo_id && { vehiculo_id: vehiculoId }),
         ...(!mismosIds(custodiosIds, unidad.custodios_ids) && { custodios_ids: [...custodiosIds] }),
         ...(activa !== unidad.activa && { activa }),
+        // Quitar el cliente envía `null`; no enviar el campo lo deja como está.
+        ...(clienteId !== clienteActual && { cliente_id: clienteId === '' ? null : clienteId }),
       }
     : {};
   const sinCambios = unidad !== undefined && Object.keys(cambios).length === 0;
@@ -86,7 +106,13 @@ export function UnidadForm({
     onGuardar(
       unidad
         ? { id: unidad.id, cambios }
-        : { entrada: { vehiculo_id: vehiculoId, custodios_ids: [...custodiosIds] } },
+        : {
+            entrada: {
+              vehiculo_id: vehiculoId,
+              custodios_ids: [...custodiosIds],
+              ...(clienteId !== '' && { cliente_id: clienteId }),
+            },
+          },
     );
   };
 
@@ -136,6 +162,19 @@ export function UnidadForm({
         {excedido && <Alert variant="danger">Una moto lleva un solo custodio. Quita uno.</Alert>}
       </fieldset>
 
+      <FormField
+        label="Cliente al que sirve"
+        showOptional
+        helpText="Es informativo: no define qué clientes ve cada Monitorista. Eso se asigna en Clientes de cada Monitorista."
+      >
+        <Select
+          placeholder="Sin cliente"
+          value={clienteId === '' ? SIN_CLIENTE : clienteId}
+          disabled={enviando}
+          options={[{ value: SIN_CLIENTE, label: 'Sin cliente' }, ...clientesOfrecidos]}
+          onChange={(valor) => setClienteId(valor === SIN_CLIENTE ? '' : String(valor))}
+        />
+      </FormField>
       {unidad && (
         <Switch
           label="Unidad activa"

@@ -1,6 +1,6 @@
 /*
  * Texto de los rechazos del servidor al armar el roster (DEC-142 #4 y #5) y al fijar
- * las unidades de cada Monitorista (DEC-140 #1). Se decide
+ * los clientes de cada Monitorista (DEC-149 #18). Se decide
  * por el `codigo` de máquina del 409 y por el `status`, nunca por el `mensaje`.
  */
 
@@ -12,7 +12,7 @@ const POR_CODIGO: Record<string, string> = {
   custodio_en_otra_unidad:
     'Un custodio elegido ya está en otra unidad activa. Elige otro custodio o desactiva primero esa unidad.',
   unidad_con_reserva_vigente:
-    'La unidad está reservada en un viaje en curso. Primero reasigna la escolta de ese viaje y después edita o desactiva la unidad.',
+    'La unidad está reservada en un viaje que aún no termina, así que no se puede editar ni desactivar por ahora. Inténtalo cuando ese viaje termine.',
 };
 
 export function mensajeErrorRoster(error: unknown): string {
@@ -41,31 +41,31 @@ export function mensajeErrorRoster(error: unknown): string {
 
 const POR_CODIGO_ALCANCE: Record<string, string> = {
   rol_sin_alcance:
-    'El usuario ya no es Monitorista y no puede tener unidades asignadas. Recarga la lista.',
+    'El usuario ya no es Monitorista y no puede tener clientes asignados. Recarga la lista.',
   sujeto_desactivado: 'El Monitorista está desactivado. Recarga la lista.',
   autoescalamiento: 'No puedes cambiar tu propio alcance.',
 };
 
-/** Texto de los rechazos al fijar "mis unidades" de un Monitorista (DEC-140 #1). */
+/** Texto de los rechazos al fijar "mis clientes" de un Monitorista (DEC-149 #18). */
 export function mensajeErrorAlcance(error: unknown): string {
-  if (!(error instanceof ApiError)) return 'No se pudieron guardar las unidades.';
+  if (!(error instanceof ApiError)) return 'No se pudieron guardar los clientes.';
   const porCodigo = error.codigo ? POR_CODIGO_ALCANCE[error.codigo] : undefined;
   if (porCodigo) return porCodigo;
   if (error.status === 400) {
-    return 'Alguna unidad elegida ya no existe en el roster. Recarga e intenta de nuevo.';
+    return 'Algún cliente elegido no existe o está desactivado. Ya se actualizó la lista de clientes activos; revisa tu selección.';
   }
   switch (error.kind) {
     case 'prohibido':
-      return 'No tienes permiso para asignar unidades a los Monitoristas.';
+      return 'No tienes permiso para asignar clientes a los Monitoristas.';
     case 'noEncontrado':
       return 'El Monitorista ya no existe. Recarga la lista.';
     case 'conflicto':
-      return 'Las unidades del Monitorista cambiaron en otra operación. Recarga e intenta de nuevo.';
+      return 'Los clientes del Monitorista cambiaron en otra operación. Recarga e intenta de nuevo.';
     case 'degradado':
       return 'El servicio no está disponible. Reintenta más tarde.';
     case 'red':
       return 'No se pudo conectar con el servicio. Revisa la conexión.';
     default:
-      return 'No se pudieron guardar las unidades.';
+      return 'No se pudieron guardar los clientes.';
   }
 }

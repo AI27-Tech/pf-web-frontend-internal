@@ -3,8 +3,8 @@
  *
  * Entran el Jefe Operativo y el Administrador, los dos con edición completa. Lista
  * el roster por página, da de alta unidades y las edita (vehículo, custodios,
- * activar o desactivar) y asigna "mis unidades" a cada Monitorista (DEC-140 #1,
- * DEC-142 #2, tracer.40).
+ * activar o desactivar, con el cliente al que sirve) y asigna "mis clientes" a cada
+ * Monitorista (DEC-149 #18, tracer.46).
  */
 
 import { useState } from 'react';
@@ -34,7 +34,8 @@ import { useCustodios, useVehiculos } from '../catalogos/useCatalogos';
 import { custodiosLegibles, vehiculoLegible } from '../viajes/unidadLegible';
 import { mensajeErrorRoster } from './mensajes';
 import { UnidadForm } from './UnidadForm';
-import { UnidadesMonitoristas } from './UnidadesMonitoristas';
+import { ClientesMonitoristas } from './ClientesMonitoristas';
+import { useClientesActivos } from './useClientesMonitoristas';
 import { useRoster } from './useRoster';
 
 const TEXTO_TENUE = 'var(--ui-color-text-muted)';
@@ -70,6 +71,7 @@ function RosterAutorizado() {
   // Los selectores del formulario solo se piden al abrirlo.
   const vehiculos = useVehiculos(edicion !== null);
   const custodios = useCustodios(edicion !== null);
+  const clientes = useClientesActivos(edicion !== null);
 
   const abrir = (siguiente: Edicion) => {
     r.guardar.reset();
@@ -175,7 +177,7 @@ function RosterAutorizado() {
         </Section>
       </Card>
 
-      <UnidadesMonitoristas />
+      <ClientesMonitoristas />
 
       <Modal
         open={edicion !== null}
@@ -183,7 +185,7 @@ function RosterAutorizado() {
         title={edicion?.modo === 'editar' ? 'Editar unidad' : 'Nueva unidad'}
       >
         {edicion &&
-          (vehiculos.isPending || custodios.isPending ? (
+          (vehiculos.isPending || custodios.isPending || clientes.isPending ? (
             <p className="ui-text-body-sm" style={{ margin: 0 }}>
               Cargando vehículos y custodios...
             </p>
@@ -199,6 +201,7 @@ function RosterAutorizado() {
               {...(edicion.modo === 'editar' && { unidad: edicion.unidad })}
               vehiculos={vehiculos.data ?? []}
               custodios={custodios.data ?? []}
+              clientes={clientes.data ?? []}
               enviando={r.guardar.isPending}
               error={r.guardar.error ? mensajeErrorRoster(r.guardar.error) : null}
               onCancelar={() => setEdicion(null)}
