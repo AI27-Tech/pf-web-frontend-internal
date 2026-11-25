@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useSession } from '@/context/SessionContext';
-import { esProhibido, esSesionInvalida } from '@/lib/api/errors';
+import { esNoEncontrado, esProhibido, esSesionInvalida } from '@/lib/api/errors';
 import {
   abrirIncidencia,
   abrirEstadia,
@@ -61,6 +61,8 @@ export interface HistoricoViajeHook {
   readonly esNoAutorizado: boolean;
   /** 403 en una lectura del histórico: sin permiso; la sesión sigue. */
   readonly esProhibido: boolean;
+  /** 404 en una lectura: el viaje no existe o queda fuera del alcance (T2). */
+  readonly esNoEncontrado: boolean;
 }
 
 function toQueryState<T>(query: ReturnType<typeof useQuery<T, Error>>): HistoricoQueryState<T> {
@@ -206,5 +208,8 @@ export function useHistoricoViaje(id: string): HistoricoViajeHook {
     errorMutacion,
     esNoAutorizado,
     esProhibido: esProhibidoHistorico,
+    esNoEncontrado: [bitacoraQuery.error, incidenciasQuery.error, estadiasQuery.error].some(
+      esNoEncontrado,
+    ),
   };
 }

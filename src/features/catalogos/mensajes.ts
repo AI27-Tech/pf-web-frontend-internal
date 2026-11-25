@@ -19,7 +19,7 @@ export function mensajeErrorCatalogo(error: unknown, recurso: RecursoCatalogo): 
     return `El servicio rechazó los datos del ${nombre}. Revisa la captura.`;
   switch (error.kind) {
     case 'prohibido':
-      return `No tienes permiso para dar de alta o editar ${PLURAL[recurso]}. Solo el Administrador puede hacerlo.`;
+      return `No tienes permiso para dar de alta o editar ${PLURAL[recurso]}.`;
     case 'noEncontrado':
       return `El ${nombre} ya no existe. Recarga la lista.`;
     case 'conflicto':

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * PresentaciÃ³n de la bandeja operativa de viajes (E8-T7).
  *
  * Compone `FilterTable` (con las columnas de `filaViaje`, el filtro de estado y
@@ -18,9 +18,11 @@ import {
   Button,
   Card,
   CardBody,
+  EmptyState,
   FilterBar,
   PageHeader,
   Pagination,
+  SkeletonText,
   Stack,
   Table,
 } from '@ai27-tech/ui';
@@ -29,10 +31,12 @@ import { useNavigate } from '@tanstack/react-router';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
 import { useSession } from '@/context/SessionContext';
+import { puede } from '@/lib/permisos';
 import { ESTADOS_VIAJE } from '@/lib/contracts/viajes';
 
 import { obtenerColumnasViaje } from './filaViaje';
 import { useBandejaViajes } from './useBandejaViajes';
+import { useMiAlcance } from './useMiAlcance';
 import type { ViajeVista } from './viajeVista';
 
 /**
@@ -66,6 +70,10 @@ export function BandejaViajes() {
   const { usuario } = useSession();
   const navigate = useNavigate();
   const columnasViaje = obtenerColumnasViaje();
+  // B-04: solo con la lista vacía y un rol que tiene alcance propio se pregunta cuáles son sus
+  // clientes. Con cualquier otro rol la petición no se emite.
+  const listaVacia = !b.cargando && b.error === null && b.filas.length === 0;
+  const alcance = useMiAlcance(listaVacia && puede(usuario?.rol, 'alcance.leerPropio'));
 
   // Requirement 7.3: un 401 no pinta el error genérico del listado; se delega
   // al flujo de sesión del AppShell (logout limpia el TokenStore y la guarda
@@ -89,7 +97,7 @@ export function BandejaViajes() {
       <PageHeader
         title="Viajes"
         actions={
-          usuario?.rol === 'jefe_operativo' && (
+          puede(usuario?.rol, 'viaje.crear') && (
             <Button
               variant="primary"
               type="button"
@@ -123,7 +131,7 @@ export function BandejaViajes() {
         columns={columnasViaje}
         data={[...b.filas]}
         loading={b.cargando} // Requirement 5.1
-        emptyState={<MensajeVacio />} // Requirement 6.1
+        emptyState={<MensajeVacio alcance={alcance} />} // Requirement 6.1
         aria-label="Bandeja de viajes"
         density="comfortable"
       />
@@ -159,14 +167,20 @@ export function BandejaViajes() {
 }
 
 /** Estado vacÃ­o: no hay viajes en el alcance. El filtro sigue visible (Req 6.2). */
-function MensajeVacio() {
-  return (
-    <div style={{ padding: 'var(--ui-space-4)', textAlign: 'center' }}>
-      <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text-muted)', margin: 0 }}>
-        No hay viajes en tu alcance.
-      </p>
-    </div>
-  );
+function MensajeVacio({ alcance }: { readonly alcance: ReturnType<typeof useMiAlcance> }) {
+  // B-04: "sin clientes asignados" (el alcance no tiene clientes) es distinto de "sin viajes".
+  if (alcance.isFetching) {
+    return <SkeletonText lines={2} />;
+  }
+  if (alcance.data && alcance.data.clientes_efectivos_ids.length === 0) {
+    return (
+      <EmptyState
+        title="Sin clientes asignados"
+        description="Todavía no tienes clientes en tu alcance. Pide que te los asignen."
+      />
+    );
+  }
+  return <EmptyState title="Sin viajes" description="No hay viajes en tu alcance." />;
 }
 
 /**

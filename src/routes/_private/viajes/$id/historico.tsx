@@ -2,6 +2,7 @@
 
 import { createFileRoute } from '@tanstack/react-router';
 
+import { RequiereCapacidad } from '@/components/permisos/RequiereCapacidad';
 import { HistoricoViaje } from '@/features/viajes/historico/HistoricoViaje';
 
 export const Route = createFileRoute('/_private/viajes/$id/historico')({
@@ -10,5 +11,9 @@ export const Route = createFileRoute('/_private/viajes/$id/historico')({
 
 function HistoricoViajeRoute() {
   const { id } = Route.useParams();
-  return <HistoricoViaje id={id} />;
+  return (
+    <RequiereCapacidad capacidad="viaje.historico.ver">
+      <HistoricoViaje id={id} />
+    </RequiereCapacidad>
+  );
 }

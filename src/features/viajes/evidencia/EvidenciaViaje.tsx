@@ -7,7 +7,9 @@
 import { Alert, Card, CardBody, Section, Stack } from '@ai27-tech/ui';
 
 import { useSession } from '@/context/SessionContext';
-import { puedeUsarMonitoreo } from '@/features/monitoreo/puedeUsarMonitoreo';
+import { ErrorAdjuntosProhibido } from '@/lib/api/adjuntos';
+import { ErrorViajeInexistente } from '@/lib/api/expediente';
+import { puede } from '@/lib/permisos';
 
 import { ListaAdjuntos } from './ListaAdjuntos';
 import { SubirEvidencia } from './SubirEvidencia';
@@ -20,9 +22,20 @@ export interface EvidenciaViajeProps {
 export function EvidenciaViaje({ id }: EvidenciaViajeProps) {
   const { usuario } = useSession();
 
-  if (!usuario || !puedeUsarMonitoreo(usuario.rol)) return null;
+  // Listar, descargar y subir evidencia comparten `monitoreo.consultar` (M7, 8.2 y 8.3). Sin ella
+  // la sección no se monta y no se pide la lista.
+  if (!puede(usuario?.rol, 'monitoreo.consultar')) return null;
 
   return <EvidenciaAutorizada id={id} />;
+}
+
+/** Aviso de un fallo de descarga: un 403 no se arregla reintentando y un 404 no sugiere permisos. */
+function mensajeErrorDescarga(error: Error): string {
+  if (error instanceof ErrorAdjuntosProhibido) {
+    return 'No tienes permiso para descargar este adjunto.';
+  }
+  if (error instanceof ErrorViajeInexistente) return 'Viaje no encontrado.';
+  return 'No se pudo descargar el adjunto. Vuelve a intentarlo.';
 }
 
 function EvidenciaAutorizada({ id }: { readonly id: string }) {
@@ -45,6 +58,9 @@ function EvidenciaAutorizada({ id }: { readonly id: string }) {
               onDescargar={e.descargar}
               descargando={e.descargando}
             />
+            {e.errorDescarga && (
+              <Alert variant="danger">{mensajeErrorDescarga(e.errorDescarga)}</Alert>
+            )}
             <SubirEvidencia subiendo={e.subiendo} error={e.errorSubida} onSubir={e.subir} />
           </Stack>
         </Section>

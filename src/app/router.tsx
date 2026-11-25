@@ -1,14 +1,13 @@
 import { createRouter } from '@tanstack/react-router';
+import { SkeletonCard } from '@ai27-tech/ui';
 
 import { routeTree } from '@/routeTree.gen';
-import { RouteProgressBar } from '@/components/layout/RouteProgressBar';
 
 export const router = createRouter({
   routeTree,
   defaultPreload: 'intent',
-  defaultPendingComponent: RouteProgressBar,
-  defaultPendingMs: 100,
-  defaultPendingMinMs: 300,
+  defaultPendingComponent: () => <SkeletonCard lines={4} />,
+  defaultPendingMs: 150,
 });
 
 declare module '@tanstack/react-router' {

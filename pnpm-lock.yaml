@@ -110,11 +110,11 @@ importers:
   .:
     dependencies:
       '@ai27-tech/contracts':
-        specifier: 0.1.0-tracer.40
-        version: 0.1.0-tracer.40
+        specifier: 0.1.0-tracer.47
+        version: 0.1.0-tracer.47
       '@ai27-tech/ui':
-        specifier: 0.3.0-beta.1
-        version: 0.3.0-beta.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        specifier: 0.3.0-beta.2
+        version: 0.3.0-beta.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@fontsource-variable/inter':
         specifier: ^5.3.0
         version: 5.3.0
@@ -224,11 +224,11 @@ packages:
   '@adobe/css-tools@4.5.0':
     resolution: {integrity: sha512-6OzddxPio9UiWTCemp4N8cYLV2ZN1ncRnV1cVGtve7dhPOtRkleRyx32GQCYSwDYgaHU3USMm84tNsvKzRCa1Q==}
 
-  '@ai27-tech/contracts@0.1.0-tracer.40':
-    resolution: {integrity: sha512-zK7fDl5a27WQhxIpjUn9x+/POXK3i+qaRqPY7HCYXAUhNb2EBgp34Xc2rFIo1YMu98pyUDTXsfU8/pD7sLaerA==, tarball: https://npm.pkg.github.com/download/@ai27-tech/contracts/0.1.0-tracer.40/d1b787a83facbfdc1cc0ad328e12c75fb84f7616}
+  '@ai27-tech/contracts@0.1.0-tracer.47':
+    resolution: {integrity: sha512-5DJPua6S7HfpT22WSBBfu5sSshPinvHGSNq9DQjo1krE8CW180IMBEH5KB6SN01n+Ja68FT6EZz1WONdAB9Nkw==, tarball: https://npm.pkg.github.com/download/@ai27-tech/contracts/0.1.0-tracer.47/21abfa45a41907449b99e407a7ad90b2ef6387d4}
 
-  '@ai27-tech/ui@0.3.0-beta.1':
-    resolution: {integrity: sha512-DYpHL2D5eLZtOePVuElE+j+fn1k5Q17oZgtDV+E18aq+yW6GQx2UHcpCJd8PubMvKo1fMc3x5uowY+cYooxUOA==, tarball: https://npm.pkg.github.com/download/@ai27-tech/ui/0.3.0-beta.1/9cef52f0f47da91056717e61c232157a0ffe3b17}
+  '@ai27-tech/ui@0.3.0-beta.2':
+    resolution: {integrity: sha512-SFBQqbOsVDCQAzJhkiZwNE008oy4AryNGrNt4XuP4TJZcwh9C9/OdrWvtTIFj/Hw6IdITjT7dScqfiGnSrxIsQ==, tarball: https://npm.pkg.github.com/download/@ai27-tech/ui/0.3.0-beta.2/c024e1f15553a85e7de004c2264a96a46318f85c}
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
@@ -2191,9 +2191,9 @@ snapshots:
 
   '@adobe/css-tools@4.5.0': {}
 
-  '@ai27-tech/contracts@0.1.0-tracer.40': {}
+  '@ai27-tech/contracts@0.1.0-tracer.47': {}
 
-  '@ai27-tech/ui@0.3.0-beta.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@ai27-tech/ui@0.3.0-beta.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)

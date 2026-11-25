@@ -49,7 +49,10 @@ export function ListaTrabajo({
   if (error instanceof ErrorSinBandeja)
     return (
       <Card variant="outlined">
-        <Alert variant="info">No tienes una bandeja asignada.</Alert>
+        {/* 404: estado "bandeja no disponible" (no es un error ni un Toast); sesión y menú siguen. */}
+        <Alert variant="info">
+          <strong>Bandeja no disponible.</strong> No tienes una bandeja asignada.
+        </Alert>
       </Card>
     );
   if (error instanceof ErrorSinAcceso)
@@ -105,6 +108,8 @@ export function ListaTrabajo({
                 >
                   <Badge variant={c.puedeResponder ? 'secure' : 'neutral'}>{estado}</Badge>
                   {item.atendida_en && <Badge variant="secure">Atendida</Badge>}
+                  {/* El cliente escribió y AI27 no ha respondido (DEC-148 #54; E10-HU-038). */}
+                  {item.sin_respuesta && <Badge variant="warning">Sin respuesta</Badge>}
                   <small>{new Date(item.abierta_en).toLocaleString()}</small>
                 </Inline>
               </button>

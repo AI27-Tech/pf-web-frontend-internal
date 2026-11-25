@@ -12,6 +12,7 @@ import { http, HttpResponse } from 'msw';
 import { API_PREFIX } from '@/lib/constants';
 import { Rol, ROLES } from '@/lib/contracts';
 import { decodificarClaims, rolValido } from '@/lib/contracts/jwt';
+import { CLIENTES_DEMO } from './data';
 import type {
   AlcanceSujeto,
   AltaSujetoEntrada,
@@ -35,8 +36,8 @@ interface SujetoMock {
   organizacion_id?: string;
   /** Sub del token: lo compara el servidor para `es_propio` (B-14). */
   idp_subject: string;
-  /** Unidades asignadas directamente (Monitorista). */
-  unidades: string[];
+  /** Clientes asignados directamente, "mis clientes" (Monitorista, DEC-149 #18). */
+  clientes: string[];
   /** Subordinados directos (Supervisor o Coordinador). */
   subordinados: string[];
 }
@@ -58,7 +59,7 @@ function semillaSujetos(): SujetoMock[] {
       rol: Rol.Administrador,
       activo: true,
       idp_subject: 'usr-demo-1',
-      unidades: [],
+      clientes: [],
       subordinados: [],
     },
     {
@@ -68,7 +69,7 @@ function semillaSujetos(): SujetoMock[] {
       rol: Rol.Monitorista,
       activo: true,
       idp_subject: 'idp-002',
-      unidades: ['UN-1001'],
+      clientes: ['CLI-1001'],
       subordinados: [],
     },
     {
@@ -78,7 +79,7 @@ function semillaSujetos(): SujetoMock[] {
       rol: Rol.Supervisor,
       activo: true,
       idp_subject: 'idp-003',
-      unidades: [],
+      clientes: [],
       subordinados: ['SUJ-002'],
     },
     {
@@ -89,7 +90,7 @@ function semillaSujetos(): SujetoMock[] {
       activo: true,
       organizacion_id: 'ORG-001',
       idp_subject: 'idp-004',
-      unidades: [],
+      clientes: [],
       subordinados: [],
     },
     {
@@ -98,7 +99,7 @@ function semillaSujetos(): SujetoMock[] {
       rol: Rol.Monitorista,
       activo: false,
       idp_subject: 'idp-005',
-      unidades: [],
+      clientes: [],
       subordinados: [],
     },
   ];
@@ -225,23 +226,26 @@ function wireOrganizacion(organizacion: OrganizacionMock): OrganizacionWire {
   };
 }
 
-/** Unidades efectivas: propias más las de los subordinados, por jerarquía (DEC-140 #2). */
-function unidadesEfectivas(sujeto: SujetoMock, visitados = new Set<string>()): string[] {
+/** Clientes efectivos: propios más los de los subordinados, por jerarquía (DEC-140 #2). */
+function clientesEfectivos(sujeto: SujetoMock, visitados = new Set<string>()): string[] {
   visitados.add(sujeto.id);
-  const resultado = new Set(sujeto.unidades);
+  const resultado = new Set(sujeto.clientes);
   for (const subId of sujeto.subordinados) {
     const sub = buscarSujeto(subId);
     if (!sub || visitados.has(sub.id)) continue;
-    for (const unidad of unidadesEfectivas(sub, visitados)) resultado.add(unidad);
+    for (const cliente of clientesEfectivos(sub, visitados)) resultado.add(cliente);
   }
   return [...resultado];
 }
 
 function wireAlcance(sujeto: SujetoMock): AlcanceSujeto {
   return {
-    unidades_ids: [...sujeto.unidades],
+    clientes_ids: [...sujeto.clientes],
+    clientes_efectivos_ids: clientesEfectivos(sujeto),
+    // Retirados por DEC-149 #18: el contrato aún los exige, siempre vacíos.
+    unidades_ids: [],
     subordinados_ids: [...sujeto.subordinados],
-    unidades_efectivas_ids: unidadesEfectivas(sujeto),
+    unidades_efectivas_ids: [],
   };
 }
 
@@ -354,7 +358,7 @@ export const handlersAdministracion = [
       activo: true,
       ...(cuerpo.organizacion_id !== undefined ? { organizacion_id: cuerpo.organizacion_id } : {}),
       idp_subject: `idp-${numero}`,
-      unidades: [],
+      clientes: [],
       subordinados: [],
     };
     sujetos.push(nuevo);
@@ -437,7 +441,7 @@ export const handlersAdministracion = [
     }
 
     sujeto.rol = nuevo;
-    sujeto.unidades = [];
+    sujeto.clientes = [];
     sujeto.subordinados = [];
     quitarDeSuperiores(sujeto.id);
     return new HttpResponse(null, { status: 204 });
@@ -468,18 +472,29 @@ export const handlersAdministracion = [
     return HttpResponse.json(wireAlcance(sujeto), { status: 200 });
   }),
 
-  // PUT /sujetos/:id/alcance/unidades: reemplaza las unidades de un Monitorista.
-  http.put(path('/sujetos/:id/alcance/unidades'), async ({ params, request }) => {
+  // PUT /sujetos/:id/alcance/clientes: reemplaza "mis clientes" de un Monitorista (DEC-149 #18).
+  // Como el servidor: 400 si un cliente no existe o está desactivado; 409 si el rol no tiene
+  // alcance o el sujeto está desactivado.
+  http.put(path('/sujetos/:id/alcance/clientes'), async ({ params, request }) => {
     const actor = actorDe(request);
     if (!actor) return sinSesion();
-    if (actor.rol !== Rol.Administrador) return prohibido('fijar unidades');
+    if (actor.rol !== Rol.Administrador) return prohibido('fijar clientes');
     const sujeto = buscarSujeto(String(params.id));
     if (!sujeto) return noEncontrado('el sujeto');
+    const cuerpo = (await request.json()) as { clientes_ids?: unknown };
+    const ids = cuerpo.clientes_ids;
+    if (!Array.isArray(ids) || ids.some((id) => typeof id !== 'string')) {
+      return error(400, 'validacion', 'clientes_ids debe ser una lista de identificadores');
+    }
+    const activos = new Set(CLIENTES_DEMO.filter((c) => c.estado === 'activo').map((c) => c.id));
+    if (ids.some((id) => !activos.has(id as string))) {
+      return error(400, 'validacion', 'algún cliente no existe o está desactivado');
+    }
     if (sujeto.rol !== Rol.Monitorista) {
       return error(409, 'rol_sin_alcance', 'el usuario no tiene rol activo monitorista');
     }
-    const cuerpo = (await request.json()) as { unidades_ids?: string[] };
-    sujeto.unidades = [...new Set(cuerpo.unidades_ids ?? [])];
+    if (!sujeto.activo) return error(409, 'sujeto_desactivado', 'el usuario está desactivado');
+    sujeto.clientes = [...new Set(ids as string[])];
     return new HttpResponse(null, { status: 204 });
   }),
 

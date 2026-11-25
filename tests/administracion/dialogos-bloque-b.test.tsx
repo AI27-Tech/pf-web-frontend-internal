@@ -103,7 +103,7 @@ describe('E8-T19 · 11.1 CambioRolDialog', () => {
     );
 
     expect(screen.queryByRole('radio', { name: 'Cliente' })).toBeNull();
-    expect(screen.getAllByRole('radio')).toHaveLength(7);
+    expect(screen.getAllByRole('radio')).toHaveLength(8); // los ocho roles internos, con cotizacion
   });
 
   it('avisa el retiro del alcance al elegir otro rol, con alcance actual (DEC-140)', async () => {

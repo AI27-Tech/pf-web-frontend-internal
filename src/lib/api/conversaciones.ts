@@ -9,6 +9,7 @@ import type {
   VersionEsperadaEntrada,
   Conversacion,
   Mensaje,
+  TransferenciaEntrada,
 } from '../contracts/conversaciones';
 import { ApiError } from './errors';
 import { request } from './client';
@@ -69,6 +70,13 @@ export class ErrorConversacionNoDisponible extends ApiError {
     this.name = 'ErrorConversacionNoDisponible';
   }
 }
+/** 409 al transferir una conversación de solicitud a quien no tiene el rol cotizacion. */
+export class ErrorDestinoNoEsCotizacion extends ApiError {
+  constructor() {
+    super('conflicto', TEXTOS.destinoNoEsCotizacion, 409, 'destino_no_es_cotizacion');
+    this.name = 'ErrorDestinoNoEsCotizacion';
+  }
+}
 /** 5xx, caída de red o respuesta no interpretable: error recuperable con reintento (Req 12.2). */
 export class ErrorServicioNoDisponible extends ApiError {
   constructor(status?: number, codigo?: string) {
@@ -102,6 +110,7 @@ function clasificar(error: unknown, action?: 'bandeja' | 'responsable'): never {
   if (error.status === 409) {
     if (error.codigo === 'conversacion_solo_lectura') throw new ErrorConversacionSoloLectura();
     if (error.codigo === 'stream_resync_required') throw new ErrorResyncRequerido();
+    if (error.codigo === 'destino_no_es_cotizacion') throw new ErrorDestinoNoEsCotizacion();
     // Versión obsoleta o sin reclamo activo en liberar/atendida (Req 8.4).
     if (error.codigo === 'conflicto_version_reclamo' || action === 'responsable')
       throw new ErrorConflictoVersionReclamo();
@@ -109,7 +118,29 @@ function clasificar(error: unknown, action?: 'bandeja' | 'responsable'): never {
   throw new ErrorServicioNoDisponible(error.status, error.codigo);
 }
 
+/** Bandeja del `ejecutivo` (conversaciones del viaje). */
 export async function listarTrabajoBandeja(
+  token: string,
+  desdeRevision?: number,
+  cursor?: string,
+): Promise<TrabajoBandeja> {
+  return pedirTrabajoBandeja('/bandeja/trabajo', token, desdeRevision, cursor);
+}
+
+/**
+ * Bandeja del pool de `cotizacion` (conversaciones de solicitud, DEC-148 #31). Misma forma y
+ * mismo catch-up que la del viaje; la lee `cotizacion` y el `administrador`.
+ */
+export async function listarTrabajoBandejaSolicitudes(
+  token: string,
+  desdeRevision?: number,
+  cursor?: string,
+): Promise<TrabajoBandeja> {
+  return pedirTrabajoBandeja('/bandeja/solicitudes', token, desdeRevision, cursor);
+}
+
+async function pedirTrabajoBandeja(
+  ruta: string,
   token: string,
   desdeRevision?: number,
   cursor?: string,
@@ -118,7 +149,7 @@ export async function listarTrabajoBandeja(
   if (cursor !== undefined) params.set('cursor', cursor);
   if (desdeRevision !== undefined) params.set('desde_revision', String(desdeRevision));
   try {
-    return await request<TrabajoBandeja>(`/bandeja/trabajo${params.size ? `?${params}` : ''}`, {
+    return await request<TrabajoBandeja>(`${ruta}${params.size ? `?${params}` : ''}`, {
       accessToken: token,
     });
   } catch (error) {
@@ -202,6 +233,27 @@ export async function marcarAtendida(
 ): Promise<void> {
   try {
     await request(`/conversaciones/${id}/atendida`, {
+      method: 'POST',
+      body: entrada,
+      accessToken: token,
+    });
+  } catch (error) {
+    clasificar(error, 'responsable');
+  }
+}
+/**
+ * Transfiere el reclamo a otro usuario de `cotizacion` (conversación `tipo=solicitud`,
+ * E10-HU-038). `responsable_destino_id` es el `UsuarioAdmin.id` del destino, no su `sub`: el
+ * `bff` lo traduce y valida el rol (DEC-148 #74). En `tipo=viaje` y en emergencias el destino
+ * sería el `sub`, que el panel no conoce: ahí no se llama (DT-28).
+ */
+export async function transferirConversacion(
+  id: string,
+  entrada: TransferenciaEntrada,
+  token: string,
+): Promise<Reclamo> {
+  try {
+    return await request<Reclamo>(`/conversaciones/${id}/transferencias`, {
       method: 'POST',
       body: entrada,
       accessToken: token,

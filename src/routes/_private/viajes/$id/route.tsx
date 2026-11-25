@@ -7,6 +7,7 @@
  * el encabezado.
  */
 import { createFileRoute, Outlet, useLocation } from '@tanstack/react-router';
+import { RequiereCapacidad } from '@/components/permisos/RequiereCapacidad';
 import { ViajeShell } from '@/features/viajes/ViajeShell';
 import type { SeccionViaje } from '@/features/viajes/NavegacionViaje';
 
@@ -26,8 +27,10 @@ function ViajeLayout() {
   const { id } = Route.useParams();
   const { pathname } = useLocation();
   return (
-    <ViajeShell id={id} seccion={seccionDeRuta(pathname)}>
-      <Outlet />
-    </ViajeShell>
+    <RequiereCapacidad capacidad="viaje.ver">
+      <ViajeShell id={id} seccion={seccionDeRuta(pathname)}>
+        <Outlet />
+      </ViajeShell>
+    </RequiereCapacidad>
   );
 }

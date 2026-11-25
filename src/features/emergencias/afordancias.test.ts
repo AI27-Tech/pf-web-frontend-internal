@@ -82,10 +82,10 @@ describe('afordancias de emergencias (P2: exclusividad por rol y estado)', () =>
     );
   });
 
-  it('activar es falso para ejecutivo, reaccion y administrador en cualquier estado de viaje', () => {
+  it('activar es falso para ejecutivo y reaccion en cualquier estado de viaje', () => {
     fc.assert(
       fc.property(
-        fc.constantFrom<Rol>('ejecutivo', 'reaccion', 'administrador'),
+        fc.constantFrom<Rol>('ejecutivo', 'reaccion'),
         fc.string(),
         (rol, estadoViaje) => {
           expect(puedeActivar(rol, estadoViaje)).toBe(false);
@@ -94,9 +94,15 @@ describe('afordancias de emergencias (P2: exclusividad por rol y estado)', () =>
     );
   });
 
+  it('activar es verdadero para monitoreo y administrador en un viaje no terminal (decisión del Lead 5)', () => {
+    for (const rol of ['monitorista', 'supervisor', 'coordinador', 'administrador'] as const) {
+      expect(puedeActivar(rol, 'EN_TRANSITO')).toBe(true);
+    }
+  });
+
   it('activar es falso en estados terminales del viaje', () => {
-    expect(puedeActivar('monitorista', 'EN_TRANSITO')).toBe(true);
     expect(puedeActivar('monitorista', 'CERRADO')).toBe(false);
+    expect(puedeActivar('administrador', 'CERRADO')).toBe(false);
   });
 
   it('devolver se ofrece solo en en_atencion, al responsable o a supervisor/coordinador', () => {

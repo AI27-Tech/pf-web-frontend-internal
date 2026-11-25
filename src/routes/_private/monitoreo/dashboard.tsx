@@ -2,6 +2,7 @@
 
 import { createFileRoute } from '@tanstack/react-router';
 
+import { RequiereCapacidad } from '@/components/permisos/RequiereCapacidad';
 import { DashboardMonitoreo } from '@/features/monitoreo/dashboard/DashboardMonitoreo';
 
 export const Route = createFileRoute('/_private/monitoreo/dashboard')({
@@ -9,5 +10,9 @@ export const Route = createFileRoute('/_private/monitoreo/dashboard')({
 });
 
 function DashboardMonitoreoRoute() {
-  return <DashboardMonitoreo />;
+  return (
+    <RequiereCapacidad capacidad="monitoreo.dashboard">
+      <DashboardMonitoreo />
+    </RequiereCapacidad>
+  );
 }

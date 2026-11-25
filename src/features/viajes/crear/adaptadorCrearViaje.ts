@@ -20,6 +20,8 @@ export interface DatosCrearViaje {
   /** Valor de DateTimeInput (`YYYY-MM-DDTHH:mm`), en la zona local del operador. */
   readonly fechaHora: string;
   readonly unidadesIds: readonly string[];
+  /** Código de `tipo_servicio` (`local` o `foraneo`). Opcional. */
+  readonly tipoServicio?: string;
 }
 
 export interface ErroresCrearViaje {
@@ -90,6 +92,7 @@ export function construirCrearViajeEntrada(datos: DatosCrearViaje): CrearViajeEn
     origen: datos.origen.trim(),
     destinos: datos.destinos.map((nombre) => ({ nombre: nombre.trim() })),
     fecha_hora_servicio: fechaHoraAISO(datos.fechaHora),
+    ...(datos.tipoServicio ? { tipo_servicio: datos.tipoServicio } : {}),
   };
 }
 

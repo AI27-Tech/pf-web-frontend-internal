@@ -19,8 +19,7 @@ import {
 import { Truck } from 'lucide-react';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
-import { useSession } from '@/context/SessionContext';
-import { puedeUsarMonitoreo } from '@/features/monitoreo/puedeUsarMonitoreo';
+import { RequiereCapacidad } from '@/components/permisos/RequiereCapacidad';
 import { EstadoViaje } from '@/lib/contracts/viajeDetalle';
 
 import { FilaKpis } from './FilaKpis';
@@ -67,17 +66,12 @@ function aPeriodo(valor: string): Periodo {
  * la ruta se puede verificar sin mostrar datos. Sin acceso, no hay consultas al `bff`.
  */
 export function DashboardMonitoreo() {
-  const { usuario } = useSession();
-  const autorizado = !!usuario && puedeUsarMonitoreo(usuario.rol);
-
   return (
     <Stack gap={4}>
       <PageHeader title={TITULO} description={DESCRIPCION} />
-      {autorizado ? (
+      <RequiereCapacidad capacidad="monitoreo.dashboard">
         <DashboardAutorizado />
-      ) : (
-        <Alert variant="danger">Este dashboard no está disponible para tu rol.</Alert>
-      )}
+      </RequiereCapacidad>
     </Stack>
   );
 }

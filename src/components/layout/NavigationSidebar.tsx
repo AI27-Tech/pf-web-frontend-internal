@@ -4,7 +4,7 @@
  * Usa SOLO estilos y componentes de @ai27-tech/ui:
  * - Sidebar, SidebarGroup, SidebarItem de la librería
  * - Colapso NATIVO de la librería (props collapsed / onToggleCollapse)
- * - header con la marca, alineado a la topbar
+ * - header con la marca y headerCollapsed con solo el logo
  * - Variables CSS de colores, espaciado y tipografía
  */
 
@@ -37,13 +37,12 @@ interface NavigationSidebarProps {
 }
 
 /**
- * Marca mostrada en el header del sidebar.
- *
- * El header lo renderizamos nosotros, así que somos responsables de adaptarlo
- * al colapso: la librería solo oculta labels/badges de los items, no el header.
- * Contraído mostramos únicamente el logo "A" centrado; expandido, logo + "AI27".
+ * Marca del sidebar. Desde @ai27-tech/ui 0.3.0-beta.2 la librería muestra
+ * `header` expandido y `headerCollapsed` contraído (sin este último, el
+ * encabezado queda vacío al contraer). Expandido: logo + "AI27"; contraído:
+ * solo el logo "A".
  */
-function BrandHeader({ collapsed }: { readonly collapsed: boolean }) {
+function BrandHeader({ showName }: { readonly showName: boolean }) {
   return (
     <>
       <span
@@ -62,7 +61,7 @@ function BrandHeader({ collapsed }: { readonly collapsed: boolean }) {
       >
         A
       </span>
-      {!collapsed && <span>AI27</span>}
+      {showName && <span>AI27</span>}
     </>
   );
 }
@@ -78,7 +77,8 @@ export function NavigationSidebar({
   if (!usuario) {
     return (
       <Sidebar
-        header={<BrandHeader collapsed={collapsed} />}
+        header={<BrandHeader showName />}
+        headerCollapsed={<BrandHeader showName={false} />}
         collapsed={collapsed}
         onToggleCollapse={onToggleCollapse}
       >
@@ -102,7 +102,8 @@ export function NavigationSidebar({
 
   return (
     <Sidebar
-      header={<BrandHeader collapsed={collapsed} />}
+      header={<BrandHeader showName />}
+      headerCollapsed={<BrandHeader showName={false} />}
       collapsed={collapsed}
       onToggleCollapse={onToggleCollapse}
     >
@@ -140,7 +141,7 @@ export function NavigationSidebar({
       {/*
         Grupo de sesión empujado al fondo del nav con margin-top:auto, de modo
         que el botón de cerrar sesión quede al pie de la lista y por ARRIBA del
-        botón de contraer que la librería pinta en su footer.
+        botón de contraer que la librería pinta al final de la barra.
       */}
       <SidebarGroup style={{ marginTop: 'auto' }}>
         <SidebarItem icon={<LogOut />} label="Cerrar sesión" onClick={onLogout}>

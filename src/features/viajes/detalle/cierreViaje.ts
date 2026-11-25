@@ -3,14 +3,15 @@ import type { Rol } from '@ai27-tech/contracts/roles';
 import type { MotivoCierre } from '@/lib/contracts/cierreViaje';
 import type { CondicionAbierta } from '@/lib/contracts/viajeDetalle';
 import { EstadoViaje } from '@/lib/contracts/viajeDetalle';
+import { puede } from '@/lib/permisos';
 
 import { accionesDesde } from './accionesTransicion';
 
 export type TipoCierre = 'normal' | 'anticipado';
 
-/** Solo estos roles tienen la facultad de cierre en V1 (DEC-060 #1). */
+/** Solo jefe operativo y administrador cierran el viaje en V1 (DEC-060 #1). */
 export function puedeCerrar(rol: Rol): boolean {
-  return rol === 'jefe_operativo' || rol === 'administrador';
+  return puede(rol, 'viaje.cerrar');
 }
 
 /**

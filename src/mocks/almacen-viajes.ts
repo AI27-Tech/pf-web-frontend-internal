@@ -18,8 +18,9 @@ import type { ViajeDetalle } from '@/lib/contracts/viajeDetalle';
 /**
  * Versión del esquema del almacén. Cambiarla descarta lo guardado (tarea 3).
  * v2: se agrega `cambios_estado` para los reportes por estado.
+ * v3: los viajes semilla llevan `cliente_id` (alcance por clientes, DEC-149 #18).
  */
-export const VERSION_ALMACEN_VIAJES = 2;
+export const VERSION_ALMACEN_VIAJES = 3;
 
 /**
  * Un cambio de estado de un viaje. Los reportes por estado cuentan estos cambios,
@@ -33,10 +34,8 @@ export interface CambioEstadoMock {
 
 /** Estados terminales (ADR 19; DEC-135 #5). Liberan escolta y rechazan emergencias. */
 export const ESTADOS_TERMINALES_MOCK: readonly EstadoViaje[] = [
-  EstadoViaje.RechazadoPorAi27,
-  EstadoViaje.RechazadoPorCliente,
   EstadoViaje.Cerrado,
-  EstadoViaje.Cancelado,
+  EstadoViaje.CanceladoPorCliente,
 ];
 
 /** Estados que exigen escolta reservada (requisito 7.3). */
@@ -180,7 +179,7 @@ function viajesHistoricos(): Record<string, RegistroViaje> {
     ),
     'VJ-1002': registroBase(
       'VJ-1002',
-      EstadoViaje.Solicitado,
+      EstadoViaje.Aprobado,
       'Barrio Antiguo, Monterrey',
       [{ nombre: 'Almacén Central Monterrey', numero_envio: 'ENV-1002-A' }],
       HORA,
@@ -237,10 +236,10 @@ function viajesHistoricos(): Record<string, RegistroViaje> {
       3 * 24 * HORA,
       { fechaHoraEnMs: -30 * MINUTO, etaEnMs: 0 },
     ),
-    // Solicitud sin fecha y hora: el guardia de aprobación (E8-T9) la bloquea.
+    // Viaje aprobado sin fecha y hora: JO y ADM la corrigen (M4).
     'VJ-1009': registroBase(
       'VJ-1009',
-      EstadoViaje.Solicitado,
+      EstadoViaje.Aprobado,
       'Zona Centro, Tijuana',
       [{ nombre: 'Bodega Frontera Tijuana', numero_envio: 'ENV-1009-A' }],
       20 * MINUTO,
@@ -269,6 +268,23 @@ function viajesHistoricos(): Record<string, RegistroViaje> {
     ),
   };
 }
+
+/**
+ * Cliente de cada viaje histórico. `CLI-1003` queda fuera del alcance del Monitorista demo y
+ * `CLI-9999` no existe en `catalogos` (el nombre no se resuelve y se muestra el id).
+ */
+const CLIENTE_SEMILLA: Record<string, string> = {
+  'VJ-1001': 'CLI-1001',
+  'VJ-1002': 'CLI-1002',
+  'VJ-1003': 'CLI-1001',
+  'VJ-1004': 'CLI-1003',
+  'VJ-1005': 'CLI-1002',
+  'VJ-1006': 'CLI-1001',
+  'VJ-1007': 'CLI-1003',
+  'VJ-1008': 'CLI-1002',
+  'VJ-1009': 'CLI-9999',
+  'VJ-1010': 'CLI-1001',
+};
 
 /** Unidad de escolta de cada viaje de la semilla que lo requiere. */
 const ESCOLTA_SEMILLA: Record<string, string> = {
@@ -357,6 +373,10 @@ export function crearAlmacenSemilla(): AlmacenViajes {
     'em-003': 'VJ-1001',
     'em-004': 'VJ-1001',
   };
+  // Cliente de cada viaje (DEC-149 #11). Los no listados son del primer cliente demo.
+  for (const registro of Object.values(viajes)) {
+    registro.detalle.viaje.cliente_id = CLIENTE_SEMILLA[registro.detalle.viaje.id] ?? 'CLI-1001';
+  }
   // Escolta obligatoria desde ASIGNADO (requisito 7.3). Cada unidad va en un solo
   // viaje no terminal (requisito 7.1). Las unidades existen en `semillaUnidades`.
   for (const [viajeId, unidad] of Object.entries(ESCOLTA_SEMILLA)) {

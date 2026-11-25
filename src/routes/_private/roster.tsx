@@ -6,8 +6,17 @@
 
 import { createFileRoute } from '@tanstack/react-router';
 
+import { RequiereCapacidad } from '@/components/permisos/RequiereCapacidad';
 import { Roster } from '@/features/roster/Roster';
 
 export const Route = createFileRoute('/_private/roster')({
-  component: Roster,
+  component: RosterRoute,
 });
+
+function RosterRoute() {
+  return (
+    <RequiereCapacidad capacidad="roster.ver">
+      <Roster />
+    </RequiereCapacidad>
+  );
+}

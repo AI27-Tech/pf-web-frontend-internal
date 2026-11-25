@@ -31,6 +31,18 @@ export const VARIANTE_CONDICION: Record<CondicionViaje, BadgeVariant> = {
   [CondicionViaje.SinSenal]: 'warning',
 };
 
+/** Nombre del cliente; si falta, su id; sin cliente, un guion. */
+export function textoCliente(v: ViajeVista): string {
+  return v.cliente ? (v.cliente.nombre ?? v.cliente.id) : '—';
+}
+
+/** Económicos de la escolta (o el id si falta); sin unidades, "Sin escolta". */
+export function textoEscolta(v: ViajeVista): string {
+  return v.unidades.length > 0
+    ? v.unidades.map((u) => u.economico ?? u.id).join(', ')
+    : 'Sin escolta';
+}
+
 /**
  * Factory que retorna las columnas de la tabla de viajes con navegación integrada.
  *
@@ -40,6 +52,11 @@ export const VARIANTE_CONDICION: Record<CondicionViaje, BadgeVariant> = {
 export function obtenerColumnasViaje(): Column<ViajeVista>[] {
   return [
     { key: 'id', header: 'Viaje', cell: (v) => <strong>{v.id}</strong> },
+    {
+      key: 'cliente',
+      header: 'Cliente',
+      cell: (v) => <span data-testid="cliente">{textoCliente(v)}</span>,
+    },
     {
       key: 'estado',
       header: 'Estado',
@@ -60,6 +77,11 @@ export function obtenerColumnasViaje(): Column<ViajeVista>[] {
       },
     },
     { key: 'origen', header: 'Origen', accessor: 'origen' },
+    {
+      key: 'escolta',
+      header: 'Escolta',
+      cell: (v) => <span data-testid="escolta">{textoEscolta(v)}</span>,
+    },
     {
       key: 'condiciones',
       header: 'Condiciones',

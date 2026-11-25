@@ -1,4 +1,4 @@
-﻿import type { BadgeProps } from '@ai27-tech/ui';
+import type { BadgeProps } from '@ai27-tech/ui';
 
 import { EstadoViaje } from '@/lib/contracts/viajeDetalle';
 
@@ -24,7 +24,6 @@ const SIN_PUNTO: Pick<DescriptorBadge, 'dot' | 'pulse'> = { dot: false, pulse: f
  * esto no compila hasta que se decida su apariencia.
  */
 export const ESTADO_BADGE: Readonly<Record<EstadoViaje, DescriptorBadge>> = {
-  [EstadoViaje.Solicitado]: { variant: 'info', appearance: 'soft', ...SIN_PUNTO },
   [EstadoViaje.Aprobado]: { variant: 'primary', appearance: 'soft', ...SIN_PUNTO },
   [EstadoViaje.Asignado]: { variant: 'secondary', appearance: 'soft', ...SIN_PUNTO },
   [EstadoViaje.AptoParaSalida]: { variant: 'secure', appearance: 'outline', ...SIN_PUNTO },
@@ -34,9 +33,7 @@ export const ESTADO_BADGE: Readonly<Record<EstadoViaje, DescriptorBadge>> = {
   [EstadoViaje.EnDestino]: { variant: 'warning', appearance: 'soft', ...SIN_PUNTO },
   [EstadoViaje.EnDescarga]: { variant: 'warning', appearance: 'soft', ...SIN_PUNTO },
   [EstadoViaje.Cerrado]: { variant: 'secure', appearance: 'soft', ...SIN_PUNTO },
-  [EstadoViaje.Cancelado]: { variant: 'neutral', appearance: 'outline', ...SIN_PUNTO },
-  [EstadoViaje.RechazadoPorAi27]: { variant: 'alert', appearance: 'soft', ...SIN_PUNTO },
-  [EstadoViaje.RechazadoPorCliente]: { variant: 'alert', appearance: 'outline', ...SIN_PUNTO },
+  [EstadoViaje.CanceladoPorCliente]: { variant: 'neutral', appearance: 'outline', ...SIN_PUNTO },
 };
 
 const RESPALDO: DescriptorBadge = { variant: 'neutral', appearance: 'soft', ...SIN_PUNTO };

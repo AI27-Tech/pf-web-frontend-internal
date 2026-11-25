@@ -1,89 +1,85 @@
 /*
- * E8-T4 — Definición de terminado: "la navegación compuesta para un rol Reacción
- * no incluye Reportes ni Catálogos".
+ * Visibilidad de la navegación por rol (spec `afinacion-roles-modulo-a-modulo`, M1).
  *
- * Verifica la afordancia de UI que compone las entradas según el rol. La regla
- * explícita de la tarea es la de Reacción (DEC-022 #9); se comprueba además que
- * el resto de roles internos sí ve sus áreas, porque la negación real la
- * hace el bff, no esta lista.
+ * Lista blanca: la entrada aparece solo para los roles que la matriz nombra.
+ * La negación real la hace el bff. `cotizacion` solo ve Solicitudes (escenario E14).
  *
  * E8-T19 (R1.1–R1.3): "Administración" solo la ve el rol `administrador`.
  */
 
 import { describe, expect, it } from 'vitest';
-import { Rol, ROLES } from '@ai27-tech/contracts/roles';
+import { Rol } from '@ai27-tech/contracts/roles';
 
 import { entradasVisiblesPara, type NavItem } from '@/components/layout/navigationConfig';
+import { ROLES_INTERNOS } from '@/lib/permisos/roles';
 
 /** Etiquetas visibles para un rol, en orden. */
 function labels(rol: Rol): string[] {
   return entradasVisiblesPara(rol).map((item: NavItem) => item.label);
 }
 
-describe('E8-T4 · visibilidad de navegación por rol', () => {
-  it('Reacción NO ve Reportes ni Catálogos', () => {
-    const visibles = labels(Rol.Reaccion);
+const MENU_ESPERADO: Record<string, string[]> = {
+  [Rol.JefeOperativo]: ['Panel', 'Solicitudes', 'Viajes', 'Roster', 'Catálogos'],
+  [Rol.Cotizacion]: ['Solicitudes'],
+  [Rol.Monitorista]: ['Dashboard', 'Viajes', 'Reportes'],
+  [Rol.Supervisor]: ['Dashboard', 'Viajes', 'Conversaciones', 'Emergencias', 'Reportes'],
+  [Rol.Coordinador]: [
+    'Dashboard',
+    'Viajes',
+    'Conversaciones',
+    'Emergencias',
+    'Catálogos',
+    'Reportes',
+  ],
+  [Rol.Administrador]: [
+    'Panel',
+    'Solicitudes',
+    'Dashboard',
+    'Viajes',
+    'Roster',
+    'Conversaciones',
+    'Catálogos',
+    'Reportes',
+    'Administración',
+  ],
+  [Rol.Ejecutivo]: ['Conversaciones'],
+  [Rol.Reaccion]: ['Emergencias'],
+};
 
-    expect(visibles).not.toContain('Reportes');
-    expect(visibles).not.toContain('Catálogos');
+describe('M1 · menú por rol según la matriz', () => {
+  it('la tabla esperada cubre todos los roles internos', () => {
+    expect(Object.keys(MENU_ESPERADO).sort()).toEqual([...ROLES_INTERNOS].sort());
   });
 
-  it('Reacción sí ve el resto de áreas (Viajes, Conversaciones, Emergencias)', () => {
-    const visibles = labels(Rol.Reaccion);
-
-    expect(visibles).toEqual(['Viajes', 'Conversaciones', 'Emergencias']);
+  it.each(Object.entries(MENU_ESPERADO))('%s ve exactamente su menú', (rol, esperado) => {
+    expect(labels(rol as Rol)).toEqual(esperado);
   });
 
-  it('el administrador ve las ocho entradas, con Dashboard, Roster y Administración', () => {
-    expect(labels(Rol.Administrador)).toEqual([
-      'Dashboard',
-      'Viajes',
-      'Roster',
-      'Conversaciones',
-      'Emergencias',
-      'Catálogos',
-      'Reportes',
-      'Administración',
-    ]);
-  });
-
-  it('un rol interno sin restricción (monitorista) no ve Administración', () => {
-    expect(labels(Rol.Monitorista)).toEqual([
-      'Dashboard',
-      'Viajes',
-      'Conversaciones',
-      'Emergencias',
-      'Catálogos',
-      'Reportes',
-    ]);
+  it('Reacción no ve Reportes ni Catálogos (DEC-022 #9)', () => {
+    expect(labels(Rol.Reaccion)).not.toContain('Reportes');
+    expect(labels(Rol.Reaccion)).not.toContain('Catálogos');
   });
 
   it('Roster solo lo ven el Jefe Operativo y el Administrador (E8-T21, DEC-142 #3)', () => {
-    expect(labels(Rol.JefeOperativo)).toContain('Roster');
-    for (const rol of [
-      Rol.Monitorista,
-      Rol.Supervisor,
-      Rol.Coordinador,
-      Rol.Ejecutivo,
-      Rol.Reaccion,
-    ]) {
-      expect(labels(rol)).not.toContain('Roster');
-    }
+    const conRoster = ROLES_INTERNOS.filter((rol) => labels(rol).includes('Roster'));
+    expect(conRoster).toEqual([Rol.JefeOperativo, Rol.Administrador]);
+  });
+
+  it('un rol que la política no conoce no ve ninguna entrada', () => {
+    expect(entradasVisiblesPara('rol_futuro' as Rol)).toEqual([]);
+  });
+
+  it('el cliente no ve ninguna entrada del panel interno', () => {
+    expect(entradasVisiblesPara(Rol.Cliente)).toEqual([]);
   });
 });
 
 describe('E8-T19 · Administración visible solo para administrador (R1.1, R1.3)', () => {
   it('solo el administrador ve la entrada "Administración"', () => {
-    const conAdministracion = ROLES.filter((rol) => labels(rol).includes('Administración'));
+    const conAdministracion = ROLES_INTERNOS.filter((rol) =>
+      labels(rol).includes('Administración'),
+    );
 
     expect(conAdministracion).toEqual([Rol.Administrador]);
-  });
-
-  it('los siete roles distintos de administrador no ven Administración', () => {
-    const otros = ROLES.filter((rol) => rol !== Rol.Administrador);
-
-    for (const rol of otros) {
-      expect(labels(rol)).not.toContain('Administración');
-    }
   });
 });

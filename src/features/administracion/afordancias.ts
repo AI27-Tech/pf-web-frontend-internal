@@ -24,7 +24,7 @@ export function opcionesRolParaCambio(rolActual: RolTipo | null): readonly RolTi
 }
 
 /** Tipo de control de alcance según el rol del objetivo (R6.6). */
-export type TipoAlcance = 'unidades' | 'monitoristas' | 'supervisores';
+export type TipoAlcance = 'clientes' | 'monitoristas' | 'supervisores';
 
 /**
  * Qué control de alcance aplica a un rol. Solo monitorista, supervisor y
@@ -33,7 +33,7 @@ export type TipoAlcance = 'unidades' | 'monitoristas' | 'supervisores';
 export function controlesDeAlcance(rol: Rol | null): TipoAlcance | null {
   switch (rol) {
     case Rol.Monitorista:
-      return 'unidades';
+      return 'clientes';
     case Rol.Supervisor:
       return 'monitoristas';
     case Rol.Coordinador:

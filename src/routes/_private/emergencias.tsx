@@ -3,6 +3,7 @@
  * La emergencia abierta viaja en la búsqueda (`caso`) para que el enlace sea compartible.
  */
 import { createFileRoute } from '@tanstack/react-router';
+import { RequiereCapacidad } from '@/components/permisos/RequiereCapacidad';
 import { BandejaEmergencias } from '@/features/emergencias/BandejaEmergencias';
 
 export const Route = createFileRoute('/_private/emergencias')({
@@ -15,5 +16,10 @@ export const Route = createFileRoute('/_private/emergencias')({
 
 function EmergenciasRoute() {
   const { caso } = Route.useSearch();
-  return <BandejaEmergencias casoAbierto={caso} />;
+  // Bandeja solo para Reacción, supervisor y coordinador; al resto el bff le responde 403.
+  return (
+    <RequiereCapacidad capacidad="emergencia.bandeja">
+      <BandejaEmergencias casoAbierto={caso} />
+    </RequiereCapacidad>
+  );
 }

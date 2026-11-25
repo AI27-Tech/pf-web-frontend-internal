@@ -120,7 +120,7 @@ export { puedeTransicionar } from '@ai27-tech/contracts/estados';
  *
  * Signature: `esTerminal(estado) => boolean`
  *
- * Estados terminales: RECHAZADO_POR_AI27, RECHAZADO_POR_CLIENTE, CERRADO, CANCELADO.
+ * Estados terminales del viaje: CERRADO y CANCELADO_POR_CLIENTE.
  *
  * Usado para:
  * - No ofrecer acciones si el viaje está terminal

@@ -826,7 +826,8 @@ describe('Ausencia de gestos excluidos de V1 (Requirements 7 y 9)', () => {
     ]) {
       expect(botones.filter((nombre) => prohibido.test(nombre))).toEqual([]);
     }
-    expect(composer()).toBeDisabled();
+    // Con rol de solo lectura el compositor no se dibuja (M10).
+    expect(within(panel()).queryByLabelText('Mensaje')).not.toBeInTheDocument();
     expect(within(panel()).getByText(TEXTO_BANNER.otro)).toBeInTheDocument();
 
     // Sin selector de destino ni nombres de Ejecutivos.
@@ -839,6 +840,41 @@ describe('Ausencia de gestos excluidos de V1 (Requirements 7 y 9)', () => {
     expect(document.body).not.toHaveTextContent(/pendiente|no le[ií]dos?|sin leer/i);
   });
 
+  // 11.6 (Requirement 11.5; DEC-148 #76, DT-28): el destino de una transferencia en el viaje es el
+  // `sub` del destinatario, que el panel no conoce, y un id de sujeto responde
+  // `409 destino_invalido_en_viaje`. Por eso el panel no ofrece transferir, ni siquiera al
+  // responsable, y tampoco consulta a quién transferir ni a quién pertenece el reclamo.
+  it('el Ejecutivo responsable de una conversación del viaje no ve transferir ni pide usuarios', async () => {
+    const peticiones: string[] = [];
+    const registrar = ({ request }: { request: Request }) => {
+      peticiones.push(`${request.method} ${new URL(request.url).pathname}`);
+    };
+    server.events.on('request:start', registrar);
+    const usuario = userEvent.setup();
+    renderBandeja(ID.mia);
+    await esperarBotonDelPanel('Marcar atendida');
+
+    // Tiene el reclamo: ve devolver y marcar atendida, pero no transferir.
+    expect(botonDelPanel('Devolver al pool')).toBeInTheDocument();
+    expect(within(panel()).queryByRole('button', { name: /transferi/i })).not.toBeInTheDocument();
+    await usuario.click(botonDelPanel('Devolver al pool'));
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(document.querySelector('select')).toBeNull();
+    expect(peticiones.some((p) => p.includes('/sujetos') || p.includes('/transferencias'))).toBe(
+      false,
+    );
+    server.events.removeListener('request:start', registrar);
+  });
+  it('no muestra quién es el responsable a partir de reclamo_activo.responsable_id', async () => {
+    renderBandeja(ID.deOtro);
+    await within(panel()).findByText('Lo estamos revisando.');
+    await esperarListaCargada();
+
+    // El reclamo ajeno solo se dice como "Otra persona": el id es un sub, no un nombre.
+    expect(within(panel()).getByText(TEXTO_BANNER.otro)).toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent(new RegExp(OTRA_PERSONA));
+    expect(document.body).not.toHaveTextContent(/responsable_id|responsable:/i);
+  });
   it('la fila no lleva vista previa del último mensaje ni conteo de no leídos', async () => {
     renderBandeja();
     await esperarListaCargada();
@@ -1057,5 +1093,51 @@ describe('Recibo de lectura', () => {
       await new Promise((resolver) => setTimeout(resolver, 20));
     });
     expect(solicitudes('recibo')).toHaveLength(0);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* M10: roles (spec afinacion-roles-modulo-a-modulo, Requirement 11)           */
+/* -------------------------------------------------------------------------- */
+
+describe('Conversaciones por rol (M10)', () => {
+  it.each(['supervisor', 'coordinador'])(
+    '%s lee la conversación sin reclamar, responder, devolver ni marcar atendida',
+    async (rol) => {
+      iniciarSesionComo('usr-lectura-1', rol);
+      renderBandeja(ID.pool);
+      expect(await within(panel()).findByText(/Solo lectura: tu rol consulta/)).toBeInTheDocument();
+      expect(within(panel()).getByRole('log')).toBeInTheDocument();
+      for (const nombre of ['Reclamar', 'Devolver al pool', 'Marcar atendida']) {
+        expect(sinBotonDelPanel(nombre)).not.toBeInTheDocument();
+      }
+      expect(within(panel()).queryByLabelText('Mensaje')).not.toBeInTheDocument();
+    },
+  );
+
+  it('supervisor tampoco ve los gestos en una conversación reclamada por otra persona', async () => {
+    iniciarSesionComo('usr-lectura-1', 'supervisor');
+    renderBandeja(ID.deOtro);
+    await within(panel()).findByText('Lo estamos revisando.');
+    expect(sinBotonDelPanel('Devolver al pool')).not.toBeInTheDocument();
+    expect(sinBotonDelPanel('Marcar atendida')).not.toBeInTheDocument();
+    expect(solicitudes('recibo')).toHaveLength(0);
+  });
+
+  it('administrador opera como ejecutivo: ve Reclamar y el compositor', async () => {
+    iniciarSesionComo('usr-admin-1', 'administrador');
+    renderBandeja(ID.pool);
+    expect(await esperarBotonDelPanel('Reclamar')).toBeInTheDocument();
+    expect(composer()).toBeInTheDocument();
+    expect(within(panel()).queryByText(/Solo lectura: tu rol consulta/)).not.toBeInTheDocument();
+  });
+
+  it('un 404 de la bandeja a administrador es "bandeja no disponible", sin error', async () => {
+    iniciarSesionComo('usr-admin-1', 'administrador');
+    forzarFalloConversaciones('bandeja', { tipo: 'http', status: 404, codigo: 'no_encontrado' });
+    renderBandeja();
+    expect(await within(lista()).findByText('Bandeja no disponible.')).toBeInTheDocument();
+    expect(filas()).toHaveLength(0);
+    expect(screen.queryByText(/permiso|autoriz/i)).not.toBeInTheDocument();
   });
 });

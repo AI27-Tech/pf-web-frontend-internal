@@ -12,7 +12,6 @@ import type { components } from '@ai27-tech/contracts/openapi/bff';
 import { ROLES, type Rol } from '@ai27-tech/contracts/roles';
 
 export type { Rol } from '@ai27-tech/contracts/roles';
-export type { Unidad } from './unidades';
 
 type Schemas = components['schemas'];
 
@@ -27,7 +26,7 @@ export type OrganizacionCambios = Schemas['OrganizacionCambios'];
 export type AlcanceSujeto = Schemas['AlcanceSujeto'];
 export type RevocacionSesionesResultado = Schemas['RevocacionSesionesResultado'];
 
-/** Opciones del selector de rol: exactamente los valores del enum `Rol` (ocho, sin Auditor). */
+/** Opciones del selector de rol: exactamente los nueve valores del enum `Rol`, con `cotizacion`. */
 export const OPCIONES_ROL: readonly Rol[] = ROLES;
 
 /**
@@ -85,12 +84,12 @@ export interface UsuarioResumen {
 
 /** Alcance de monitoreo tal como lo devuelve el `bff` (DEC-140). */
 export interface AlcanceEfectivo {
-  /** Unidades asignadas directamente ("mis unidades"); solo un Monitorista tiene. */
-  readonly unidadesIds: readonly string[];
+  /** Clientes asignados directamente ("mis clientes"); solo un Monitorista tiene (DEC-149 #18). */
+  readonly clientesIds: readonly string[];
   /** Subordinados directos (Monitoristas de un Supervisor, Supervisores de un Coordinador). */
   readonly subordinadosIds: readonly string[];
-  /** Unión, sin repetidos, de las unidades propias y las de los subordinados. */
-  readonly unidadesEfectivasIds: readonly string[];
+  /** Unión, sin repetidos, de los clientes propios y los de los subordinados. Es el alcance. */
+  readonly clientesEfectivosIds: readonly string[];
 }
 
 /** Detalle de un usuario: el resumen más su alcance cuando aplique. */
@@ -136,11 +135,11 @@ export interface ConsecuenciaDesactivacion {
 
 /**
  * Cambio de alcance. Los dos reemplazan la lista completa (DEC-145): se envía
- * siempre el conjunto final. Las unidades son de un Monitorista; los subordinados,
+ * siempre el conjunto final. Los clientes son de un Monitorista; los subordinados,
  * de un Supervisor (Monitoristas) o de un Coordinador (Supervisores).
  */
 export type CambioAlcance =
-  | { readonly tipo: 'unidades'; readonly ids: readonly string[] }
+  | { readonly tipo: 'clientes'; readonly ids: readonly string[] }
   | { readonly tipo: 'subordinados'; readonly ids: readonly string[] };
 
 /** Resultado de la revocación masiva: cuántas sesiones vivas se revocaron (0 si no tenía). */

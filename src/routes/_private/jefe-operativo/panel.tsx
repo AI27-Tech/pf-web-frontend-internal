@@ -5,14 +5,25 @@
  * Usa SOLO estilos de @ai27-tech/ui.
  */
 
-import { createFileRoute } from '@tanstack/react-router';
-import { Card, Stack } from '@ai27-tech/ui';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { Card, Section, Stack } from '@ai27-tech/ui';
+import { RequiereCapacidad } from '@/components/permisos/RequiereCapacidad';
+import { BandejaSolicitudes } from '@/features/solicitudes/BandejaSolicitudes';
 
 export const Route = createFileRoute('/_private/jefe-operativo/panel')({
-  component: JefeOperativoPanelPage,
+  component: JefeOperativoPanelRoute,
 });
 
+function JefeOperativoPanelRoute() {
+  return (
+    <RequiereCapacidad capacidad="panel.jefeOperativo">
+      <JefeOperativoPanelPage />
+    </RequiereCapacidad>
+  );
+}
+
 function JefeOperativoPanelPage() {
+  const navigate = useNavigate();
   return (
     <Stack gap={4}>
       <h1
@@ -46,11 +57,23 @@ function JefeOperativoPanelPage() {
               margin: 0,
             }}
           >
-            Aquí irán: roster de unidades, aprobación de solicitudes, asignación de viajes, cierre
-            de viajes.
+            Aquí irán: roster de unidades, asignación de viajes, cierre de viajes.
           </p>
         </div>
       </Card>
+      <Section
+        title="Solicitudes por aprobar"
+        description="Solicitudes pagadas que esperan tu decisión."
+      >
+        <BandejaSolicitudes
+          onAbrir={(id) =>
+            void navigate({
+              to: '/solicitudes',
+              search: { id, vista: undefined, conversacion: undefined },
+            })
+          }
+        />
+      </Section>
     </Stack>
   );
 }

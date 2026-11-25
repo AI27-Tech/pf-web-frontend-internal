@@ -3,7 +3,8 @@ import { Alert, Button, Section, SkeletonText, Stack } from '@ai27-tech/ui';
 import type { Rol } from '@ai27-tech/contracts/roles';
 import type { EmergenciaViaje } from '@/lib/contracts/emergencias';
 import { ErrorEmergenciaCerrada, ErrorAccionNoPermitida } from '@/lib/api/emergencias';
-import { ROLES_CON_CARRIL, puedeAnotar, puedeCerrar } from '../afordancias';
+import { puede } from '@/lib/permisos';
+import { puedeAnotar, puedeCerrar } from '../afordancias';
 import { NotaEmergencia } from './NotaEmergencia';
 import { SelectorCaso } from './SelectorCaso';
 import { useEmergenciasViaje, type EmergenciasViaje } from './useEmergenciasViaje';
@@ -26,7 +27,7 @@ interface SeccionEmergenciasViajeProps {
  */
 export function SeccionEmergenciasViaje(props: SeccionEmergenciasViajeProps) {
   // Sin carril no se monta CarrilEmergencias: el bff responde 403 a la lista para otros roles.
-  if (props.rol === null || !ROLES_CON_CARRIL.includes(props.rol)) return null;
+  if (props.rol === null || !puede(props.rol, 'emergencia.verDeViaje')) return null;
   if (props.emergencias) {
     return <CarrilEmergencias {...props} rol={props.rol} emergencias={props.emergencias} />;
   }

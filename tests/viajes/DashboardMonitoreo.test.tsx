@@ -80,7 +80,7 @@ describe('DashboardMonitoreo · acceso por rol', () => {
     expect(
       await screen.findByRole('heading', { name: 'Dashboard de Monitoreo', level: 1 }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Este dashboard no está disponible para tu rol.')).toBeInTheDocument();
+    expect(screen.getByText('Sin permiso')).toBeInTheDocument();
     expect(solicitudes).toEqual([]);
   });
 });

@@ -2,8 +2,17 @@
 
 import { createFileRoute } from '@tanstack/react-router';
 
+import { RequiereCapacidad } from '@/components/permisos/RequiereCapacidad';
 import { CrearViaje } from '@/features/viajes/crear/CrearViaje';
 
 export const Route = createFileRoute('/_private/viajes/crear')({
-  component: CrearViaje,
+  component: CrearViajeRoute,
 });
+
+function CrearViajeRoute() {
+  return (
+    <RequiereCapacidad capacidad="viaje.crear">
+      <CrearViaje />
+    </RequiereCapacidad>
+  );
+}

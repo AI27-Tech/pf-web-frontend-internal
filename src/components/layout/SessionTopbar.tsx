@@ -27,6 +27,7 @@ const rolLabels: Record<Rol, string> = {
   ejecutivo: 'Ejecutivo',
   reaccion: 'Reacción',
   administrador: 'Administrador',
+  cotizacion: 'Cotización',
 };
 
 export function SessionTopbar() {

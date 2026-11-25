@@ -8,13 +8,14 @@ import {
   liberarReclamo,
   marcarAtendida,
   registrarReciboLeido,
+  transferirConversacion,
 } from '@/lib/api/conversaciones';
 import type { Conversacion, Mensaje } from '@/lib/contracts/conversaciones';
 import { ApiError } from '@/lib/api/errors';
 import { aplicarMensajes } from './aplicarCambios';
 import { crearPolling } from './actualizacion';
 
-type AccionEnCurso = 'reclamar' | 'devolver' | 'atendida';
+export type AccionEnCurso = 'reclamar' | 'devolver' | 'atendida' | 'transferir';
 
 export function useConversacion(id: string | undefined) {
   const { sesion } = useSession();
@@ -196,6 +197,39 @@ export function useConversacion(id: string | undefined) {
     }
   }, [conversacion, falloAccion, finalizarAccion, id, iniciarAccion, recargar, token]);
 
+  /**
+   * Transfiere el reclamo a otro usuario de `cotizacion` (solo conversaciones de solicitud).
+   * Devuelve el error para que lo muestre el diálogo, o `null` si salió bien. Ante `403` o
+   * `409` recarga: el reclamo pudo cambiar.
+   */
+  const transferir = useCallback(
+    async (destinoId: string, motivo: string): Promise<Error | null> => {
+      if (!id || !conversacion?.reclamo_activo || !iniciarAccion('transferir')) {
+        return new Error('No se pudo transferir la conversación');
+      }
+      try {
+        await transferirConversacion(
+          id,
+          {
+            version_esperada: conversacion.version_reclamo,
+            responsable_destino_id: destinoId,
+            ...(motivo ? { motivo } : {}),
+          },
+          token,
+        );
+        await recargar(true);
+        setErrorAccion(null);
+        return null;
+      } catch (e) {
+        if (e instanceof ApiError && (e.status === 403 || e.status === 409)) await recargar(true);
+        return e instanceof Error ? e : new Error('No se pudo transferir la conversación');
+      } finally {
+        finalizarAccion();
+      }
+    },
+    [conversacion, finalizarAccion, id, iniciarAccion, recargar, token],
+  );
+
   const enviar = useCallback(
     async (cuerpo: string) => {
       if (!id || !conversacion || !cuerpo.trim()) return;
@@ -242,6 +276,7 @@ export function useConversacion(id: string | undefined) {
     reclamar,
     devolver,
     atendida,
+    transferir,
     enviar,
   };
 }

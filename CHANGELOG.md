@@ -1,5 +1,56 @@
 # CHANGELOG
 
+## 2026:11:25 15:52
+
+**Resumen:** Se corrigen las dos pruebas e2e que fallaron en GitHub (`login.spec.ts` y `session-cut.spec.ts`). Ninguna era un defecto de la aplicación: una usaba una cuenta sin permiso para la pantalla que probaba, y la otra no tenía margen para la latencia del bundle mock.
+**Cambios:**
+
+- **`e2e/login.spec.ts`:** la prueba "credenciales válidas conceden sesión y navegan al destino" entraba con `operador@demo.ai27`, que es Jefe Operativo. El dashboard de monitoreo no es de ese rol (DEC-149 #8), así que la app mostraba "sin permiso" y el encabezado "Dashboard de Monitoreo" nunca aparecía. Ahora entra con `monitorista@demo.ai27`.
+- **`playwright.config.ts`:** se sube el tiempo de espera de las aserciones (`expect.timeout`) de 5 s a 15 s. El bundle mock espera 2,5 s en cada petición de la API (`LATENCY_MS` en `src/mocks/browser.ts`), y el flujo de `session-cut.spec.ts` encadena login, lista y refresh, que tardan unos 8 s. El corte de sesión sí funcionaba.
+  **Verificación:** las cinco pruebas e2e pasan en local con `CI=1` y dos workers (`login` 3, `session-cut` 1 y `roster` 1). Antes fallaban dos, de forma reproducible. `eslint e2e playwright.config.ts` y `tsc --build --force` sin errores.
+  **Pendiente:**
+- La latencia de 2,5 s del mock viene del cambio de la barra de progreso (`PageProgress`); si se prefiere no alargar las esperas, se puede bajar la latencia solo para los e2e.
+  **Archivos modificados:**
+- `e2e/login.spec.ts`
+- `playwright.config.ts`
+- `CHANGELOG.md`
+
+## 2026:11:25 15:41
+
+**Resumen:** Afinación de acciones y vistas por rol, módulo a módulo (spec `afinacion-roles-modulo-a-modulo`; DEC-149 y DEC-152). El panel decide qué ve y qué hace cada uno de los nueve roles con una sola política de capacidades (`lib/permisos`), sube `@ai27-tech/contracts` de `tracer.40` a `tracer.47`, cambia "mis unidades" por "mis clientes", separa `403` de `404`, agrega el módulo de solicitudes (cotización, pago, aprobación y su conversación) y se adapta a la ruptura de `tracer.45`. La rama lleva además tres cambios que no son de roles: el formulario de crear viaje, la barra de progreso de la página y un parche de la línea del tiempo del detalle.
+**Cambios:**
+
+- **Política de capacidades:** nuevo `src/lib/permisos` (`capacidades.ts`, `excepciones.ts`, `puede.ts`, `roles.ts`, `transiciones.ts`). Es de lista blanca: un rol que la matriz no nombra niega la capacidad, incluido `cotizacion` (noveno rol). El administrador hereda toda capacidad salvo las excepciones declaradas con su fuente (bandeja de emergencias, reclamar, devolver, transferir y resolver emergencias, y `obtenerMiAlcance`). `puedeArmarRoster`, `puedeUsarMonitoreo`, `puedeCerrar`, `puedeAdministrar`, `puedeCorregirIncidencia` y las afordancias de emergencias pasan a ser adaptadores sobre `puede`.
+- **Navegación y rutas:** `NAV_ITEMS` usa un solo modelo con capacidad y se retira `ocultarPara`. `RequiereCapacidad` y `SinPermiso` muestran "sin permiso" sin cerrar la sesión y sin pedir los datos del recurso. Entradas nuevas: Panel y Solicitudes. `cotizacion` aterriza en la bandeja de solicitudes. Catálogos para Jefe Operativo (lectura), Coordinador y Administrador; Reportes sin cambio de roles.
+- **Viajes:** la bandeja muestra Cliente y Escolta y, con la lista vacía, distingue "sin clientes asignados" de "sin viajes" con `obtenerMiAlcance` (solo monitorista, supervisor y coordinador). Crear viaje se habilita al administrador. El detalle filtra las acciones por estado y rol, y se retiran aprobar, rechazar y la fecha previa a aprobar, que pasan a solicitudes. La ficha queda en solo lectura para el Jefe Operativo y no se pide a ejecutivo, reacción ni cotización. El histórico y el expediente aplican sus capacidades.
+- **Errores:** `403` se muestra como "sin permiso" sin reintentar y `404` como "no encontrado" o "ya no disponible", sin hablar de permisos. Se corrige el texto que decía "rol o alcance".
+- **Emergencias y conversaciones:** la entrada de menú de emergencias es para reacción, supervisor y coordinador. El administrador activa emergencias y opera el chat del viaje; el servidor puede responderle `403` o `404` hasta que `mensajeria` cambie. Supervisor y coordinador leen las conversaciones sin acciones. No se ofrece transferir en viaje ni en emergencias (DT-28).
+- **Roster y administración:** "mis clientes" con `fijarClientesSujeto` reemplaza "mis unidades"; solo se ofrecen clientes activos, y uno asignado que se desactivó se muestra como desactivado y se quita del payload. La unidad lleva el campo opcional "cliente al que sirve". El selector de rol ofrece los nueve valores.
+- **Solicitudes (nuevo):** `src/features/solicitudes` con bandeja y detalle por capacidad. El Jefe Operativo solo ve las solicitudes `PAGADO` y sin datos comerciales (`cotizacion` y `pago` en `null` significan "oculto"). Acciones por rol: aprobar y rechazar (Jefe Operativo y administrador), cotizar, reprogramar y confirmar pago, también el tardío desde `VENCIDA` (cotización y administrador), y revertir pago (solo administrador). Moneda fija `MXN`, monto desde cero y fecha del servicio futura. Conversación de la solicitud y transferirla a otro usuario `cotizacion`, con el destino de `listarSujetos?rol=cotizacion&activo=true`.
+- **Mocks:** `autorizarMock` aplica la política a los handlers; filtro por "mis clientes", `403` por rol, `404` fuera de alcance, `obtenerMiAlcance`, `fijarClientesSujeto` y solicitudes con las guardas del contrato.
+- **Dependencias:** `@ai27-tech/contracts` de `0.1.0-tracer.40` a `0.1.0-tracer.47` y `@ai27-tech/ui` de `0.3.0-beta.1` a `0.3.0-beta.2`; se amplían las versiones permitidas en `pnpm-workspace.yaml`. Se retiran los estados que `tracer.45` quitó del viaje.
+- **Sin relación con roles (entraron en la misma rama):** `CrearViaje.tsx` se reestructura con una vista previa de la solicitud (`SolicitudVistaPrevia.tsx`) y la captura de fecha y hora (`fechaHora.ts`), alineada con el portal del cliente; `PageProgress.tsx` reemplaza a `RouteProgressBar.tsx` con el `ProgressBar` de la librería; `progresoViaje.module.css` es un parche temporal marcado `BRECHA-UI` para la línea del tiempo horizontal.
+- **Pruebas:** nuevas por rol en viajes, ficha, histórico, expediente, dashboard, emergencias, conversaciones, roster, administración, catálogos, solicitudes y la tabla de la política.
+- **Documentación:** spec `afinacion-roles-modulo-a-modulo` (requisitos, diseño, tareas, brechas y diagramas de roles y Happy Paths); el spec `alineacion-ui-roles-capacidades` queda marcado como reemplazado.
+  **Verificación:** `tsc --build --force` sin errores; `eslint .` sin errores; `vitest run`: 106 archivos y 1531 pruebas en verde; `npm run build:mock` compila. `prettier --check .` informa 311 archivos, entre ellos archivos que la rama no toca; los archivos nuevos revisados pasan. No se ejecutó `test:e2e`, no se revisó en navegador y nada se probó contra un backend real.
+  **Pendiente:**
+- Backend y contrato (tareas del Lead): el servidor aún no devuelve `403` al Jefe Operativo en avanzar el viaje, ETA, estadías y bitácora; activar emergencia, el chat del viaje y la escritura de Catálogos del Coordinador siguen respondiendo `403` o `404`; `listarSujetos` no está abierto a `cotizacion` (el selector de transferir da `403` hasta entonces); los roles por operación se documentan en la ola `tracer.48`, en espera.
+- Sin definir: nombre del responsable y transferir en viaje y emergencias (DT-28); botones de override conversacional (PM-008).
+- Cerrar DT-24 en el repo de contexto lo registra el Lead.
+  **Archivos modificados:**
+- `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`
+- `src/lib/permisos/*` (nuevos), `src/components/permisos/*` (nuevos), `src/components/layout/*`
+- `src/routes/_private/*`, `src/routes/__root.tsx`, `src/app/router.tsx`, `src/app/shell/PageProgress.tsx` (nuevo), `src/components/layout/RouteProgressBar.tsx` (eliminado)
+- `src/features/viajes/*` (incluye `useMiAlcance.ts`, `crear/SolicitudVistaPrevia.tsx`, `crear/fechaHora.ts` y `detalle/progresoViaje.module.css`, nuevos, y `detalle/decisionSolicitud.ts`, eliminado)
+- `src/features/solicitudes/*` (nuevo), `src/features/conversaciones/*`, `src/features/emergencias/*`, `src/features/monitoreo/*`
+- `src/features/roster/*` y `src/features/administracion/*` (se eliminan `UnidadesMonitoristas*`, `useUnidadesMonitoristas.ts` y `opcionesUnidades.ts`)
+- `src/features/catalogos/*`
+- `src/lib/api/*` (incluye `solicitudes.ts` y `usuarios.ts`, nuevos), `src/lib/contracts/*`, `src/lib/hooks/*`
+- `src/mocks/*` (incluye `autorizacion.ts` y `solicitudes.ts`, nuevos)
+- `src/styles/globals.css`
+- `tests/*` (viajes, administracion, solicitudes, emergencias, layout, catalogos, roster, sesion, conversaciones)
+- `.kiro/specs/afinacion-roles-modulo-a-modulo/*` y `.kiro/specs/alineacion-ui-roles-capacidades/*`
+
 ## 2026:11:18 17:14
 
 **Resumen:** Rediseño de las pestañas del viaje (Detalle, Ficha técnica, Histórico y Expediente) con `@ai27-tech/ui`. La ficha se edita en un modal, el histórico lee todas las páginas de bitácora, estadías e incidencias, y las emergencias activas se muestran como alerta en el detalle.

@@ -10,10 +10,10 @@
  *   vehículo, 400 por validación, 409 `vehiculo_en_otra_unidad`,
  *   `custodio_en_otra_unidad` y `unidad_con_reserva_vigente`.
  * - `obtenerAsignacion`: cualquier rol interno; `unidades` vacío sin asignación.
- * - "Mis unidades" de cada Monitorista (tracer.40, DEC-140 #1, DEC-142 #2): lee
- *   `administrador`; el `jefe_operativo` solo `rol=monitorista` y el alcance de un
- *   Monitorista. Fijar: los dos; 400 si una unidad no existe, 409 `rol_sin_alcance`
- *   y `sujeto_desactivado`. Una unidad puede estar en varios Monitoristas.
+ * - "Mis clientes" de cada Monitorista (tracer.46, DEC-149 #18): lee `administrador`;
+ *   el `jefe_operativo` solo `rol=monitorista` y el alcance de un Monitorista. Fijar: los
+ *   dos; 400 si un cliente no existe o está desactivado, 409 `rol_sin_alcance` y
+ *   `sujeto_desactivado`. Un cliente puede estar en varios Monitoristas.
  *
  * El estado vive en memoria y se reinicia al recargar (o con `reiniciarRosterMock`).
  */
@@ -25,7 +25,7 @@ import { Rol } from '@/lib/contracts';
 import type { Custodio, Vehiculo } from '@/lib/contracts/catalogos';
 import { decodificarClaims, rolValido } from '@/lib/contracts/jwt';
 import type { Unidad } from '@/lib/contracts/unidades';
-import { obtenerDetalleViajeMock } from './data';
+import { CLIENTES_DEMO, obtenerDetalleViajeMock } from './data';
 import {
   crearAlmacenSemilla,
   esEstadoTerminalMock,
@@ -39,6 +39,9 @@ const path = (segmento: string) => `${API_PREFIX}${segmento}`;
 export const TAMANO_PAGINA_ROSTER = 5;
 
 const ROLES_ROSTER: readonly Rol[] = [Rol.JefeOperativo, Rol.Administrador];
+// Como el servidor hoy: leen JO y ADM, escribe solo ADM. El panel ya muestra Catálogos al
+// Coordinador (decisión del Lead 10); `catalogos` aún no le abre lectura ni escritura, así que
+// el `bff` responde 403 y la pantalla lo trata como "sin permiso" (Requirement 14.3 y T2).
 const ROLES_ESCRITURA_CATALOGOS: readonly Rol[] = [Rol.Administrador];
 
 interface UnidadMock {
@@ -46,6 +49,7 @@ interface UnidadMock {
   vehiculo_id: string;
   custodios_ids: string[];
   activa: boolean;
+  cliente_id?: string | null;
 }
 
 function semillaVehiculos(): Vehiculo[] {
@@ -206,7 +210,7 @@ interface SujetoMock {
   identificador_usuario?: string;
   rol: Rol;
   activo: boolean;
-  unidades_ids: string[];
+  clientes_ids: string[];
 }
 
 /** Un Monitorista sin nombre (alta previa a tracer.40), uno desactivado y un Supervisor. */
@@ -218,23 +222,23 @@ function semillaSujetos(): SujetoMock[] {
       identificador_usuario: 'laura.mendez@ai27.mx',
       rol: Rol.Monitorista,
       activo: true,
-      unidades_ids: ['UN-1001'],
+      clientes_ids: ['CLI-1001'],
     },
     {
       id: 'SUJ-4002',
       identificador_usuario: 'monitorista.dos@ai27.mx',
       rol: Rol.Monitorista,
       activo: true,
-      unidades_ids: [],
+      clientes_ids: [],
     },
     {
       id: 'SUJ-4003',
       nombre: 'Óscar Ruiz',
       rol: Rol.Monitorista,
       activo: false,
-      unidades_ids: ['UN-1001'],
+      clientes_ids: ['CLI-1001'],
     },
-    { id: 'SUJ-4004', nombre: 'Carmen Vega', rol: Rol.Supervisor, activo: true, unidades_ids: [] },
+    { id: 'SUJ-4004', nombre: 'Carmen Vega', rol: Rol.Supervisor, activo: true, clientes_ids: [] },
   ];
 }
 
@@ -445,11 +449,23 @@ export const handlersRoster = [
     if (rechazo) return rechazo;
     const cuerpo = await leerCuerpo(request);
     if (!cuerpo) return error(400, 'validacion', 'cuerpo inválido');
-    const extra = camposDesconocidos(cuerpo, ['vehiculo_id', 'custodios_ids', 'activa']);
+    const extra = camposDesconocidos(cuerpo, [
+      'vehiculo_id',
+      'custodios_ids',
+      'activa',
+      'cliente_id',
+    ]);
     if (extra.length > 0)
       return error(400, 'validacion', `campos no permitidos: ${extra.join(', ')}`);
     if ('activa' in cuerpo && typeof cuerpo.activa !== 'boolean') {
       return error(400, 'validacion', 'activa debe ser booleano');
+    }
+    if (
+      'cliente_id' in cuerpo &&
+      cuerpo.cliente_id !== null &&
+      typeof cuerpo.cliente_id !== 'string'
+    ) {
+      return error(400, 'validacion', 'cliente_id debe ser texto o null');
     }
     const vehiculoId = String(cuerpo.vehiculo_id ?? '');
     const invalido = validarArmado(vehiculoId, cuerpo.custodios_ids);
@@ -466,6 +482,7 @@ export const handlersRoster = [
       vehiculo_id: vehiculoId,
       custodios_ids: [...custodiosIds],
       activa,
+      ...('cliente_id' in cuerpo && { cliente_id: cuerpo.cliente_id as string | null }),
     };
     unidades = [...unidades, unidad];
     return HttpResponse.json(legible(unidad), { status: 201 });
@@ -485,9 +502,21 @@ export const handlersRoster = [
     if (!actual) return error(404, 'no_encontrado', 'unidad');
     const cuerpo = await leerCuerpo(request);
     if (!cuerpo) return error(400, 'validacion', 'cuerpo inválido');
-    const extra = camposDesconocidos(cuerpo, ['vehiculo_id', 'custodios_ids', 'activa']);
+    const extra = camposDesconocidos(cuerpo, [
+      'vehiculo_id',
+      'custodios_ids',
+      'activa',
+      'cliente_id',
+    ]);
     if (extra.length > 0)
       return error(400, 'validacion', `campos no permitidos: ${extra.join(', ')}`);
+    if (
+      'cliente_id' in cuerpo &&
+      cuerpo.cliente_id !== null &&
+      typeof cuerpo.cliente_id !== 'string'
+    ) {
+      return error(400, 'validacion', 'cliente_id debe ser texto o null');
+    }
     // DEC-142 #5 y #9: con reserva vigente no se edita, ni siquiera sin cambio efectivo.
     if (tieneReservaVigente(actual.id)) {
       return error(
@@ -503,6 +532,7 @@ export const handlersRoster = [
         custodios_ids: cuerpo.custodios_ids as string[],
       }),
       ...(typeof cuerpo.activa === 'boolean' && { activa: cuerpo.activa }),
+      ...('cliente_id' in cuerpo && { cliente_id: cuerpo.cliente_id as string | null }),
     };
     if ('vehiculo_id' in cuerpo || 'custodios_ids' in cuerpo) {
       const invalido = validarArmado(siguiente.vehiculo_id, siguiente.custodios_ids);
@@ -554,38 +584,40 @@ export const handlersRoster = [
       return error(403, 'prohibido', 'el jefe_operativo solo lee el alcance de un Monitorista');
     }
     return HttpResponse.json({
-      unidades_ids: [...sujeto.unidades_ids],
+      clientes_ids: [...sujeto.clientes_ids],
+      clientes_efectivos_ids: [...sujeto.clientes_ids],
+      unidades_ids: [],
       subordinados_ids: [],
-      unidades_efectivas_ids: [...sujeto.unidades_ids],
+      unidades_efectivas_ids: [],
     });
   }),
-
-  http.put(path('/sujetos/:id/alcance/unidades'), async ({ params, request }) => {
-    const rechazo = exigirRol(request, ROLES_ROSTER, 'fijarUnidadesSujeto');
+  http.put(path('/sujetos/:id/alcance/clientes'), async ({ params, request }) => {
+    const rechazo = exigirRol(request, ROLES_ROSTER, 'fijarClientesSujeto');
     if (rechazo) return rechazo;
     const sujeto = sujetos.find((s) => s.id === params.id);
     if (!sujeto) return error(404, 'no_encontrado', 'sujeto');
     const cuerpo = await leerCuerpo(request);
-    const ids = cuerpo?.unidades_ids;
+    const ids = cuerpo?.clientes_ids;
     if (
       !cuerpo ||
-      camposDesconocidos(cuerpo, ['unidades_ids']).length > 0 ||
+      camposDesconocidos(cuerpo, ['clientes_ids']).length > 0 ||
       !Array.isArray(ids) ||
       ids.some((id) => typeof id !== 'string')
     ) {
-      return error(400, 'validacion', 'unidades_ids debe ser una lista de identificadores');
+      return error(400, 'validacion', 'clientes_ids debe ser una lista de identificadores');
     }
-    if (ids.some((id) => !unidades.some((u) => u.id === id))) {
-      return error(400, 'validacion', 'alguna unidad no existe en el roster');
+    // Como el servidor: un cliente que no existe o está desactivado no se acepta.
+    const activos = new Set(CLIENTES_DEMO.filter((c) => c.estado === 'activo').map((c) => c.id));
+    if (ids.some((id) => !activos.has(id))) {
+      return error(400, 'validacion', 'algún cliente no existe o está desactivado');
     }
     if (sujeto.rol !== Rol.Monitorista) {
       return error(409, 'rol_sin_alcance', 'el usuario no tiene rol activo monitorista');
     }
     if (!sujeto.activo) return error(409, 'sujeto_desactivado', 'el usuario está desactivado');
-    sujeto.unidades_ids = [...new Set(ids as string[])];
+    sujeto.clientes_ids = [...new Set(ids as string[])];
     return new HttpResponse(null, { status: 204 });
   }),
-
   // --- Escolta vigente del viaje (E8-T12): cualquier rol interno ---
   http.get(path('/viajes/:id/asignacion'), ({ params, request }) => {
     const rol = rolDe(request);
