@@ -109,9 +109,9 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 4, 12, 13 y 15 ne
 
 ## 9. M8: Dashboard de monitoreo (Requirement 9)
 
-- [ ] 9.1 Ciclo a y b.
-- [ ] 9.2 Guarda con `monitoreo.dashboard`; sin filtro por cliente en el navegador.
-- [ ]* 9.3 Pruebas por rol. Cierre de M8.
+- [x] 9.1 Ciclo a y b. _(Línea base: la pantalla decidía con `puedeUsarMonitoreo` y un `Alert` "no está disponible para tu rol"; la ruta ya tenía `RequiereCapacidad`.)_
+- [x] 9.2 Guarda con `monitoreo.dashboard`; sin filtro por cliente en el navegador. _(`DashboardMonitoreo` usa `RequiereCapacidad(monitoreo.dashboard)` y muestra "Sin permiso". Los filtros son de estado y fecha; no hay filtro por cliente en el navegador.)_
+- [x]* 9.3 Pruebas por rol. Cierre de M8. _(`DashboardRoles.test.tsx`: los ocho roles internos, sin llamadas al reporte sin la capacidad y vista "En curso" por defecto. Cierre de M8.)_
 
 ## 10. M9: Emergencias (Requirement 10)
 
