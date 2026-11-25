@@ -150,10 +150,11 @@ Las fases 1, 2 y 5 a 11 y 14 no dependen del pin. Las fases 3, 4, 12, 13 y 15 ne
 
 ## 14. M13: Catálogos y Reportes (Requirement 14)
 
-- [ ] 14.1 Ciclo a y b: Catálogos para JO (lectura), COO y ADM; escritura para COO y ADM, vehículos y custodios incluidos (`puedeEscribirCatalogos` hoy es solo ADM); mover las reglas a la política.
-- [ ] 14.2 `403` por sección como "sin permiso".
-- [ ] 14.3 Reportes sin cambio de roles; `cotizacion` no ve Catálogos ni Reportes.
-- [ ]* 14.4 Pruebas. Cierre de M13.
+- [x] 14.1 Ciclo a y b: Catálogos para JO (lectura), COO y ADM; escritura para COO y ADM, vehículos y custodios incluidos (`puedeEscribirCatalogos` hoy es solo ADM); mover las reglas a la política. _(Línea base: `Catalogos` decidía con `puedeArmarRoster` (`roster.ver`, solo JO y ADM) y `puedeEscribirCatalogos` comparaba `rol === Administrador`; la política ya tenía `catalogos.ver` y `catalogos.escribir`. Ahora `Catalogos` envuelve su contenido en `RequiereCapacidad(catalogos.ver)` y la escritura sale de `puede(rol, 'catalogos.escribir')`; se retiró `puedeEscribirCatalogos`. `puedeArmarRoster` queda solo para `/roster`. El texto del `403` de escritura ya no dice "solo el Administrador".)_
+- [x] 14.2 `403` por sección como "sin permiso". _(`ContenidoLista` muestra `SinPermiso` con el recurso; un `403` en custodios no tapa vehículos y la sesión no se toca. El JO sigue sin botones de escritura.)_
+- [x] 14.3 Reportes sin cambio de roles; `cotizacion` no ve Catálogos ni Reportes. _(La política y el menú ya lo cumplían. Se agregó la guarda `RequiereCapacidad(reportes.ver)` a la ruta `/reportes`, que no la tenía: un rol sin la capacidad entraba por URL al stub.)_
+- [x]* 14.4 Pruebas. Cierre de M13. _(`Catalogos.test.tsx`: MON, SUP, EJE, REA y COT ven "sin permiso" sin peticiones; JO lee sin escritura; COO con el servidor de hoy (`403` por sección) y con el cambio de `catalogos` aplicado (lee y ve alta y edición); `403` de una sección sin tapar la otra. `requiere-capacidad.test.tsx` suma `/catalogos` y `/reportes`. Typecheck y lint en verde; 628 pruebas de catálogos, layout, roster y permisos en verde.)_
+  - **Nota de mocks.** El `bff` simulado reproduce al servidor de hoy: leen JO y ADM, escribe ADM. Con `enableMocks`, el COO ve las dos secciones como "sin permiso" hasta que `catalogos` aplique el cambio (BE pendiente de la matriz M13).
 
 ## 15. M14: Solicitudes (Requirement 15; requiere `tracer.46`)
 

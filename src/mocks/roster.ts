@@ -39,6 +39,9 @@ const path = (segmento: string) => `${API_PREFIX}${segmento}`;
 export const TAMANO_PAGINA_ROSTER = 5;
 
 const ROLES_ROSTER: readonly Rol[] = [Rol.JefeOperativo, Rol.Administrador];
+// Como el servidor hoy: leen JO y ADM, escribe solo ADM. El panel ya muestra Catálogos al
+// Coordinador (decisión del Lead 10); `catalogos` aún no le abre lectura ni escritura, así que
+// el `bff` responde 403 y la pantalla lo trata como "sin permiso" (Requirement 14.3 y T2).
 const ROLES_ESCRITURA_CATALOGOS: readonly Rol[] = [Rol.Administrador];
 
 interface UnidadMock {

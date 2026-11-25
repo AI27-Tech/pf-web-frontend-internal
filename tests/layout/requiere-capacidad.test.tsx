@@ -28,9 +28,11 @@ afterEach(() => {
   logout.mockClear();
 });
 
-/** Capacidades que guardan las rutas de la matriz M1. */
+/** Capacidades que guardan las rutas de la matriz M1 (y /catalogos y /reportes, de M13). */
 const RUTAS_GUARDADAS: ReadonlyArray<readonly [string, Capacidad]> = [
   ['/roster', 'roster.ver'],
+  ['/catalogos', 'catalogos.ver'],
+  ['/reportes', 'reportes.ver'],
   ['/administracion', 'administracion.usuarios'],
   ['/jefe-operativo/panel', 'panel.jefeOperativo'],
   ['/monitoreo/dashboard', 'monitoreo.dashboard'],

@@ -1,9 +1,10 @@
 /*
  * Catálogos: vehículos y custodios (adelanto de E8-T16, DEC-142 #6, tracer.39).
  *
- * Leen el Jefe Operativo y el Administrador; dan de alta y editan solo el
- * Administrador. Ocultar los botones es afordancia: la autoridad es el 403 del
- * `bff`, que aquí se muestra como falta de permiso sin cerrar la sesión. Los demás
+ * Leen el Jefe Operativo, el Coordinador y el Administrador (`catalogos.ver`); dan de alta y
+ * editan el Coordinador y el Administrador (`catalogos.escribir`). Ocultar los botones es
+ * afordancia: la autoridad es el 403 del `bff`, que hoy solo deja escribir al Administrador y
+ * aquí se muestra como falta de permiso sin cerrar la sesión (Requirement T2). Los demás
  * catálogos de E8-T16 (tipos, contratos y SLA) siguen pendientes.
  */
 
@@ -23,11 +24,13 @@ import {
 import type { Column } from '@ai27-tech/ui';
 
 import { BloqueError } from '@/components/feedback/BloqueError';
+import { RequiereCapacidad } from '@/components/permisos/RequiereCapacidad';
+import { SinPermiso } from '@/components/permisos/SinPermiso';
 import { useSession } from '@/context/SessionContext';
 import { esProhibido } from '@/lib/api/errors';
 import type { Custodio, Vehiculo } from '@/lib/contracts/catalogos';
+import { puede } from '@/lib/permisos';
 
-import { puedeArmarRoster, puedeEscribirCatalogos } from './afordancias';
 import { CustodioForm } from './CustodioForm';
 import { etiquetaVehiculo, mensajeErrorCatalogo } from './mensajes';
 import { useCustodios, useGuardarCustodio, useGuardarVehiculo, useVehiculos } from './useCatalogos';
@@ -36,26 +39,28 @@ import { VehiculoForm } from './VehiculoForm';
 const TEXTO_TENUE = 'var(--ui-color-text-muted)';
 
 export function Catalogos() {
-  const { usuario } = useSession();
-  const rol = usuario?.rol;
-
   return (
     <Stack gap={4}>
       <PageHeader title="Catálogos" />
-      {puedeArmarRoster(rol) ? (
-        <>
-          <SeccionVehiculos escribe={puedeEscribirCatalogos(rol)} />
-          <SeccionCustodios escribe={puedeEscribirCatalogos(rol)} />
-        </>
-      ) : (
-        <Aviso>
-          Vehículos y custodios solo están disponibles para el Jefe Operativo y el Administrador.
-        </Aviso>
-      )}
+      <RequiereCapacidad capacidad="catalogos.ver">
+        <CatalogosAutorizados />
+      </RequiereCapacidad>
+    </Stack>
+  );
+}
+
+function CatalogosAutorizados() {
+  const { usuario } = useSession();
+  const escribe = puede(usuario?.rol, 'catalogos.escribir');
+
+  return (
+    <>
+      <SeccionVehiculos escribe={escribe} />
+      <SeccionCustodios escribe={escribe} />
       <p className="ui-text-body-xs" style={{ margin: 0, color: TEXTO_TENUE }}>
         Los demás catálogos (tipos, contratos y SLA) llegan con E8-T16.
       </p>
-    </Stack>
+    </>
   );
 }
 
@@ -276,7 +281,7 @@ function ContenidoLista({
   readonly children: ReactNode;
 }) {
   if (esProhibido(error)) {
-    return <Aviso>No tienes permiso para consultar los {recurso}.</Aviso>;
+    return <SinPermiso descripcion={`No tienes permiso para consultar los ${recurso}.`} />;
   }
   if (error) {
     return (
@@ -299,10 +304,6 @@ function Estado({ activo, genero }: { readonly activo: boolean; readonly genero:
       {activo ? `Activ${genero}` : `Inactiv${genero}`}
     </Badge>
   );
-}
-
-function Aviso({ children }: { readonly children: ReactNode }) {
-  return <Alert variant="danger">{children}</Alert>;
 }
 
 function Confirmacion({ texto }: { readonly texto: string }) {

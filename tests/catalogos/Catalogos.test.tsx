@@ -61,17 +61,17 @@ function renderCatalogos() {
 const filaDe = (texto: string) => screen.getByText(texto).closest('tr');
 
 describe('Catálogos — acceso por rol', () => {
-  it('el monitorista ve el aviso y no se piden vehículos ni custodios', async () => {
-    rolActual = Rol.Monitorista;
-    renderCatalogos();
+  it.each([Rol.Monitorista, Rol.Supervisor, Rol.Ejecutivo, Rol.Reaccion, Rol.Cotizacion])(
+    '%s ve "sin permiso" y no se piden vehículos ni custodios',
+    async (rol) => {
+      rolActual = rol;
+      renderCatalogos();
 
-    expect(
-      await screen.findByText(
-        'Vehículos y custodios solo están disponibles para el Jefe Operativo y el Administrador.',
-      ),
-    ).toBeInTheDocument();
-    expect(peticiones).toEqual([]);
-  });
+      expect(await screen.findByText('Sin permiso')).toBeInTheDocument();
+      expect(screen.queryByRole('table')).toBeNull();
+      expect(peticiones).toEqual([]);
+    },
+  );
 
   it('el Jefe Operativo lee las dos listas sin botones de alta ni edición', async () => {
     rolActual = Rol.JefeOperativo;
@@ -82,6 +82,73 @@ describe('Catálogos — acceso por rol', () => {
     expect(screen.queryByRole('button', { name: 'Nuevo vehículo' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Nuevo custodio' })).toBeNull();
     expect(screen.queryByRole('button', { name: /^Editar/ })).toBeNull();
+  });
+
+  it('el Coordinador entra y ve la escritura; sin el cambio de `catalogos` cada sección dice "sin permiso" y la sesión sigue', async () => {
+    rolActual = Rol.Coordinador;
+    renderCatalogos();
+
+    // El `bff` simulado responde 403 al Coordinador, como el servidor hoy.
+    expect(
+      await screen.findByText('No tienes permiso para consultar los vehículos.'),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText('No tienes permiso para consultar los custodios.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Catálogos' })).toBeInTheDocument();
+    expect(logoutSpy).not.toHaveBeenCalled();
+  });
+
+  it('con el cambio de `catalogos` aplicado, el Coordinador lee y escribe vehículos y custodios', async () => {
+    rolActual = Rol.Coordinador;
+    server.use(
+      http.get(path('/vehiculos'), () =>
+        HttpResponse.json({
+          items: [
+            {
+              id: 'VEH-1',
+              tipo: 'coche',
+              estado: 'activa',
+              economico: 'C-01',
+              placas: 'AAA-1',
+              version: 1,
+            },
+          ],
+          cursor_siguiente: null,
+        }),
+      ),
+      http.get(path('/custodios'), () =>
+        HttpResponse.json({
+          items: [{ id: 'CUS-1', nombre: 'Elena Soto', estado: 'activo', version: 1 }],
+          cursor_siguiente: null,
+        }),
+      ),
+    );
+    renderCatalogos();
+
+    expect(await screen.findByText('C-01')).toBeInTheDocument();
+    expect(await screen.findByText('Elena Soto')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Nuevo vehículo' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Nuevo custodio' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Editar vehículo C-01 · AAA-1' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Editar custodio Elena Soto' })).toBeInTheDocument();
+  });
+
+  it('un 403 de una sola sección no tapa a la otra', async () => {
+    server.use(
+      http.get(path('/custodios'), () =>
+        HttpResponse.json({ codigo: 'prohibido', mensaje: 'x' }, { status: 403 }),
+      ),
+    );
+    renderCatalogos();
+
+    expect(
+      await screen.findByText('No tienes permiso para consultar los custodios.'),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('P-101')).toBeInTheDocument();
+    expect(logoutSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -126,7 +193,7 @@ describe('Catálogos — vehículos', () => {
     expect(cuerpos).toEqual([{ estado: 'inactiva' }]);
   });
 
-  it('un 403 al guardar dice que solo el Administrador escribe y no cierra la sesión', async () => {
+  it('un 403 al guardar dice que no hay permiso para escribir y no cierra la sesión', async () => {
     server.use(
       http.post(path('/vehiculos'), () =>
         HttpResponse.json({ codigo: 'prohibido', mensaje: 'x' }, { status: 403 }),
@@ -138,9 +205,7 @@ describe('Catálogos — vehículos', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Guardar vehículo' }));
 
     expect(
-      await screen.findByText(
-        'No tienes permiso para dar de alta o editar vehículos. Solo el Administrador puede hacerlo.',
-      ),
+      await screen.findByText('No tienes permiso para dar de alta o editar vehículos.'),
     ).toBeInTheDocument();
     expect(logoutSpy).not.toHaveBeenCalled();
   });
