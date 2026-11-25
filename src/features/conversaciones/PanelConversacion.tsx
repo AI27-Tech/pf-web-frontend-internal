@@ -74,7 +74,11 @@ export function PanelConversacion({
     else onDevolver();
   };
   return (
-    <MessagePanel open name="Conversación" subtitle={`Viaje ${conversacion.viaje_id}`}>
+    <MessagePanel
+      open
+      name="Conversación"
+      subtitle={`${conversacion.tipo === 'solicitud' ? 'Solicitud' : 'Viaje'} ${conversacion.viaje_id}`}
+    >
       <BannerEstado
         razon={c.razonCompositor}
         desactualizada={desactualizada}

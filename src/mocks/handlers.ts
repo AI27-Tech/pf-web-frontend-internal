@@ -67,6 +67,7 @@ import {
   unidadReservadaEnOtroViaje,
 } from './roster';
 import { handlersAdministracion } from './administracion';
+import { handlersSolicitudes } from './solicitudes';
 import type { CrearViajeEntrada } from '@/lib/contracts/viajes';
 import type {
   EntradaBitacoraEntrada,
@@ -246,6 +247,7 @@ export const handlersConversaciones = [
 export const handlers = [
   ...handlersRoster,
   ...handlersAdministracion,
+  ...handlersSolicitudes,
   ...handlersEmergencias,
   ...handlersConversaciones,
   // GET /clientes ÔÇö cat├ílogo proyectado por el BFF (tracer.20). El mock devuelve

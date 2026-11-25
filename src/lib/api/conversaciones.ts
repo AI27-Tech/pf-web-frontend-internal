@@ -109,7 +109,29 @@ function clasificar(error: unknown, action?: 'bandeja' | 'responsable'): never {
   throw new ErrorServicioNoDisponible(error.status, error.codigo);
 }
 
+/** Bandeja del `ejecutivo` (conversaciones del viaje). */
 export async function listarTrabajoBandeja(
+  token: string,
+  desdeRevision?: number,
+  cursor?: string,
+): Promise<TrabajoBandeja> {
+  return pedirTrabajoBandeja('/bandeja/trabajo', token, desdeRevision, cursor);
+}
+
+/**
+ * Bandeja del pool de `cotizacion` (conversaciones de solicitud, DEC-148 #31). Misma forma y
+ * mismo catch-up que la del viaje; la lee `cotizacion` y el `administrador`.
+ */
+export async function listarTrabajoBandejaSolicitudes(
+  token: string,
+  desdeRevision?: number,
+  cursor?: string,
+): Promise<TrabajoBandeja> {
+  return pedirTrabajoBandeja('/bandeja/solicitudes', token, desdeRevision, cursor);
+}
+
+async function pedirTrabajoBandeja(
+  ruta: string,
   token: string,
   desdeRevision?: number,
   cursor?: string,
@@ -118,7 +140,7 @@ export async function listarTrabajoBandeja(
   if (cursor !== undefined) params.set('cursor', cursor);
   if (desdeRevision !== undefined) params.set('desde_revision', String(desdeRevision));
   try {
-    return await request<TrabajoBandeja>(`/bandeja/trabajo${params.size ? `?${params}` : ''}`, {
+    return await request<TrabajoBandeja>(`${ruta}${params.size ? `?${params}` : ''}`, {
       accessToken: token,
     });
   } catch (error) {
