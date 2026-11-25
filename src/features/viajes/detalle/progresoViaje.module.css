@@ -1,0 +1,56 @@
+/* BRECHA-UI: la línea de tiempo horizontal de @ai27-tech/ui 0.3.0-beta.2 genera scroll y corre el primer paso fuera de la vista. Resolver en la librería y luego borrar este archivo. */
+
+/*
+ * Causa en la librería (Timeline.module.css, horizontal):
+ * - `.list` usa `width: max-content` y `padding-inline: max(0px, calc(50% - minItemWidth / 2))`.
+ *   Con seis pasos, la lista mide más que el contenedor y aparece scroll.
+ * - `.item` queda centrado en el contenedor de scroll, así que el primer paso sale de la vista.
+ *
+ * Qué debe cambiar la librería:
+ * - Que `.list` ocupe el ancho del contenedor (`width: 100%`) sin padding lateral.
+ * - Que el marcador y el conector se puedan centrar dentro de cada columna.
+ * - Que el texto de cada paso se pueda centrar.
+ *
+ * Mientras tanto, este módulo aplica esos tres ajustes solo a la línea de progreso del viaje.
+ * Los selectores usan atributos y elementos, no los nombres de clase hasheados. La
+ * especificidad (0,3,1) supera la regla de la librería, que es (0,3,0).
+ */
+
+.progreso[data-orientation='horizontal'][data-size] ol {
+  width: 100%;
+  padding-inline: 0;
+}
+
+/* Cada columna centra su marcador. */
+.progreso[data-orientation='horizontal'][data-size] li > div:first-child {
+  position: relative;
+  justify-content: center;
+}
+
+.progreso[data-orientation='horizontal'][data-size] li > div:first-child > span:first-child {
+  position: relative;
+  z-index: 1;
+}
+
+/*
+ * El conector sale del centro de su marcador y termina en el centro de la columna
+ * siguiente: empieza en el 50 % y mide el 100 % de la columna.
+ */
+.progreso[data-orientation='horizontal'][data-size]
+  li
+  > div:first-child
+  > span[aria-hidden='true'] {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  margin: 0;
+  flex: none;
+  transform: none;
+}
+
+/* Título, fecha y descripción de cada paso, centrados bajo su marcador. */
+.progreso[data-orientation='horizontal'][data-size] li > div:last-child {
+  align-items: center;
+  text-align: center;
+}

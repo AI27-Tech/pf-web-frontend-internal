@@ -33,6 +33,16 @@ export interface ViajeVista {
    * el listado las publique. La presentación (filaViaje) ya lo consume (P15, Req 2.5).
    */
   readonly condiciones_activas?: readonly CondicionViaje[];
+  /**
+   * Cliente del viaje (DEC-149 #11). Solo audiencia Interno. `nombre` falta si el cliente
+   * ya no está en `catalogos`: la presentación muestra el `id`.
+   */
+  readonly cliente?: { readonly id: string; readonly nombre?: string };
+  /**
+   * Unidades de la escolta vigente. Vacío si el viaje no tiene escolta. `economico` falta si
+   * el vehículo no lo tiene capturado: la presentación muestra el `id`.
+   */
+  readonly unidades: readonly { readonly id: string; readonly economico?: string }[];
 }
 
 /** Página de resúmenes de viajes (adaptación del wire). */
@@ -53,6 +63,16 @@ export function adaptarItem(wire: ViajeResumen): ViajeVista {
     id: wire.id,
     estado: wire.estado,
     origen: wire.origen,
+    ...(wire.cliente && {
+      cliente: {
+        id: wire.cliente.id,
+        ...(wire.cliente.nombre !== undefined && { nombre: wire.cliente.nombre }),
+      },
+    }),
+    unidades: (wire.unidades ?? []).map((u) => ({
+      id: u.id,
+      ...(u.economico !== undefined && { economico: u.economico }),
+    })),
     // Punto de integración de condiciones activas (brecha V1):
     // condiciones_activas: wire.condiciones ?? [],
   };

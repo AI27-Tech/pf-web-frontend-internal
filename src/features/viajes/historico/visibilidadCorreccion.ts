@@ -1,11 +1,12 @@
-import { Rol, type Rol as RolTipo } from '@ai27-tech/contracts/roles';
+import type { Rol } from '@ai27-tech/contracts/roles';
+import { puede } from '@/lib/permisos';
 
-/** Roles con facultad de resolver incidencias según el contrato del histórico. */
-const ROLES_CON_CORRECCION: readonly RolTipo[] = [Rol.Supervisor, Rol.Coordinador];
-
-/** Indica si la sesión puede mostrar el gesto de resolver/cerrar una incidencia. */
-export function puedeCorregirIncidencia(rol: RolTipo): boolean {
-  return ROLES_CON_CORRECCION.includes(rol);
+/**
+ * Indica si la sesión puede mostrar el gesto de resolver o corregir una
+ * incidencia: supervisor, coordinador y administrador (decisión del Lead 6).
+ */
+export function puedeCorregirIncidencia(rol: Rol): boolean {
+  return puede(rol, 'viaje.incidencia.resolver');
 }
 
 /** Alias semántico para consumidores que modelan la visibilidad como predicado. */

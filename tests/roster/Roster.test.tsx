@@ -16,11 +16,16 @@ import { Rol } from '@ai27-tech/contracts/roles';
 
 import { Roster } from '@/features/roster/Roster';
 import { API_PREFIX } from '@/lib/constants';
-import { mockAccessToken } from '@/mocks/data';
+import { listarClientesMock, mockAccessToken } from '@/mocks/data';
 import { handlersRoster, reiniciarRosterMock } from '@/mocks/roster';
 
 const path = (segment: string) => `${API_PREFIX}${segment}`;
-const server = setupServer(...handlersRoster);
+const server = setupServer(
+  ...handlersRoster,
+  http.get(path('/clientes'), ({ request }) =>
+    HttpResponse.json(listarClientesMock(new URL(request.url).searchParams.get('cursor'))),
+  ),
+);
 const logoutSpy = vi.fn();
 let rolActual: Rol = Rol.JefeOperativo;
 const peticiones: string[] = [];
@@ -61,11 +66,11 @@ function renderRoster() {
 
 async function abrirAlta() {
   await userEvent.click(await screen.findByRole('button', { name: 'Nueva unidad' }));
-  return screen.findByRole('button', { name: 'Elige un vehículo' });
+  return screen.findByRole('button', { name: 'Vehículo' });
 }
 
 async function elegirVehiculo(etiqueta: string) {
-  await userEvent.click(await screen.findByRole('button', { name: 'Elige un vehículo' }));
+  await userEvent.click(await screen.findByRole('button', { name: 'Vehículo' }));
   await userEvent.click(await screen.findByRole('button', { name: etiqueta }));
 }
 
@@ -147,15 +152,28 @@ describe('Roster — lista', () => {
     renderRoster();
 
     expect(await screen.findByText('P-201')).toBeInTheDocument();
+    // La tarjeta de Monitoristas lee el roster completo: se descuenta esa lectura.
+    await screen.findByRole('table', { name: 'Clientes de cada Monitorista' });
+    const antes = cursores.length;
     await userEvent.click(screen.getByRole('button', { name: 'Página siguiente' }));
     expect(await screen.findByText('P-202')).toBeInTheDocument();
     expect(screen.getByText('Página 2')).toBeInTheDocument();
-    expect(cursores).toEqual([null, 'c2']);
+    expect(cursores.slice(antes)).toEqual(['c2']);
 
     await userEvent.click(screen.getByRole('button', { name: 'Página anterior' }));
     expect(await screen.findByText('P-201')).toBeInTheDocument();
   });
 });
+
+/** La unidad recién creada cae en la última página del roster: avanza hasta encontrarla. */
+async function irAFilaConTexto(texto: string): Promise<HTMLElement | null> {
+  for (let pagina = 0; pagina < 5; pagina++) {
+    const celda = await screen.findByText(texto, {}, { timeout: 500 }).catch(() => null);
+    if (celda) return celda.closest('tr');
+    await userEvent.click(await screen.findByRole('button', { name: 'Página siguiente' }));
+  }
+  throw new Error(`No apareció la fila: ${texto}`);
+}
 
 describe('Roster — alta', () => {
   it('alta feliz: elige vehículo y custodio; el tipo lo deriva el servidor', async () => {
@@ -164,7 +182,7 @@ describe('Roster — alta', () => {
     await crearUnidadCon('P-102 · DEF-5678 (coche)', ['María Torres']);
 
     expect(await screen.findByText('Unidad creada.')).toBeInTheDocument();
-    const fila = (await screen.findByText('P-102 · DEF-5678')).closest('tr');
+    const fila = await irAFilaConTexto('P-102 · DEF-5678');
     expect(fila).toHaveTextContent('María Torres');
     expect(fila).toHaveTextContent('Patrulla');
     expect(fila).toHaveTextContent('Activa');
@@ -175,7 +193,7 @@ describe('Roster — alta', () => {
     renderRoster();
     await abrirAlta();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Elige un vehículo' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Vehículo' }));
     expect(screen.queryByRole('button', { name: /P-090/ })).toBeNull();
     expect(screen.queryByRole('checkbox', { name: 'Rosa Díaz' })).toBeNull();
     expect(screen.getByRole('checkbox', { name: 'Pedro Gómez' })).toBeInTheDocument();
@@ -189,8 +207,8 @@ describe('Roster — alta', () => {
     await userEvent.click(screen.getByRole('checkbox', { name: 'María Torres' }));
     expect(screen.getByRole('checkbox', { name: 'Pedro Gómez' })).toBeDisabled();
 
-    // El selector ya muestra la moto: se abre por su valor actual.
-    await userEvent.click(screen.getByRole('button', { name: 'M-07 · XYZ-987 (moto)' }));
+    // El selector ya muestra la moto: se abre por su etiqueta, que es su nombre accesible.
+    await userEvent.click(screen.getByRole('button', { name: 'Vehículo' }));
     await userEvent.click(await screen.findByRole('button', { name: 'P-102 · DEF-5678 (coche)' }));
     await userEvent.click(screen.getByRole('checkbox', { name: 'Pedro Gómez' }));
     expect(screen.getByRole('checkbox', { name: 'Juan Pérez' })).toBeDisabled();
@@ -247,7 +265,7 @@ describe('Roster — alta', () => {
 });
 
 describe('Roster — edición', () => {
-  it('409 unidad_con_reserva_vigente: pide reasignar primero la escolta del viaje', async () => {
+  it('409 unidad_con_reserva_vigente: explica el rechazo sin ofrecer reasignar la escolta', async () => {
     renderRoster();
     await userEvent.click(
       await screen.findByRole('button', { name: 'Editar unidad P-101 · ABC-1234' }),
@@ -257,7 +275,7 @@ describe('Roster — edición', () => {
 
     expect(
       await screen.findByText(
-        'La unidad está reservada en un viaje en curso. Primero reasigna la escolta de ese viaje y después edita o desactiva la unidad.',
+        'La unidad está reservada en un viaje que aún no termina, así que no se puede editar ni desactivar por ahora. Inténtalo cuando ese viaje termine.',
       ),
     ).toBeInTheDocument();
   });
@@ -285,5 +303,325 @@ describe('Roster — edición', () => {
       await screen.findByRole('button', { name: 'Editar unidad M-07 · XYZ-987' }),
     );
     expect(await screen.findByRole('button', { name: 'Guardar cambios' })).toBeDisabled();
+  });
+});
+
+describe('Roster — clientes de cada Monitorista', () => {
+  async function filaDe(nombre: string) {
+    const tabla = await screen.findByRole('table', { name: 'Clientes de cada Monitorista' });
+    const fila = within(tabla).getByText(nombre).closest('tr');
+    if (!fila) throw new Error(`sin fila para ${nombre}`);
+    return fila;
+  }
+  /** Alcance de SUJ-4002 con un cliente que ya no está entre los activos. */
+  function conClienteDesactivado() {
+    server.use(
+      http.get(path('/sujetos/SUJ-4002/alcance'), () =>
+        HttpResponse.json({
+          clientes_ids: ['CLI-9009'],
+          clientes_efectivos_ids: ['CLI-9009'],
+          unidades_ids: [],
+          subordinados_ids: [],
+          unidades_efectivas_ids: [],
+        }),
+      ),
+    );
+  }
+
+  it('lista los Monitoristas activos con el nombre de sus clientes, no como id', async () => {
+    renderRoster();
+    expect(await filaDe('Laura Méndez')).toHaveTextContent('Cliente Norte');
+    expect(await filaDe('Laura Méndez')).not.toHaveTextContent('CLI-1001');
+    // Sin nombre: se muestra su identificador de usuario.
+    expect(await filaDe('monitorista.dos@ai27.mx')).toHaveTextContent('Sin clientes');
+    const tabla = screen.getByRole('table', { name: 'Clientes de cada Monitorista' });
+    expect(within(tabla).queryByText('Óscar Ruiz')).toBeNull();
+    expect(within(tabla).queryByText('Carmen Vega')).toBeNull();
+  });
+
+  it('no pide organizaciones ni el alcance de la unidad: solo clientes activos', async () => {
+    renderRoster();
+    await filaDe('Laura Méndez');
+    expect(peticiones.some((p) => p.includes('/organizaciones'))).toBe(false);
+    expect(peticiones.filter((p) => p === 'GET /api/v1/clientes').length).toBeGreaterThan(0);
+  });
+
+  it('pide solo Monitoristas activos y recorre todas las páginas', async () => {
+    const consultas: string[] = [];
+    const usuario = (id: string, nombre: string) => ({
+      id,
+      nombre,
+      activo: true,
+      es_propio: false,
+    });
+    server.use(
+      http.get(path('/sujetos'), ({ request }) => {
+        const query = new URL(request.url).searchParams;
+        consultas.push(query.toString());
+        return HttpResponse.json(
+          query.get('cursor') === 'p2'
+            ? { items: [usuario('SUJ-4002', 'Segunda Página')], cursor_siguiente: null }
+            : { items: [usuario('SUJ-4001', 'Primera Página')], cursor_siguiente: 'p2' },
+        );
+      }),
+    );
+    renderRoster();
+    expect(await filaDe('Primera Página')).toBeInTheDocument();
+    expect(await filaDe('Segunda Página')).toBeInTheDocument();
+    expect(consultas).toEqual([
+      'rol=monitorista&activo=true',
+      'rol=monitorista&activo=true&cursor=p2',
+    ]);
+  });
+
+  it('sin Monitoristas activos lo dice', async () => {
+    server.use(
+      http.get(path('/sujetos'), () => HttpResponse.json({ items: [], cursor_siguiente: null })),
+    );
+    renderRoster();
+    expect(await screen.findByText('No hay Monitoristas activos.')).toBeInTheDocument();
+  });
+
+  it('un 403 al listar se dice como falta de permiso y no cierra la sesión', async () => {
+    server.use(
+      http.get(path('/sujetos'), () =>
+        HttpResponse.json({ codigo: 'prohibido', mensaje: 'x' }, { status: 403 }),
+      ),
+    );
+    renderRoster();
+    expect(
+      await screen.findByText('No tienes permiso para consultar los clientes de los Monitoristas.'),
+    ).toBeInTheDocument();
+    expect(logoutSpy).not.toHaveBeenCalled();
+  });
+
+  it('E9: el diálogo ofrece solo clientes activos, envía el conjunto completo una vez y recarga', async () => {
+    renderRoster();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Editar clientes de Laura Méndez' }),
+    );
+    const dialogo = await screen.findByRole('dialog');
+    expect(await within(dialogo).findByRole('checkbox', { name: 'Cliente Norte' })).toBeChecked();
+    await userEvent.click(within(dialogo).getByRole('checkbox', { name: 'Cliente Sur' }));
+    cuerpos.length = 0;
+    await userEvent.dblClick(within(dialogo).getByRole('button', { name: 'Guardar clientes' }));
+    expect(await screen.findByText('Clientes de Laura Méndez guardados.')).toBeInTheDocument();
+    expect(cuerpos).toEqual([{ clientes_ids: ['CLI-1001', 'CLI-1003'] }]);
+    expect(peticiones.filter((p) => p.startsWith('PUT'))).toEqual([
+      'PUT /api/v1/sujetos/SUJ-4001/alcance/clientes',
+    ]);
+    await waitFor(async () =>
+      expect(await filaDe('Laura Méndez')).toHaveTextContent('Cliente Sur'),
+    );
+  });
+
+  it('un cliente puede estar en varios Monitoristas', async () => {
+    renderRoster();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Editar clientes de monitorista.dos@ai27.mx' }),
+    );
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Cliente Norte' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar clientes' }));
+    await screen.findByText('Clientes de monitorista.dos@ai27.mx guardados.');
+    expect(cuerpos).toEqual([{ clientes_ids: ['CLI-1001'] }]);
+    expect(await filaDe('Laura Méndez')).toHaveTextContent('Cliente Norte');
+    expect(await filaDe('monitorista.dos@ai27.mx')).toHaveTextContent('Cliente Norte');
+  });
+
+  it('E10: un cliente desactivado se muestra por su id, marcado, y no se reenvía', async () => {
+    conClienteDesactivado();
+    renderRoster();
+    const fila = await filaDe('monitorista.dos@ai27.mx');
+    expect(fila).toHaveTextContent('CLI-9009');
+    expect(fila).toHaveTextContent('Desactivado');
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Editar clientes de monitorista.dos@ai27.mx' }),
+    );
+    const dialogo = await screen.findByRole('dialog');
+    expect(within(dialogo).queryByRole('checkbox', { name: /CLI-9009/ })).toBeNull();
+    expect(within(dialogo).getByText(/se quitarán al guardar/)).toBeInTheDocument();
+    await userEvent.click(within(dialogo).getByRole('checkbox', { name: 'Cliente Centro' }));
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Guardar clientes' }));
+    await screen.findByText('Clientes de monitorista.dos@ai27.mx guardados.');
+    expect(cuerpos).toEqual([{ clientes_ids: ['CLI-1002'] }]);
+  });
+
+  it('E10: con solo clientes desactivados se puede guardar para limpiarlos', async () => {
+    conClienteDesactivado();
+    renderRoster();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Editar clientes de monitorista.dos@ai27.mx' }),
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Guardar clientes' }));
+    await screen.findByText('Clientes de monitorista.dos@ai27.mx guardados.');
+    expect(cuerpos).toEqual([{ clientes_ids: [] }]);
+  });
+
+  it('sin cambios y sin desactivados no se puede guardar', async () => {
+    renderRoster();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Editar clientes de Laura Méndez' }),
+    );
+    expect(await screen.findByRole('button', { name: 'Guardar clientes' })).toBeDisabled();
+  });
+
+  it('400: dice que un cliente no existe o está desactivado y vuelve a pedir los activos', async () => {
+    server.use(
+      http.put(path('/sujetos/:id/alcance/clientes'), () =>
+        HttpResponse.json({ codigo: 'validacion', mensaje: 'x' }, { status: 400 }),
+      ),
+    );
+    renderRoster();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Editar clientes de Laura Méndez' }),
+    );
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Cliente Sur' }));
+    const antes = peticiones.filter((p) => p === 'GET /api/v1/clientes').length;
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar clientes' }));
+    expect(
+      await screen.findByText(/Algún cliente elegido no existe o está desactivado/),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(peticiones.filter((p) => p === 'GET /api/v1/clientes').length).toBeGreaterThan(antes),
+    );
+  });
+
+  it.each([
+    [
+      'rol_sin_alcance',
+      'El usuario ya no es Monitorista y no puede tener clientes asignados. Recarga la lista.',
+    ],
+    ['sujeto_desactivado', 'El Monitorista está desactivado. Recarga la lista.'],
+  ])('409 %s al guardar: lo dice y conserva la selección', async (codigo, texto) => {
+    server.use(
+      http.put(path('/sujetos/:id/alcance/clientes'), () =>
+        HttpResponse.json({ codigo, mensaje: 'x' }, { status: 409 }),
+      ),
+    );
+    renderRoster();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Editar clientes de Laura Méndez' }),
+    );
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Cliente Norte' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar clientes' }));
+    expect(await screen.findByText(texto)).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Cliente Norte' })).not.toBeChecked();
+  });
+
+  it('403 al guardar: falta de permiso, sin cerrar la sesión', async () => {
+    server.use(
+      http.put(path('/sujetos/:id/alcance/clientes'), () =>
+        HttpResponse.json({ codigo: 'prohibido', mensaje: 'x' }, { status: 403 }),
+      ),
+    );
+    renderRoster();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Editar clientes de Laura Méndez' }),
+    );
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Cliente Norte' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar clientes' }));
+    expect(
+      await screen.findByText('No tienes permiso para asignar clientes a los Monitoristas.'),
+    ).toBeInTheDocument();
+    expect(logoutSpy).not.toHaveBeenCalled();
+  });
+
+  it('el administrador también asigna clientes', async () => {
+    rolActual = Rol.Administrador;
+    renderRoster();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Editar clientes de monitorista.dos@ai27.mx' }),
+    );
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Cliente Sur' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar clientes' }));
+    await screen.findByText('Clientes de monitorista.dos@ai27.mx guardados.');
+    expect(cuerpos).toEqual([{ clientes_ids: ['CLI-1003'] }]);
+  });
+
+  it('el jefe operativo no ve controles de subordinados ni altas de vehículos o custodios', async () => {
+    renderRoster();
+    await filaDe('Laura Méndez');
+    expect(screen.queryByText(/subordinados/i)).toBeNull();
+    expect(screen.queryByRole('button', { name: /vehículo|custodio/i })).toBeNull();
+  });
+});
+
+describe('Roster — cliente al que sirve una unidad', () => {
+  async function abrirSelectorDeCliente() {
+    await userEvent.click(await screen.findByRole('button', { name: /Cliente al que sirve/ }));
+  }
+
+  it('el alta lo ofrece como opcional y aclara que no define el alcance', async () => {
+    renderRoster();
+    await userEvent.click(await screen.findByRole('button', { name: 'Nueva unidad' }));
+    await screen.findByRole('button', { name: 'Vehículo' });
+    expect(
+      await screen.findByText(/no define qué clientes ve cada Monitorista/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/\(opcional\)/)).toBeInTheDocument();
+  });
+
+  it('el alta con cliente envía cliente_id; sin cliente no envía el campo', async () => {
+    renderRoster();
+    await crearUnidadCon('P-102 · DEF-5678 (coche)', ['María Torres']);
+    await screen.findByText('Unidad creada.');
+    expect(cuerpos).toEqual([{ vehiculo_id: 'VEH-2003', custodios_ids: ['CUS-3004'] }]);
+  });
+
+  it('el alta con un cliente elegido lo envía', async () => {
+    renderRoster();
+    await abrirAlta();
+    await elegirVehiculo('P-102 · DEF-5678 (coche)');
+    await userEvent.click(screen.getByRole('checkbox', { name: 'María Torres' }));
+    await abrirSelectorDeCliente();
+    await userEvent.click(await screen.findByRole('button', { name: 'Cliente Centro' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Crear unidad' }));
+    await screen.findByText('Unidad creada.');
+    expect(cuerpos).toEqual([
+      { vehiculo_id: 'VEH-2003', custodios_ids: ['CUS-3004'], cliente_id: 'CLI-1002' },
+    ]);
+  });
+
+  it('quitar el cliente en la edición envía cliente_id: null', async () => {
+    server.use(
+      http.get(path('/unidades'), () =>
+        HttpResponse.json({
+          items: [
+            {
+              id: 'UN-1003',
+              vehiculo_id: 'VEH-2003',
+              custodios_ids: ['CUS-3003'],
+              tipo: 'patrulla',
+              activa: true,
+              cliente_id: 'CLI-1002',
+              vehiculo: { economico: 'P-102', placas: 'DEF-5678' },
+              custodios: [{ id: 'CUS-3003', nombre: 'María Torres' }],
+            },
+          ],
+          cursor_siguiente: null,
+        }),
+      ),
+      http.patch(path('/unidades/UN-1003'), () =>
+        HttpResponse.json({
+          id: 'UN-1003',
+          vehiculo_id: 'VEH-2003',
+          custodios_ids: ['CUS-3003'],
+          tipo: 'patrulla',
+          activa: true,
+          cliente_id: null,
+        }),
+      ),
+    );
+    renderRoster();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Editar unidad P-102 · DEF-5678' }),
+    );
+    expect(await screen.findByRole('button', { name: 'Guardar cambios' })).toBeDisabled();
+    await abrirSelectorDeCliente();
+    const opciones = await screen.findAllByRole('button', { name: 'Sin cliente' });
+    await userEvent.click(opciones[opciones.length - 1]!);
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+    await screen.findByText('Unidad actualizada.');
+    expect(cuerpos).toEqual([{ cliente_id: null }]);
   });
 });

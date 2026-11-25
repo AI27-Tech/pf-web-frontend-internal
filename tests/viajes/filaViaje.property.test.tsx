@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Feature: e8-t7-bandeja-viajes, Property 3: Estado y condiciones separados (P15)
  *
  * Property 3 (Validates: Requirements 2.1, 2.2, 2.3, 2.4):
@@ -14,7 +14,7 @@
  * separación de slots por su `data-testid` distinto.
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import fc from 'fast-check';
 
@@ -27,11 +27,10 @@ import type { ViajeVista } from '@/features/viajes/viajeVista';
 const CONDICIONES = Object.values(CondicionViaje) as CondicionViajeTipo[];
 
 /** Mock de useNavigate para el test */
-const mockNavigate = vi.fn();
 
 /** Celda de una columna por su key. Las columnas 'estado'/'condiciones' usan `cell`. */
 function celda(key: string, fila: ViajeVista) {
-  const columnas = obtenerColumnasViaje(mockNavigate);
+  const columnas = obtenerColumnasViaje();
   const col = columnas.find((c) => c.key === key);
   if (!col?.cell) throw new Error(`columna ${key} sin cell`);
   return col.cell(fila, 0);
@@ -51,6 +50,7 @@ describe('Feature: e8-t7-bandeja-viajes, Property 3: Estado y condiciones separa
           id: 'v1',
           estado,
           origen: 'CDMX',
+          unidades: [],
           condiciones_activas: condiciones,
         };
 
@@ -104,6 +104,7 @@ describe('e8-t7-bandeja-viajes · variantes de condición (ejemplo, tarea 5.3)',
       id: 'v1',
       estado: 'EN_TRANSITO',
       origen: 'CDMX',
+      unidades: [],
       condiciones_activas: [CondicionViaje.Incidencia, CondicionViaje.SinSenal],
     };
     render(<div>{celda('condiciones', fila)}</div>);

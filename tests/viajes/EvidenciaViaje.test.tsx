@@ -4,7 +4,7 @@
  * no tarde 5 segundos.
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
@@ -109,7 +109,11 @@ describe('EvidenciaViaje · subida en tres pasos', () => {
     await user.upload(screen.getByLabelText('Archivo de evidencia'), archivo);
     await user.click(screen.getByRole('button', { name: 'Subir evidencia' }));
 
-    await waitFor(() => expect(screen.getByText('acta.pdf')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole('table', { name: 'Evidencia del viaje' })).getByText('acta.pdf'),
+      ).toBeInTheDocument(),
+    );
     expect(cuerpoIntencion).toEqual({
       nombre: 'acta.pdf',
       tipo_medio: 'application/pdf',

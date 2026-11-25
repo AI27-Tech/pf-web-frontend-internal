@@ -24,6 +24,9 @@ export const TEXTOS_ERROR_CONVERSACIONES = {
   autorizacionInsuficiente: 'No tienes autorización para realizar esta acción.',
   /** 404 de una conversación: no distingue inexistente de sin acceso (Req 2.7). */
   conversacionNoDisponible: 'La conversación no está disponible.',
+  /** 409 destino_no_es_cotizacion al transferir una conversación de solicitud (DEC-148 #74). */
+  destinoNoEsCotizacion:
+    'Ese usuario no tiene el rol de Cotización. Elige a otra persona de Cotización.',
   /** 5xx, caída de red o respuesta no interpretable (Req 12.2). */
   servicioNoDisponible: 'No se pudo completar la operación. Intenta de nuevo.',
 } as const;

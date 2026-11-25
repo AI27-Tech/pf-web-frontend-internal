@@ -1,4 +1,5 @@
-import { Badge, Button, Card } from '@ai27-tech/ui';
+import { Alert, Badge, Button, Card, EmptyState, Grid, Inline } from '@ai27-tech/ui';
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { useSession } from '@/context/SessionContext';
 import { ErrorEmergenciaNoDisponible, ErrorSinAccesoEmergencias } from '@/lib/api/emergencias';
 import type { EmergenciaReaccion, EstadoEmergencia } from '@/lib/contracts/emergencias';
@@ -56,23 +57,22 @@ export function ListaCasos({
   if (error instanceof ErrorSinAccesoEmergencias || error instanceof ErrorEmergenciaNoDisponible)
     return (
       <Card variant="outlined">
-        <p role="alert">No tienes acceso a la bandeja de emergencias.</p>
+        <Alert variant="danger">No tienes acceso a la bandeja de emergencias.</Alert>
       </Card>
     );
   if (error && !items.length)
     return (
       <Card variant="outlined">
-        <p role="alert">{error.message}</p>
-        <Button onClick={reintentar}>Reintentar</Button>
+        <BloqueError mensaje={error.message} onReintentar={reintentar} />
       </Card>
     );
 
   return (
     <Card variant="outlined">
-      <div style={{ display: 'grid', gap: 'var(--ui-space-2)' }}>
+      <Grid gap={2}>
         <BannerActualizacion desactualizada={desactualizada} actualizadoEn={actualizadoEn} />
         {!items.length ? (
-          <p>No hay emergencias activas.</p>
+          <EmptyState size="sm" title="No hay emergencias activas." />
         ) : (
           items.map((caso) => (
             <button
@@ -88,22 +88,22 @@ export function ListaCasos({
                   seleccionado === caso.id ? 'var(--ui-color-surface-raised)' : 'transparent',
               }}
             >
-              <div style={{ display: 'flex', gap: 'var(--ui-space-2)', flexWrap: 'wrap' }}>
+              <Inline gap={2} wrap align="stretch">
                 <Badge variant="neutral">{ETIQUETA_ESTADO[caso.estado]}</Badge>
                 <Badge variant="neutral">{ETIQUETA_ORIGEN[caso.origen]}</Badge>
                 <span>{etiquetaResponsable(caso, sujetoId)}</span>
-              </div>
+              </Inline>
               <small>Activada {new Date(caso.activada_en).toLocaleString()}</small>
             </button>
           ))
         )}
-        {error && items.length > 0 && <p role="alert">{error.message}</p>}
+        {error && items.length > 0 && <Alert variant="danger">{error.message}</Alert>}
         {cursor && (
           <Button variant="outline" onClick={onMas} disabled={cargandoMas}>
             {cargandoMas ? 'Cargando...' : 'Cargar más'}
           </Button>
         )}
-      </div>
+      </Grid>
     </Card>
   );
 }

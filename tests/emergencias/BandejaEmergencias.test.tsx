@@ -221,6 +221,48 @@ describe('bandeja de Reacción: visibilidad y gestos por rol', () => {
   });
 });
 
+// 11.6 (DEC-148 #77, DT-28): el destino sería el `sub` del destinatario y el panel no lo conoce;
+// un id de sujeto responde 409 destino_invalido_en_viaje. No hay selector ni botón, ni siquiera
+// para quien tiene la capacidad de transferir (REA, SUP, COO), y el responsable no se nombra.
+describe('emergencias: sin transferir ni nombre del responsable (11.6)', () => {
+  const SUB_AJENO = 'sub-del-responsable-ajeno';
+  it.each([
+    ['reaccion', 'sujeto-reaccion'],
+    ['supervisor', 'sujeto-supervisor'],
+    ['coordinador', 'sujeto-coordinador'],
+  ])('%s no ve transferir ni a quién pertenece el reclamo', async (rol, id) => {
+    usuario(rol, id);
+    const peticiones: string[] = [];
+    const registrar = ({ request }: { request: Request }) => {
+      peticiones.push(`${request.method} ${new URL(request.url).pathname}`);
+    };
+    server.events.on('request:start', registrar);
+    servirCaso(
+      caso({
+        estado: 'en_atencion',
+        reclamo_activo: {
+          id: 'rc-1',
+          conversacion_id: 'em-1',
+          responsable_id: SUB_AJENO,
+          version: 2,
+          abierto_en: '2026-11-04T08:01:00Z',
+        },
+      }),
+    );
+    const { container } = render(<BandejaEmergencias casoAbierto="em-1" />);
+    await screen.findByText('Viaje');
+
+    expect(container.textContent).not.toMatch(/transferi/i);
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(document.querySelector('select')).toBeNull();
+    expect(container.textContent).not.toContain(SUB_AJENO);
+    expect(peticiones.some((p) => p.includes('/sujetos') || p.includes('/transferencia'))).toBe(
+      false,
+    );
+    server.events.removeListener('request:start', registrar);
+  });
+});
+
 describe('bandeja de emergencias: supervisor consulta y cierra', () => {
   beforeEach(() => usuario('supervisor', 'sujeto-supervisor'));
 

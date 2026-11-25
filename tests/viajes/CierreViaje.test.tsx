@@ -8,6 +8,7 @@ import type { ReactNode } from 'react';
 import { Rol } from '@ai27-tech/contracts/roles';
 
 import { DetalleViaje } from '@/features/viajes/detalle/DetalleViaje';
+import { ViajeShell } from '@/features/viajes/ViajeShell';
 import { onCut, restablecerCorte } from '@/lib/api/sessionCut';
 import { API_PREFIX } from '@/lib/constants';
 
@@ -24,9 +25,14 @@ vi.mock('@/context/SessionContext', () => ({
   }),
 }));
 
-vi.mock('@tanstack/react-router', () => ({
-  useNavigate: () => vi.fn(),
-}));
+vi.mock('@tanstack/react-router', async () => {
+  const { createElement } = await import('react');
+  return {
+    useNavigate: () => vi.fn(),
+    Link: ({ to, children }: { to: string; children?: unknown }) =>
+      createElement('a', { href: to }, children as never),
+  };
+});
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {
@@ -59,11 +65,16 @@ function renderDetalle() {
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  return render(<DetalleViaje id="VJ-14" />, { wrapper: Wrapper });
+  return render(
+    <ViajeShell id="VJ-14" seccion="detalle">
+      <DetalleViaje id="VJ-14" />
+    </ViajeShell>,
+    { wrapper: Wrapper },
+  );
 }
 
 async function elegirMotivo(label: string) {
-  await userEvent.click(screen.getByRole('button', { name: 'Selecciona un motivo' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Motivo de cierre' }));
   await userEvent.click(await screen.findByRole('button', { name: label }));
 }
 
@@ -124,9 +135,13 @@ describe('E8-T14 · cierre del servicio', () => {
     renderDetalle();
 
     await userEvent.click(await screen.findByRole('button', { name: 'Cerrar servicio' }));
-    expect(screen.getByRole('button', { name: /Cierre por incidencia/i })).toBeDisabled();
+    const motivo = screen.getByRole('button', { name: 'Motivo de cierre' });
+    expect(motivo).toBeDisabled();
+    expect(motivo).toHaveTextContent('Cierre por incidencia');
     expect(screen.getByRole('button', { name: 'Confirmar cierre' })).toBeEnabled();
-    expect(screen.queryByRole('button', { name: /Cierre normal/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Motivo de cierre' })).not.toHaveTextContent(
+      'Cierre normal',
+    );
   });
 
   it('permite que Administrador cierre el servicio', async () => {
@@ -244,7 +259,9 @@ describe('E8-T14 · cierre del servicio', () => {
     await waitFor(() =>
       expect(screen.getAllByText('El motivo de cierre no es válido').length).toBeGreaterThan(0),
     );
-    expect(screen.getByRole('button', { name: /Cierre normal/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Motivo de cierre' })).toHaveTextContent(
+      'Cierre normal',
+    );
   });
 
   it('conserva el motivo después de un fallo de red', async () => {
@@ -259,7 +276,9 @@ describe('E8-T14 · cierre del servicio', () => {
     await waitFor(() =>
       expect(screen.getAllByText(/No se pudo cerrar el servicio/).length).toBeGreaterThan(0),
     );
-    expect(screen.getByRole('button', { name: /Cierre normal/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Motivo de cierre' })).toHaveTextContent(
+      'Cierre normal',
+    );
   });
 
   it('informa 403 como falta de facultad', async () => {

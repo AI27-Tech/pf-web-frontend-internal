@@ -7,6 +7,7 @@
 import type { Rol } from '@ai27-tech/contracts/roles';
 import type { EstadoEmergencia, Reclamo } from '@/lib/contracts/emergencias';
 import { esTerminal } from '@/lib/contracts/viajeDetalle';
+import { puede } from '@/lib/permisos';
 
 /** Vista mínima del caso que necesitan las afordancias. */
 export interface CasoParaAfordancias {
@@ -14,26 +15,20 @@ export interface CasoParaAfordancias {
   reclamo_activo?: Reclamo | null;
 }
 
-const ROLES_MONITOREO = ['monitorista', 'supervisor', 'coordinador'] as const;
-const ROLES_QUE_DEVUELVEN = ['supervisor', 'coordinador'] as const;
-
-function tieneRol(rol: Rol | null | undefined, lista: readonly string[]): boolean {
-  return rol !== null && rol !== undefined && lista.includes(rol);
-}
-
 /** Reclamar: solo Reacción, sobre un caso `abierta` sin responsable. */
 export function puedeReclamar(rol: Rol | null, caso: CasoParaAfordancias): boolean {
-  return rol === 'reaccion' && caso.estado === 'abierta' && !caso.reclamo_activo;
+  return puede(rol, 'emergencia.reclamar') && caso.estado === 'abierta' && !caso.reclamo_activo;
 }
 
-/** Devolver al pool: el responsable vigente, o supervisor/coordinador. */
+/** Devolver al pool: el responsable vigente, o supervisor/coordinador sobre cualquier caso. */
 export function puedeDevolver(
   rol: Rol | null,
   caso: CasoParaAfordancias,
   sujetoId: string,
 ): boolean {
   if (caso.estado !== 'en_atencion' || !caso.reclamo_activo) return false;
-  return caso.reclamo_activo.responsable_id === sujetoId || tieneRol(rol, ROLES_QUE_DEVUELVEN);
+  if (!puede(rol, 'emergencia.devolver')) return false;
+  return caso.reclamo_activo.responsable_id === sujetoId || puede(rol, 'emergencia.gestionarAjeno');
 }
 
 /** Resolver: solo Reacción y solo el responsable vigente. */
@@ -43,7 +38,7 @@ export function puedeResolver(
   sujetoId: string,
 ): boolean {
   return (
-    rol === 'reaccion' &&
+    puede(rol, 'emergencia.resolver') &&
     caso.estado === 'en_atencion' &&
     caso.reclamo_activo?.responsable_id === sujetoId
   );
@@ -51,19 +46,24 @@ export function puedeResolver(
 
 /** Cerrar: caso ya `resuelta`, para monitoreo o administrador (nunca Reacción ni ejecutivo). */
 export function puedeCerrar(rol: Rol | null, caso: CasoParaAfordancias): boolean {
-  return caso.estado === 'resuelta' && (tieneRol(rol, ROLES_MONITOREO) || rol === 'administrador');
+  return caso.estado === 'resuelta' && puede(rol, 'emergencia.cerrar');
 }
 
 /**
- * Activar: monitoreo, sobre un viaje no terminal. Los terminales salen de
- * `esTerminal` del paquete generado; no se copia la lista.
+ * Activar: monitoreo y administrador, sobre un viaje no terminal. Los terminales
+ * salen de `esTerminal` del paquete generado; no se copia la lista.
  */
 export function puedeActivar(rol: Rol | null, estadoViaje: string): boolean {
   const estadoTipado = estadoViaje as Parameters<typeof esTerminal>[0];
-  return tieneRol(rol, ROLES_MONITOREO) && !esTerminal(estadoTipado);
+  return puede(rol, 'emergencia.activar') && !esTerminal(estadoTipado);
 }
 
 /** Anotar: monitoreo y administrador, mientras el caso no esté `cerrada`. */
 export function puedeAnotar(rol: Rol | null, caso: CasoParaAfordancias): boolean {
-  return (tieneRol(rol, ROLES_MONITOREO) || rol === 'administrador') && caso.estado !== 'cerrada';
+  return puede(rol, 'emergencia.anotar') && caso.estado !== 'cerrada';
+}
+
+/** El botón de activar vive en la cabecera del detalle: se muestra si el rol puede y el viaje no es terminal. */
+export function puedeMostrarActivacion(rol: Rol | null, estadoViaje: string): boolean {
+  return puede(rol, 'emergencia.verDeViaje') && puedeActivar(rol, estadoViaje);
 }

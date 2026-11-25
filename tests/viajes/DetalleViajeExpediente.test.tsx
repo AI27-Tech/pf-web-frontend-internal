@@ -9,6 +9,7 @@ import { setupServer } from 'msw/node';
 import type { ReactNode } from 'react';
 
 import { DetalleViaje } from '@/features/viajes/detalle/DetalleViaje';
+import { ViajeShell } from '@/features/viajes/ViajeShell';
 import { handlers, handlersConversaciones } from '@/mocks/handlers';
 
 const sesionRol = vi.hoisted(() => ({ rol: 'monitorista' as string }));
@@ -20,7 +21,14 @@ vi.mock('@/context/SessionContext', () => ({
     logout: vi.fn(),
   }),
 }));
-vi.mock('@tanstack/react-router', () => ({ useNavigate: () => vi.fn() }));
+vi.mock('@tanstack/react-router', async () => {
+  const { createElement } = await import('react');
+  return {
+    useNavigate: () => vi.fn(),
+    Link: ({ to, children }: { to: string; children?: unknown }) =>
+      createElement('a', { href: to }, children as never),
+  };
+});
 
 const server = setupServer(...handlers, ...handlersConversaciones);
 
@@ -36,7 +44,12 @@ function renderDetalle() {
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  return render(<DetalleViaje id="VJ-1001" />, { wrapper: Wrapper });
+  return render(
+    <ViajeShell id="VJ-1001" seccion="detalle">
+      <DetalleViaje id="VJ-1001" />
+    </ViajeShell>,
+    { wrapper: Wrapper },
+  );
 }
 
 describe('DetalleViaje · enlace a Expediente y evidencia por rol', () => {
@@ -46,21 +59,15 @@ describe('DetalleViaje · enlace a Expediente y evidencia por rol', () => {
       sesionRol.rol = rol;
       renderDetalle();
 
-      expect(
-        await screen.findByRole('button', { name: 'Ver histórico del viaje' }),
-      ).toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', { name: 'Expediente y evidencia' }),
-      ).not.toBeInTheDocument();
+      expect(await screen.findByRole('tab', { name: 'Detalle' })).toBeInTheDocument();
+      expect(screen.queryByRole('tab', { name: 'Expediente y evidencia' })).not.toBeInTheDocument();
     },
   );
 
   it('el monitorista ve el enlace junto a Ver histórico del viaje', async () => {
     renderDetalle();
 
-    expect(
-      await screen.findByRole('button', { name: 'Ver histórico del viaje' }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Expediente y evidencia' })).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: 'Histórico del viaje' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Expediente y evidencia' })).toBeInTheDocument();
   });
 });

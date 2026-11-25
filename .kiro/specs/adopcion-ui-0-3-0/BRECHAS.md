@@ -1,0 +1,279 @@
+# Adopción de `@ai27-tech/ui@0.3.0-beta.1`: brechas y registro
+
+Este archivo registra la línea base, las brechas encontradas durante la migración y los cambios de la librería que afectan al portal. Cada entrada indica su fuente.
+
+## 1. Línea base (tarea 1.3, 2026-11-13)
+
+Medida antes de tocar componentes de `src/features`. Única modificación previa: eliminación de `src/components/ui/Input.tsx` (tarea 1.2).
+
+| Métrica                                   | Valor                                                            | Cómo se midió                          |
+| ----------------------------------------- | ---------------------------------------------------------------- | -------------------------------------- |
+| `display: 'flex' \| 'grid'` en línea      | 115 líneas en 43 archivos                                        | `Select-String` sobre `src/**/*.ts(x)` |
+| `role="alert"` o `role="status"` en `src` | 99 líneas                                                        | `Select-String` sobre `src/**/*.ts(x)` |
+| `<h1>` manuales                           | 14 líneas                                                        | `Select-String` sobre `src/**/*.ts(x)` |
+| Pruebas unitarias                         | 21 fallando, 604 pasando, 625 en total (5 de 85 archivos fallan) | `npx vitest run`                       |
+
+**Brecha: la línea base no coincide con el CHANGELOG.** La entrada del 2026:11:11 afirma "625 pruebas en verde". Hoy hay 21 pruebas en rojo. Las 21 fallas están en:
+
+- `tests/roster/Roster.test.tsx` (9 pruebas, alta de unidad y diálogo de monitoristas).
+- `tests/viajes/CierreViaje.test.tsx` (9 pruebas, E8-T14).
+- `tests/viajes/ClienteSelector.test.tsx` (1 prueba).
+- `tests/viajes/CrearViaje.test.tsx` (2 pruebas).
+- `tests/viajes/HistoricoViaje.test.tsx` (1 prueba).
+
+**Causa: la librería, no el código del portal.** El `Select` de `@ai27-tech/ui` (instalado en `0.3.0-beta.1`, commit `20288f4`) cambió su nombre accesible dentro de `FormField`:
+
+- Antes, el `id` no llegaba al control, así que el botón del `Select` se nombraba por su texto visible ("Selecciona un cliente", "Elige un vehículo", "Selecciona un motivo").
+- Ahora, `FormField` asocia `<label for>` con el botón. El nombre accesible pasa a ser la etiqueta del campo ("Cliente", "Motivo", "Vehículo"), y el texto visible deja de contar.
+- Se comprobó con un render temporal de `FormField` + `Select` (archivo ya borrado): el botón tiene `id="_r_0_"`, el `label` tiene `for="_r_0_"` y `aria-labelledby` es nulo.
+- Esta es la entrada 0.2.0-beta.7 del CHANGELOG de la librería: "`FormField` lo asocia con su etiqueta (antes el `id` no llegaba al control)". Es una mejora de accesibilidad, pero rompe las consultas `getByRole('button', { name: 'Selecciona…' })`.
+
+Las pruebas de `ClienteSelector`, `CrearViaje`, `HistoricoViaje`, `CierreViaje` y `Roster` consultan por el texto del placeholder. Se revisaron los mensajes de error de los 21 casos: la mayoría son `Unable to find role="button" and name "Selecciona…"/"Elige…"`. Un caso de `CierreViaje` busca un botón con el nombre de la opción elegida y tiene la misma causa. No se revisó cada caso uno por uno.
+
+**Corrección aplicada:** las consultas de esas pruebas ahora buscan el selector por su etiqueta de `FormField` (`Cliente`, `Vehículo`, `Motivo de cierre`, `Motivo de la estadía`, `Eje de autorización`). Las aserciones que comparaban el nombre con el valor elegido ahora usan `toHaveTextContent` sobre el mismo botón, así que siguen verificando el valor. Ningún caso se eliminó ni se relajó. Resultado: `vitest run` con 625 de 625 en verde. Archivos: `tests/viajes/ClienteSelector.test.tsx`, `tests/viajes/CrearViaje.test.tsx`, `tests/viajes/CierreViaje.test.tsx`, `tests/viajes/HistoricoViaje.test.tsx`, `tests/roster/Roster.test.tsx`.
+
+## 0. Decisiones de ejecución
+
+- **Tarea 1.2, `components/ui/Input.tsx`:** eliminado. Ningún archivo lo importa.
+- **Tarea 1.2, `components/ui/Button.tsx`:** eliminado junto con `tests/Button.test.tsx`, por decisión de Product Management (todo debe venir de `@ai27-tech/ui`). Sin referencias restantes en `src`, `tests` ni `e2e`. La prueba eliminada tenía 3 casos, por eso el total de pruebas baja de 628 a 625 (604 en verde, las mismas 21 en rojo).
+- **Tarea 2:** `BloqueError` se crea en `src/components/feedback/BloqueError.tsx`, importa `Alert`, `Button` e `Inline` de `@ai27-tech/ui` (no del `Button` local). Pruebas en `tests/feedback/BloqueError.test.tsx`: 3 de 3 en verde.
+
+## 2. Cambios de `pf-library-frontend-components` entre 0.2.0-beta.8 y 0.3.0-beta.1 (tarea 1.4)
+
+Fuente: `repos/pf-library-frontend-components/CHANGELOG.md`, sección `[0.3.0-beta.1] — 2026-11-12`, y `[0.2.0-beta.8]`, `[0.2.0-beta.7]`. Solo se listan los cambios que afectan a este portal.
+
+### 2.1 Componentes que este spec usa
+
+- **`Alert`**: `warning` y `danger` usan `role="alert"`; `info` y `success` usan `role="status"`. Hay que tenerlo en cuenta en la tarea 3.7 y en las pruebas que buscan `role`.
+- **`Breadcrumb`**: acepta `as` por elemento (para `Link` del router) y `maxItems`. El último elemento lleva `aria-current="page"`.
+- **`PageHeader`**: título con `titleAs` (`h1` o `h2`), `breadcrumb` y `actions`. Por debajo de 40 rem, las acciones bajan bajo el título.
+- **`Section`**: usa `<section>` con `aria-labelledby`. Con `collapsible`, el encabezado es un botón con `aria-expanded`.
+- **`DescriptionList`**: `dl`, `dt`, `dd`. De 1 a 4 columnas. `emptyValue` por defecto; este portal debe confirmar que muestra "—".
+- **`Stat`**: `loading` muestra `Skeleton`. La tendencia se comunica con texto accesible.
+- **`Timeline`**: `orientation`, `labels`, `emptyState`, `loading`. Estados `completed`, `current`, `upcoming`, `error`, `warning`.
+- **`EmptyState`**: tamaños `sm` y `md`.
+- **`Skeleton*`**: el contenedor anuncia "Cargando" con `role="status"` y `aria-busy`. Los skeleton son decorativos para lectores de pantalla. Coincide con D6.
+- **`Select`**: `variant="searchable"`, `noResultsText`, `searchPlaceholder` (0.2.0-beta.7). `state`, `readOnly`, `id` y `aria-describedby` (0.3.0-beta.1).
+- **`DateTimeInput`, `DateInput`, `TimePicker`**: valor `YYYY-MM-DDTHH:mm` para `DateTimeInput`. Esto afecta a la tarea 7.
+- **`Table`**: con `loading`, muestra filas skeleton en lugar de spinner. El checkbox de seleccionar todo queda deshabilitado. Cambia el DOM durante la carga; revisar pruebas de `Table`.
+- **`Sidebar`**: el botón de colapso pasa al encabezado y es solo icono. La prop `footer` es la única que renderiza el pie. Afecta a la tarea 11.1.
+- **`Badge`**: `appearance` (`soft`, `solid`, `outline`), `size` (`sm`, `md`) y las variantes `info`, `primary`, `secondary`.
+- **`Checkbox`, `Radio`, `Switch`**: `size` e `invalid`. Ya no pasan `invalid` al `input`; usan `aria-invalid`.
+- **`FormField`**: `showOptional`, `orientation="horizontal"`.
+- **`Input`**: `clearable`, `passwordToggle`, `readOnly`. El estado `error` pinta el borde. (El portal ya no usa `components/ui/Input.tsx`.)
+- **`Textarea`**: `showCount`.
+- **`FormSection`**: `collapsible`, `defaultOpen`, `open`, `onOpenChange`.
+- **`FormActions`**: `sticky`.
+- **`Stack`, `Inline`, `Grid`**: `gap` de 0 a 6, `align`, `justify`, `as`, `wrap`, `columns`, `minItemWidth`.
+- **`Popover`**: se renderiza en portal a `document.body`. Si el portal usa menús propios, revisar el `z-index`.
+- **`Tabs`**: fuera de alcance por D4.
+
+### 2.2 Cambios de comportamiento a revisar
+
+- **Textos por defecto en español** (`Table`, `FilterTable`, `FilterBar`). Antes eran en inglés. Si el portal depende de textos en inglés en pruebas, cambian.
+- **`Iconos`**: los iconos de la librería ahora salen de `lucide-react`. El trazo cambia un poco.
+- **`MessagePanel` y mensajería**: el campo `secuenciaMensaje` pasa a `secuencia`, alineado con el contrato `v0.1.0-tracer.9` de la librería. El portal usa `pf-pkg-contracts` `0.1.0-tracer.40` (`package.json`). **Brecha relacionada con D5 y el bloque 10:** hay que confirmar los campos del `Mensaje` en el contrato de `tracer.40` antes de adoptar `MessagePanel` o `MessageThread`.
+- **`Sidebar`**: ver 2.1.
+- **`ImageCard`**: muestra placeholder mientras carga. No aplica a este portal por ahora.
+
+### 2.3 Fuera de alcance de este portal
+
+Ver CHANGELOG de la librería: `Visor`, `ImageCarousel`, `ImageGrid`, `Tooltip`, `Badge.truncate`, `ImageCard`, `Muelle` (`MessageDock`), y la integración de Storybook y CI de la librería. Este spec no los usa (`MessageDock` y `useMessageDock` están excluidos en el spec, sección 4).
+
+**Dato sin verificar:** el CHANGELOG de la librería contiene una sección `[0.2.1] — 2026-10-01` después de una segunda sección `[Unreleased]` (línea 214 del archivo). No se revisó porque queda fuera del rango 0.2 a 0.3.0-beta.1 pedido en la tarea 1.4.
+
+## 3. Bloque 3: `Alert` por área (tareas 3.1 a 3.7, 2026-11-13)
+
+Conteo medido con grep sobre `src/**/*.tsx`: antes del bloque había 99 usos reales de `role="alert|status"` (sin contar dos comentarios de `BloqueError`). Después quedan 19, así que se migraron 80. Los 19 restantes se describen abajo. `vitest run` da 625 de 625 en verde; `tsc --build`, `eslint .` y `vite build --mode mock` pasan.
+
+### 3.1 Restos que se quedan por decisión de bloque posterior
+
+- **Carga con `role="status"` (bloque 9, decisión D6):** 13 usos en `PanelUsuario`, `DesactivarOrganizacionDialog`, `RevocarSesionesDialog`, `ListaTrabajo`, `SeccionEmergenciasViaje`, `BandejaEmergencias` ("Cargando emergencia..."), `ListaCasos`, `DashboardMonitoreo`, `ClienteSelector`, `CrearViaje` (roster) y tres en `HistoricoViaje` ("Cargando bitácora/estadías/incidencias...").
+- **Región `aria-live` (Req 10.8, no es aviso visual):** `BandejaEmergencias.tsx` (`role="status" aria-live="polite"`) y `BannerEstado.tsx` (`aria-live="polite"`, fuera de la lista de tareas). Se dejan sin cambios.
+
+### 3.2 Restos que requieren decisión
+
+- **`AltaUsuarioDialog.tsx`:** `<p role="alert">{errores.organizacionId}</p>` es un error de validación del grupo de organizaciones (radio group dentro de `FormSection`, no dentro de `FormField`). Se trató como error de campo y se dejó. Confirmar si debe ir dentro de `FormField`.
+- **`CrearViaje.tsx` (Resultado):** cuatro `CardBody role="status|alert"` (éxito, escolta confirmada, respuesta insuficiente y error). Son `CardBody`, no `<p>`, y el Card tiene encabezado e información útil. Se dejaron. Si se quieren migrar a `Alert`, habría que rediseñar el bloque de resultado.
+
+### 3.3 Decisiones de variante tomadas al migrar (revisar)
+
+- Errores sin `role` previo que ahora sí lo anuncian: `asignacionForm` y `EstadoError` de `DetalleViaje`. Cambio positivo de accesibilidad.
+- Avisos que tenían `role="status"` y ahora son `danger` (`role="alert"`): errores 403 y de "rol sin acceso" en `ficha` e `histórico`. Se anuncian de forma más intensa.
+- Mensaje "solo disponibles para el Jefe Operativo" en `catalogos`: `danger` para conservar `role="alert"`. `warning` también lo emite; si se prefiere un tono informativo, cambiarlo.
+- `datos_desactualizado` (administración) y "no se determinó el nombre del archivo" (`SubirEvidencia`): `danger`. `warning` sería más preciso.
+- Estado `brecha` de `PanelUsuario`: `Alert info` con botón "Reintentar" a mano, para no cambiar el comportamiento.
+
+### 3.4 Otros cambios de presentación
+
+- `BloqueError` usa botón `outline` `sm`. Los sitios que tenían `secondary` ahora se ven distintos. Revisión visual en claro y oscuro pendiente (tarea 12.2).
+- Los avisos de éxito en `roster` conservan su separación con `marginBottom: var(--ui-space-2)`. El aviso de confirmación de `catalogos` perdió su `margin` inferior al quitar `style`; revisar visualmente.
+- Excepciones a la regla "usar `BloqueError`": la escolta de `FichaTecnicaViaje` y el error de catálogo GPS de `FichaEditor` siguen con `Alert` y botón a mano, porque `BloqueError` no acepta `disabled` ni una etiqueta distinta de "Reintentar" (la prueba de la escolta busca "Reintentar escolta").
+
+### 3.5 Pendientes fuera de este bloque
+
+- `type="datetime-local"` en `CrearViaje.tsx`: ya existía y no se tocó. Lo cubre el bloque 7.2 (`DateTimeInput`).
+- Prettier marca archivos que no se tocaron en `administracion` (p. ej. `AccionesUsuario.tsx`) por los finales de línea CRLF del repo. Problema anterior; no se reformatearon.
+- Un proceso `vite --mode mock` (PID 17748, iniciado a las 12:32) sigue corriendo en el repo. No lo inicié yo; conviene detenerlo si nadie lo usa.
+
+## 4. Bloque 4: `PageHeader`, `Breadcrumb` y `Section` (tareas 4.1 a 4.5, 2026-11-13)
+
+Resultado: `vitest run` 629 de 629 en verde (625 previas más 4 pruebas nuevas). `tsc --build`, `eslint src tests e2e` y `vite build --mode mock` pasan. `playwright test`: 5 de 5 en verde, incluido el login que espera el título «Dashboard de Monitoreo».
+
+### 4.1 Encabezados de página
+
+- `PageHeader` sustituye el `h1` manual en Catálogos, Roster, BandejaViajes, BandejaEmergencias, BandejaConversaciones, DashboardMonitoreo y StubPage. El `h1` lo genera la librería.
+- En `Administracion.tsx`, el id y el `tabIndex={-1}` se pusieron en un `span` dentro del título, que se pasa como `title`. El foco y `aria-labelledby` siguen funcionando. No quedó ninguna `BRECHA-UI`.
+- Breadcrumb en DetalleViaje, FichaTecnicaViaje, HistoricoViaje y ExpedienteViaje. Items: `Viajes` → `/viajes`, luego `Viaje {id}` → `/viajes/{id}` en ficha, histórico y expediente. El último item es la pantalla actual, sin enlace.
+- Para el enlace se creó `src/components/layout/EnlaceRuta.tsx`. La librería renderiza cada item con `href`, pero `Link` de TanStack espera `to`; el componente traduce uno al otro.
+
+### 4.2 Problema de la librería: `Section` sin encabezado
+
+`Section` pinta el título en un `span` cuando no es `collapsible`. Un `h2` solo aparece en el modo plegable. Para no perder la estructura de encabezados, cada título de `Section` se envuelve así: `<span role="heading" aria-level={2}>Texto</span>`. Se aplicó en 9 lugares: `Catalogos` (2), `Roster`, `UnidadesMonitoristas`, `SeccionEmergenciasViaje`, `PanelCaso` (3), `PanelUsuario` y `SeccionUsuarios`.
+
+**Propuesta para el equipo de la librería:** que `Section` acepte `titleAs` (`h2` o `h3`), como ya lo hace `PageHeader`. Así desaparece el envoltorio.
+
+### 4.3 Nombre accesible de las secciones
+
+La librería pone `aria-labelledby` apuntando al título, así que el `aria-label` de `Section` no tiene efecto. Se quitó en `PanelCaso` y `SeccionEmergenciasViaje`. Los nombres ahora son los títulos visibles:
+
+- `PanelCaso`: «Viaje» (antes se anunciaba «Datos del viaje»).
+- `SeccionEmergenciasViaje`: «Emergencias» (antes «Emergencias del viaje»).
+
+**Decisión a revisar:** cambiar el título visible a «Datos del viaje» y «Emergencias del viaje», o aceptar los nombres cortos.
+
+### 4.4 Revisiones visuales pendientes (tarea 12.2)
+
+- En `DetalleViaje`, los tres botones de navegación pasaron a la zona `actions` del `PageHeader`. Ahora «Expediente y evidencia» aparece antes del bloque de emergencias.
+- `Section` no pone separador bajo el encabezado. Se quitó la separación que daba `CardHeader` en Catálogos y Roster. Si hace falta, usar `divider`.
+- Los botones «Reintentar» de los `BloqueError` ya se revisaron en el bloque 3.
+
+### 4.5 Fuera de la lista de tareas
+
+- `login.tsx` (panel de marca con `h2`), `LoginForm.tsx` (`h1` con clases de Tailwind) y `two-factor.tsx` (`h1`). Siguen con encabezados manuales. No están en las tareas 4.x; quedan para decidir.
+- `BandejaViajes.tsx`: los comentarios tienen texto corrupto por codificación (anterior a este bloque, no tocado).
+
+### 4.6 Pruebas
+
+- 9 archivos de `tests/viajes/` añadieron un stub de `Link` a sus mocks de `@tanstack/react-router`, porque el breadcrumb lo usa.
+- Nueva prueba en `tests/administracion/encabezado-administracion.test.tsx` (3 casos) y en `HistoricoViaje.test.tsx` (enlaces del breadcrumb).
+- `e2e/roster.spec.ts`: el selector del vehículo buscaba «Elige un vehículo». Ahora busca «Vehículo», como las pruebas unitarias del bloque anterior.
+
+## 5. Bloque 5: `Stack`, `Inline` y `Grid` (tareas 5.1 a 5.4, 2026-11-13)
+
+Conteo con grep sobre `src/**/*.ts(x)` del patrón `display: 'flex' | 'grid'`. Al empezar el bloque había 97 líneas en 42 archivos. Al terminar quedan 11 líneas en 7 archivos:
+
+- 3 en `components/layout/AppShell.tsx`: fuera de alcance por D3.
+- 6 en `Form` y 2 en `CardFooter`: componentes de la librería sin props de disposición (`FormProps` solo tiene atributos HTML; `CardFooter` tampoco). Se dejaron en `style` y se justifican aquí. Si se quieren migrar, ver la decisión 5.2.
+
+Resultado: `tsc --build` sin errores, `vitest run` 629 de 629 en verde, `eslint` sin avisos en `src`, `tests` y `e2e`, `playwright test` 5 de 5 en verde.
+
+### 5.1 Decisiones de equivalencia
+
+- `Inline` por defecto centra (`align="center"`) y envuelve (`wrap`). Para conservar la disposición original, donde el `div` no tenía `alignItems` se usó `align="stretch"`, y donde no tenía `flexWrap`, `wrap={false}`. Afecta a historico, detalle, emergencias, roster, conversaciones y viajes. Si se prefieren los defaults de la librería, quitar esos props en una sola pasada.
+- Los `div` que solo tenían `marginTop`, `margin`, `padding` u otras propiedades sin equivalente se dejaron en `style`.
+
+### 5.2 Formularios: enfoque no unificado (decisión pendiente)
+
+`Form` de la librería ya es columna flex con gap, pero con un gap distinto al de los formularios actuales. Los agentes usaron tres enfoques:
+
+- **Historico** (`EstadiaForm`, `IncidenciaForm`, `NotaForm`): `Stack gap={3}` dentro de `Form`. Añade un `div` por formulario.
+- **Detalle** (`asignacionForm`, `fechaHoraForm`, `causaForm`, `etaForm`): `Stack as={Form}`, salvo `cierreForm`, donde `Form` conserva `noValidate`, que `Stack` no acepta; ahí el `Stack` va dentro.
+- **Roster, catálogos, `CrearViaje`, `FichaEditor`**: sin cambios. El `display:flex` queda en `style` de `Form`.
+
+Propuesta: usar `Stack as={Form}` en todos, y para `noValidate`, un `Stack` interno. Decidir antes de la revisión visual (tarea 12.2).
+
+### 5.3 Restos sin equivalente en la librería
+
+- `gridTemplateColumns: 'minmax(260px, 1fr) 2fr'` en `BandejaEmergencias` y en `BandejaConversaciones`: `Grid` con `columns` o `minItemWidth` no da esa proporción.
+- `alignItems: 'baseline'` en el nombre de `SessionTopbar`.
+- `height`, `flex`, `padding` y `marginTop` en otros elementos.
+
+### 5.4 Revisión pendiente
+
+- Diseño visual en claro y oscuro (tarea 12.2): separación de formularios y listas, y el `inline-flex` de las condiciones de `DetalleViaje`, que pasó a `Inline` (flex de bloque); puede mover unos píxeles.
+- `Prettier --check` marca `BannerEstado`, `BannerActualizacion`, `IndicadorFrescura`, `SessionTopbar`, `SelectorCaso` y `panel.tsx` por finales de línea CRLF en disco y LF en el índice. Problema previo del repo; no se cambió.
+- `etaForm.tsx`, `fechaHoraForm.tsx` y `CrearViaje.tsx` siguen con `datetime-local`. Lo cubre el bloque 7.
+
+## 6. Bloque 6: `DescriptionList` en fichas (tareas 6.1 a 6.3, 2026-11-13)
+
+Resultado: `tsc --build` sin errores, `vitest run` 629 de 629 en verde, `eslint` sin avisos en `src/features/viajes/ficha`, `src/features/administracion` y `tests`.
+
+### 6.1 `FichaTecnicaViaje`
+
+- `DatosViaje`: `Dato` ×2 y el bloque de destinos pasaron a un `DescriptionList` de 2 columnas. Destinos es un ítem de ancho completo (`span: 2`) con la lista numerada como valor.
+- `FichaConfirmada`: `Dato` ×3 pasó a un `DescriptionList` de 2 columnas (Tracto, Contenedores, GPS registrados; queda 2 + 1).
+- Se eliminó la función local `Dato`.
+- Cambio visual: las etiquetas ahora usan el estilo de `dt` de la librería. Revisar en claro y oscuro (tarea 12.2).
+
+### 6.2 `PanelUsuario`
+
+- La `Table` de dos columnas (Dato y Valor) pasó a `DescriptionList` con `items`, como indica D-E.
+- Efectos: el `aria-label` de la tabla desapareció (el nombre de la sección ya lo da el título de `Section`). Los valores vacíos ahora muestran «—» (`emptyValue` por defecto) en lugar de quedar en blanco.
+- Se eliminaron `datoCampo` y `datoValor` de `mensajes.ts`, que ya no se usan.
+
+### 6.3 Revisión de `DetalleViaje` y `ExpedienteViaje`
+
+- `ExpedienteViaje`: no tiene pares etiqueta-valor manuales. Sin cambios.
+- `DetalleViaje`: la cabecera (Estado, Condiciones, Origen, Paradas y ETA estimado) mezcla badges, listas y el formulario de ETA dentro de columnas. Un `DescriptionList` obligaría a rediseñar esa cabecera. **Decisión pendiente:** dejarla así o rediseñarla en un bloque aparte.
+
+### 6.4 Pendiente
+
+- D-E menciona «Section en fichas», pero las tareas 6.x solo piden `DescriptionList`. Los encabezados de las tarjetas de `FichaTecnicaViaje` (`CardHeader` con `p`) siguen igual. Confirmar si deben pasar a `Section`.
+
+## 7. Bloque 7: `DateTimeInput` (tareas 7.1 a 7.5, 2026-11-13)
+
+Resultado: `tsc --build` sin errores. `vitest run` 631 de 631 en verde (629 previas más 2 nuevas). `eslint src tests e2e` sin avisos. `playwright test` 5 de 5 en verde. Ya no hay `datetime-local` en `src`.
+
+### 7.1 Cómo se escribe en `DateTimeInput` en las pruebas
+
+`DateTimeInput` tiene dos partes: `DateInput` (texto DD/MM/AAAA) y `TimePicker` (segmentos «Horas» y «Minutos»). `fireEvent.change` no sirve: la fecha solo emite al salir de su campo. El helper `tests/helpers/fechaHora.ts` (`escribirFechaHora(user, control, 'YYYY-MM-DDTHH:mm')`) escribe la fecha, confirma con un clic en la hora y luego escribe cada segmento, borrando antes el valor previo. Enter no se usa, porque en un formulario dispara el envío. La prueba de humo está en `tests/helpers/fechaHora.test.tsx`.
+
+### 7.2 a 7.4 Cambios
+
+- `CrearViaje.tsx`, `etaForm.tsx` y `fechaHoraForm.tsx` usan `DateTimeInput` con `value` y `onChange` de cadena. Se quitó el comentario que decía que la librería no publica un selector de fecha.
+- `CrearViaje.test.tsx` y `DecisionSolicitud.test.tsx` usan el helper. La expectativa del `PATCH fecha-hora` (`new Date('2026-10-21T10:00').toISOString()`) no cambió.
+
+### 7.5 Verificación de la conversión
+
+- `fechaHoraAISO` no cambió (`git diff` vacío en `adaptadorCrearViaje.ts`). Solo se corrigió el comentario de `fechaHora`, que decía «datetime-local».
+- Una prueba nueva en `CrearViaje.test.tsx` vacía la hora después de escribirla y verifica el error «Ingresa una fecha y hora válida.» y que no se llama a `crear`.
+
+### 7.6 Pendiente
+
+- **Texto visible cambiado:** los placeholders «DD/MM/YYYY HH:MM» de ETA y fecha-hora se quitaron, porque `DateTimeInput` no acepta un placeholder a nivel superior. Ahora la fecha muestra «DD/MM/AAAA». Confirmar que el texto nuevo es aceptable.
+- **Enter en el campo de fecha:** puede enviar el formulario, como cualquier `Input`. Comprobar en el navegador.
+- **Precarga con zona horaria (no nuevo):** la precarga de ETA y fecha-hora recibe una marca ISO con `Z`. `DateTimeInput` espera `YYYY-MM-DDTHH:mm`, así que el valor no se muestra. Ya pasaba con `datetime-local`. Revisar si corresponde convertir la marca a hora local antes de mostrarla.
+- Revisión visual en claro y oscuro, y del `FormRow` con el control nuevo (tarea 12.2).
+
+## 8. Bloque 8: `Timeline` (tareas 8.1 a 8.5, 2026-11-13)
+
+Resultado: `tsc --build` sin errores. `vitest run` 631 de 631 en verde, sin pruebas nuevas ni cambios en las existentes. `eslint .` sin avisos. `vite build --mode mock` pasa.
+
+- **Archivos:** `src/features/viajes/historico/HistoricoViaje.tsx` (bitácora, estadías, incidencias) y `src/features/emergencias/PanelCaso.tsx` (notas).
+- **Decisión de estado (no estaba en D-D):** las entradas de bitácora y las notas usan `status: completed`. Sin `status`, `Timeline` pinta el punto como `upcoming`, lo que indicaría un registro futuro.
+- **Carga:** cada lista de `HistoricoViaje` envuelve `Timeline loading` en un `div role="status"` con `aria-label="Cargando <recurso>"` (D-C). El texto visible «Cargando … ...» desaparece; ningún test lo usaba.
+- **Vacío y error:** `emptyState` conserva los textos de hoy. El error sigue con `BloqueError`.
+- **Orden:** las listas se pasan en el orden que ya recibían. No se usó `reverse`.
+- **Notas de `PanelCaso`:** el botón «Cargar más notas» queda fuera de `Timeline`, porque es paginación y no un punto del historial.
+- **Pendiente de revisión visual:** el aspecto de la línea de tiempo en claro y oscuro se revisa en la tarea 12.2.
+
+## 9. Bloque 9: cargas, vacíos, `Select` y `Stat` (tareas 9.1 a 9.5, 2026-11-17)
+
+Resultado: `tsc --build` sin errores. `eslint .` sin avisos. `vitest run` 631 de 631 en verde. `vite build --mode mock` pasa. `test:e2e` 5 de 5 en verde.
+
+- **Cargas (D-C, 9.1):** cada carga de bloque es un `div role="status"` con `aria-label` y un `Skeleton*` dentro. Los textos «Cargando …» visibles desaparecen. Las pruebas pasan a `getByRole('status', { name })`.
+- **Vacíos (9.2):** los «No hay …» de bloque usan `EmptyState` con `size="sm"` y el mismo texto como `title`. Los `emptyState` de `Timeline` del bloque 8 usaban `Alert info`; ahora usan `EmptyState` (R9).
+- **Vacíos que se dejan como texto:** «No hay destinos informados.» (`FichaTecnicaViaje`), «Sin destinos.» y «El viaje aún no tiene escolta asignada.» (`PanelCaso`). Son texto dentro de un campo o de una sección, no un bloque vacío. «Sin viajes para mostrar.» sí pasa a `EmptyState`. El vacío de `BandejaViajes` ya usa `Table.emptyState`.
+- **`ClienteSelector` (9.3):** `variant="searchable"` con `noResultsText="Sin clientes que coincidan"`. El control es un `combobox` con nombre «Cliente». Las pruebas de `ClienteSelector` y `CrearViaje` buscaban un `button`; ahora buscan el `combobox`. La prueba «sin permitir texto libre» se reescribió: verifica que la búsqueda filtra y que escribir un valor sin coincidencias no emite `onChange`.
+- **Dashboard (9.4):** las dos tablas de conteo (`Viajes en curso por estado` y `Cambios de estado en el periodo`) pasan a `Stat` dentro de `Grid`, con `role="group"` y el título como nombre accesible. La tabla de viajes se conserva.
+- **Desviación de R10 (`loading` en `Stat`):** no se usa `loading`. Los conteos solo existen cuando la consulta resuelve, así que no hay un `Stat` que mostrar durante la carga. Durante la carga se muestra un `SkeletonCard` en un `role="status"`. Si se quiere `Stat loading` con etiquetas fijas, hay que decidirlo.
+- **Pendiente de revisión visual:** la apariencia de `Stat` y del buscador de clientes en claro y oscuro se revisa en la tarea 12.2.
+
+## 10. Bloque 10: mensajería (tarea 10.1, 2026-11-17)
+
+**D5 cumplida.** El `Mensaje` del contrato `v0.1.0-tracer.40`, que es la versión que fija `@ai27-tech/contracts` en `package.json`, trae `actor_real` y `rol_al_enviar`. Ambos vienen en `contracts/openapi/mensajeria.yaml` y en `contracts/openapi/bff.yaml`, con la descripción «solo se entrega a audiencia Interno». No hay brecha contractual, así que el bloque sigue.
+
+- **Lectura:** `git show v0.1.0-tracer.40:contracts/openapi/mensajeria.yaml` y `...bff.yaml`. No se leyó el checkout local.
+- **Desfase del checkout:** el directorio local `repos/pf-pkg-contracts` está en la rama `feat/ficha-tecnica-e-historico-tracer21`. Su `HEAD` no es `tracer.40`, así que lo que se lee ahí no corresponde a lo que el portal consume. Sin cambios en ese repo.
+- **Pendiente (10.2 a 10.5):** antes de tocar el flujo de envío hay que decidir quién genera el `clientMessageId` (el compositor de la librería lo crea en `onSend`; el hook actual `useConversacion` lo guarda en una `ref`) y cómo se clasifican los errores (`ErrorConflictoVersionReclamo`, `ErrorConversacionSoloLectura` y `ApiError` con 403 ya existen en `src/lib/api`).

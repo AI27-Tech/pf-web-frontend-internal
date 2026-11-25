@@ -1,5 +1,7 @@
 import { Outlet, createRootRoute } from '@tanstack/react-router';
 
+import { PageProgress } from '@/app/shell/PageProgress';
+
 export const Route = createRootRoute({
   component: RootLayout,
 });
@@ -7,6 +9,7 @@ export const Route = createRootRoute({
 function RootLayout() {
   return (
     <div className="min-h-dvh bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
+      <PageProgress />
       <Outlet />
     </div>
   );

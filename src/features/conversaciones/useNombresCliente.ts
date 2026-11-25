@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { useSession } from '@/context/SessionContext';
 import { listarTodosClientes } from '@/lib/api/clientes';
 
-export function useNombresCliente() {
+/** habilitado en falso evita pedir el catálogo a un rol que no lo puede listar. */
+export function useNombresCliente(habilitado = true) {
   const { sesion } = useSession();
   const [nombres, setNombres] = useState<Record<string, string>>({});
   useEffect(() => {
-    if (!sesion) return;
+    if (!sesion || !habilitado) return;
     void listarTodosClientes(sesion.accessToken)
       .then((clientes) => {
         const mapa: Record<string, string> = {};
@@ -14,6 +15,6 @@ export function useNombresCliente() {
         setNombres(mapa);
       })
       .catch(() => undefined);
-  }, [sesion]);
+  }, [sesion, habilitado]);
   return nombres;
 }

@@ -34,6 +34,9 @@ export function getInitialRouteForRole(rol: Rol): string {
     // Administrador ve el panel del Jefe Operativo (por ahora)
     administrador: '/jefe-operativo/panel',
 
+    // Bandeja de solicitudes (decisión del Lead 11)
+    cotizacion: '/solicitudes',
+
     // Cliente (no debería llegar aquí; diferente frontend)
     cliente: '/dashboard',
   };

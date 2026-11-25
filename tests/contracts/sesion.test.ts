@@ -18,7 +18,7 @@
 import { describe, expect, it } from 'vitest';
 import type { components } from '@ai27-tech/contracts/openapi/bff';
 
-import { DEMO_CREDENTIALS, createSessionWire } from '@/mocks/data';
+import { createSessionWire } from '@/mocks/data';
 import { parseSesion, SesionInvalidaError, decodificarClaims } from '@/lib/contracts';
 
 type Sesion = components['schemas']['Sesion'];
@@ -27,12 +27,12 @@ type RefrescoEntrada = components['schemas']['RefrescoEntrada'];
 
 describe('contrato de sesion (tracer)', () => {
   it('el fixture del mock satisface el tipo Sesion del contrato', () => {
-    const wire = createSessionWire() satisfies Sesion;
+    const wire = createSessionWire('operador') satisfies Sesion;
     expect(wire).toBeTruthy();
   });
 
   it('la respuesta de sesion trae las claves del contrato, no las inventadas', () => {
-    const wire = createSessionWire();
+    const wire = createSessionWire('operador');
 
     expect(wire).toHaveProperty('sesion_id');
     expect(wire).toHaveProperty('access_token');
@@ -45,8 +45,8 @@ describe('contrato de sesion (tracer)', () => {
 
   it('las credenciales demo casan con CredencialesEntrada del contrato', () => {
     const credenciales = {
-      usuario: DEMO_CREDENTIALS.usuario,
-      contrasena: DEMO_CREDENTIALS.contrasena,
+      usuario: 'operador@demo.ai27',
+      contrasena: 'demo1234',
     } satisfies CredencialesEntrada;
 
     expect(Object.keys(credenciales).sort()).toEqual(['contrasena', 'usuario']);
@@ -54,8 +54,8 @@ describe('contrato de sesion (tracer)', () => {
 
   it('las credenciales con segundo factor casan con el contrato tracer.20', () => {
     const credenciales = {
-      usuario: DEMO_CREDENTIALS.usuario,
-      contrasena: DEMO_CREDENTIALS.contrasena,
+      usuario: 'operador@demo.ai27',
+      contrasena: 'demo1234',
       segundo_factor: '123456',
     } satisfies CredencialesEntrada;
 
@@ -68,7 +68,7 @@ describe('contrato de sesion (tracer)', () => {
   });
 
   it('el access_token del mock lleva claims decodificables', () => {
-    const wire = createSessionWire();
+    const wire = createSessionWire('operador');
     const claims = decodificarClaims(wire.access_token);
 
     expect(claims).not.toBeNull();
@@ -77,7 +77,7 @@ describe('contrato de sesion (tracer)', () => {
   });
 
   it('parseSesion deriva rol/audiencia de los claims y preserva sesionId', () => {
-    const wire = createSessionWire();
+    const wire = createSessionWire('operador');
     const sesion = parseSesion(wire);
 
     expect(sesion.sesionId).toBe(wire.sesion_id);

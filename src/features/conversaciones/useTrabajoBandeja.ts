@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSession } from '@/context/SessionContext';
-import { listarTrabajoBandeja } from '@/lib/api/conversaciones';
+import { listarTrabajoBandeja, listarTrabajoBandejaSolicitudes } from '@/lib/api/conversaciones';
 import { ApiError } from '@/lib/api/errors';
 import type { Conversacion } from '@/lib/contracts/conversaciones';
 import { aplicarConversaciones } from './aplicarCambios';
 import { crearPolling } from './actualizacion';
 
-export function useTrabajoBandeja() {
+/** De dónde sale el trabajo: conversaciones del viaje (ejecutivo) o de la solicitud (cotizacion). */
+export type OrigenConversaciones = 'viaje' | 'solicitud';
+
+export function useTrabajoBandeja(origen: OrigenConversaciones = 'viaje') {
+  const listar = origen === 'solicitud' ? listarTrabajoBandejaSolicitudes : listarTrabajoBandeja;
   const { sesion } = useSession();
   const token = sesion?.accessToken ?? '';
   const [items, setItems] = useState<Conversacion[]>([]);
@@ -22,7 +26,7 @@ export function useTrabajoBandeja() {
     setCargando(true);
     setError(null);
     try {
-      const data = await listarTrabajoBandeja(token);
+      const data = await listar(token);
       setItems(data.items);
       setRevision(data.revision);
       setCursor(data.cursor_siguiente);
@@ -33,7 +37,7 @@ export function useTrabajoBandeja() {
     } finally {
       setCargando(false);
     }
-  }, [token]);
+  }, [listar, token]);
 
   // La carga inicial sincroniza una fuente externa (BFF) con el estado local.
   useEffect(() => {
@@ -45,7 +49,7 @@ export function useTrabajoBandeja() {
     if (!token || revision === undefined) return;
     const polling = crearPolling(async () => {
       try {
-        const data = await listarTrabajoBandeja(token, revision);
+        const data = await listar(token, revision);
         setItems((old) => aplicarConversaciones(old, data.items));
         setRevision(data.revision);
         setCursor(data.cursor_siguiente);
@@ -62,13 +66,13 @@ export function useTrabajoBandeja() {
     });
     polling.iniciar();
     return () => polling.detener();
-  }, [bootstrap, token, revision]);
+  }, [bootstrap, listar, token, revision]);
 
   const cargarMas = useCallback(async () => {
     if (!cursor || cargandoMas) return;
     setCargandoMas(true);
     try {
-      const data = await listarTrabajoBandeja(token, undefined, cursor);
+      const data = await listar(token, undefined, cursor);
       setItems((old) => aplicarConversaciones(old, data.items));
       setRevision(data.revision);
       setCursor(data.cursor_siguiente);
@@ -80,7 +84,7 @@ export function useTrabajoBandeja() {
     } finally {
       setCargandoMas(false);
     }
-  }, [cargandoMas, cursor, token]);
+  }, [cargandoMas, cursor, listar, token]);
 
   return {
     items,

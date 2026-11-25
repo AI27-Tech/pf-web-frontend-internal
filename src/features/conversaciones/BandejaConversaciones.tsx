@@ -1,36 +1,70 @@
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { Button } from '@ai27-tech/ui';
+import { Alert, Grid, PageHeader, SkeletonText } from '@ai27-tech/ui';
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { ErrorConversacionNoDisponible } from '@/lib/api/conversaciones';
 import { useSession } from '@/context/SessionContext';
-import { useTrabajoBandeja } from './useTrabajoBandeja';
+import { puede } from '@/lib/permisos';
+import { useTrabajoBandeja, type OrigenConversaciones } from './useTrabajoBandeja';
 import { useNombresCliente } from './useNombresCliente';
 import { useConversacion } from './useConversacion';
 import { ListaTrabajo } from './ListaTrabajo';
 import { PanelConversacion } from './PanelConversacion';
 
+/**
+ * Bandeja de conversaciones del viaje (`ejecutivo`; SUP y COO en solo lectura). La conversación
+ * abierta viaja en `?conversacion=` de `/conversaciones`.
+ */
 export function BandejaConversaciones() {
-  const { usuario } = useSession();
   const navigate = useNavigate();
   const search = useSearch({ from: '/_private/conversaciones' });
-  const id = search.conversacion;
-  const bandeja = useTrabajoBandeja();
-  const nombres = useNombresCliente();
-  const detalle = useConversacion(id);
   const seleccionar = (next: string) =>
     void (navigate as unknown as (options: { search: Record<string, string> }) => Promise<void>)({
       search: { conversacion: next },
     });
+  return (
+    <BandejaConversacionesBase
+      origen="viaje"
+      conversacionId={search.conversacion}
+      onSeleccionar={seleccionar}
+    />
+  );
+}
+
+interface BandejaConversacionesBaseProps {
+  /** De dónde sale el trabajo: el viaje (`ejecutivo`) o la solicitud (`cotizacion`). */
+  readonly origen: OrigenConversaciones;
+  readonly conversacionId: string | undefined;
+  readonly onSeleccionar: (id: string) => void;
+}
+
+/**
+ * Bandeja y panel de conversación, sin saber de rutas. Lo usan el viaje (`/conversaciones`) y la
+ * solicitud (`/solicitudes?vista=conversaciones`): el reclamo, la respuesta y la lectura son el
+ * mismo mecanismo (DEC-148 #31). Qué rol opera lo decide la capacidad de cada origen.
+ */
+export function BandejaConversacionesBase({
+  origen,
+  conversacionId: id,
+  onSeleccionar: seleccionar,
+}: BandejaConversacionesBaseProps) {
+  const { usuario } = useSession();
+  const bandeja = useTrabajoBandeja(origen);
+  // cotizacion no lista clientes (403): sus conversaciones muestran el id del cliente.
+  const nombres = useNombresCliente(origen === 'viaje' || puede(usuario?.rol, 'clientes.listar'));
+  const detalle = useConversacion(id);
+  const capacidadOperar = origen === 'solicitud' ? 'solicitud.conversacion' : 'conversacion.operar';
+  // Transferir solo existe en la solicitud: el destino es el id del sujeto (DEC-148 #74). En el
+  // viaje sería el `sub` del destinatario, que el panel no conoce (DT-28).
+  const puedeTransferir = origen === 'solicitud' && puede(usuario?.rol, 'solicitud.transferir');
   const panelVisible = Boolean(detalle.conversacion && !detalle.cargando);
   return (
-    <div
-      style={{
-        display: 'grid',
-        gap: 'var(--ui-space-4)',
-        gridTemplateColumns: 'minmax(18rem, 32rem) minmax(0, 1fr)',
-      }}
-    >
+    <Grid gap={4} style={{ gridTemplateColumns: 'minmax(18rem, 32rem) minmax(0, 1fr)' }}>
       <section>
-        <h1 className="ui-text-headline-lg">Bandeja de conversaciones</h1>
+        <PageHeader
+          title={
+            origen === 'solicitud' ? 'Conversaciones de solicitudes' : 'Bandeja de conversaciones'
+          }
+        />
         <ListaTrabajo
           items={bandeja.items}
           sujetoId={usuario?.id ?? ''}
@@ -54,6 +88,7 @@ export function BandejaConversaciones() {
             conversacion={detalle.conversacion}
             mensajes={detalle.mensajes}
             sujetoId={usuario?.id ?? ''}
+            soloLectura={!puede(usuario?.rol, capacidadOperar)}
             borrador={detalle.borrador}
             setBorrador={detalle.setBorrador}
             enviando={detalle.enviando}
@@ -68,24 +103,29 @@ export function BandejaConversaciones() {
             onReclamar={() => void detalle.reclamar()}
             onDevolver={() => void detalle.devolver()}
             onAtendida={() => void detalle.atendida()}
+            {...(puedeTransferir ? { onTransferir: detalle.transferir } : {})}
           />
         ) : (
           <div>
-            <p>
-              {detalle.error ? (
-                <span role="alert">{detalle.error.message}</span>
-              ) : id ? (
-                'Cargando conversación...'
+            {detalle.error ? (
+              detalle.error instanceof ErrorConversacionNoDisponible ? (
+                <Alert variant="danger">{detalle.error.message}</Alert>
               ) : (
-                'Selecciona una conversación para leerla.'
-              )}
-            </p>
-            {detalle.error && !(detalle.error instanceof ErrorConversacionNoDisponible) && (
-              <Button onClick={() => void detalle.recargar()}>Reintentar</Button>
+                <BloqueError
+                  mensaje={detalle.error.message}
+                  onReintentar={() => void detalle.recargar()}
+                />
+              )
+            ) : id ? (
+              <div role="status" aria-label="Cargando conversación">
+                <SkeletonText lines={4} />
+              </div>
+            ) : (
+              <p>Selecciona una conversación para leerla.</p>
             )}
           </div>
         )}
       </section>
-    </div>
+    </Grid>
   );
 }

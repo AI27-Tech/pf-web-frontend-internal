@@ -1,8 +1,14 @@
-import { useState } from 'react';
-import { Button, Modal } from '@ai27-tech/ui';
+import { useEffect, useState } from 'react';
+import { Button, Inline, Modal } from '@ai27-tech/ui';
 import type { EmergenciaViaje } from '@/lib/contracts/emergencias';
 import { ErrorAccionNoPermitida, ErrorSinAccesoEmergencias } from '@/lib/api/emergencias';
 import { useActivarEmergencia } from './useActivarEmergencia';
+
+/** Resultado de la activación para que el padre lo muestre en una alerta. */
+export interface AvisoEmergencia {
+  readonly tipo: 'danger';
+  readonly mensaje: string;
+}
 
 interface AccionEmergenciaProps {
   viajeId: string;
@@ -10,48 +16,56 @@ interface AccionEmergenciaProps {
   onActivada: (caso: EmergenciaViaje) => void;
   /** El viaje ya es terminal (409): recargar el detalle. */
   onViajeTerminal: () => void;
+  /** Éxito o error de la activación. El padre decide dónde mostrarlo. */
+  onAviso: (aviso: AvisoEmergencia) => void;
 }
 
 /**
  * Botón de emergencia del monitoreo. El padre solo lo monta en estados no terminales
  * (`puedeActivar`). Pide confirmación antes de activar.
+ *
+ * Solo dibuja el botón y el modal. El aviso lo muestra el padre fuera del encabezado,
+ * para que no quede apilado bajo el botón.
  */
-export function AccionEmergencia({ viajeId, onActivada, onViajeTerminal }: AccionEmergenciaProps) {
+export function AccionEmergencia({
+  viajeId,
+  onActivada,
+  onViajeTerminal,
+  onAviso,
+}: AccionEmergenciaProps) {
   const [confirmando, setConfirmando] = useState(false);
-  const [aviso, setAviso] = useState<string | null>(null);
   const { activar, enCurso, error } = useActivarEmergencia(viajeId, {
-    onActivada: (caso) => {
-      setAviso('Emergencia activada. Puedes agregar una nota si lo necesitas.');
-      onActivada(caso);
-    },
+    // Sin aviso de éxito: la alerta de emergencias activas ya muestra el resultado.
+    onActivada,
     onViajeTerminal,
   });
 
+  useEffect(() => {
+    if (error) onAviso({ tipo: 'danger', mensaje: mensajeActivacion(error) });
+  }, [error, onAviso]);
+
   const confirmar = async () => {
     setConfirmando(false);
-    setAviso(null);
     await activar();
   };
 
   return (
-    <div style={{ display: 'grid', gap: 'var(--ui-space-2)' }}>
-      <Button variant="secondary" onClick={() => setConfirmando(true)} disabled={enCurso}>
+    <>
+      <Button variant="danger" onClick={() => setConfirmando(true)} disabled={enCurso}>
         {enCurso ? 'Activando...' : 'Activar emergencia'}
       </Button>
-      {aviso && <p role="status">{aviso}</p>}
-      {error && <p role="alert">{mensajeActivacion(error)}</p>}
       <Modal open={confirmando} onClose={() => setConfirmando(false)} title="Activar emergencia">
         <p>Se registrará una emergencia activa para este viaje.</p>
-        <div style={{ display: 'flex', gap: 'var(--ui-space-2)' }}>
+        <Inline gap={2} wrap={false} align="stretch">
           <Button variant="outline" onClick={() => setConfirmando(false)}>
             Cancelar
           </Button>
           <Button onClick={() => void confirmar()} disabled={enCurso}>
             Activar
           </Button>
-        </div>
+        </Inline>
       </Modal>
-    </div>
+    </>
   );
 }
 

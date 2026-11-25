@@ -6,6 +6,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import { StubPage } from '@/components/layout/StubPage';
+import { RequiereCapacidad } from '@/components/permisos/RequiereCapacidad';
 
 export const Route = createFileRoute('/_private/reportes')({
   component: ReportesPage,
@@ -13,10 +14,12 @@ export const Route = createFileRoute('/_private/reportes')({
 
 function ReportesPage() {
   return (
-    <StubPage
-      titulo="Reportes"
-      historia="E6"
-      descripcion="Aquí irán los reportes del servicio: descarga del viaje, evidencia y los indicadores del periodo."
-    />
+    <RequiereCapacidad capacidad="reportes.ver">
+      <StubPage
+        titulo="Reportes"
+        historia="E6"
+        descripcion="Aquí irán los reportes del servicio: descarga del viaje, evidencia y los indicadores del periodo."
+      />
+    </RequiereCapacidad>
   );
 }

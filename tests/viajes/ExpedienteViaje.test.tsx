@@ -26,7 +26,14 @@ vi.mock('@/context/SessionContext', () => ({
     logout: vi.fn(),
   }),
 }));
-vi.mock('@tanstack/react-router', () => ({ useNavigate: () => navigateSpy }));
+vi.mock('@tanstack/react-router', async () => {
+  const { createElement } = await import('react');
+  return {
+    useNavigate: () => navigateSpy,
+    Link: ({ to, children }: { to: string; children?: unknown }) =>
+      createElement('a', { href: to }, children as never),
+  };
+});
 
 const blobsCreados: Blob[] = [];
 const anclasClic: { download: string }[] = [];
@@ -85,7 +92,9 @@ describe('ExpedienteViaje — descarga correcta', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Descargar expediente' }));
 
-    expect(await screen.findByRole('button', { name: 'En preparación' })).toBeDisabled();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Descargar expediente' })).toBeDisabled(),
+    );
     expect(await screen.findByText('Expediente descargado')).toBeInTheDocument();
 
     expect(solicitudes).toBe(1);
@@ -140,7 +149,7 @@ describe('ExpedienteViaje — errores clasificados', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Descargar expediente' }));
 
     expect(
-      await screen.findByText('El viaje no existe. No hay expediente que descargar.'),
+      await screen.findByText('Viaje no encontrado. No hay expediente que descargar.'),
     ).toBeInTheDocument();
     expect(blobsCreados).toHaveLength(0);
   });
@@ -196,9 +205,7 @@ describe('ExpedienteViaje — roles sin acceso', () => {
       sesionFalsa.rol = rol;
       renderExpediente();
 
-      expect(
-        screen.getByText('Este expediente no está disponible para tu rol.'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('Sin permiso')).toBeInTheDocument();
       expect(
         screen.queryByRole('button', { name: 'Descargar expediente' }),
       ).not.toBeInTheDocument();

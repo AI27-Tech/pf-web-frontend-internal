@@ -1,26 +1,26 @@
 /*
  * Pantalla de descarga del expediente del viaje (E8-T17, Bloque A).
  *
- * Solo descarga el expediente de un viaje. No lista ni descarga en lote, y no
- * monta la evidencia (Bloque C). Los mensajes son de trabajo y están pendientes
- * de aprobación de Producto.
+ * Solo descarga el expediente de un viaje. No lista ni descarga en lote, y la
+ * evidencia (Bloque C) se monta debajo. Los mensajes son de trabajo y están
+ * pendientes de aprobación de Producto.
  */
 
 import { useState, type ReactNode } from 'react';
 
 import {
-  Button,
+  Alert,
+  Badge,
   Card,
   CardBody,
-  CardFooter,
-  CardHeader,
+  Inline,
+  Section,
+  Stack,
   Toast,
   ToastContainer,
 } from '@ai27-tech/ui';
-import { useNavigate } from '@tanstack/react-router';
 
-import { useSession } from '@/context/SessionContext';
-import { puedeUsarMonitoreo } from '@/features/monitoreo/puedeUsarMonitoreo';
+import { RequiereCapacidad } from '@/components/permisos/RequiereCapacidad';
 
 import { EvidenciaViaje } from '@/features/viajes/evidencia/EvidenciaViaje';
 
@@ -31,25 +31,19 @@ export interface ExpedienteViajeProps {
   readonly id: string;
 }
 
+/**
+ * Expediente del viaje. Los hooks de datos viven en `DescargaExpediente`, que solo se monta
+ * con `monitoreo.consultar` (M7): los demás roles ven "sin permiso" y no se pide nada.
+ */
 export function ExpedienteViaje({ id }: ExpedienteViajeProps) {
-  const { usuario } = useSession();
-  const navigate = useNavigate();
-  const onVolver = () => void navigate({ to: '/viajes/$id', params: { id } });
-
-  if (!usuario || !puedeUsarMonitoreo(usuario.rol)) {
-    return <AccesoNoAutorizado onVolver={onVolver} />;
-  }
-
-  return <DescargaExpediente id={id} onVolver={onVolver} />;
+  return (
+    <RequiereCapacidad capacidad="monitoreo.consultar">
+      <DescargaExpediente id={id} />
+    </RequiereCapacidad>
+  );
 }
 
-function DescargaExpediente({
-  id,
-  onVolver,
-}: {
-  readonly id: string;
-  readonly onVolver: () => void;
-}) {
+function DescargaExpediente({ id }: { readonly id: string }) {
   const d = useDescargaExpediente(id);
   const [avisoCerrado, setAvisoCerrado] = useState(false);
 
@@ -59,54 +53,39 @@ function DescargaExpediente({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 'var(--ui-space-3)',
-        }}
-      >
-        <div>
-          <h1 className="ui-text-headline-lg" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-            Expediente del viaje
-          </h1>
-          <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text-muted)' }}>
-            Viaje: {id}
-          </p>
-        </div>
-        <Button variant="secondary" type="button" onClick={onVolver}>
-          Volver al detalle
-        </Button>
-      </div>
-
+    <Stack gap={4}>
       <Card>
-        <CardHeader>
-          <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-            Descarga del expediente
-          </p>
-        </CardHeader>
         <CardBody>
-          <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-            Descarga el expediente completo del viaje: ficha técnica, bitácora y auditoría.
-          </p>
-          {d.esProhibido && (
-            <Mensaje>
-              No tienes autorización para descargar el expediente de este viaje. Puede ser por falta
-              de permiso o porque el viaje está fuera de tu alcance.
-            </Mensaje>
-          )}
-          {d.esNoEncontrado && (
-            <Mensaje>El viaje no existe. No hay expediente que descargar.</Mensaje>
-          )}
-          {d.esErrorRecuperable && (
-            <Mensaje>No se pudo preparar el expediente. Vuelve a intentarlo.</Mensaje>
-          )}
+          <Section
+            title="Descarga del expediente"
+            divider
+            actions={
+              <BotonDescargarExpediente preparando={d.preparando} onDescargar={onDescargar} />
+            }
+          >
+            <Stack gap={3}>
+              <Inline gap={2} align="center" wrap>
+                <span className="ui-text-body-sm" style={{ color: 'var(--ui-color-text-muted)' }}>
+                  Incluye:
+                </span>
+                <Badge variant="neutral">Ficha técnica</Badge>
+                <Badge variant="neutral">Bitácora</Badge>
+                <Badge variant="neutral">Auditoría</Badge>
+              </Inline>
+              {d.esProhibido && (
+                <Mensaje>
+                  No tienes autorización para descargar el expediente de este viaje.
+                </Mensaje>
+              )}
+              {d.esNoEncontrado && (
+                <Mensaje>Viaje no encontrado. No hay expediente que descargar.</Mensaje>
+              )}
+              {d.esErrorRecuperable && (
+                <Mensaje>No se pudo preparar el expediente. Vuelve a intentarlo.</Mensaje>
+              )}
+            </Stack>
+          </Section>
         </CardBody>
-        <CardFooter>
-          <BotonDescargarExpediente preparando={d.preparando} onDescargar={onDescargar} />
-        </CardFooter>
       </Card>
 
       <EvidenciaViaje id={id} />
@@ -120,35 +99,10 @@ function DescargaExpediente({
           />
         )}
       </ToastContainer>
-    </div>
+    </Stack>
   );
 }
 
 function Mensaje({ children }: { readonly children: ReactNode }) {
-  return (
-    <p
-      className="ui-text-body-sm"
-      role="alert"
-      style={{ margin: 'var(--ui-space-2) 0 0', color: 'var(--ui-color-text)' }}
-    >
-      {children}
-    </p>
-  );
-}
-
-function AccesoNoAutorizado({ onVolver }: { readonly onVolver: () => void }) {
-  return (
-    <Card variant="outlined">
-      <CardBody>
-        <p className="ui-text-body-sm" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-          Este expediente no está disponible para tu rol.
-        </p>
-      </CardBody>
-      <CardFooter>
-        <Button variant="secondary" type="button" onClick={onVolver}>
-          Volver al detalle
-        </Button>
-      </CardFooter>
-    </Card>
-  );
+  return <Alert variant="danger">{children}</Alert>;
 }

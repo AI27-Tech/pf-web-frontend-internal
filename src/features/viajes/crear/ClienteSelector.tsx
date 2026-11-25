@@ -8,9 +8,12 @@
 
 import type { ReactNode } from 'react';
 
-import { Button, Card, CardBody, CardFooter, FormField, Select } from '@ai27-tech/ui';
+import { Alert, EmptyState, FormField, Select, SkeletonText } from '@ai27-tech/ui';
 
-export type EstadoCatalogoClientes = 'brecha' | 'cargando' | 'vacio' | 'error' | 'disponible';
+import { BloqueError } from '@/components/feedback/BloqueError';
+
+export type EstadoCatalogoClientes =
+  'brecha' | 'cargando' | 'vacio' | 'error' | 'prohibido' | 'disponible';
 
 export interface ClienteOption {
   readonly id: string;
@@ -41,13 +44,7 @@ export function ClienteSelector({
   if (estado === 'brecha') {
     return (
       <EstadoCliente error={error}>
-        <Card variant="outlined">
-          <CardBody>
-            <p role="status" style={{ margin: 0 }}>
-              El catálogo de clientes todavía no está disponible en el BFF.
-            </p>
-          </CardBody>
-        </Card>
+        <Alert variant="info">El catálogo de clientes todavía no está disponible en el BFF.</Alert>
       </EstadoCliente>
     );
   }
@@ -55,7 +52,18 @@ export function ClienteSelector({
   if (estado === 'cargando') {
     return (
       <EstadoCliente error={error}>
-        <p role="status">Cargando catálogo de clientes...</p>
+        <div role="status" aria-label="Cargando catálogo de clientes">
+          <SkeletonText lines={1} />
+        </div>
+      </EstadoCliente>
+    );
+  }
+
+  // `403` del catálogo: no es un fallo transitorio, así que no se ofrece reintentar.
+  if (estado === 'prohibido') {
+    return (
+      <EstadoCliente error={error}>
+        <Alert variant="warning">No tienes permiso para ver el catálogo de clientes.</Alert>
       </EstadoCliente>
     );
   }
@@ -63,20 +71,14 @@ export function ClienteSelector({
   if (estado === 'error') {
     return (
       <EstadoCliente error={error}>
-        <Card variant="outlined">
-          <CardBody>
-            <p role="alert" style={{ margin: 0 }}>
-              No se pudo cargar el catálogo de clientes.
-            </p>
-          </CardBody>
-          {onReintentar && (
-            <CardFooter>
-              <Button variant="secondary" type="button" onClick={onReintentar}>
-                Reintentar
-              </Button>
-            </CardFooter>
-          )}
-        </Card>
+        {onReintentar ? (
+          <BloqueError
+            mensaje="No se pudo cargar el catálogo de clientes."
+            onReintentar={onReintentar}
+          />
+        ) : (
+          <Alert variant="danger">No se pudo cargar el catálogo de clientes.</Alert>
+        )}
       </EstadoCliente>
     );
   }
@@ -84,7 +86,7 @@ export function ClienteSelector({
   if (estado === 'vacio' || clientes.length === 0) {
     return (
       <EstadoCliente error={error}>
-        <p role="status">No hay clientes disponibles para tu alcance.</p>
+        <EmptyState size="sm" title="No hay clientes disponibles para tu alcance." />
       </EstadoCliente>
     );
   }
@@ -92,6 +94,8 @@ export function ClienteSelector({
   return (
     <FormField label="Cliente" required error={error}>
       <Select
+        variant="searchable"
+        noResultsText="Sin clientes que coincidan"
         value={value}
         options={clientes.map((cliente) => ({
           value: cliente.id,
@@ -119,11 +123,7 @@ function EstadoCliente({
         Cliente <span aria-hidden="true">*</span>
       </p>
       {children}
-      {error && (
-        <p role="alert" style={{ color: 'var(--ui-color-error)', margin: 0 }}>
-          {error}
-        </p>
-      )}
+      {error && <Alert variant="danger">{error}</Alert>}
     </div>
   );
 }

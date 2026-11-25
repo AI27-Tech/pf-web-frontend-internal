@@ -48,6 +48,13 @@ describe('adaptador de crearViaje', () => {
     ]);
   });
 
+  it('envía tipo_servicio solo cuando se eligió uno', () => {
+    expect(construirCrearViajeEntrada(datosBase)).not.toHaveProperty('tipo_servicio');
+    expect(construirCrearViajeEntrada({ ...datosBase, tipoServicio: 'local' })).toMatchObject({
+      tipo_servicio: 'local',
+    });
+  });
+
   it('crea sin unidades y representa APROBADO solo con la respuesta del BFF', async () => {
     let llamadasCreacion = 0;
     server.use(

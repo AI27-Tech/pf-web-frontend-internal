@@ -16,16 +16,13 @@ import { EstadoViaje, TRANSICIONES_VIAJE, esTerminal } from '@/lib/contracts/via
 
 // Generar todos los estados conocidos como un conjunto exhaustivo
 const TODOS_LOS_ESTADOS = [
-  EstadoViaje.Solicitado,
   EstadoViaje.Aprobado,
   EstadoViaje.Asignado,
   EstadoViaje.EnTransito,
   EstadoViaje.EnDestino,
   EstadoViaje.EnDescarga,
   EstadoViaje.Cerrado,
-  EstadoViaje.RechazadoPorAi27,
-  EstadoViaje.RechazadoPorCliente,
-  EstadoViaje.Cancelado,
+  EstadoViaje.CanceladoPorCliente,
 ];
 
 describe('accionesDesde (Property Tests)', () => {
@@ -52,12 +49,8 @@ describe('accionesDesde (Property Tests)', () => {
   it('Property 2: Estados terminales sin acciones', () => {
     fc.assert(
       fc.property(
-        fc.constantFrom(
-          EstadoViaje.RechazadoPorAi27,
-          EstadoViaje.RechazadoPorCliente,
-          EstadoViaje.Cerrado,
-          EstadoViaje.Cancelado,
-        ),
+        fc.constantFrom(EstadoViaje.Cerrado, EstadoViaje.CanceladoPorCliente),
+
         (estado) => {
           const acciones = accionesDesde(estado);
           expect(acciones.length).toBe(0);
@@ -72,7 +65,6 @@ describe('accionesDesde (Property Tests)', () => {
     fc.assert(
       fc.property(
         fc.constantFrom(
-          EstadoViaje.Solicitado,
           EstadoViaje.Aprobado,
           EstadoViaje.Asignado,
           EstadoViaje.EnTransito,

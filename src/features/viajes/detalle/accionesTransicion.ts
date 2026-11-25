@@ -10,6 +10,7 @@
  */
 
 import { type EstadoViaje, TRANSICIONES_VIAJE, esTerminal } from '@/lib/contracts/viajeDetalle';
+import { capacidadDeTransicion, puede } from '@/lib/permisos';
 
 /**
  * Deriva los estados destino alcanzables desde un estado origen dado.
@@ -36,4 +37,21 @@ export function accionesDesde(estado: EstadoViaje): EstadoViaje[] {
 
   // Excluye PATRULLA_EN_CAMINO (inalcanzable en V1)
   return destinosPosibles.filter((destino) => destino !== 'PATRULLA_EN_CAMINO');
+}
+
+/**
+ * Deja solo las transiciones que el rol puede ejercer (M4, Requirement 5.2 a 5.4).
+ *
+ * El estado decide qué aristas existen (`accionesDesde`); la política decide cuáles
+ * ejerce el rol. Un destino sin capacidad (`null`: lo dispara el cliente o es
+ * inalcanzable) o sin mapear (`undefined`) no se ofrece.
+ */
+export function accionesPermitidas(
+  acciones: readonly EstadoViaje[],
+  rol: string | null | undefined,
+): EstadoViaje[] {
+  return acciones.filter((destino) => {
+    const capacidad = capacidadDeTransicion(destino);
+    return capacidad ? puede(rol, capacidad) : false;
+  });
 }

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * PresentaciÃ³n de la bandeja operativa de viajes (E8-T7).
  *
  * Compone `FilterTable` (con las columnas de `filaViaje`, el filtro de estado y
@@ -13,15 +13,30 @@
 
 import { useEffect } from 'react';
 
-import { Button, Card, CardBody, CardFooter, FilterBar, Pagination, Table } from '@ai27-tech/ui';
+import {
+  Alert,
+  Button,
+  Card,
+  CardBody,
+  EmptyState,
+  FilterBar,
+  PageHeader,
+  Pagination,
+  SkeletonText,
+  Stack,
+  Table,
+} from '@ai27-tech/ui';
 import type { FilterDefinition } from '@ai27-tech/ui';
 import { useNavigate } from '@tanstack/react-router';
 
+import { BloqueError } from '@/components/feedback/BloqueError';
 import { useSession } from '@/context/SessionContext';
+import { puede } from '@/lib/permisos';
 import { ESTADOS_VIAJE } from '@/lib/contracts/viajes';
 
 import { obtenerColumnasViaje } from './filaViaje';
 import { useBandejaViajes } from './useBandejaViajes';
+import { useMiAlcance } from './useMiAlcance';
 import type { ViajeVista } from './viajeVista';
 
 /**
@@ -54,7 +69,11 @@ export function BandejaViajes() {
   const b = useBandejaViajes();
   const { usuario } = useSession();
   const navigate = useNavigate();
-  const columnasViaje = obtenerColumnasViaje(navigate);
+  const columnasViaje = obtenerColumnasViaje();
+  // B-04: solo con la lista vacía y un rol que tiene alcance propio se pregunta cuáles son sus
+  // clientes. Con cualquier otro rol la petición no se emite.
+  const listaVacia = !b.cargando && b.error === null && b.filas.length === 0;
+  const alcance = useMiAlcance(listaVacia && puede(usuario?.rol, 'alcance.leerPropio'));
 
   // Requirement 7.3: un 401 no pinta el error genérico del listado; se delega
   // al flujo de sesión del AppShell (logout limpia el TokenStore y la guarda
@@ -74,28 +93,21 @@ export function BandejaViajes() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 'var(--ui-space-3)',
-        }}
-      >
-        <h1 className="ui-text-headline-lg" style={{ margin: 0, color: 'var(--ui-color-text)' }}>
-          Viajes
-        </h1>
-        {usuario?.rol === 'jefe_operativo' && (
-          <Button
-            variant="primary"
-            type="button"
-            onClick={() => void navigate({ to: '/viajes/crear' })}
-          >
-            Crear viaje
-          </Button>
-        )}
-      </div>
+    <Stack gap={4}>
+      <PageHeader
+        title="Viajes"
+        actions={
+          puede(usuario?.rol, 'viaje.crear') && (
+            <Button
+              variant="primary"
+              type="button"
+              onClick={() => void navigate({ to: '/viajes/crear' })}
+            >
+              Crear viaje
+            </Button>
+          )
+        }
+      />
 
       {/*
         Barra de filtros de la librerÃ­a (FilterBar). Siempre montada (Req 3.5/6.2).
@@ -119,8 +131,9 @@ export function BandejaViajes() {
         columns={columnasViaje}
         data={[...b.filas]}
         loading={b.cargando} // Requirement 5.1
-        emptyState={<MensajeVacio />} // Requirement 6.1
+        emptyState={<MensajeVacio alcance={alcance} />} // Requirement 6.1
         aria-label="Bandeja de viajes"
+        density="comfortable"
       />
 
       {/*
@@ -149,40 +162,40 @@ export function BandejaViajes() {
           onPageChange={(n) => b.irAPagina(n)}
         />
       )}
-    </div>
+    </Stack>
   );
 }
 
 /** Estado vacÃ­o: no hay viajes en el alcance. El filtro sigue visible (Req 6.2). */
-function MensajeVacio() {
-  return (
-    <div style={{ padding: 'var(--ui-space-4)', textAlign: 'center' }}>
-      <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text-muted)', margin: 0 }}>
-        No hay viajes en tu alcance.
-      </p>
-    </div>
-  );
+function MensajeVacio({ alcance }: { readonly alcance: ReturnType<typeof useMiAlcance> }) {
+  // B-04: "sin clientes asignados" (el alcance no tiene clientes) es distinto de "sin viajes".
+  if (alcance.isFetching) {
+    return <SkeletonText lines={2} />;
+  }
+  if (alcance.data && alcance.data.clientes_efectivos_ids.length === 0) {
+    return (
+      <EmptyState
+        title="Sin clientes asignados"
+        description="Todavía no tienes clientes en tu alcance. Pide que te los asignen."
+      />
+    );
+  }
+  return <EmptyState title="Sin viajes" description="No hay viajes en tu alcance." />;
 }
 
 /**
- * Estado de error con acciÃ³n de reintento (Req 7.1/7.2). Compuesto con los
- * primitivos de `Card` de la librerÃ­a (`CardBody` para el mensaje, `CardFooter`
- * para la acciÃ³n). La librerÃ­a no ofrece un componente de alerta/estado de error
- * dedicado; `Card` + `Button` es la composiciÃ³n de primitivos existentes.
+ * Estado de error con acción de reintento (Req 7.1/7.2). `BloqueError` (Alert
+ * danger con el botón Reintentar) va dentro de un `Card`.
  */
 function EstadoError({ onReintentar }: { readonly onReintentar: () => void }) {
   return (
     <Card variant="outlined">
       <CardBody>
-        <p className="ui-text-body-sm" style={{ color: 'var(--ui-color-text)', margin: 0 }}>
-          No se pudo cargar el listado de viajes.
-        </p>
+        <BloqueError
+          mensaje="No se pudo cargar el listado de viajes."
+          onReintentar={onReintentar}
+        />
       </CardBody>
-      <CardFooter>
-        <Button variant="primary" onClick={onReintentar}>
-          Reintentar
-        </Button>
-      </CardFooter>
     </Card>
   );
 }
@@ -192,13 +205,7 @@ function SinPermiso() {
   return (
     <Card variant="outlined">
       <CardBody>
-        <p
-          role="alert"
-          className="ui-text-body-sm"
-          style={{ color: 'var(--ui-color-text)', margin: 0 }}
-        >
-          No tienes permiso para ver el listado de viajes.
-        </p>
+        <Alert variant="danger">No tienes permiso para ver el listado de viajes.</Alert>
       </CardBody>
     </Card>
   );

@@ -13,40 +13,22 @@ describe('accionesDesde', () => {
   // Unit tests: casos específicos y edge cases
 
   describe('estados terminales', () => {
-    it('retorna vacío para RECHAZADO_POR_AI27', () => {
-      const acciones = accionesDesde(EstadoViaje.RechazadoPorAi27);
-      expect(acciones).toEqual([]);
-    });
-
-    it('retorna vacío para RECHAZADO_POR_CLIENTE', () => {
-      const acciones = accionesDesde(EstadoViaje.RechazadoPorCliente);
-      expect(acciones).toEqual([]);
-    });
-
     it('retorna vacío para CERRADO', () => {
       const acciones = accionesDesde(EstadoViaje.Cerrado);
       expect(acciones).toEqual([]);
     });
 
-    it('retorna vacío para CANCELADO', () => {
-      const acciones = accionesDesde(EstadoViaje.Cancelado);
+    it('retorna vacío para CANCELADO_POR_CLIENTE', () => {
+      const acciones = accionesDesde(EstadoViaje.CanceladoPorCliente);
       expect(acciones).toEqual([]);
     });
   });
 
   describe('estados no terminales', () => {
-    it('retorna acciones para SOLICITADO', () => {
-      const acciones = accionesDesde(EstadoViaje.Solicitado);
-      expect(acciones).toContain(EstadoViaje.Aprobado);
-      expect(acciones).toContain(EstadoViaje.RechazadoPorAi27);
-      expect(acciones).toContain(EstadoViaje.Cancelado);
-      expect(acciones).toHaveLength(3);
-    });
-
     it('retorna acciones para APROBADO', () => {
       const acciones = accionesDesde(EstadoViaje.Aprobado);
       expect(acciones).toContain(EstadoViaje.Asignado);
-      expect(acciones).toContain(EstadoViaje.Cancelado);
+      expect(acciones).toContain(EstadoViaje.CanceladoPorCliente);
       expect(acciones).toHaveLength(2);
     });
 
@@ -55,18 +37,16 @@ describe('accionesDesde', () => {
       expect(acciones).toContain(EstadoViaje.AptoParaSalida);
       expect(acciones).toContain(EstadoViaje.EnEmbarque);
       expect(acciones).toContain(EstadoViaje.EnTransito);
-      expect(acciones).toContain(EstadoViaje.RechazadoPorCliente);
-      expect(acciones).toContain(EstadoViaje.Cancelado);
-      expect(acciones).toHaveLength(5);
+      expect(acciones).toContain(EstadoViaje.CanceladoPorCliente);
+      expect(acciones).toHaveLength(4);
     });
 
     it('retorna acciones para APTO_PARA_SALIDA', () => {
       const acciones = accionesDesde(EstadoViaje.AptoParaSalida);
       expect(acciones).toContain(EstadoViaje.EnEmbarque);
       expect(acciones).toContain(EstadoViaje.EnTransito);
-      expect(acciones).toContain(EstadoViaje.RechazadoPorCliente);
-      expect(acciones).toContain(EstadoViaje.Cancelado);
-      expect(acciones).toHaveLength(4);
+      expect(acciones).toContain(EstadoViaje.CanceladoPorCliente);
+      expect(acciones).toHaveLength(3);
     });
 
     it('retorna acciones para EN_EMBARQUE', () => {

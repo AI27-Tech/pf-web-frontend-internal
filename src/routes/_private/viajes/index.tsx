@@ -8,8 +8,17 @@
 
 import { createFileRoute } from '@tanstack/react-router';
 
+import { RequiereCapacidad } from '@/components/permisos/RequiereCapacidad';
 import { BandejaViajes } from '@/features/viajes/BandejaViajes';
 
 export const Route = createFileRoute('/_private/viajes/')({
-  component: BandejaViajes,
+  component: BandejaViajesRoute,
 });
+
+function BandejaViajesRoute() {
+  return (
+    <RequiereCapacidad capacidad="viajes.listar">
+      <BandejaViajes />
+    </RequiereCapacidad>
+  );
+}
