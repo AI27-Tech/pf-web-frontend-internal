@@ -12,6 +12,9 @@ export default defineConfig({
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 2 : 0,
   reporter: process.env['CI'] ? 'github' : 'list',
+  // El bundle mock espera 2.5 s en cada petición de la API (LATENCY_MS en src/mocks/browser.ts).
+  // Con los 5 s por defecto, un flujo de login más lista más refresh no alcanza a terminar.
+  expect: { timeout: 15_000 },
   use: {
     baseURL: `http://localhost:${PORT}`,
     trace: 'on-first-retry',

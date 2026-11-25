@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 2026:11:25 15:52
+
+**Resumen:** Se corrigen las dos pruebas e2e que fallaron en GitHub (`login.spec.ts` y `session-cut.spec.ts`). Ninguna era un defecto de la aplicación: una usaba una cuenta sin permiso para la pantalla que probaba, y la otra no tenía margen para la latencia del bundle mock.
+**Cambios:**
+
+- **`e2e/login.spec.ts`:** la prueba "credenciales válidas conceden sesión y navegan al destino" entraba con `operador@demo.ai27`, que es Jefe Operativo. El dashboard de monitoreo no es de ese rol (DEC-149 #8), así que la app mostraba "sin permiso" y el encabezado "Dashboard de Monitoreo" nunca aparecía. Ahora entra con `monitorista@demo.ai27`.
+- **`playwright.config.ts`:** se sube el tiempo de espera de las aserciones (`expect.timeout`) de 5 s a 15 s. El bundle mock espera 2,5 s en cada petición de la API (`LATENCY_MS` en `src/mocks/browser.ts`), y el flujo de `session-cut.spec.ts` encadena login, lista y refresh, que tardan unos 8 s. El corte de sesión sí funcionaba.
+  **Verificación:** las cinco pruebas e2e pasan en local con `CI=1` y dos workers (`login` 3, `session-cut` 1 y `roster` 1). Antes fallaban dos, de forma reproducible. `eslint e2e playwright.config.ts` y `tsc --build --force` sin errores.
+  **Pendiente:**
+- La latencia de 2,5 s del mock viene del cambio de la barra de progreso (`PageProgress`); si se prefiere no alargar las esperas, se puede bajar la latencia solo para los e2e.
+  **Archivos modificados:**
+- `e2e/login.spec.ts`
+- `playwright.config.ts`
+- `CHANGELOG.md`
+
 ## 2026:11:25 15:41
 
 **Resumen:** Afinación de acciones y vistas por rol, módulo a módulo (spec `afinacion-roles-modulo-a-modulo`; DEC-149 y DEC-152). El panel decide qué ve y qué hace cada uno de los nueve roles con una sola política de capacidades (`lib/permisos`), sube `@ai27-tech/contracts` de `tracer.40` a `tracer.47`, cambia "mis unidades" por "mis clientes", separa `403` de `404`, agrega el módulo de solicitudes (cotización, pago, aprobación y su conversación) y se adapta a la ruptura de `tracer.45`. La rama lleva además tres cambios que no son de roles: el formulario de crear viaje, la barra de progreso de la página y un parche de la línea del tiempo del detalle.

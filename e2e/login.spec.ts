@@ -37,9 +37,11 @@ test.describe('login', () => {
   });
 
   test('credenciales válidas conceden sesión y navegan al destino', async ({ page }) => {
+    // El dashboard es de monitoreo (DEC-149 #8): el Jefe Operativo (operador) no lo ve,
+    // así que esta prueba entra con la cuenta monitorista.
     await page.goto('/login?redirect=/monitoreo/dashboard');
 
-    await page.getByPlaceholder('nombre@empresa.com').fill('operador@demo.ai27');
+    await page.getByPlaceholder('nombre@empresa.com').fill('monitorista@demo.ai27');
     await page.getByPlaceholder('••••••••').fill('demo1234');
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
 
