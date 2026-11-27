@@ -34,6 +34,8 @@ const RUTAS_GUARDADAS: ReadonlyArray<readonly [string, Capacidad]> = [
   ['/catalogos', 'catalogos.ver'],
   ['/reportes', 'reportes.ver'],
   ['/solicitudes', 'solicitud.listar'],
+  ['/conversaciones', 'conversacion.leer'],
+  ['/emergencias', 'emergencia.bandeja'],
   ['/administracion', 'administracion.usuarios'],
   ['/jefe-operativo/panel', 'panel.jefeOperativo'],
   ['/monitoreo/dashboard', 'monitoreo.dashboard'],
