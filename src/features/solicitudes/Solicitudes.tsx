@@ -1,9 +1,13 @@
 /*
  * Solicitudes (M14): bandeja y detalle bajo una sola ruta. La solicitud abierta viaja en la URL
  * (`?id=`), así una liga directa abre el detalle. Aquí viven los avisos efímeros de las acciones.
+ *
+ * El encabezado de la bandeja y de las conversaciones es el `PageHeader` de la librería; el
+ * cambio entre ambas vistas son `Tabs` dentro de él. El detalle pone su propio encabezado
+ * (`DetalleSolicitud`), porque su título depende de la solicitud abierta.
  */
 import { useRef, useState } from 'react';
-import { Button, Inline, PageHeader, Stack, Toast, ToastContainer } from '@ai27-tech/ui';
+import { PageHeader, Stack, Tab, TabList, Tabs, Toast, ToastContainer } from '@ai27-tech/ui';
 import { RequiereCapacidad } from '@/components/permisos/RequiereCapacidad';
 import { useSession } from '@/context/SessionContext';
 import { puede } from '@/lib/permisos';
@@ -57,50 +61,49 @@ export function Solicitudes({
     setAvisos((previos) => [...previos, nuevo]);
   };
 
+  const enListado = id === null;
+
   return (
     <Stack gap={4}>
-      {conversa && id === null && (
-        <Inline gap={2} as="nav" aria-label="Vistas de solicitudes">
-          <Button
-            variant={vista === 'solicitudes' ? 'primary' : 'outline'}
-            aria-current={vista === 'solicitudes' ? 'page' : undefined}
-            onClick={() => onCambiarVista?.('solicitudes')}
-          >
-            Solicitudes
-          </Button>
-          <Button
-            variant={vista === 'conversaciones' ? 'primary' : 'outline'}
-            aria-current={vista === 'conversaciones' ? 'page' : undefined}
-            onClick={() => onCambiarVista?.('conversaciones')}
-          >
-            Conversaciones
-          </Button>
-        </Inline>
+      {enListado && (
+        <PageHeader
+          title="Solicitudes"
+          description={
+            comercial
+              ? 'Cotiza, confirma pagos y reprograma las solicitudes de los clientes.'
+              : 'Solicitudes pagadas que esperan tu aprobación.'
+          }
+        >
+          {conversa && (
+            <Tabs
+              value={vista}
+              onChange={(valor) => {
+                if (valor !== vista) onCambiarVista?.(valor as VistaSolicitudes);
+              }}
+            >
+              <TabList>
+                <Tab value="solicitudes">Solicitudes</Tab>
+                <Tab value="conversaciones">Conversaciones</Tab>
+              </TabList>
+            </Tabs>
+          )}
+        </PageHeader>
       )}
       {vista === 'conversaciones' ? (
         // Los hooks de datos de la conversación viven dentro de la guarda: otro rol no pide nada.
         <RequiereCapacidad capacidad="solicitud.conversacion">
           <BandejaConversacionesBase
             origen="solicitud"
+            sinEncabezado
             conversacionId={conversacion}
             onSeleccionar={(abierta) => onSeleccionarConversacion?.(abierta)}
           />
         </RequiereCapacidad>
-      ) : id === null ? (
-        <>
-          <PageHeader
-            title="Solicitudes"
-            description={
-              comercial
-                ? 'Cotiza, confirma pagos y reprograma las solicitudes de los clientes.'
-                : 'Solicitudes pagadas que esperan tu aprobación.'
-            }
-          />
-          <BandejaSolicitudes onAbrir={onAbrir} />
-        </>
+      ) : enListado ? (
+        <BandejaSolicitudes onAbrir={onAbrir} />
       ) : (
         <DetalleSolicitud id={id} onVolver={onVolver} onAviso={aviso} onVerViaje={onVerViaje} />
-      )}{' '}
+      )}
       <ToastContainer position="bottom-right">
         {avisos.map((item) => (
           <Toast

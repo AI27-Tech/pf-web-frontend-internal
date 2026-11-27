@@ -7,7 +7,17 @@
  * ahí se muestra por su id con la marca "desactivado" y no se inventa su nombre.
  */
 import { useState } from 'react';
-import { Alert, Badge, Button, Card, Inline, Modal, Section, Table } from '@ai27-tech/ui';
+import {
+  Alert,
+  Badge,
+  Card,
+  CardBody,
+  CardHeader,
+  Inline,
+  Modal,
+  Stack,
+  Table,
+} from '@ai27-tech/ui';
 import type { Column } from '@ai27-tech/ui';
 import { BloqueError } from '@/components/feedback/BloqueError';
 import { esProhibido } from '@/lib/api/errors';
@@ -16,8 +26,6 @@ import type { Cliente } from '@/lib/contracts/clientes';
 import { ClientesMonitoristaForm } from './ClientesMonitoristaForm';
 import { mensajeErrorAlcance } from './mensajes';
 import { useClientesMonitoristas, type MonitoristaConClientes } from './useClientesMonitoristas';
-
-const TEXTO_TENUE = 'var(--ui-color-text-muted)';
 
 /** `nombre` e `identificador_usuario` son opcionales en el contrato. */
 function nombreMonitorista(m: UsuarioAdmin): string {
@@ -32,7 +40,7 @@ function ClientesAsignados({
   readonly porId: ReadonlyMap<string, Cliente>;
 }) {
   if (ids.length === 0) {
-    return <span style={{ color: TEXTO_TENUE }}>Sin clientes</span>;
+    return <Badge variant="neutral">Sin clientes</Badge>;
   }
   return (
     <Inline
@@ -40,6 +48,7 @@ function ClientesAsignados({
       gap={2}
       align="stretch"
       wrap
+      // El `ul` no lleva viñetas: la lista se lee como etiquetas en una fila.
       style={{ margin: 0, padding: 0, listStyle: 'none' }}
     >
       {ids.map((id) => {
@@ -59,7 +68,6 @@ export function ClientesMonitoristas() {
   const r = useClientesMonitoristas();
   const [editando, setEditando] = useState<MonitoristaConClientes | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
-
   const porId = new Map(r.clientes.map((c) => [c.id, c]));
 
   const abrir = (fila: MonitoristaConClientes) => {
@@ -79,14 +87,19 @@ export function ClientesMonitoristas() {
       key: 'acciones',
       header: 'Acciones',
       cell: (f) => (
-        <Button
-          variant="secondary"
-          size="sm"
+        <a
+          href={`#monitorista-${f.monitorista.id}`}
           aria-label={`Editar clientes de ${nombreMonitorista(f.monitorista)}`}
-          onClick={() => abrir(f)}
+          style={{ color: 'var(--ui-color-primary)', textDecoration: 'underline' }}
+          onClick={(evento) => {
+            // Con modificador o clic central, el navegador abre la liga en otra pestaña.
+            if (evento.button !== 0 || evento.metaKey || evento.ctrlKey || evento.shiftKey) return;
+            evento.preventDefault();
+            abrir(f);
+          }}
         >
           Editar clientes
-        </Button>
+        </a>
       ),
     },
   ];
@@ -94,43 +107,34 @@ export function ClientesMonitoristas() {
   return (
     <>
       <Card variant="outlined">
-        <Section
-          title={
-            <span role="heading" aria-level={2}>
-              Clientes de cada Monitorista
-            </span>
-          }
-        >
-          {aviso && (
-            <Alert variant="success" style={{ marginBottom: 'var(--ui-space-2)' }}>
-              {aviso}
-            </Alert>
-          )}
-          {esProhibido(r.error) ? (
-            <Alert variant="danger">
-              No tienes permiso para consultar los clientes de los Monitoristas.
-            </Alert>
-          ) : r.error ? (
-            <BloqueError
-              mensaje="No se pudieron cargar los clientes de los Monitoristas."
-              onReintentar={r.reintentar}
-            />
-          ) : r.cargando ? (
-            <p className="ui-text-body-sm" style={{ margin: 0, color: TEXTO_TENUE }}>
-              Cargando los Monitoristas...
-            </p>
-          ) : (
-            <Table<MonitoristaConClientes>
-              columns={columnas}
-              data={r.monitoristas}
-              rowKey={(f) => f.monitorista.id}
-              aria-label="Clientes de cada Monitorista"
-              emptyState="No hay Monitoristas activos."
-              density="compact"
-            />
-          )}
-        </Section>
+        <CardHeader title="Clientes de cada Monitorista" />
+        <CardBody>
+          <Stack gap={3}>
+            {aviso && <Alert variant="success">{aviso}</Alert>}
+            {esProhibido(r.error) ? (
+              <Alert variant="danger">
+                No tienes permiso para consultar los clientes de los Monitoristas.
+              </Alert>
+            ) : r.error ? (
+              <BloqueError
+                mensaje="No se pudieron cargar los clientes de los Monitoristas."
+                onReintentar={r.reintentar}
+              />
+            ) : (
+              <Table<MonitoristaConClientes>
+                columns={columnas}
+                data={r.monitoristas}
+                rowKey={(f) => f.monitorista.id}
+                loading={r.cargando}
+                aria-label="Clientes de cada Monitorista"
+                emptyState="No hay Monitoristas activos."
+                density="compact"
+              />
+            )}
+          </Stack>
+        </CardBody>
       </Card>
+
       <Modal
         open={editando !== null}
         onClose={() => setEditando(null)}

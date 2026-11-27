@@ -80,13 +80,12 @@ export function useSolicitud(id: string) {
   });
 }
 
-export function useHistoricoSolicitud(id: string, enabled: boolean) {
+export function useHistoricoSolicitud(id: string) {
   const token = useToken();
   return useQuery({
     queryKey: [CLAVE, 'historico', id],
     queryFn: () => listarHistoricoSolicitud(id, token),
     retry: false,
-    enabled,
   });
 }
 

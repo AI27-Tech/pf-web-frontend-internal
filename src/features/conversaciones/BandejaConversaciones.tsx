@@ -35,6 +35,8 @@ interface BandejaConversacionesBaseProps {
   readonly origen: OrigenConversaciones;
   readonly conversacionId: string | undefined;
   readonly onSeleccionar: (id: string) => void;
+  /** Oculta el `PageHeader` propio cuando la página ya pone su encabezado (solicitudes). */
+  readonly sinEncabezado?: boolean;
 }
 
 /**
@@ -46,6 +48,7 @@ export function BandejaConversacionesBase({
   origen,
   conversacionId: id,
   onSeleccionar: seleccionar,
+  sinEncabezado = false,
 }: BandejaConversacionesBaseProps) {
   const { usuario } = useSession();
   const bandeja = useTrabajoBandeja(origen);
@@ -60,11 +63,13 @@ export function BandejaConversacionesBase({
   return (
     <Grid gap={4} style={{ gridTemplateColumns: 'minmax(18rem, 32rem) minmax(0, 1fr)' }}>
       <section>
-        <PageHeader
-          title={
-            origen === 'solicitud' ? 'Conversaciones de solicitudes' : 'Bandeja de conversaciones'
-          }
-        />
+        {!sinEncabezado && (
+          <PageHeader
+            title={
+              origen === 'solicitud' ? 'Conversaciones de solicitudes' : 'Bandeja de conversaciones'
+            }
+          />
+        )}
         <ListaTrabajo
           items={bandeja.items}
           sujetoId={usuario?.id ?? ''}

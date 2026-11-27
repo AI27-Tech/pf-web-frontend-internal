@@ -117,6 +117,7 @@ describe('Roster — lista', () => {
     renderRoster();
 
     const tabla = await screen.findByRole('table', { name: 'Roster de unidades' });
+    await within(tabla).findByText('P-101 · ABC-1234');
     const filas = within(tabla).getAllByRole('row');
     expect(filas[1]).toHaveTextContent('P-101 · ABC-1234');
     expect(filas[1]).toHaveTextContent('Juan Pérez, Ana López');
@@ -125,6 +126,40 @@ describe('Roster — lista', () => {
     expect(filas[2]).toHaveTextContent('M-07 · XYZ-987');
     expect(filas[2]).toHaveTextContent('Moto');
     expect(filas[2]).toHaveTextContent('Inactiva');
+  });
+
+  it('muestra el cliente de cada unidad; sin cliente lo dice, y uno desactivado va por id y marcado', async () => {
+    const unidad = (id: string, economico: string, clienteId: string | null) => ({
+      id,
+      vehiculo_id: `V-${id}`,
+      custodios_ids: ['C-1'],
+      tipo: 'patrulla',
+      activa: true,
+      vehiculo: { economico },
+      custodios: [{ id: 'C-1', nombre: 'Custodio Uno' }],
+      cliente_id: clienteId,
+    });
+    server.use(
+      http.get(path('/unidades'), () =>
+        HttpResponse.json({
+          items: [
+            unidad('U-1', 'P-301', 'CLI-1001'),
+            unidad('U-2', 'P-302', null),
+            unidad('U-3', 'P-303', 'CLI-9999'),
+          ],
+          cursor_siguiente: null,
+        }),
+      ),
+    );
+    renderRoster();
+
+    const tabla = await screen.findByRole('table', { name: 'Roster de unidades' });
+    await within(tabla).findByText('P-301');
+    const filas = within(tabla).getAllByRole('row');
+    expect(filas[1]).toHaveTextContent('Cliente Norte');
+    expect(filas[2]).toHaveTextContent('Sin cliente');
+    expect(filas[3]).toHaveTextContent('CLI-9999');
+    expect(filas[3]).toHaveTextContent('Desactivado');
   });
 
   it('pagina por cursor: la página siguiente pide el cursor recibido', async () => {
@@ -155,12 +190,12 @@ describe('Roster — lista', () => {
     // La tarjeta de Monitoristas lee el roster completo: se descuenta esa lectura.
     await screen.findByRole('table', { name: 'Clientes de cada Monitorista' });
     const antes = cursores.length;
-    await userEvent.click(screen.getByRole('button', { name: 'Página siguiente' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Next page' }));
     expect(await screen.findByText('P-202')).toBeInTheDocument();
-    expect(screen.getByText('Página 2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Page 2' })).toHaveAttribute('aria-current', 'page');
     expect(cursores.slice(antes)).toEqual(['c2']);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Página anterior' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Previous page' }));
     expect(await screen.findByText('P-201')).toBeInTheDocument();
   });
 });
@@ -170,7 +205,7 @@ async function irAFilaConTexto(texto: string): Promise<HTMLElement | null> {
   for (let pagina = 0; pagina < 5; pagina++) {
     const celda = await screen.findByText(texto, {}, { timeout: 500 }).catch(() => null);
     if (celda) return celda.closest('tr');
-    await userEvent.click(await screen.findByRole('button', { name: 'Página siguiente' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Next page' }));
   }
   throw new Error(`No apareció la fila: ${texto}`);
 }
@@ -268,7 +303,7 @@ describe('Roster — edición', () => {
   it('409 unidad_con_reserva_vigente: explica el rechazo sin ofrecer reasignar la escolta', async () => {
     renderRoster();
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Editar unidad P-101 · ABC-1234' }),
+      await screen.findByRole('link', { name: 'Editar unidad P-101 · ABC-1234' }),
     );
     await userEvent.click(await screen.findByRole('switch', { name: 'Unidad activa' }));
     await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
@@ -283,7 +318,7 @@ describe('Roster — edición', () => {
   it('reactiva una unidad inactiva y la lista la refleja', async () => {
     renderRoster();
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Editar unidad M-07 · XYZ-987' }),
+      await screen.findByRole('link', { name: 'Editar unidad M-07 · XYZ-987' }),
     );
     const activa = await screen.findByRole('switch', { name: 'Unidad activa' });
     expect(activa).not.toBeChecked();
@@ -300,7 +335,7 @@ describe('Roster — edición', () => {
   it('sin cambios no se puede guardar', async () => {
     renderRoster();
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Editar unidad M-07 · XYZ-987' }),
+      await screen.findByRole('link', { name: 'Editar unidad M-07 · XYZ-987' }),
     );
     expect(await screen.findByRole('button', { name: 'Guardar cambios' })).toBeDisabled();
   });
@@ -309,7 +344,8 @@ describe('Roster — edición', () => {
 describe('Roster — clientes de cada Monitorista', () => {
   async function filaDe(nombre: string) {
     const tabla = await screen.findByRole('table', { name: 'Clientes de cada Monitorista' });
-    const fila = within(tabla).getByText(nombre).closest('tr');
+    // La tabla se dibuja con su skeleton antes de tener filas: se espera al nombre.
+    const fila = (await within(tabla).findByText(nombre)).closest('tr');
     if (!fila) throw new Error(`sin fila para ${nombre}`);
     return fila;
   }
@@ -398,7 +434,7 @@ describe('Roster — clientes de cada Monitorista', () => {
   it('E9: el diálogo ofrece solo clientes activos, envía el conjunto completo una vez y recarga', async () => {
     renderRoster();
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Editar clientes de Laura Méndez' }),
+      await screen.findByRole('link', { name: 'Editar clientes de Laura Méndez' }),
     );
     const dialogo = await screen.findByRole('dialog');
     expect(await within(dialogo).findByRole('checkbox', { name: 'Cliente Norte' })).toBeChecked();
@@ -418,7 +454,7 @@ describe('Roster — clientes de cada Monitorista', () => {
   it('un cliente puede estar en varios Monitoristas', async () => {
     renderRoster();
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Editar clientes de monitorista.dos@ai27.mx' }),
+      await screen.findByRole('link', { name: 'Editar clientes de monitorista.dos@ai27.mx' }),
     );
     await userEvent.click(await screen.findByRole('checkbox', { name: 'Cliente Norte' }));
     await userEvent.click(screen.getByRole('button', { name: 'Guardar clientes' }));
@@ -435,7 +471,7 @@ describe('Roster — clientes de cada Monitorista', () => {
     expect(fila).toHaveTextContent('CLI-9009');
     expect(fila).toHaveTextContent('Desactivado');
     await userEvent.click(
-      screen.getByRole('button', { name: 'Editar clientes de monitorista.dos@ai27.mx' }),
+      screen.getByRole('link', { name: 'Editar clientes de monitorista.dos@ai27.mx' }),
     );
     const dialogo = await screen.findByRole('dialog');
     expect(within(dialogo).queryByRole('checkbox', { name: /CLI-9009/ })).toBeNull();
@@ -450,7 +486,7 @@ describe('Roster — clientes de cada Monitorista', () => {
     conClienteDesactivado();
     renderRoster();
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Editar clientes de monitorista.dos@ai27.mx' }),
+      await screen.findByRole('link', { name: 'Editar clientes de monitorista.dos@ai27.mx' }),
     );
     await userEvent.click(await screen.findByRole('button', { name: 'Guardar clientes' }));
     await screen.findByText('Clientes de monitorista.dos@ai27.mx guardados.');
@@ -460,7 +496,7 @@ describe('Roster — clientes de cada Monitorista', () => {
   it('sin cambios y sin desactivados no se puede guardar', async () => {
     renderRoster();
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Editar clientes de Laura Méndez' }),
+      await screen.findByRole('link', { name: 'Editar clientes de Laura Méndez' }),
     );
     expect(await screen.findByRole('button', { name: 'Guardar clientes' })).toBeDisabled();
   });
@@ -473,7 +509,7 @@ describe('Roster — clientes de cada Monitorista', () => {
     );
     renderRoster();
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Editar clientes de Laura Méndez' }),
+      await screen.findByRole('link', { name: 'Editar clientes de Laura Méndez' }),
     );
     await userEvent.click(await screen.findByRole('checkbox', { name: 'Cliente Sur' }));
     const antes = peticiones.filter((p) => p === 'GET /api/v1/clientes').length;
@@ -500,7 +536,7 @@ describe('Roster — clientes de cada Monitorista', () => {
     );
     renderRoster();
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Editar clientes de Laura Méndez' }),
+      await screen.findByRole('link', { name: 'Editar clientes de Laura Méndez' }),
     );
     await userEvent.click(await screen.findByRole('checkbox', { name: 'Cliente Norte' }));
     await userEvent.click(screen.getByRole('button', { name: 'Guardar clientes' }));
@@ -516,7 +552,7 @@ describe('Roster — clientes de cada Monitorista', () => {
     );
     renderRoster();
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Editar clientes de Laura Méndez' }),
+      await screen.findByRole('link', { name: 'Editar clientes de Laura Méndez' }),
     );
     await userEvent.click(await screen.findByRole('checkbox', { name: 'Cliente Norte' }));
     await userEvent.click(screen.getByRole('button', { name: 'Guardar clientes' }));
@@ -530,7 +566,7 @@ describe('Roster — clientes de cada Monitorista', () => {
     rolActual = Rol.Administrador;
     renderRoster();
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Editar clientes de monitorista.dos@ai27.mx' }),
+      await screen.findByRole('link', { name: 'Editar clientes de monitorista.dos@ai27.mx' }),
     );
     await userEvent.click(await screen.findByRole('checkbox', { name: 'Cliente Sur' }));
     await userEvent.click(screen.getByRole('button', { name: 'Guardar clientes' }));
@@ -614,7 +650,7 @@ describe('Roster — cliente al que sirve una unidad', () => {
     );
     renderRoster();
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Editar unidad P-102 · DEF-5678' }),
+      await screen.findByRole('link', { name: 'Editar unidad P-102 · DEF-5678' }),
     );
     expect(await screen.findByRole('button', { name: 'Guardar cambios' })).toBeDisabled();
     await abrirSelectorDeCliente();

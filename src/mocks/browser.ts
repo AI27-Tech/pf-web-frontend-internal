@@ -13,10 +13,8 @@ import { API_PREFIX } from '@/lib/constants';
 import { handlers } from './handlers';
 
 /**
- * Latencia artificial: sin ella los estados de carga nunca se ven. Debe superar el
- * `defaultPendingMs` del router (150 ms, ver `app/router.tsx`) para que el esqueleto y la
- * barra de carga alcancen a pintarse; con menos, la pantalla llega antes de que aparezcan.
- * Está exagerada a propósito (el portal del cliente usa 900 ms) para que la carga se note.
+ * Latencia artificial: sin ella los estados de carga nunca se ven. Está exagerada a propósito
+ * (el portal del cliente usa 900 ms) para que la carga se note.
  */
 const LATENCY_MS = 2500;
 

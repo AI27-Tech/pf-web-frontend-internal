@@ -1,13 +1,13 @@
 import { createRouter } from '@tanstack/react-router';
-import { SkeletonCard } from '@ai27-tech/ui';
-
 import { routeTree } from '@/routeTree.gen';
 
+/*
+ * Sin `defaultPendingComponent`: mientras carga el código de una ruta no se pinta un skeleton
+ * genérico. Cada pantalla muestra su propio skeleton cuando faltan sus datos.
+ */
 export const router = createRouter({
   routeTree,
   defaultPreload: 'intent',
-  defaultPendingComponent: () => <SkeletonCard lines={4} />,
-  defaultPendingMs: 150,
 });
 
 declare module '@tanstack/react-router' {

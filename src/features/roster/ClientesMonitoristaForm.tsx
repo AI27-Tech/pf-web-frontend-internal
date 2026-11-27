@@ -6,7 +6,18 @@
  * servidor respondería 400. Guardar envía el conjunto completo de activos, una sola vez.
  */
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Badge, Button, Checkbox, EmptyState, Form, Inline, Stack } from '@ai27-tech/ui';
+import {
+  Alert,
+  Badge,
+  Button,
+  Checkbox,
+  EmptyState,
+  Form,
+  FormActions,
+  FormSection,
+  Inline,
+  Stack,
+} from '@ai27-tech/ui';
 import type { Cliente } from '@/lib/contracts/clientes';
 
 export interface ClientesMonitoristaFormProps {
@@ -65,8 +76,7 @@ export function ClientesMonitoristaForm({
         enviar();
       }}
     >
-      <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
-        <legend className="ui-text-body-sm">Clientes activos</legend>
+      <FormSection title="Clientes activos">
         {activos.length === 0 ? (
           <EmptyState size="sm" title="No hay clientes activos." />
         ) : (
@@ -82,7 +92,7 @@ export function ClientesMonitoristaForm({
             ))}
           </Stack>
         )}
-      </fieldset>
+      </FormSection>
       {desactivados.length > 0 && (
         <Alert variant="warning">
           <Stack gap={1}>
@@ -102,14 +112,14 @@ export function ClientesMonitoristaForm({
         </Alert>
       )}
       {error && <Alert variant="danger">{error}</Alert>}
-      <Inline gap={2} align="stretch" justify="end" wrap={false}>
+      <FormActions align="end">
         <Button variant="secondary" type="button" onClick={onCancelar} disabled={enviando}>
           Cancelar
         </Button>
         <Button variant="primary" type="submit" disabled={bloqueado}>
           {enviando ? 'Guardando...' : 'Guardar clientes'}
         </Button>
-      </Inline>
+      </FormActions>
     </Stack>
   );
 }

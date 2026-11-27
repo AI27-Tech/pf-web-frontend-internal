@@ -88,7 +88,7 @@ describe('M14 · bandeja', () => {
   it('el Jefe Operativo pide y ve solo PAGADO, sin filtro de estado ni columna de cotización', async () => {
     montar(null);
 
-    expect(await screen.findAllByRole('button', { name: /^Abrir solicitud/ })).toHaveLength(2);
+    expect(await screen.findAllByRole('link', { name: /^Abrir solicitud/ })).toHaveLength(2);
     expect(peticiones).toContain('GET /api/v1/solicitudes?estado=PAGADO');
     expect(screen.getAllByText('Pagado').length).toBeGreaterThan(0);
     expect(screen.queryByText('Cotizado')).toBeNull();
@@ -112,7 +112,7 @@ describe('M14 · bandeja', () => {
     rolActual = Rol.Administrador;
     montar(null);
 
-    expect(await screen.findAllByRole('button', { name: /^Abrir solicitud/ })).toHaveLength(6);
+    expect(await screen.findAllByRole('link', { name: /^Abrir solicitud/ })).toHaveLength(6);
   });
 
   it.each([Rol.Ejecutivo, Rol.Monitorista, Rol.Supervisor, Rol.Coordinador, Rol.Reaccion])(
@@ -132,7 +132,7 @@ describe('M14 · bandeja', () => {
     const user = userEvent.setup();
     const { onAbrir } = montar(null);
 
-    const abrir = await screen.findAllByRole('button', { name: /^Abrir solicitud/ });
+    const abrir = await screen.findAllByRole('link', { name: /^Abrir solicitud/ });
     await user.click(abrir[0] as HTMLElement);
 
     expect(onAbrir).toHaveBeenCalledWith('SOL-1003');
@@ -221,7 +221,8 @@ describe('M14 · detalle de Cotización', () => {
     expect(boton('Rechazar')).toBeNull();
     expect(boton('Revertir pago')).toBeNull();
     expect(screen.getByText('Cotización y pago')).toBeInTheDocument();
-    expect(screen.getByText(/18500\.00 MXN \(versión 1\)/)).toBeInTheDocument();
+    // Aparece en la tarjeta de cotización y en el histórico, que también nombra cada versión.
+    expect(screen.getAllByText(/18500\.00 MXN \(versión 1\)/).length).toBeGreaterThan(0);
   });
 
   it('en PAGADO reprograma, pero no aprueba ni revierte el pago', async () => {
@@ -712,8 +713,13 @@ describe('M14 · conversaciones de solicitud (15.5)', () => {
     rolActual = Rol.Cotizacion;
     montar(null, { vista: 'conversaciones' });
 
-    expect(await screen.findByText('Conversaciones de solicitudes')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Solicitudes' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Solicitudes' })).toBeInTheDocument();
+    expect(screen.queryByText('Conversaciones de solicitudes')).toBeNull();
+    expect(screen.getByRole('tab', { name: 'Conversaciones' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByRole('tab', { name: 'Solicitudes' })).toBeInTheDocument();
     await waitFor(() => expect(peticiones).toContain('GET /api/v1/bandeja/solicitudes'));
     // Cotización no lista clientes (403): no se pide el catálogo.
     expect(peticiones.some((p) => p.includes('/clientes'))).toBe(false);
@@ -725,7 +731,7 @@ describe('M14 · conversaciones de solicitud (15.5)', () => {
     const user = userEvent.setup();
     const { onCambiarVista } = montar(null);
 
-    await user.click(await screen.findByRole('button', { name: 'Conversaciones' }));
+    await user.click(await screen.findByRole('tab', { name: 'Conversaciones' }));
     expect(onCambiarVista).toHaveBeenCalledWith('conversaciones');
   });
 
@@ -733,7 +739,7 @@ describe('M14 · conversaciones de solicitud (15.5)', () => {
     montar(null, { vista: 'conversaciones' });
 
     expect(await screen.findByText('Sin permiso')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Conversaciones' })).toBeNull();
+    expect(screen.queryByRole('tab', { name: 'Conversaciones' })).toBeNull();
     expect(peticiones.some((p) => p.includes('/bandeja'))).toBe(false);
   });
 });

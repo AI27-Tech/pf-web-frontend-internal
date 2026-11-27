@@ -7,7 +7,6 @@
  */
 import {
   Badge,
-  Button,
   EmptyState,
   FilterBar,
   Inline,
@@ -96,14 +95,19 @@ export function BandejaSolicitudes({ onAbrir }: BandejaSolicitudesProps) {
       key: 'acciones',
       header: 'Acciones',
       cell: (s) => (
-        <Button
-          variant="secondary"
-          size="sm"
+        <a
+          href={`/solicitudes?id=${encodeURIComponent(s.id)}`}
           aria-label={`Abrir solicitud de ${nombreCliente(s)}`}
-          onClick={() => onAbrir(s.id)}
+          style={{ color: 'var(--ui-color-primary)', textDecoration: 'underline' }}
+          onClick={(evento) => {
+            // Con modificador o clic central, el navegador abre la liga en otra pestaña.
+            if (evento.button !== 0 || evento.metaKey || evento.ctrlKey || evento.shiftKey) return;
+            evento.preventDefault();
+            onAbrir(s.id);
+          }}
         >
           Abrir
-        </Button>
+        </a>
       ),
     },
   ];

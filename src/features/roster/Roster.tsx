@@ -15,10 +15,12 @@ import {
   Button,
   Card,
   CardBody,
+  CardHeader,
   Inline,
   Modal,
+  Pagination,
   PageHeader,
-  Section,
+  SkeletonText,
   Stack,
   Table,
 } from '@ai27-tech/ui';
@@ -32,33 +34,29 @@ import type { Unidad } from '@/lib/contracts/unidades';
 import { puedeArmarRoster } from '../catalogos/afordancias';
 import { useCustodios, useVehiculos } from '../catalogos/useCatalogos';
 import { custodiosLegibles, vehiculoLegible } from '../viajes/unidadLegible';
+import { ClientesMonitoristas } from './ClientesMonitoristas';
 import { mensajeErrorRoster } from './mensajes';
 import { UnidadForm } from './UnidadForm';
-import { ClientesMonitoristas } from './ClientesMonitoristas';
 import { useClientesActivos } from './useClientesMonitoristas';
 import { useRoster } from './useRoster';
 
-const TEXTO_TENUE = 'var(--ui-color-text-muted)';
+/** El `bff` no publica su tamaño de página: solo posiciona el control de páginas. */
+const TAMANO_PAGINA = 20;
 
 export function Roster() {
   const { usuario } = useSession();
 
-  return (
-    <Stack gap={4}>
-      <PageHeader title="Roster de unidades" />
-      {puedeArmarRoster(usuario?.rol) ? (
-        <RosterAutorizado />
-      ) : (
-        <Card variant="outlined">
-          <CardBody>
-            <Alert variant="danger">
-              No tienes acceso al roster. Esta sección es del Jefe Operativo y del Administrador.
-            </Alert>
-          </CardBody>
-        </Card>
-      )}
-    </Stack>
-  );
+  if (!puedeArmarRoster(usuario?.rol)) {
+    return (
+      <Stack gap={4}>
+        <PageHeader title="Roster de unidades" />
+        <Alert variant="danger">
+          No tienes acceso al roster. Esta sección es del Jefe Operativo y del Administrador.
+        </Alert>
+      </Stack>
+    );
+  }
+  return <RosterAutorizado />;
 }
 
 type Edicion =
@@ -68,10 +66,12 @@ function RosterAutorizado() {
   const r = useRoster();
   const [edicion, setEdicion] = useState<Edicion>(null);
   const [aviso, setAviso] = useState<string | null>(null);
-  // Los selectores del formulario solo se piden al abrirlo.
+  // Los clientes se piden al cargar: la tabla muestra el nombre del cliente de cada unidad.
+  const clientes = useClientesActivos(true);
+  // Vehículos y custodios solo se piden al abrir el formulario.
   const vehiculos = useVehiculos(edicion !== null);
   const custodios = useCustodios(edicion !== null);
-  const clientes = useClientesActivos(edicion !== null);
+  const clientesPorId = new Map((clientes.data ?? []).map((c) => [c.id, c]));
 
   const abrir = (siguiente: Edicion) => {
     r.guardar.reset();
@@ -82,6 +82,23 @@ function RosterAutorizado() {
   const columnas: Column<Unidad>[] = [
     { key: 'vehiculo', header: 'Vehículo', cell: (u) => vehiculoLegible(u) },
     { key: 'custodios', header: 'Custodios', cell: (u) => custodiosLegibles(u) },
+    {
+      key: 'cliente',
+      header: 'Cliente',
+      cell: (u) => {
+        if (!u.cliente_id) return 'Sin cliente';
+        if (clientes.isPending) return '—';
+        const cliente = clientesPorId.get(u.cliente_id);
+        if (cliente) return cliente.nombre;
+        // Un cliente que ya no está activo se muestra por su id, marcado, sin inventar nombre.
+        return (
+          <Inline gap={1} align="center" wrap={false}>
+            <span>{u.cliente_id}</span>
+            <Badge variant="neutral">Desactivado</Badge>
+          </Inline>
+        );
+      },
+    },
     { key: 'tipo', header: 'Tipo', cell: (u) => (u.tipo === 'moto' ? 'Moto' : 'Patrulla') },
     {
       key: 'activa',
@@ -94,87 +111,68 @@ function RosterAutorizado() {
       key: 'acciones',
       header: 'Acciones',
       cell: (u) => (
-        <Button
-          variant="secondary"
-          size="sm"
+        <a
+          href={`#unidad-${u.id}`}
           aria-label={`Editar unidad ${vehiculoLegible(u)}`}
-          onClick={() => abrir({ modo: 'editar', unidad: u })}
+          style={{ color: 'var(--ui-color-primary)', textDecoration: 'underline' }}
+          onClick={(evento) => {
+            // Con modificador o clic central, el navegador abre la liga en otra pestaña.
+            if (evento.button !== 0 || evento.metaKey || evento.ctrlKey || evento.shiftKey) return;
+            evento.preventDefault();
+            abrir({ modo: 'editar', unidad: u });
+          }}
         >
           Editar
-        </Button>
+        </a>
       ),
     },
   ];
 
   return (
-    <>
+    <Stack gap={4}>
+      <PageHeader
+        title="Roster de unidades"
+        description="Unidades de la flota, sus custodios y el cliente al que sirven."
+        actions={
+          <Button variant="primary" onClick={() => abrir({ modo: 'alta' })}>
+            Nueva unidad
+          </Button>
+        }
+      />
+
       <Card variant="outlined">
-        <Section
-          title={
-            <span role="heading" aria-level={2}>
-              Unidades
-            </span>
-          }
-          actions={
-            <Button variant="primary" onClick={() => abrir({ modo: 'alta' })}>
-              Nueva unidad
-            </Button>
-          }
-        >
-          {aviso && (
-            <Alert variant="success" style={{ marginBottom: 'var(--ui-space-2)' }}>
-              {aviso}
-            </Alert>
-          )}
-          {esProhibido(r.error) ? (
-            <Alert variant="danger">No tienes permiso para consultar el roster.</Alert>
-          ) : r.error ? (
-            <BloqueError mensaje="No se pudo cargar el roster." onReintentar={r.reintentar} />
-          ) : r.cargando ? (
-            <p className="ui-text-body-sm" style={{ margin: 0, color: TEXTO_TENUE }}>
-              Cargando el roster...
-            </p>
-          ) : (
-            <>
-              <Table<Unidad>
-                columns={columnas}
-                data={r.unidades}
-                rowKey={(u) => u.id}
-                aria-label="Roster de unidades"
-                emptyState="El roster no tiene unidades."
-                density="compact"
-              />
-              {(r.hayAnterior || r.haySiguiente) && (
-                <Inline
-                  as="nav"
-                  aria-label="Páginas del roster"
-                  gap={2}
-                  align="center"
-                  wrap={false}
-                  style={{ marginTop: 'var(--ui-space-2)' }}
-                >
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={!r.hayAnterior}
-                    onClick={r.anterior}
-                  >
-                    Página anterior
-                  </Button>
-                  <span className="ui-text-body-sm">Página {r.numeroPagina}</span>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={!r.haySiguiente}
-                    onClick={r.siguiente}
-                  >
-                    Página siguiente
-                  </Button>
-                </Inline>
-              )}
-            </>
-          )}
-        </Section>
+        <CardHeader title="Unidades" />
+        <CardBody>
+          <Stack gap={3}>
+            {aviso && <Alert variant="success">{aviso}</Alert>}
+            {esProhibido(r.error) ? (
+              <Alert variant="danger">No tienes permiso para consultar el roster.</Alert>
+            ) : r.error ? (
+              <BloqueError mensaje="No se pudo cargar el roster." onReintentar={r.reintentar} />
+            ) : (
+              <>
+                <Table<Unidad>
+                  columns={columnas}
+                  data={r.unidades}
+                  rowKey={(u) => u.id}
+                  loading={r.cargando}
+                  aria-label="Roster de unidades"
+                  emptyState="El roster no tiene unidades."
+                  density="compact"
+                />
+                {(r.hayAnterior || r.haySiguiente) && (
+                  <Pagination
+                    page={r.numeroPagina}
+                    pageSize={TAMANO_PAGINA}
+                    total={r.totalEstimado}
+                    showInfo={false}
+                    onPageChange={r.irAPagina}
+                  />
+                )}
+              </>
+            )}
+          </Stack>
+        </CardBody>
       </Card>
 
       <ClientesMonitoristas />
@@ -186,9 +184,7 @@ function RosterAutorizado() {
       >
         {edicion &&
           (vehiculos.isPending || custodios.isPending || clientes.isPending ? (
-            <p className="ui-text-body-sm" style={{ margin: 0 }}>
-              Cargando vehículos y custodios...
-            </p>
+            <SkeletonText lines={5} />
           ) : vehiculos.error || custodios.error ? (
             <Alert variant="danger">
               {esProhibido(vehiculos.error) || esProhibido(custodios.error)
@@ -216,6 +212,6 @@ function RosterAutorizado() {
             />
           ))}
       </Modal>
-    </>
+    </Stack>
   );
 }

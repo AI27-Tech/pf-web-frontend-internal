@@ -15,8 +15,9 @@ import {
   Checkbox,
   EmptyState,
   Form,
+  FormActions,
   FormField,
-  Inline,
+  FormSection,
   Select,
   Stack,
   Switch,
@@ -138,10 +139,9 @@ export function UnidadForm({
         />
       </FormField>
 
-      <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
-        <legend className="ui-text-body-sm">
-          Custodios ({vehiculo?.tipo === 'moto' ? 'una moto lleva 1' : 'un coche lleva 1 o 2'})
-        </legend>
+      <FormSection
+        title={`Custodios (${vehiculo?.tipo === 'moto' ? 'una moto lleva 1' : 'un coche lleva 1 o 2'})`}
+      >
         {custodiosOfrecidos.length === 0 ? (
           <EmptyState size="sm" title="No hay custodios activos." />
         ) : (
@@ -161,7 +161,7 @@ export function UnidadForm({
           </Stack>
         )}
         {excedido && <Alert variant="danger">Una moto lleva un solo custodio. Quita uno.</Alert>}
-      </fieldset>
+      </FormSection>
 
       <FormField
         label="Cliente al que sirve"
@@ -187,14 +187,14 @@ export function UnidadForm({
 
       {error && <Alert variant="danger">{error}</Alert>}
 
-      <Inline gap={2} align="stretch" justify="end" wrap={false}>
+      <FormActions align="end">
         <Button variant="secondary" type="button" onClick={onCancelar} disabled={enviando}>
           Cancelar
         </Button>
         <Button variant="primary" type="submit" disabled={bloqueado}>
           {enviando ? 'Guardando...' : unidad ? 'Guardar cambios' : 'Crear unidad'}
         </Button>
-      </Inline>
+      </FormActions>
     </Stack>
   );
 }

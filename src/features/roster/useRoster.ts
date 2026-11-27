@@ -5,14 +5,14 @@
  * siguiente con una pila de cursores visitados. Guardar invalida ['unidades'], que
  * también refresca el selector de "Asignar escolta" del detalle del viaje.
  */
-
 import { useState } from 'react';
-
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-
 import { useSession } from '@/context/SessionContext';
 import { crearUnidad, listarPaginaUnidades, modificarUnidad } from '@/lib/api/unidades';
 import type { UnidadEntrada, UnidadModificacion } from '@/lib/contracts/unidades';
+
+/** El `bff` no publica su tamaño de página: solo posiciona el control de páginas. */
+const TAMANO_PAGINA = 20;
 
 export type GuardadoUnidad =
   | { readonly id: string; readonly cambios: UnidadModificacion }
@@ -45,19 +45,36 @@ export function useRoster() {
   });
 
   const cursorSiguiente = pagina.data?.cursor_siguiente ?? null;
+  const unidades = pagina.data?.items ?? [];
+  const numeroPagina = cursores.length + 1;
+
+  const siguiente = () => {
+    if (cursorSiguiente !== null) setCursores((actual) => [...actual, cursorSiguiente]);
+  };
 
   return {
-    unidades: pagina.data?.items ?? [],
+    unidades,
     cargando: pagina.isPending,
     error: pagina.error,
     reintentar: () => void pagina.refetch(),
-    numeroPagina: cursores.length + 1,
+    numeroPagina,
     haySiguiente: cursorSiguiente !== null,
     hayAnterior: cursores.length > 0,
-    siguiente: () => {
-      if (cursorSiguiente !== null) setCursores((actual) => [...actual, cursorSiguiente]);
-    },
+    siguiente,
     anterior: () => setCursores((actual) => actual.slice(0, -1)),
+    /** Solo avanza o retrocede una página: el cursor no permite saltar. */
+    irAPagina: (numero: number) => {
+      if (numero < numeroPagina) setCursores((actual) => actual.slice(0, numero - 1));
+      else if (numero === numeroPagina + 1) siguiente();
+    },
+    /**
+     * Total aproximado para el control de páginas, porque el `bff` no publica el total. Si hay
+     * más páginas, deja una página adicional visible.
+     */
+    totalEstimado:
+      cursorSiguiente !== null
+        ? numeroPagina * TAMANO_PAGINA + 1
+        : (numeroPagina - 1) * TAMANO_PAGINA + unidades.length,
     guardar,
   };
 }
