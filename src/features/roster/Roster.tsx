@@ -23,6 +23,8 @@ import {
   SkeletonText,
   Stack,
   Table,
+  Toast,
+  ToastContainer,
 } from '@ai27-tech/ui';
 import type { Column } from '@ai27-tech/ui';
 
@@ -42,6 +44,8 @@ import { useRoster } from './useRoster';
 
 /** El `bff` no publica su tamaño de página: solo posiciona el control de páginas. */
 const TAMANO_PAGINA = 20;
+
+const TEXTO_TENUE = 'var(--ui-color-text-muted)';
 
 export function Roster() {
   const { usuario } = useSession();
@@ -144,7 +148,6 @@ function RosterAutorizado() {
         <CardHeader title="Unidades" />
         <CardBody>
           <Stack gap={3}>
-            {aviso && <Alert variant="success">{aviso}</Alert>}
             {esProhibido(r.error) ? (
               <Alert variant="danger">No tienes permiso para consultar el roster.</Alert>
             ) : r.error ? (
@@ -181,6 +184,7 @@ function RosterAutorizado() {
         open={edicion !== null}
         onClose={() => setEdicion(null)}
         title={edicion?.modo === 'editar' ? 'Editar unidad' : 'Nueva unidad'}
+        size="md"
       >
         {edicion &&
           (vehiculos.isPending || custodios.isPending || clientes.isPending ? (
@@ -192,26 +196,41 @@ function RosterAutorizado() {
                 : 'No se pudieron cargar los vehículos y custodios.'}
             </Alert>
           ) : (
-            <UnidadForm
-              key={edicion.modo === 'editar' ? edicion.unidad.id : 'alta'}
-              {...(edicion.modo === 'editar' && { unidad: edicion.unidad })}
-              vehiculos={vehiculos.data ?? []}
-              custodios={custodios.data ?? []}
-              clientes={clientes.data ?? []}
-              enviando={r.guardar.isPending}
-              error={r.guardar.error ? mensajeErrorRoster(r.guardar.error) : null}
-              onCancelar={() => setEdicion(null)}
-              onGuardar={(datos) =>
-                r.guardar.mutate(datos, {
-                  onSuccess: () => {
-                    setEdicion(null);
-                    setAviso('id' in datos ? 'Unidad actualizada.' : 'Unidad creada.');
-                  },
-                })
-              }
-            />
+            <Stack gap={3}>
+              {edicion.modo === 'alta' && (
+                <p className="ui-text-body-sm" style={{ margin: 0, color: TEXTO_TENUE }}>
+                  Un vehículo y uno o dos custodios activos. El tipo se deriva del vehículo.
+                </p>
+              )}
+              <UnidadForm
+                key={edicion.modo === 'editar' ? edicion.unidad.id : 'alta'}
+                {...(edicion.modo === 'editar' && { unidad: edicion.unidad })}
+                vehiculos={vehiculos.data ?? []}
+                custodios={custodios.data ?? []}
+                clientes={clientes.data ?? []}
+                enviando={r.guardar.isPending}
+                error={r.guardar.error ? mensajeErrorRoster(r.guardar.error) : null}
+                onCancelar={() => setEdicion(null)}
+                onGuardar={(datos) =>
+                  r.guardar.mutate(datos, {
+                    onSuccess: () => {
+                      setEdicion(null);
+                      setAviso('id' in datos ? 'Unidad actualizada.' : 'Unidad creada.');
+                    },
+                  })
+                }
+              />
+            </Stack>
           ))}
       </Modal>
+
+      <ToastContainer position="bottom-right">
+        {aviso !== null && (
+          <Toast variant="success" duration={6000} onClose={() => setAviso(null)}>
+            {aviso}
+          </Toast>
+        )}
+      </ToastContainer>
     </Stack>
   );
 }

@@ -17,6 +17,8 @@ import {
   Modal,
   Stack,
   Table,
+  Toast,
+  ToastContainer,
 } from '@ai27-tech/ui';
 import type { Column } from '@ai27-tech/ui';
 import { BloqueError } from '@/components/feedback/BloqueError';
@@ -42,22 +44,19 @@ function ClientesAsignados({
   if (ids.length === 0) {
     return <Badge variant="neutral">Sin clientes</Badge>;
   }
+  // Un cliente que ya no está activo se nombra por su id, marcado, sin inventar su nombre.
   return (
-    <Inline
-      as="ul"
-      gap={2}
-      align="stretch"
-      wrap
-      // El `ul` no lleva viñetas: la lista se lee como etiquetas en una fila.
-      style={{ margin: 0, padding: 0, listStyle: 'none' }}
-    >
+    <Inline gap={1} wrap role="list" aria-label="Clientes asignados">
       {ids.map((id) => {
         const cliente = porId.get(id);
-        return (
-          <Inline as="li" key={id} gap={1} align="center" wrap={false}>
-            <span>{cliente ? cliente.nombre : id}</span>
-            {!cliente && <Badge variant="neutral">Desactivado</Badge>}
-          </Inline>
+        return cliente ? (
+          <Badge key={id} variant="secondary" role="listitem">
+            {cliente.nombre}
+          </Badge>
+        ) : (
+          <Badge key={id} variant="neutral" role="listitem">
+            {`${id} · Desactivado`}
+          </Badge>
         );
       })}
     </Inline>
@@ -110,7 +109,6 @@ export function ClientesMonitoristas() {
         <CardHeader title="Clientes de cada Monitorista" />
         <CardBody>
           <Stack gap={3}>
-            {aviso && <Alert variant="success">{aviso}</Alert>}
             {esProhibido(r.error) ? (
               <Alert variant="danger">
                 No tienes permiso para consultar los clientes de los Monitoristas.
@@ -138,6 +136,7 @@ export function ClientesMonitoristas() {
       <Modal
         open={editando !== null}
         onClose={() => setEditando(null)}
+        size="md"
         title={editando ? `Clientes de ${nombreMonitorista(editando.monitorista)}` : ''}
       >
         {editando && (
@@ -162,6 +161,14 @@ export function ClientesMonitoristas() {
           />
         )}
       </Modal>
+
+      <ToastContainer position="bottom-right">
+        {aviso !== null && (
+          <Toast variant="success" duration={6000} onClose={() => setAviso(null)}>
+            {aviso}
+          </Toast>
+        )}
+      </ToastContainer>
     </>
   );
 }

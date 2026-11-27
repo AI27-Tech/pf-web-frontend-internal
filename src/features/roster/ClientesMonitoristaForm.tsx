@@ -1,21 +1,23 @@
 /*
  * Edición de "mis clientes" de un Monitorista (DEC-149 #18, M11).
  *
- * Solo se ofrecen clientes activos; un cliente puede estar en varios Monitoristas. Un cliente
- * ya asignado que dejó de estar activo se muestra marcado "desactivado" y no se reenvía: el
- * servidor respondería 400. Guardar envía el conjunto completo de activos, una sola vez.
+ * Solo se ofrecen clientes activos; un cliente puede estar en varios Monitoristas. Los clientes
+ * se agregan desde un selector buscable y se quitan con su botón. Un cliente ya asignado que
+ * dejó de estar activo se muestra marcado "Desactivado" y se quita al guardar: el servidor
+ * respondería 400 si se reenviara. Guardar envía el conjunto completo de activos, una sola vez.
  */
 import { useEffect, useRef, useState } from 'react';
+import { X } from 'lucide-react';
 import {
   Alert,
   Badge,
   Button,
-  Checkbox,
-  EmptyState,
   Form,
   FormActions,
+  FormField,
   FormSection,
   Inline,
+  Select,
   Stack,
 } from '@ai27-tech/ui';
 import type { Cliente } from '@/lib/contracts/clientes';
@@ -30,6 +32,8 @@ export interface ClientesMonitoristaFormProps {
   readonly onGuardar: (clientesIds: readonly string[]) => void;
   readonly onCancelar: () => void;
 }
+
+const TEXTO_TENUE = 'var(--ui-color-text-muted)';
 
 export function ClientesMonitoristaForm({
   actuales,
@@ -51,14 +55,29 @@ export function ClientesMonitoristaForm({
     if (!enviando) enviado.current = false;
   }, [enviando]);
 
+  const nombreDe = (id: string) => activos.find((c) => c.id === id)?.nombre ?? id;
+
   const sinCambios =
     elegidos.length === asignadosActivos.length &&
     elegidos.every((id) => asignadosActivos.includes(id));
   // Guardar con desactivados es un cambio: los quita del conjunto.
-  const bloqueado = enviando || (sinCambios && desactivados.length === 0);
+  const sinNada = sinCambios && desactivados.length === 0;
+  const bloqueado = enviando || sinNada;
 
-  const alternar = (id: string, marcado: boolean) =>
-    setElegidos((actual) => (marcado ? [...actual, id] : actual.filter((c) => c !== id)));
+  // Solo se ofrecen los activos que aún no están elegidos.
+  const opciones = activos
+    .filter((c) => !elegidos.includes(c.id))
+    .map((c) => ({ value: c.id, label: c.nombre }));
+
+  const agregar = (id: string) => {
+    if (enviando || id === '' || elegidos.includes(id)) return;
+    setElegidos((actual) => [...actual, id]);
+  };
+
+  const quitar = (id: string) => {
+    if (enviando) return;
+    setElegidos((actual) => actual.filter((c) => c !== id));
+  };
 
   const enviar = () => {
     if (bloqueado || enviado.current) return;
@@ -76,48 +95,74 @@ export function ClientesMonitoristaForm({
         enviar();
       }}
     >
-      <FormSection title="Clientes activos">
-        {activos.length === 0 ? (
-          <EmptyState size="sm" title="No hay clientes activos." />
-        ) : (
-          <Stack gap={1}>
-            {activos.map((c) => (
-              <Checkbox
-                key={c.id}
-                label={c.nombre}
-                checked={elegidos.includes(c.id)}
-                disabled={enviando}
-                onChange={(event) => alternar(c.id, event.target.checked)}
-              />
-            ))}
-          </Stack>
-        )}
-      </FormSection>
-      {desactivados.length > 0 && (
-        <Alert variant="warning">
-          <Stack gap={1}>
-            <span>
-              Estos clientes están desactivados y se quitarán al guardar: no se pueden volver a
-              asignar.
+      <FormSection
+        title="Clientes"
+        description="Un cliente puede estar en varios Monitoristas. El Monitorista ve los viajes de sus clientes desde APROBADO."
+      >
+        <Stack gap={2}>
+          <FormField label="Agregar cliente">
+            <Select
+              variant="searchable"
+              placeholder="Busca un cliente"
+              searchPlaceholder="Buscar por nombre"
+              noResultsText="Ningún cliente coincide"
+              value=""
+              disabled={enviando}
+              options={opciones}
+              onChange={(valor) => agregar(String(valor))}
+            />
+          </FormField>
+
+          {elegidos.length === 0 && desactivados.length === 0 ? (
+            <span className="ui-text-body-xs" style={{ color: TEXTO_TENUE }}>
+              Ningún cliente asignado.
             </span>
-            <Inline as="ul" gap={2} wrap style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+          ) : (
+            <Inline gap={2} wrap role="group" aria-label="Clientes asignados">
+              {elegidos.map((id) => (
+                <Button
+                  key={id}
+                  type="button"
+                  size="sm"
+                  variant="primary"
+                  endIcon={<X size={14} aria-hidden="true" />}
+                  aria-label={`Quitar a ${nombreDe(id)}`}
+                  disabled={enviando}
+                  onClick={() => quitar(id)}
+                >
+                  {nombreDe(id)}
+                </Button>
+              ))}
               {desactivados.map((id) => (
-                <Inline as="li" key={id} gap={1} align="center" wrap={false}>
-                  <span>{id}</span>
-                  <Badge variant="neutral">Desactivado</Badge>
-                </Inline>
+                <Badge key={id} variant="neutral">
+                  {`${id} · Desactivado`}
+                </Badge>
               ))}
             </Inline>
-          </Stack>
-        </Alert>
-      )}
+          )}
+
+          {desactivados.length > 0 && (
+            <Alert variant="warning">
+              Los clientes desactivados se quitan al guardar. No se pueden volver a asignar.
+            </Alert>
+          )}
+        </Stack>
+      </FormSection>
+
       {error && <Alert variant="danger">{error}</Alert>}
-      <FormActions align="end">
+
+      {sinNada && !enviando && (
+        <p className="ui-text-body-xs" style={{ margin: 0, color: TEXTO_TENUE }}>
+          No hay cambios por guardar.
+        </p>
+      )}
+
+      <FormActions align="end" sticky>
         <Button variant="secondary" type="button" onClick={onCancelar} disabled={enviando}>
           Cancelar
         </Button>
-        <Button variant="primary" type="submit" disabled={bloqueado}>
-          {enviando ? 'Guardando...' : 'Guardar clientes'}
+        <Button variant="primary" type="submit" disabled={bloqueado} loading={enviando}>
+          Guardar clientes
         </Button>
       </FormActions>
     </Stack>

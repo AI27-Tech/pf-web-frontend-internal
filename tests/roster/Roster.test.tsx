@@ -66,19 +66,36 @@ function renderRoster() {
 
 async function abrirAlta() {
   await userEvent.click(await screen.findByRole('button', { name: 'Nueva unidad' }));
-  return screen.findByRole('button', { name: 'Vehículo' });
+  return screen.findByRole('combobox', { name: 'Vehículo' });
 }
 
 async function elegirVehiculo(etiqueta: string) {
-  await userEvent.click(await screen.findByRole('button', { name: 'Vehículo' }));
-  await userEvent.click(await screen.findByRole('button', { name: etiqueta }));
+  await userEvent.click(await screen.findByRole('combobox', { name: 'Vehículo' }));
+  await userEvent.click(await screen.findByRole('option', { name: etiqueta }));
 }
 
+/** Un clic en el botón del custodio lo elige o lo quita. */
+/** Elige o quita un custodio: el chip lo quita; si no está elegido, se agrega desde el selector. */
+async function alternarCustodio(nombre: string) {
+  const quitar = screen.queryByRole('button', { name: `Quitar a ${nombre}` });
+  if (quitar) {
+    await userEvent.click(quitar);
+    return;
+  }
+  await userEvent.click(screen.getByRole('combobox', { name: 'Agregar custodio' }));
+  await userEvent.click(await screen.findByRole('option', { name: nombre }));
+}
+
+/** La fila del custodio en la tabla de custodios. */
+/** Chip de un custodio elegido; si no está elegido, no existe. */
+function botonCustodio(nombre: string): HTMLElement | null {
+  return screen.queryByRole('button', { name: `Quitar a ${nombre}` });
+}
 async function crearUnidadCon(vehiculo: string, custodios: readonly string[]) {
   await abrirAlta();
   await elegirVehiculo(vehiculo);
   for (const nombre of custodios) {
-    await userEvent.click(screen.getByRole('checkbox', { name: nombre }));
+    await alternarCustodio(nombre);
   }
   await userEvent.click(screen.getByRole('button', { name: 'Crear unidad' }));
 }
@@ -228,10 +245,12 @@ describe('Roster — alta', () => {
     renderRoster();
     await abrirAlta();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Vehículo' }));
+    await userEvent.click(screen.getByRole('combobox', { name: 'Vehículo' }));
     expect(screen.queryByRole('button', { name: /P-090/ })).toBeNull();
-    expect(screen.queryByRole('checkbox', { name: 'Rosa Díaz' })).toBeNull();
-    expect(screen.getByRole('checkbox', { name: 'Pedro Gómez' })).toBeInTheDocument();
+    await elegirVehiculo('P-102 · DEF-5678 (coche)');
+    await userEvent.click(screen.getByRole('combobox', { name: 'Agregar custodio' }));
+    expect(screen.queryByRole('option', { name: 'Rosa Díaz' })).toBeNull();
+    expect(screen.getByRole('option', { name: 'Pedro Gómez' })).toBeInTheDocument();
   });
 
   it('una moto admite un solo custodio y un coche hasta dos', async () => {
@@ -239,14 +258,18 @@ describe('Roster — alta', () => {
     await abrirAlta();
 
     await elegirVehiculo('M-07 · XYZ-987 (moto)');
-    await userEvent.click(screen.getByRole('checkbox', { name: 'María Torres' }));
-    expect(screen.getByRole('checkbox', { name: 'Pedro Gómez' })).toBeDisabled();
+    await alternarCustodio('María Torres');
+    // Con moto, elegir otro custodio reemplaza al anterior.
+    await alternarCustodio('Pedro Gómez');
+    expect(botonCustodio('Pedro Gómez')).toBeInTheDocument();
+    expect(botonCustodio('María Torres')).toBeNull();
 
-    // El selector ya muestra la moto: se abre por su etiqueta, que es su nombre accesible.
-    await userEvent.click(screen.getByRole('button', { name: 'Vehículo' }));
-    await userEvent.click(await screen.findByRole('button', { name: 'P-102 · DEF-5678 (coche)' }));
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Pedro Gómez' }));
-    expect(screen.getByRole('checkbox', { name: 'Juan Pérez' })).toBeDisabled();
+    // Con un coche, hasta dos; un tercero se rechaza con aviso.
+    await elegirVehiculo('P-102 · DEF-5678 (coche)');
+    await alternarCustodio('Juan Pérez');
+    await alternarCustodio('María Torres');
+    expect(await screen.findByText(/lleva hasta 2/)).toBeInTheDocument();
+    expect(botonCustodio('María Torres')).toBeNull();
   });
 
   it('409 vehiculo_en_otra_unidad: dice que el vehículo ya está en otra unidad activa', async () => {
@@ -259,7 +282,7 @@ describe('Roster — alta', () => {
       ),
     ).toBeInTheDocument();
     // El formulario conserva la captura para corregirla.
-    expect(screen.getByRole('checkbox', { name: 'Pedro Gómez' })).toBeChecked();
+    expect(botonCustodio('Pedro Gómez')).toBeInTheDocument();
   });
 
   it('409 custodio_en_otra_unidad: dice que un custodio ya está en otra unidad activa', async () => {
@@ -431,14 +454,27 @@ describe('Roster — clientes de cada Monitorista', () => {
     expect(logoutSpy).not.toHaveBeenCalled();
   });
 
+  /** Quita un cliente con su chip o lo agrega desde el selector del diálogo. */
+  async function marcarCliente(nombre: string) {
+    const quitar = screen.queryByRole('button', { name: `Quitar a ${nombre}` });
+    if (quitar) {
+      await userEvent.click(quitar);
+      return;
+    }
+    await userEvent.click(screen.getByRole('combobox', { name: 'Agregar cliente' }));
+    await userEvent.click(await screen.findByRole('option', { name: nombre }));
+  }
+
   it('E9: el diálogo ofrece solo clientes activos, envía el conjunto completo una vez y recarga', async () => {
     renderRoster();
     await userEvent.click(
       await screen.findByRole('link', { name: 'Editar clientes de Laura Méndez' }),
     );
     const dialogo = await screen.findByRole('dialog');
-    expect(await within(dialogo).findByRole('checkbox', { name: 'Cliente Norte' })).toBeChecked();
-    await userEvent.click(within(dialogo).getByRole('checkbox', { name: 'Cliente Sur' }));
+    expect(
+      await within(dialogo).findByRole('button', { name: 'Quitar a Cliente Norte' }),
+    ).toBeInTheDocument();
+    await marcarCliente('Cliente Sur');
     cuerpos.length = 0;
     await userEvent.dblClick(within(dialogo).getByRole('button', { name: 'Guardar clientes' }));
     expect(await screen.findByText('Clientes de Laura Méndez guardados.')).toBeInTheDocument();
@@ -456,7 +492,7 @@ describe('Roster — clientes de cada Monitorista', () => {
     await userEvent.click(
       await screen.findByRole('link', { name: 'Editar clientes de monitorista.dos@ai27.mx' }),
     );
-    await userEvent.click(await screen.findByRole('checkbox', { name: 'Cliente Norte' }));
+    await marcarCliente('Cliente Norte');
     await userEvent.click(screen.getByRole('button', { name: 'Guardar clientes' }));
     await screen.findByText('Clientes de monitorista.dos@ai27.mx guardados.');
     expect(cuerpos).toEqual([{ clientes_ids: ['CLI-1001'] }]);
@@ -464,7 +500,7 @@ describe('Roster — clientes de cada Monitorista', () => {
     expect(await filaDe('monitorista.dos@ai27.mx')).toHaveTextContent('Cliente Norte');
   });
 
-  it('E10: un cliente desactivado se muestra por su id, marcado, y no se reenvía', async () => {
+  it('E10: un cliente desactivado se muestra por su id, marcado, y se quita al guardar', async () => {
     conClienteDesactivado();
     renderRoster();
     const fila = await filaDe('monitorista.dos@ai27.mx');
@@ -474,9 +510,9 @@ describe('Roster — clientes de cada Monitorista', () => {
       screen.getByRole('link', { name: 'Editar clientes de monitorista.dos@ai27.mx' }),
     );
     const dialogo = await screen.findByRole('dialog');
-    expect(within(dialogo).queryByRole('checkbox', { name: /CLI-9009/ })).toBeNull();
-    expect(within(dialogo).getByText(/se quitarán al guardar/)).toBeInTheDocument();
-    await userEvent.click(within(dialogo).getByRole('checkbox', { name: 'Cliente Centro' }));
+    expect(within(dialogo).getByText('CLI-9009 · Desactivado')).toBeInTheDocument();
+    expect(within(dialogo).getByText(/se quitan al guardar/)).toBeInTheDocument();
+    await marcarCliente('Cliente Centro');
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Guardar clientes' }));
     await screen.findByText('Clientes de monitorista.dos@ai27.mx guardados.');
     expect(cuerpos).toEqual([{ clientes_ids: ['CLI-1002'] }]);
@@ -499,6 +535,7 @@ describe('Roster — clientes de cada Monitorista', () => {
       await screen.findByRole('link', { name: 'Editar clientes de Laura Méndez' }),
     );
     expect(await screen.findByRole('button', { name: 'Guardar clientes' })).toBeDisabled();
+    expect(screen.getByText('No hay cambios por guardar.')).toBeInTheDocument();
   });
 
   it('400: dice que un cliente no existe o está desactivado y vuelve a pedir los activos', async () => {
@@ -511,7 +548,7 @@ describe('Roster — clientes de cada Monitorista', () => {
     await userEvent.click(
       await screen.findByRole('link', { name: 'Editar clientes de Laura Méndez' }),
     );
-    await userEvent.click(await screen.findByRole('checkbox', { name: 'Cliente Sur' }));
+    await marcarCliente('Cliente Sur');
     const antes = peticiones.filter((p) => p === 'GET /api/v1/clientes').length;
     await userEvent.click(screen.getByRole('button', { name: 'Guardar clientes' }));
     expect(
@@ -538,10 +575,10 @@ describe('Roster — clientes de cada Monitorista', () => {
     await userEvent.click(
       await screen.findByRole('link', { name: 'Editar clientes de Laura Méndez' }),
     );
-    await userEvent.click(await screen.findByRole('checkbox', { name: 'Cliente Norte' }));
+    await marcarCliente('Cliente Norte');
     await userEvent.click(screen.getByRole('button', { name: 'Guardar clientes' }));
     expect(await screen.findByText(texto)).toBeInTheDocument();
-    expect(screen.getByRole('checkbox', { name: 'Cliente Norte' })).not.toBeChecked();
+    expect(screen.queryByRole('button', { name: 'Quitar a Cliente Norte' })).toBeNull();
   });
 
   it('403 al guardar: falta de permiso, sin cerrar la sesión', async () => {
@@ -554,7 +591,7 @@ describe('Roster — clientes de cada Monitorista', () => {
     await userEvent.click(
       await screen.findByRole('link', { name: 'Editar clientes de Laura Méndez' }),
     );
-    await userEvent.click(await screen.findByRole('checkbox', { name: 'Cliente Norte' }));
+    await marcarCliente('Cliente Norte');
     await userEvent.click(screen.getByRole('button', { name: 'Guardar clientes' }));
     expect(
       await screen.findByText('No tienes permiso para asignar clientes a los Monitoristas.'),
@@ -568,12 +605,11 @@ describe('Roster — clientes de cada Monitorista', () => {
     await userEvent.click(
       await screen.findByRole('link', { name: 'Editar clientes de monitorista.dos@ai27.mx' }),
     );
-    await userEvent.click(await screen.findByRole('checkbox', { name: 'Cliente Sur' }));
+    await marcarCliente('Cliente Sur');
     await userEvent.click(screen.getByRole('button', { name: 'Guardar clientes' }));
     await screen.findByText('Clientes de monitorista.dos@ai27.mx guardados.');
     expect(cuerpos).toEqual([{ clientes_ids: ['CLI-1003'] }]);
   });
-
   it('el jefe operativo no ve controles de subordinados ni altas de vehículos o custodios', async () => {
     renderRoster();
     await filaDe('Laura Méndez');
@@ -590,7 +626,7 @@ describe('Roster — cliente al que sirve una unidad', () => {
   it('el alta lo ofrece como opcional y aclara que no define el alcance', async () => {
     renderRoster();
     await userEvent.click(await screen.findByRole('button', { name: 'Nueva unidad' }));
-    await screen.findByRole('button', { name: 'Vehículo' });
+    await screen.findByRole('combobox', { name: 'Vehículo' });
     expect(
       await screen.findByText(/no define qué clientes ve cada Monitorista/),
     ).toBeInTheDocument();
@@ -608,7 +644,7 @@ describe('Roster — cliente al que sirve una unidad', () => {
     renderRoster();
     await abrirAlta();
     await elegirVehiculo('P-102 · DEF-5678 (coche)');
-    await userEvent.click(screen.getByRole('checkbox', { name: 'María Torres' }));
+    await alternarCustodio('María Torres');
     await abrirSelectorDeCliente();
     await userEvent.click(await screen.findByRole('button', { name: 'Cliente Centro' }));
     await userEvent.click(screen.getByRole('button', { name: 'Crear unidad' }));
